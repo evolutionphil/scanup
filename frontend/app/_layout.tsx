@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/store/authStore';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import LoadingScreen from '../src/components/LoadingScreen';
 
 export default function RootLayout() {
@@ -18,11 +19,15 @@ export default function RootLayout() {
   }, [loadStoredAuth]);
 
   if (isLoading) {
-    return <LoadingScreen message="Loading..." />;
+    return (
+      <SafeAreaProvider>
+        <LoadingScreen message="Loading..." />
+      </SafeAreaProvider>
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaProvider style={styles.container}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -38,7 +43,7 @@ export default function RootLayout() {
         <Stack.Screen name="document/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-page" options={{ presentation: 'modal' }} />
       </Stack>
-    </View>
+    </SafeAreaProvider>
   );
 }
 
