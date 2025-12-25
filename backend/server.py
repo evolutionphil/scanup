@@ -1066,8 +1066,8 @@ async def extract_text(
             {"$set": {"ocr_usage_today": 1, "ocr_usage_date": today}}
         )
     
-    # Perform actual OCR using OpenAI Vision
-    extracted_text = perform_ocr_with_openai(ocr_request.image_base64)
+    # Perform actual OCR using Emergent LLM
+    extracted_text = await perform_ocr_with_openai(ocr_request.image_base64)
     
     return OCRResponse(
         text=extracted_text,
