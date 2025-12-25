@@ -11,11 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document } from '../../src/store/documentStore';
 import DocumentCard from '../../src/components/DocumentCard';
 
 export default function SearchScreen() {
   const { token } = useAuthStore();
+  const { theme } = useThemeStore();
   const { documents, fetchDocuments } = useDocumentStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredDocs, setFilteredDocs] = useState<Document[]>([]);
@@ -49,13 +51,13 @@ export default function SearchScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrapper}>
-        <Ionicons name="search-outline" size={60} color="#475569" />
+      <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
+        <Ionicons name="search-outline" size={60} color={theme.textMuted} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>
         {searchQuery ? 'No Results Found' : 'Search Documents'}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: theme.textMuted }]}>
         {searchQuery
           ? 'Try different keywords or check the spelling'
           : 'Search by name, tags, or OCR text'}
@@ -64,24 +66,24 @@ export default function SearchScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Search</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Search</Text>
       </View>
 
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#64748B" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Ionicons name="search" size={20} color={theme.textMuted} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.text }]}
           placeholder="Search documents, tags, or text..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor={theme.textMuted}
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => handleSearch('')}>
-            <Ionicons name="close-circle" size={20} color="#64748B" />
+            <Ionicons name="close-circle" size={20} color={theme.textMuted} />
           </TouchableOpacity>
         )}
       </View>
@@ -104,7 +106,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   header: {
     paddingHorizontal: 20,
@@ -114,18 +115,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#F1F5F9',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
     marginHorizontal: 20,
     marginBottom: 16,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   searchIcon: {
     marginRight: 12,
@@ -134,7 +132,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#F1F5F9',
   },
   listContent: {
     padding: 12,
@@ -155,7 +152,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -163,12 +159,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F1F5F9',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
     textAlign: 'center',
   },
 });

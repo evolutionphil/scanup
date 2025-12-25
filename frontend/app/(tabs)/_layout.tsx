@@ -3,9 +3,11 @@ import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const { theme } = useThemeStore();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -18,13 +20,19 @@ export default function TabsLayout() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: '#3B82F6',
-          tabBarInactiveTintColor: '#64748B',
+          tabBarStyle: [
+            styles.tabBar,
+            {
+              backgroundColor: theme.surface,
+              borderTopColor: theme.border,
+            },
+          ],
+          tabBarActiveTintColor: theme.primary,
+          tabBarInactiveTintColor: theme.textMuted,
           tabBarShowLabel: true,
           tabBarLabelStyle: styles.tabBarLabel,
         }}
@@ -52,7 +60,7 @@ export default function TabsLayout() {
           options={{
             title: '',
             tabBarIcon: ({ focused }) => (
-              <View style={styles.scanButton}>
+              <View style={[styles.scanButton, { backgroundColor: theme.primary }]}>
                 <Ionicons name="scan" size={28} color="#FFF" />
               </View>
             ),
@@ -90,11 +98,8 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   tabBar: {
-    backgroundColor: '#1E293B',
-    borderTopColor: '#334155',
     borderTopWidth: 1,
     height: Platform.OS === 'ios' ? 88 : 64,
     paddingBottom: Platform.OS === 'ios' ? 28 : 8,
@@ -108,7 +113,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Platform.OS === 'ios' ? 20 : 16,

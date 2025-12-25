@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Folder } from '../../src/store/documentStore';
 import FolderCard from '../../src/components/FolderCard';
 import Button from '../../src/components/Button';
@@ -24,6 +25,7 @@ const FOLDER_COLORS = [
 
 export default function FoldersScreen() {
   const { token } = useAuthStore();
+  const { theme } = useThemeStore();
   const { documents, folders, fetchFolders, fetchDocuments, createFolder, deleteFolder } = useDocumentStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -105,25 +107,25 @@ export default function FoldersScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrapper}>
-        <Ionicons name="folder-outline" size={60} color="#475569" />
+      <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
+        <Ionicons name="folder-outline" size={60} color={theme.textMuted} />
       </View>
-      <Text style={styles.emptyTitle}>No Folders Yet</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>No Folders Yet</Text>
+      <Text style={[styles.emptyText, { color: theme.textMuted }]}>
         Create folders to organize your documents
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Folders</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Folders</Text>
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: theme.surface }]}
           onPress={() => setShowCreateModal(true)}
         >
-          <Ionicons name="add" size={24} color="#F1F5F9" />
+          <Ionicons name="add" size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -144,8 +146,8 @@ export default function FoldersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3B82F6"
-            colors={['#3B82F6']}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
       />
@@ -156,19 +158,23 @@ export default function FoldersScreen() {
         animationType="fade"
         onRequestClose={() => setShowCreateModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>New Folder</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>New Folder</Text>
             
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.background, 
+                color: theme.text,
+                borderColor: theme.border 
+              }]}
               placeholder="Folder name"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={theme.textMuted}
               value={newFolderName}
               onChangeText={setNewFolderName}
             />
 
-            <Text style={styles.colorLabel}>Color</Text>
+            <Text style={[styles.colorLabel, { color: theme.textSecondary }]}>Color</Text>
             <View style={styles.colorGrid}>
               {FOLDER_COLORS.map((color) => (
                 <TouchableOpacity
@@ -211,7 +217,6 @@ export default function FoldersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',
@@ -224,13 +229,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#F1F5F9',
   },
   addButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -248,7 +251,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -256,23 +258,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F1F5F9',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
     textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -281,24 +279,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F1F5F9',
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#0F172A',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#334155',
     marginBottom: 20,
   },
   colorLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#94A3B8',
     marginBottom: 12,
   },
   colorGrid: {

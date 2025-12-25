@@ -17,10 +17,12 @@ import * as Linking from 'expo-linking';
 import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function LoginScreen() {
+  const { theme } = useThemeStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,7 +89,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -97,15 +99,15 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: theme.surface }]}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color="#F1F5F9" />
+            <Ionicons name="arrow-back" size={24} color={theme.text} />
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sign in to continue</Text>
           </View>
 
           <View style={styles.form}>
@@ -137,9 +139,9 @@ export default function LoginScreen() {
             />
 
             <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              <Text style={[styles.dividerText, { color: theme.textMuted }]}>or continue with</Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
             </View>
 
             <Button
@@ -148,13 +150,13 @@ export default function LoginScreen() {
               variant="secondary"
               size="large"
               loading={googleLoading}
-              icon={<Ionicons name="logo-google" size={20} color="#F1F5F9" />}
+              icon={<Ionicons name="logo-google" size={20} color={theme.text} />}
             />
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                <Text style={styles.linkText}>Sign Up</Text>
+                <Text style={[styles.linkText, { color: theme.primary }]}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -167,7 +169,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   keyboardView: {
     flex: 1,
@@ -180,7 +181,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -191,12 +191,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#F1F5F9',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
   },
   form: {
     flex: 1,
@@ -212,10 +210,8 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#334155',
   },
   dividerText: {
-    color: '#64748B',
     paddingHorizontal: 16,
     fontSize: 14,
   },
@@ -225,11 +221,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footerText: {
-    color: '#64748B',
     fontSize: 14,
   },
   linkText: {
-    color: '#3B82F6',
     fontSize: 14,
     fontWeight: '600',
   },
