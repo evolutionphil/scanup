@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,22 +7,29 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document } from '../../src/store/documentStore';
 import DocumentCard from '../../src/components/DocumentCard';
 import LoadingScreen from '../../src/components/LoadingScreen';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 export default function DocumentsScreen() {
-  const { user, token } = useAuthStore();
+  const { user, token, isGuest } = useAuthStore();
+  const { theme } = useThemeStore();
   const { documents, isLoading, fetchDocuments, deleteDocument } = useDocumentStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
 
   const loadDocuments = async () => {
-    if (token) {
+    if (token && !isGuest) {
       try {
         await fetchDocuments(token);
       } catch (e) {
@@ -34,7 +41,9 @@ export default function DocumentsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadDocuments();
-    }, [token])
+      setSelectionMode(false);
+      setSelectedDocs([]);
+    }, [token, isGuest])
   );
 
   const onRefresh = async () => {
@@ -44,13 +53,36 @@ export default function DocumentsScreen() {
   };
 
   const handleDocumentPress = (doc: Document) => {
-    router.push(`/document/${doc.document_id}`);
+    if (selectionMode) {
+      toggleSelection(doc.document_id);
+    } else {
+      router.push(`/document/${doc.document_id}`);
+    }
   };
 
   const handleDocumentLongPress = (doc: Document) => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedDocs([doc.document_id]);
+    }
+  };
+
+  const toggleSelection = (docId: string) => {
+    if (selectedDocs.includes(docId)) {
+      const newSelection = selectedDocs.filter(id => id !== docId);
+      setSelectedDocs(newSelection);
+      if (newSelection.length === 0) {
+        setSelectionMode(false);
+      }
+    } else {
+      setSelectedDocs([...selectedDocs, docId]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
     Alert.alert(
-      doc.name,
-      'What would you like to do?',
+      'Delete Documents',
+      `Are you sure you want to delete ${selectedDocs.length} document(s)?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -58,11 +90,15 @@ export default function DocumentsScreen() {
           style: 'destructive',
           onPress: async () => {
             if (token) {
-              try {
-                await deleteDocument(token, doc.document_id);
-              } catch (e) {
-                Alert.alert('Error', 'Failed to delete document');
+              for (const docId of selectedDocs) {
+                try {
+                  await deleteDocument(token, docId);
+                } catch (e) {
+                  console.error('Error deleting:', e);
+                }
               }
+              setSelectionMode(false);
+              setSelectedDocs([]);
             }
           },
         },
@@ -72,47 +108,82 @@ export default function DocumentsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconWrapper}>
-        <Ionicons name="documents-outline" size={60} color="#475569" />
+      <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
+        <Ionicons name="documents-outline" size={56} color={theme.textMuted} />
       </View>
-      <Text style={styles.emptyTitle}>No Documents Yet</Text>
-      <Text style={styles.emptyText}>
-        Tap the scan button below to scan your first document
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>No Documents Yet</Text>
+      <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+        {isGuest 
+          ? 'Sign in to save documents to the cloud'
+          : 'Tap the scan button below to scan your first document'}
       </Text>
+      {isGuest && (
+        <TouchableOpacity 
+          style={[styles.signInButton, { backgroundColor: theme.primary }]}
+          onPress={() => router.push('/(auth)/login')}
+        >
+          <Text style={styles.signInButtonText}>Sign In</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
-  if (isLoading && documents.length === 0) {
+  if (isLoading && documents.length === 0 && !isGuest) {
     return <LoadingScreen message="Loading documents..." />;
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'User'}</Text>
-          <Text style={styles.title}>Your Documents</Text>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.appName, { color: theme.primary }]}>ScanUp</Text>
+          <Text style={[styles.greeting, { color: theme.textSecondary }]}>
+            Hello, {user?.name?.split(' ')[0] || 'Guest'}
+          </Text>
         </View>
-        {!user?.is_premium && (
-          <TouchableOpacity
-            style={styles.premiumBadge}
-            onPress={() => router.push('/(tabs)/profile')}
-          >
-            <Ionicons name="star" size={14} color="#F59E0B" />
-            <Text style={styles.premiumText}>Upgrade</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerRight}>
+          {!user?.is_premium && !isGuest && (
+            <TouchableOpacity
+              style={[styles.premiumBadge, { backgroundColor: theme.warning + '20' }]}
+              onPress={() => router.push('/(tabs)/profile')}
+            >
+              <Ionicons name="star" size={14} color={theme.warning} />
+              <Text style={[styles.premiumText, { color: theme.warning }]}>Pro</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {user && !user.is_premium && (
-        <View style={styles.ocrBanner}>
-          <Ionicons name="text" size={18} color="#3B82F6" />
-          <Text style={styles.ocrBannerText}>
+      {/* Selection Mode Header */}
+      {selectionMode && (
+        <View style={[styles.selectionHeader, { backgroundColor: theme.surface }]}>
+          <TouchableOpacity onPress={() => {
+            setSelectionMode(false);
+            setSelectedDocs([]);
+          }}>
+            <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.selectedCount, { color: theme.text }]}>
+            {selectedDocs.length} selected
+          </Text>
+          <TouchableOpacity onPress={handleDeleteSelected}>
+            <Ionicons name="trash-outline" size={24} color={theme.danger} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* OCR Banner for Free Users */}
+      {user && !user.is_premium && !isGuest && (
+        <View style={[styles.ocrBanner, { backgroundColor: theme.primary + '15' }]}>
+          <Ionicons name="text" size={16} color={theme.primary} />
+          <Text style={[styles.ocrBannerText, { color: theme.primary }]}>
             {user.ocr_remaining_today} OCR scans remaining today
           </Text>
         </View>
       )}
 
+      {/* Documents Grid */}
       <FlatList
         data={documents}
         keyExtractor={(item) => item.document_id}
@@ -121,6 +192,7 @@ export default function DocumentsScreen() {
             document={item}
             onPress={() => handleDocumentPress(item)}
             onLongPress={() => handleDocumentLongPress(item)}
+            selected={selectedDocs.includes(item.document_id)}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -131,10 +203,11 @@ export default function DocumentsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3B82F6"
-            colors={['#3B82F6']}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
@@ -143,62 +216,81 @@ export default function DocumentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  headerLeft: {},
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
   greeting: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#F1F5F9',
+    marginTop: 2,
   },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
     gap: 4,
   },
   premiumText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+  },
+  selectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  selectedCount: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   ocrBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     marginHorizontal: 20,
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
     gap: 8,
   },
   ocrBannerText: {
     fontSize: 13,
-    color: '#3B82F6',
+    fontWeight: '500',
   },
   listContent: {
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 100,
     flexGrow: 1,
   },
   row: {
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
   },
   emptyState: {
     flex: 1,
@@ -208,23 +300,32 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyIconWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#1E293B',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#F1F5F9',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  signInButton: {
+    marginTop: 20,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  signInButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
