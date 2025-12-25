@@ -634,6 +634,17 @@ export default function DocumentScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Export Modal */}
+      <ExportModal
+        visible={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        documentId={currentDocument.document_id}
+        documentName={currentDocument.name}
+        hasOcrText={currentDocument.pages.some((p) => !!p.ocr_text)}
+        isPremium={user?.is_premium || false}
+        token={token || ''}
+      />
     </SafeAreaView>
   );
 }
