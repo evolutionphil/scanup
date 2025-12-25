@@ -1,31 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAuthStore } from '../src/store/authStore';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import LoadingScreen from '../src/components/LoadingScreen';
 
 export default function RootLayout() {
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const loadStoredAuth = useAuthStore((state) => state.loadStoredAuth);
-  const hasLoaded = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoaded.current) {
-      hasLoaded.current = true;
-      loadStoredAuth();
-    }
-  }, [loadStoredAuth]);
-
-  if (isLoading) {
-    return (
-      <SafeAreaProvider>
-        <LoadingScreen message="Loading..." />
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <SafeAreaProvider style={styles.container}>
       <StatusBar style="light" />
