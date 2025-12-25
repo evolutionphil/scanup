@@ -24,6 +24,7 @@ import { useDocumentStore, Document, PageData } from '../../src/store/documentSt
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
+import ExportModal from '../../src/components/ExportModal';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -38,6 +39,7 @@ export default function DocumentScreen() {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [showFilterEditor, setShowFilterEditor] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [showOcrModal, setShowOcrModal] = useState(false);
