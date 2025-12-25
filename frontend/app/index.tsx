@@ -1,18 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
+import { useThemeStore } from '../src/store/themeStore';
 import Button from '../src/components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
+  const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
 
   useEffect(() => {
     if (!hasLoaded.current) {
       hasLoaded.current = true;
+      loadTheme();
       loadStoredAuth();
     }
   }, []);
@@ -25,31 +28,59 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Ionicons name="scan" size={60} color="#3B82F6" />
-        <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <View style={styles.logoWrapper}>
+          <Ionicons name="scan" size={50} color={theme.primary} />
+        </View>
+        <Text style={[styles.logoText, { color: theme.text }]}>ScanUp</Text>
+        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <View style={styles.iconWrapper}>
-            <Ionicons name="scan" size={60} color="#3B82F6" />
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={[styles.logoWrapper, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="scan" size={50} color={theme.primary} />
           </View>
-          <Text style={styles.title}>ScanPro</Text>
-          <Text style={styles.subtitle}>Document Scanner</Text>
+          <Text style={[styles.logoText, { color: theme.text }]}>ScanUp</Text>
+          <Text style={[styles.tagline, { color: theme.textSecondary }]}>
+            Smart Document Scanner
+          </Text>
         </View>
 
+        {/* Features */}
         <View style={styles.features}>
-          <FeatureItem icon="camera" text="Scan documents instantly" />
-          <FeatureItem icon="text" text="Extract text with OCR" />
-          <FeatureItem icon="cloud-upload" text="Cloud backup & sync" />
-          <FeatureItem icon="document" text="Export to PDF, JPG, PNG" />
+          <FeatureItem 
+            icon="camera" 
+            title="Live Edge Detection"
+            description="Auto-detect document boundaries"
+            theme={theme}
+          />
+          <FeatureItem 
+            icon="text" 
+            title="AI-Powered OCR"
+            description="Extract text instantly"
+            theme={theme}
+          />
+          <FeatureItem 
+            icon="color-wand" 
+            title="Smart Enhancement"
+            description="Auto-correct & beautify scans"
+            theme={theme}
+          />
+          <FeatureItem 
+            icon="cloud-upload" 
+            title="Cloud Sync"
+            description="Access from anywhere"
+            theme={theme}
+          />
         </View>
 
+        {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button
             title="Get Started"
@@ -58,11 +89,21 @@ export default function Index() {
             style={styles.button}
           />
           <Button
-            title="I already have an account"
+            title="Sign In"
             onPress={() => router.push('/(auth)/login')}
             variant="outline"
             size="large"
             style={styles.button}
+          />
+          <Button
+            title="Continue as Guest"
+            onPress={() => {
+              useAuthStore.getState().continueAsGuest();
+              router.replace('/(tabs)');
+            }}
+            variant="secondary"
+            size="medium"
+            style={[styles.button, { marginTop: 8 }]}
           />
         </View>
       </View>
@@ -70,13 +111,26 @@ export default function Index() {
   );
 }
 
-function FeatureItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function FeatureItem({ 
+  icon, 
+  title, 
+  description,
+  theme 
+}: { 
+  icon: keyof typeof Ionicons.glyphMap; 
+  title: string;
+  description: string;
+  theme: any;
+}) {
   return (
     <View style={styles.featureItem}>
-      <View style={styles.featureIcon}>
-        <Ionicons name={icon} size={20} color="#3B82F6" />
+      <View style={[styles.featureIcon, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name={icon} size={22} color={theme.primary} />
       </View>
-      <Text style={styles.featureText}>{text}</Text>
+      <View style={styles.featureTextContainer}>
+        <Text style={[styles.featureTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.featureDescription, { color: theme.textMuted }]}>{description}</Text>
+      </View>
     </View>
   );
 }
@@ -84,11 +138,9 @@ function FeatureItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; tex
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -97,31 +149,29 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'space-between',
   },
-  logoContainer: {
+  logoSection: {
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 40,
   },
-  iconWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  logoWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  title: {
+  logoText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#F1F5F9',
-    marginBottom: 8,
+    letterSpacing: -1,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#64748B',
+  tagline: {
+    fontSize: 16,
+    marginTop: 4,
   },
   features: {
-    marginVertical: 40,
+    marginVertical: 32,
   },
   featureItem: {
     flexDirection: 'row',
@@ -129,20 +179,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   featureIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  featureText: {
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureTitle: {
     fontSize: 16,
-    color: '#CBD5E1',
+    fontWeight: '600',
+  },
+  featureDescription: {
+    fontSize: 13,
+    marginTop: 2,
   },
   buttonContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   button: {
     marginBottom: 12,
