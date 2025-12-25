@@ -144,6 +144,8 @@ class Folder(BaseModel):
     name: str
     color: str
     parent_id: Optional[str] = None
+    is_protected: bool = False
+    password_hash: Optional[str] = None
     created_at: datetime
 
 # OCR Models
