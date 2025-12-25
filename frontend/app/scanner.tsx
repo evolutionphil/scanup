@@ -311,7 +311,7 @@ export default function ScannerScreen() {
               title="Save Document"
               onPress={saveDocument}
               loading={isSaving}
-              style={[styles.actionButton, { flex: 2 }]}
+              style={{ ...styles.actionButton, flex: 2 }}
               icon={<Ionicons name="checkmark" size={20} color="#FFF" />}
             />
           </View>
