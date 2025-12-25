@@ -418,7 +418,7 @@ def crop_image(image_base64: str, x: int, y: int, width: int, height: int) -> st
         return image_base64
 
 def detect_document_edges(image_base64: str) -> Dict[str, Any]:
-    """Detect document edges using OpenCV"""
+    """Detect document edges using OpenCV with improved detection"""
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
@@ -433,7 +433,8 @@ def detect_document_edges(image_base64: str) -> Dict[str, Any]:
         height, width = img.shape[:2]
         
         # Resize for faster processing
-        scale = min(1.0, 1000 / max(width, height))
+        max_dim = 800
+        scale = min(1.0, max_dim / max(width, height))
         if scale < 1.0:
             img_small = cv2.resize(img, None, fx=scale, fy=scale)
         else:
@@ -443,34 +444,61 @@ def detect_document_edges(image_base64: str) -> Dict[str, Any]:
         # Convert to grayscale
         gray = cv2.cvtColor(img_small, cv2.COLOR_BGR2GRAY)
         
-        # Apply Gaussian blur
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Apply bilateral filter to reduce noise while keeping edges sharp
+        blurred = cv2.bilateralFilter(gray, 9, 75, 75)
         
-        # Edge detection
-        edges = cv2.Canny(blurred, 50, 150)
+        # Try multiple edge detection approaches
+        best_contour = None
+        best_area = 0
         
-        # Dilate edges
-        kernel = np.ones((3, 3), np.uint8)
-        edges = cv2.dilate(edges, kernel, iterations=2)
+        # Approach 1: Canny edge detection with different thresholds
+        for low_thresh, high_thresh in [(30, 100), (50, 150), (75, 200)]:
+            edges = cv2.Canny(blurred, low_thresh, high_thresh)
+            
+            # Dilate edges to connect broken lines
+            kernel = np.ones((3, 3), np.uint8)
+            edges = cv2.dilate(edges, kernel, iterations=2)
+            edges = cv2.erode(edges, kernel, iterations=1)
+            
+            # Find contours
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area > best_area and area > (img_small.shape[0] * img_small.shape[1] * 0.1):
+                    # Approximate to polygon
+                    epsilon = 0.02 * cv2.arcLength(contour, True)
+                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    
+                    if len(approx) == 4:
+                        best_contour = approx
+                        best_area = area
         
-        # Find contours
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Approach 2: Adaptive thresholding if Canny didn't work well
+        if best_contour is None:
+            thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                          cv2.THRESH_BINARY, 11, 2)
+            thresh = cv2.bitwise_not(thresh)
+            
+            kernel = np.ones((5, 5), np.uint8)
+            thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+            
+            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area > best_area and area > (img_small.shape[0] * img_small.shape[1] * 0.1):
+                    epsilon = 0.02 * cv2.arcLength(contour, True)
+                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    
+                    if len(approx) == 4:
+                        best_contour = approx
+                        best_area = area
         
-        if not contours:
-            return {"detected": False, "corners": None}
-        
-        # Find the largest contour
-        largest_contour = max(contours, key=cv2.contourArea)
-        
-        # Approximate the contour to a polygon
-        epsilon = 0.02 * cv2.arcLength(largest_contour, True)
-        approx = cv2.approxPolyDP(largest_contour, epsilon, True)
-        
-        # Check if we got a quadrilateral
-        if len(approx) == 4:
+        if best_contour is not None:
             # Scale corners back to original size
             corners = []
-            for point in approx:
+            for point in best_contour:
                 x, y = point[0]
                 corners.append({
                     "x": int(x / scale),
