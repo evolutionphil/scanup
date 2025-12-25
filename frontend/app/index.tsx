@@ -178,7 +178,7 @@ export default function Index() {
             }}
             variant="secondary"
             size="medium"
-            style={[styles.button, { marginTop: 8 }]}
+            style={{ ...styles.button, marginTop: 8 }}
           />
         </View>
       </Animated.View>
