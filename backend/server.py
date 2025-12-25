@@ -972,6 +972,8 @@ async def create_folder(
         "name": folder_data.name,
         "color": folder_data.color,
         "parent_id": folder_data.parent_id,
+        "is_protected": False,
+        "password_hash": None,
         "created_at": now
     }
     
@@ -987,6 +989,38 @@ async def get_folders(current_user: User = Depends(get_current_user)):
         {"_id": 0}
     ).to_list(1000)
     return [Folder(**f) for f in folders]
+
+class FolderUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    is_protected: Optional[bool] = None
+    password_hash: Optional[str] = None
+
+@api_router.put("/folders/{folder_id}", response_model=Folder)
+async def update_folder(
+    folder_id: str,
+    folder_data: FolderUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a folder"""
+    update_data = {k: v for k, v in folder_data.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    result = await db.folders.update_one(
+        {"folder_id": folder_id, "user_id": current_user.user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    folder = await db.folders.find_one(
+        {"folder_id": folder_id},
+        {"_id": 0}
+    )
+    return Folder(**folder)
 
 @api_router.delete("/folders/{folder_id}")
 async def delete_folder(
