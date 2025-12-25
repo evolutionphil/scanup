@@ -301,6 +301,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  selectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  selectionAction: {
+    padding: 4,
+  },
   ocrBanner: {
     flexDirection: 'row',
     alignItems: 'center',
