@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import Button from '../src/components/Button';
@@ -7,7 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
+  const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoaded.current) {
+      hasLoaded.current = true;
+      loadStoredAuth();
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -18,7 +26,8 @@ export default function Index() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Ionicons name="document-text" size={60} color="#3B82F6" />
+        <Ionicons name="scan" size={60} color="#3B82F6" />
+        <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       </View>
     );
   }
