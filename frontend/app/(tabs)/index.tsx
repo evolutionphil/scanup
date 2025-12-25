@@ -33,9 +33,9 @@ export default function DocumentsScreen() {
   const loadDocuments = async () => {
     if (token && !isGuest) {
       try {
-        await fetchDocuments(token);
+        await Promise.all([fetchDocuments(token), fetchFolders(token)]);
       } catch (e) {
-        console.error('Failed to load documents:', e);
+        console.error('Failed to load data:', e);
       }
     }
   };
