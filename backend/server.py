@@ -300,8 +300,22 @@ def convert_to_rgb(image: Image.Image) -> Image.Image:
         return image.convert('RGB')
     return image
 
-def apply_image_filter(image_base64: str, filter_type: str) -> str:
-    """Apply filter to image"""
+def apply_image_filter(
+    image_base64: str, 
+    filter_type: str, 
+    brightness: int = 0, 
+    contrast: int = 0, 
+    saturation: int = 0
+) -> str:
+    """Apply filter and adjustments to image
+    
+    Args:
+        image_base64: Base64 encoded image
+        filter_type: Filter preset ('original', 'grayscale', 'bw', 'enhanced', 'document')
+        brightness: Adjustment from -50 to +50
+        contrast: Adjustment from -50 to +50
+        saturation: Adjustment from -50 to +50
+    """
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
@@ -310,6 +324,7 @@ def apply_image_filter(image_base64: str, filter_type: str) -> str:
         image = Image.open(BytesIO(image_data))
         image = convert_to_rgb(image)
         
+        # Apply filter preset first
         if filter_type == "grayscale":
             image = image.convert("L").convert("RGB")
         elif filter_type == "bw":
@@ -331,6 +346,27 @@ def apply_image_filter(image_base64: str, filter_type: str) -> str:
             image = enhancer.enhance(2.0)
             image = image.filter(ImageFilter.SHARPEN)
             image = image.convert("RGB")
+        
+        # Apply manual adjustments (brightness, contrast, saturation)
+        # Convert adjustment values (-50 to +50) to enhancement factors (0.5 to 1.5)
+        
+        if brightness != 0:
+            # Brightness: -50 -> 0.5, 0 -> 1.0, +50 -> 1.5
+            brightness_factor = 1.0 + (brightness / 100.0)
+            enhancer = ImageEnhance.Brightness(image)
+            image = enhancer.enhance(brightness_factor)
+        
+        if contrast != 0:
+            # Contrast: -50 -> 0.5, 0 -> 1.0, +50 -> 1.5
+            contrast_factor = 1.0 + (contrast / 100.0)
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(contrast_factor)
+        
+        if saturation != 0:
+            # Saturation: -50 -> 0.5, 0 -> 1.0, +50 -> 1.5
+            saturation_factor = 1.0 + (saturation / 100.0)
+            enhancer = ImageEnhance.Color(image)
+            image = enhancer.enhance(saturation_factor)
         
         buffer = BytesIO()
         image.save(buffer, format="JPEG", quality=90)
