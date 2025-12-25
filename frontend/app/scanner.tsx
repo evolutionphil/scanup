@@ -8,25 +8,30 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { useAuthStore } from '../src/store/authStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export default function ScannerScreen() {
-  const { token, user } = useAuthStore();
-  const { createDocument, processImage } = useDocumentStore();
+  const { token } = useAuthStore();
+  const { createDocument } = useDocumentStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [flashMode, setFlashMode] = useState<'off' | 'on'>('off');
+  const [autoCropEnabled, setAutoCropEnabled] = useState(true);
   const cameraRef = useRef<CameraView>(null);
 
   const takePicture = async () => {
@@ -40,7 +45,34 @@ export default function ScannerScreen() {
       });
 
       if (photo?.base64) {
-        setCapturedImages([...capturedImages, photo.base64]);
+        let imageToAdd = photo.base64;
+
+        // Try auto-crop if enabled
+        if (autoCropEnabled && token) {
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                image_base64: photo.base64,
+                operation: 'auto_crop',
+                params: {}
+              }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+              imageToAdd = result.cropped_image_base64;
+            }
+          } catch (e) {
+            console.log('Auto-crop not available, using original');
+          }
+        }
+
+        setCapturedImages([...capturedImages, imageToAdd]);
       }
     } catch (error) {
       console.error('Error taking picture:', error);
@@ -157,6 +189,19 @@ export default function ScannerScreen() {
               >
                 <Ionicons name="close" size={28} color="#FFF" />
               </TouchableOpacity>
+              
+              <View style={styles.topBarCenter}>
+                <TouchableOpacity
+                  style={[styles.toggleButton, autoCropEnabled && styles.toggleActive]}
+                  onPress={() => setAutoCropEnabled(!autoCropEnabled)}
+                >
+                  <Ionicons name="crop" size={18} color={autoCropEnabled ? '#FFF' : '#94A3B8'} />
+                  <Text style={[styles.toggleText, autoCropEnabled && styles.toggleTextActive]}>
+                    Auto Crop
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
               <TouchableOpacity
                 style={styles.iconButton}
                 onPress={() => setFlashMode(flashMode === 'off' ? 'on' : 'off')}
@@ -169,16 +214,26 @@ export default function ScannerScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Document Detection Frame */}
             <View style={styles.scanFrame}>
               <View style={[styles.corner, styles.topLeft]} />
               <View style={[styles.corner, styles.topRight]} />
               <View style={[styles.corner, styles.bottomLeft]} />
               <View style={[styles.corner, styles.bottomRight]} />
+              
+              {/* Center guide text */}
+              <View style={styles.guideContainer}>
+                <Ionicons name="document-text-outline" size={40} color="rgba(59, 130, 246, 0.5)" />
+                <Text style={styles.guideText}>
+                  Position document within frame
+                </Text>
+              </View>
             </View>
 
             <View style={styles.bottomBar}>
               <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
                 <Ionicons name="images" size={28} color="#FFF" />
+                <Text style={styles.bottomButtonText}>Gallery</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -187,13 +242,16 @@ export default function ScannerScreen() {
                 disabled={isCapturing}
               >
                 {isCapturing ? (
-                  <ActivityIndicator color="#FFF" />
+                  <ActivityIndicator color="#3B82F6" size="small" />
                 ) : (
                   <View style={styles.captureInner} />
                 )}
               </TouchableOpacity>
 
-              <View style={styles.placeholder} />
+              <View style={styles.bottomPlaceholder}>
+                <Ionicons name="scan-outline" size={28} color="#94A3B8" />
+                <Text style={styles.bottomButtonTextMuted}>Scan</Text>
+              </View>
             </View>
           </SafeAreaView>
         </CameraView>
@@ -210,14 +268,17 @@ export default function ScannerScreen() {
               {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
             </Text>
             <TouchableOpacity
-              style={styles.addMoreButton}
+              style={styles.iconButton}
               onPress={() => setCapturedImages([])}
             >
-              <Ionicons name="add" size={24} color="#FFF" />
+              <Ionicons name="camera" size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.previewContent}>
+          <ScrollView 
+            style={styles.previewScrollView}
+            contentContainerStyle={styles.previewContent}
+          >
             {capturedImages.map((image, index) => (
               <View key={index} style={styles.previewImageContainer}>
                 <Image
@@ -229,14 +290,14 @@ export default function ScannerScreen() {
                   style={styles.removeButton}
                   onPress={() => removeImage(index)}
                 >
-                  <Ionicons name="close-circle" size={28} color="#EF4444" />
+                  <Ionicons name="close-circle" size={32} color="#EF4444" />
                 </TouchableOpacity>
                 <View style={styles.pageNumber}>
-                  <Text style={styles.pageNumberText}>{index + 1}</Text>
+                  <Text style={styles.pageNumberText}>Page {index + 1}</Text>
                 </View>
               </View>
             ))}
-          </View>
+          </ScrollView>
 
           <View style={styles.previewActions}>
             <Button
@@ -275,7 +336,32 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
+  },
+  topBarCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  toggleActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+  },
+  toggleText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  toggleTextActive: {
+    color: '#FFF',
   },
   iconButton: {
     width: 48,
@@ -287,13 +373,15 @@ const styles = StyleSheet.create({
   },
   scanFrame: {
     flex: 1,
-    margin: 40,
+    margin: 30,
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   corner: {
     position: 'absolute',
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     borderColor: '#3B82F6',
     borderWidth: 4,
   },
@@ -302,42 +390,62 @@ const styles = StyleSheet.create({
     left: 0,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopLeftRadius: 12,
+    borderTopLeftRadius: 16,
   },
   topRight: {
     top: 0,
     right: 0,
     borderBottomWidth: 0,
     borderLeftWidth: 0,
-    borderTopRightRadius: 12,
+    borderTopRightRadius: 16,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
     borderTopWidth: 0,
     borderRightWidth: 0,
-    borderBottomLeftRadius: 12,
+    borderBottomLeftRadius: 16,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
     borderTopWidth: 0,
     borderLeftWidth: 0,
-    borderBottomRightRadius: 12,
+    borderBottomRightRadius: 16,
+  },
+  guideContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  guideText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
   },
   bottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 30,
+    paddingHorizontal: 30,
+    paddingBottom: 30,
+    paddingTop: 20,
   },
   galleryButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
+  },
+  bottomPlaceholder: {
+    alignItems: 'center',
+    gap: 4,
+    opacity: 0.5,
+  },
+  bottomButtonText: {
+    fontSize: 11,
+    color: '#FFF',
+  },
+  bottomButtonTextMuted: {
+    fontSize: 11,
+    color: '#94A3B8',
   },
   captureButton: {
     width: 80,
@@ -357,10 +465,6 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFF',
-  },
-  placeholder: {
-    width: 56,
-    height: 56,
   },
   permissionContainer: {
     flex: 1,
@@ -410,16 +514,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#F1F5F9',
   },
-  addMoreButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
+  previewScrollView: {
+    flex: 1,
   },
   previewContent: {
-    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 10,
@@ -440,7 +538,7 @@ const styles = StyleSheet.create({
     top: 4,
     right: 4,
     backgroundColor: '#0F172A',
-    borderRadius: 14,
+    borderRadius: 16,
   },
   pageNumber: {
     position: 'absolute',
