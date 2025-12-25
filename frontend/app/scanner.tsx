@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Dimensions,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -19,19 +20,24 @@ import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
-import DocumentTypeSelector, { DocumentType } from '../src/components/DocumentTypeSelector';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const DOC_TYPE_GUIDES: Record<DocumentType, { message: string; aspectRatio?: number }> = {
-  document: { message: 'Position document within frame', aspectRatio: 0.707 },
-  id_card: { message: 'Align ID card edges', aspectRatio: 1.586 },
-  passport: { message: 'Center passport page', aspectRatio: 0.707 },
-  book: { message: 'Capture book pages', aspectRatio: 0.707 },
-  whiteboard: { message: 'Capture entire whiteboard', aspectRatio: 1.333 },
-  business_card: { message: 'Center business card', aspectRatio: 1.75 },
-};
+type DocumentType = 'document' | 'id_card' | 'book' | 'whiteboard' | 'business_card';
+
+const DOCUMENT_TYPES: { type: DocumentType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { type: 'whiteboard', label: 'Whiteboard', icon: 'easel-outline' },
+  { type: 'book', label: 'Book', icon: 'book-outline' },
+  { type: 'document', label: 'Document', icon: 'document-text-outline' },
+  { type: 'id_card', label: 'ID Card', icon: 'card-outline' },
+  { type: 'business_card', label: 'Business', icon: 'person-outline' },
+];
+
+interface CropPoint {
+  x: number;
+  y: number;
+}
 
 export default function ScannerScreen() {
   const { token } = useAuthStore();
@@ -44,7 +50,14 @@ export default function ScannerScreen() {
   const [flashMode, setFlashMode] = useState<'off' | 'on'>('off');
   const [autoCropEnabled, setAutoCropEnabled] = useState(true);
   const [documentType, setDocumentType] = useState<DocumentType>('document');
-  const [showTypeSelector, setShowTypeSelector] = useState(true);
+  const [showManualCrop, setShowManualCrop] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropPoints, setCropPoints] = useState<CropPoint[]>([
+    { x: 50, y: 50 },
+    { x: SCREEN_WIDTH - 90, y: 50 },
+    { x: SCREEN_WIDTH - 90, y: 350 },
+    { x: 50, y: 350 },
+  ]);
   const cameraRef = useRef<CameraView>(null);
 
   const takePicture = async () => {
@@ -79,13 +92,20 @@ export default function ScannerScreen() {
             const result = await response.json();
             if (result.success) {
               processedImage = result.cropped_image_base64;
+              setCapturedImages([...capturedImages, { base64: processedImage, original: originalImage }]);
+            } else {
+              // Auto-crop failed, show manual crop interface
+              setCropImage(originalImage);
+              setShowManualCrop(true);
             }
           } catch (e) {
-            console.log('Auto-crop not available, using original');
+            console.log('Auto-crop failed, showing manual crop');
+            setCropImage(originalImage);
+            setShowManualCrop(true);
           }
+        } else {
+          setCapturedImages([...capturedImages, { base64: processedImage, original: originalImage }]);
         }
-
-        setCapturedImages([...capturedImages, { base64: processedImage, original: originalImage }]);
       }
     } catch (error) {
       console.error('Error taking picture:', error);
@@ -93,6 +113,54 @@ export default function ScannerScreen() {
     } finally {
       setIsCapturing(false);
     }
+  };
+
+  const handleManualCropConfirm = async () => {
+    if (!cropImage || !token) return;
+
+    setIsCapturing(true);
+    try {
+      // Convert screen coordinates to image coordinates (normalized 0-1)
+      const normalizedPoints = cropPoints.map(p => ({
+        x: p.x / (SCREEN_WIDTH - 40),
+        y: p.y / 400,
+      }));
+
+      const response = await fetch(`${BACKEND_URL}/api/images/perspective-crop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_base64: cropImage,
+          corners: normalizedPoints,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setCapturedImages([...capturedImages, { base64: result.cropped_image_base64, original: cropImage }]);
+      } else {
+        // Use original if crop fails
+        setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
+      }
+    } catch (e) {
+      console.log('Manual crop failed, using original');
+      setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
+    } finally {
+      setShowManualCrop(false);
+      setCropImage(null);
+      setIsCapturing(false);
+    }
+  };
+
+  const handleManualCropSkip = () => {
+    if (cropImage) {
+      setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
+    }
+    setShowManualCrop(false);
+    setCropImage(null);
   };
 
   const pickImage = async () => {
@@ -142,7 +210,8 @@ export default function ScannerScreen() {
         created_at: new Date().toISOString(),
       }));
 
-      const docName = `${documentType.charAt(0).toUpperCase() + documentType.slice(1).replace('_', ' ')} ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+      const typeLabel = DOCUMENT_TYPES.find(t => t.type === documentType)?.label || 'Document';
+      const docName = `${typeLabel} ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 
       await createDocument(token!, {
         name: docName,
@@ -159,6 +228,38 @@ export default function ScannerScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Manual Crop Corner Component
+  const CropCorner = ({ index, position }: { index: number; position: CropPoint }) => {
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderMove: (_, gestureState) => {
+          const newPoints = [...cropPoints];
+          newPoints[index] = {
+            x: Math.max(0, Math.min(SCREEN_WIDTH - 40, position.x + gestureState.dx)),
+            y: Math.max(0, Math.min(400, position.y + gestureState.dy)),
+          };
+          setCropPoints(newPoints);
+        },
+      })
+    ).current;
+
+    return (
+      <View
+        {...panResponder.panHandlers}
+        style={[
+          styles.cropCorner,
+          {
+            left: position.x - 15,
+            top: position.y - 15,
+            backgroundColor: theme.primary,
+          },
+        ]}
+      />
+    );
   };
 
   if (!permission) {
@@ -180,23 +281,96 @@ export default function ScannerScreen() {
           <Text style={[styles.permissionText, { color: theme.textMuted }]}>
             Please grant camera access to scan documents
           </Text>
-          <Button
-            title="Grant Permission"
-            onPress={requestPermission}
-            style={styles.permissionButton}
-          />
-          <Button
-            title="Go Back"
-            variant="secondary"
-            onPress={() => router.back()}
-            style={styles.permissionButton}
-          />
+          <Button title="Grant Permission" onPress={requestPermission} style={styles.permissionButton} />
+          <Button title="Go Back" variant="secondary" onPress={() => router.back()} style={styles.permissionButton} />
         </View>
       </SafeAreaView>
     );
   }
 
-  const guide = DOC_TYPE_GUIDES[documentType];
+  // Manual Crop Screen
+  if (showManualCrop && cropImage) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.manualCropHeader}>
+          <TouchableOpacity onPress={handleManualCropSkip}>
+            <Text style={[styles.headerButton, { color: theme.textMuted }]}>Skip</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Adjust Edges</Text>
+          <TouchableOpacity onPress={handleManualCropConfirm}>
+            <Text style={[styles.headerButton, { color: theme.primary }]}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.manualCropContainer}>
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${cropImage}` }}
+            style={styles.cropPreviewImage}
+            resizeMode="contain"
+          />
+          <View style={styles.cropOverlay}>
+            {/* SVG-like path between corners */}
+            <View style={[styles.cropLine, {
+              left: cropPoints[0].x,
+              top: cropPoints[0].y,
+              width: cropPoints[1].x - cropPoints[0].x,
+              height: 3,
+              backgroundColor: theme.primary,
+            }]} />
+            <View style={[styles.cropLine, {
+              left: cropPoints[1].x,
+              top: cropPoints[1].y,
+              width: 3,
+              height: cropPoints[2].y - cropPoints[1].y,
+              backgroundColor: theme.primary,
+            }]} />
+            <View style={[styles.cropLine, {
+              left: cropPoints[3].x,
+              top: cropPoints[2].y,
+              width: cropPoints[2].x - cropPoints[3].x,
+              height: 3,
+              backgroundColor: theme.primary,
+            }]} />
+            <View style={[styles.cropLine, {
+              left: cropPoints[0].x,
+              top: cropPoints[0].y,
+              width: 3,
+              height: cropPoints[3].y - cropPoints[0].y,
+              backgroundColor: theme.primary,
+            }]} />
+            
+            {cropPoints.map((point, index) => (
+              <CropCorner key={index} index={index} position={point} />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.manualCropActions}>
+          <TouchableOpacity
+            style={[styles.cropActionButton, { backgroundColor: theme.surface }]}
+            onPress={() => {
+              setCropPoints([
+                { x: 50, y: 50 },
+                { x: SCREEN_WIDTH - 90, y: 50 },
+                { x: SCREEN_WIDTH - 90, y: 350 },
+                { x: 50, y: 350 },
+              ]);
+            }}
+          >
+            <Ionicons name="scan" size={20} color={theme.text} />
+            <Text style={[styles.cropActionText, { color: theme.text }]}>Auto Detect</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.cropActionButton, { backgroundColor: theme.surface }]}
+            onPress={handleManualCropSkip}
+          >
+            <Ionicons name="close" size={20} color={theme.text} />
+            <Text style={[styles.cropActionText, { color: theme.text }]}>No Crop</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -208,84 +382,85 @@ export default function ScannerScreen() {
           flash={flashMode}
         >
           <SafeAreaView style={styles.cameraOverlay}>
+            {/* Top Bar */}
             <View style={styles.topBar}>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => router.back()}
-              >
+              <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
                 <Ionicons name="close" size={28} color="#FFF" />
               </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.docTypeButton, { backgroundColor: theme.primary + 'CC' }]}
-                onPress={() => setShowTypeSelector(true)}
-              >
-                <Ionicons name="document-text" size={18} color="#FFF" />
-                <Text style={styles.docTypeText}>
-                  {documentType.charAt(0).toUpperCase() + documentType.slice(1).replace('_', ' ')}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color="#FFF" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => setFlashMode(flashMode === 'off' ? 'on' : 'off')}
-              >
-                <Ionicons
-                  name={flashMode === 'off' ? 'flash-off' : 'flash'}
-                  size={28}
-                  color="#FFF"
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Auto-crop toggle */}
-            <View style={styles.toggleRow}>
               <TouchableOpacity
                 style={[styles.toggleButton, autoCropEnabled && { backgroundColor: theme.primary + 'CC' }]}
                 onPress={() => setAutoCropEnabled(!autoCropEnabled)}
               >
                 <Ionicons name="crop" size={18} color={autoCropEnabled ? '#FFF' : '#94A3B8'} />
-                <Text style={[styles.toggleText, autoCropEnabled && styles.toggleTextActive]}>
-                  Auto Crop
-                </Text>
+                <Text style={[styles.toggleText, autoCropEnabled && styles.toggleTextActive]}>Auto</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setFlashMode(flashMode === 'off' ? 'on' : 'off')}
+              >
+                <Ionicons name={flashMode === 'off' ? 'flash-off' : 'flash'} size={28} color="#FFF" />
               </TouchableOpacity>
             </View>
 
-            {/* Document Detection Frame */}
+            {/* Scan Frame */}
             <View style={styles.scanFrame}>
               <View style={[styles.corner, styles.topLeft, { borderColor: theme.primary }]} />
               <View style={[styles.corner, styles.topRight, { borderColor: theme.primary }]} />
               <View style={[styles.corner, styles.bottomLeft, { borderColor: theme.primary }]} />
               <View style={[styles.corner, styles.bottomRight, { borderColor: theme.primary }]} />
-              
-              <View style={styles.guideContainer}>
-                <Ionicons name="scan-outline" size={40} color={theme.primary + '80'} />
-                <Text style={styles.guideText}>{guide.message}</Text>
-              </View>
             </View>
 
-            <View style={styles.bottomBar}>
-              <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
-                <Ionicons name="images" size={28} color="#FFF" />
-                <Text style={styles.bottomButtonText}>Gallery</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.captureButton, isCapturing && styles.capturing]}
-                onPress={takePicture}
-                disabled={isCapturing}
+            {/* Bottom Controls */}
+            <View style={styles.bottomSection}>
+              {/* Document Type Selector - Horizontal Scroll */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.docTypeScroll}
               >
-                {isCapturing ? (
-                  <ActivityIndicator color={theme.primary} size="small" />
-                ) : (
-                  <View style={styles.captureInner} />
-                )}
-              </TouchableOpacity>
+                {DOCUMENT_TYPES.map((type) => (
+                  <TouchableOpacity
+                    key={type.type}
+                    style={styles.docTypeItem}
+                    onPress={() => setDocumentType(type.type)}
+                  >
+                    <Text style={[
+                      styles.docTypeLabel,
+                      { color: documentType === type.type ? theme.primary : '#94A3B8' },
+                      documentType === type.type && styles.docTypeLabelActive
+                    ]}>
+                      {type.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-              <View style={styles.bottomPlaceholder}>
-                <Ionicons name="scan-outline" size={28} color="#94A3B8" />
-                <Text style={styles.bottomButtonTextMuted}>Scan</Text>
+              {/* Capture Controls */}
+              <View style={styles.captureBar}>
+                <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
+                  <Ionicons name="images" size={26} color="#FFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.captureButton, isCapturing && styles.capturing]}
+                  onPress={takePicture}
+                  disabled={isCapturing}
+                >
+                  {isCapturing ? (
+                    <ActivityIndicator color={theme.primary} size="small" />
+                  ) : (
+                    <View style={styles.captureInner} />
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.sideButton}>
+                  {capturedImages.length > 0 && (
+                    <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.badgeText}>{capturedImages.length}</Text>
+                    </View>
+                  )}
+                  <Ionicons name="layers" size={26} color="#94A3B8" />
+                </View>
               </View>
             </View>
           </SafeAreaView>
@@ -310,14 +485,7 @@ export default function ScannerScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.reorderHint, { color: theme.textMuted }]}>
-            Long press and drag to reorder pages
-          </Text>
-
-          <ScrollView 
-            style={styles.previewScrollView}
-            contentContainerStyle={styles.previewContent}
-          >
+          <ScrollView style={styles.previewScrollView} contentContainerStyle={styles.previewContent}>
             {capturedImages.map((image, index) => (
               <View key={index} style={styles.previewImageContainer}>
                 <Image
@@ -334,22 +502,14 @@ export default function ScannerScreen() {
                 <View style={styles.pageNumber}>
                   <Text style={styles.pageNumberText}>Page {index + 1}</Text>
                 </View>
-                
-                {/* Reorder buttons */}
                 <View style={[styles.reorderButtons, { backgroundColor: theme.background + 'E0' }]}>
                   {index > 0 && (
-                    <TouchableOpacity
-                      style={styles.reorderBtn}
-                      onPress={() => moveImage(index, 'up')}
-                    >
+                    <TouchableOpacity style={styles.reorderBtn} onPress={() => moveImage(index, 'up')}>
                       <Ionicons name="arrow-up" size={18} color={theme.primary} />
                     </TouchableOpacity>
                   )}
                   {index < capturedImages.length - 1 && (
-                    <TouchableOpacity
-                      style={styles.reorderBtn}
-                      onPress={() => moveImage(index, 'down')}
-                    >
+                    <TouchableOpacity style={styles.reorderBtn} onPress={() => moveImage(index, 'down')}>
                       <Ionicons name="arrow-down" size={18} color={theme.primary} />
                     </TouchableOpacity>
                   )}
@@ -376,14 +536,6 @@ export default function ScannerScreen() {
           </View>
         </SafeAreaView>
       )}
-
-      {/* Document Type Selector Modal */}
-      <DocumentTypeSelector
-        visible={showTypeSelector}
-        onClose={() => setShowTypeSelector(false)}
-        onSelect={(type) => setDocumentType(type)}
-        selectedType={documentType}
-      />
     </View>
   );
 }
@@ -406,28 +558,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  docTypeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-  },
-  docTypeText: {
-    fontSize: 13,
-    color: '#FFF',
-    fontWeight: '600',
-  },
-  toggleRow: {
-    alignItems: 'center',
-    marginTop: -10,
-  },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
@@ -448,24 +583,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   scanFrame: {
     flex: 1,
     margin: 30,
     position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   corner: {
     position: 'absolute',
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderWidth: 4,
   },
   topLeft: {
@@ -473,67 +599,79 @@ const styles = StyleSheet.create({
     left: 0,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopLeftRadius: 16,
+    borderTopLeftRadius: 12,
   },
   topRight: {
     top: 0,
     right: 0,
     borderBottomWidth: 0,
     borderLeftWidth: 0,
-    borderTopRightRadius: 16,
+    borderTopRightRadius: 12,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
     borderTopWidth: 0,
     borderRightWidth: 0,
-    borderBottomLeftRadius: 16,
+    borderBottomLeftRadius: 12,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
     borderTopWidth: 0,
     borderLeftWidth: 0,
-    borderBottomRightRadius: 16,
+    borderBottomRightRadius: 12,
   },
-  guideContainer: {
-    alignItems: 'center',
-    gap: 12,
+  bottomSection: {
+    paddingBottom: 20,
   },
-  guideText: {
+  docTypeScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 24,
+  },
+  docTypeItem: {
+    paddingHorizontal: 4,
+  },
+  docTypeLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
+    fontWeight: '500',
   },
-  bottomBar: {
+  docTypeLabelActive: {
+    fontWeight: '700',
+  },
+  captureBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingBottom: 30,
-    paddingTop: 20,
+    paddingHorizontal: 40,
   },
-  galleryButton: {
+  sideButton: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    position: 'relative',
   },
-  bottomPlaceholder: {
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    opacity: 0.5,
   },
-  bottomButtonText: {
-    fontSize: 11,
+  badgeText: {
     color: '#FFF',
-  },
-  bottomButtonTextMuted: {
     fontSize: 11,
-    color: '#94A3B8',
+    fontWeight: '700',
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -544,9 +682,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   captureInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#FFF',
   },
   permissionContainer: {
@@ -578,6 +716,65 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 12,
   },
+  // Manual Crop Styles
+  manualCropHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  headerButton: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  manualCropContainer: {
+    flex: 1,
+    margin: 20,
+    position: 'relative',
+  },
+  cropPreviewImage: {
+    width: '100%',
+    height: 400,
+    borderRadius: 12,
+  },
+  cropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    marginTop: 0,
+  },
+  cropCorner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: '#FFF',
+  },
+  cropLine: {
+    position: 'absolute',
+  },
+  manualCropActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    padding: 20,
+  },
+  cropActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+  },
+  cropActionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Preview Styles
   previewContainer: {
     flex: 1,
   },
@@ -587,14 +784,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
   },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  reorderHint: {
-    textAlign: 'center',
-    fontSize: 12,
-    marginBottom: 8,
   },
   previewScrollView: {
     flex: 1,
