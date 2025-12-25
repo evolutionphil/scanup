@@ -282,10 +282,10 @@ export default function DocumentScreen() {
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       const fileName = `${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}_page${selectedPageIndex + 1}.jpg`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const fileUri = `${cacheDirectory}${fileName}`;
       
-      await FileSystem.writeAsStringAsync(fileUri, currentPage.image_base64, {
-        encoding: FileSystem.EncodingType.Base64,
+      await writeAsStringAsync(fileUri, currentPage.image_base64, {
+        encoding: EncodingType.Base64,
       });
 
       const isAvailable = await Sharing.isAvailableAsync();
