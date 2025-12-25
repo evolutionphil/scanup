@@ -17,16 +17,18 @@ import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document } from '../../src/store/documentStore';
 import DocumentCard from '../../src/components/DocumentCard';
 import LoadingScreen from '../../src/components/LoadingScreen';
+import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function DocumentsScreen() {
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
-  const { documents, isLoading, fetchDocuments, deleteDocument } = useDocumentStore();
+  const { documents, folders, isLoading, fetchDocuments, fetchFolders, deleteDocument, updateDocument } = useDocumentStore();
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   const loadDocuments = async () => {
     if (token && !isGuest) {
