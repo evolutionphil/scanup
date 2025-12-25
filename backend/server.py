@@ -29,6 +29,13 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# OpenAI client for OCR
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+openai_client = OpenAI(
+    api_key=EMERGENT_LLM_KEY,
+    base_url="https://api.emergentagent.com/v1"
+) if EMERGENT_LLM_KEY else None
+
 # Create the main app without a prefix
 app = FastAPI()
 
