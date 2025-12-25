@@ -75,7 +75,7 @@ export default function FoldersScreen() {
   };
 
   const handleFolderPress = (folder: Folder) => {
-    router.push({ pathname: '/(tabs)', params: { folder_id: folder.folder_id, folder_name: folder.name } });
+    router.push({ pathname: '/folder/[id]', params: { id: folder.folder_id, folder_name: folder.name } });
   };
 
   const handleFolderLongPress = (folder: Folder) => {
