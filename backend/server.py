@@ -1021,7 +1021,10 @@ async def process_image(
     
     if request.operation == "filter":
         filter_type = request.params.get("type", "original")
-        result = apply_image_filter(result, filter_type)
+        brightness = request.params.get("brightness", 0)
+        contrast = request.params.get("contrast", 0)
+        saturation = request.params.get("saturation", 0)
+        result = apply_image_filter(result, filter_type, brightness, contrast, saturation)
     elif request.operation == "rotate":
         degrees = request.params.get("degrees", 90)
         result = rotate_image(result, degrees)
