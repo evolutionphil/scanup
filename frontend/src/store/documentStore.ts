@@ -39,6 +39,7 @@ export interface Folder {
   name: string;
   color: string;
   parent_id?: string;
+  is_protected?: boolean;
   created_at: string;
 }
 
