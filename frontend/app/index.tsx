@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
@@ -7,40 +7,115 @@ import Button from '../src/components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const { width } = Dimensions.get('window');
+
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!hasLoaded.current) {
       hasLoaded.current = true;
       loadTheme();
       loadStoredAuth();
+
+      // Start splash animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Hide splash after delay
+      setTimeout(() => {
+        setShowSplash(false);
+        Animated.timing(contentFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }, 1800);
     }
   }, []);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && !showSplash) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, showSplash]);
 
-  if (isLoading) {
+  // Splash Screen
+  if (showSplash || isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-        <View style={styles.logoWrapper}>
-          <Ionicons name="scan" size={50} color={theme.primary} />
-        </View>
-        <Text style={[styles.logoText, { color: theme.text }]}>ScanUp</Text>
-        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} />
+      <View style={[styles.splashContainer, { backgroundColor: theme.background }]}>
+        {/* Background gradient circles */}
+        <View style={[styles.gradientCircle, { backgroundColor: theme.primary + '15' }]} />
+        <View style={[styles.gradientCircle2, { backgroundColor: theme.primary + '10' }]} />
+        
+        {/* Logo */}
+        <Animated.View
+          style={[
+            styles.splashLogoContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <View style={[styles.splashLogoWrapper, { backgroundColor: theme.primary + '20' }]}>
+            <Ionicons name="scan" size={60} color={theme.primary} />
+          </View>
+        </Animated.View>
+
+        {/* App Name */}
+        <Animated.View
+          style={[
+            styles.splashTextContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={[styles.splashAppName, { color: theme.text }]}>ScanUp</Text>
+          <Text style={[styles.splashTagline, { color: theme.textSecondary }]}>
+            Smart Document Scanner
+          </Text>
+        </Animated.View>
+
+        {/* Loading dots */}
+        <Animated.View style={[styles.loadingContainer, { opacity: fadeAnim }]}>
+          <ActivityIndicator size="small" color={theme.primary} />
+        </Animated.View>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
+      <Animated.View style={[styles.content, { opacity: contentFadeAnim }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={[styles.logoWrapper, { backgroundColor: theme.primary + '15' }]}>
@@ -106,7 +181,7 @@ export default function Index() {
             style={[styles.button, { marginTop: 8 }]}
           />
         </View>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -136,13 +211,58 @@ function FeatureItem({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
+  // Splash Screen Styles
+  splashContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gradientCircle: {
+    position: 'absolute',
+    width: width * 1.5,
+    height: width * 1.5,
+    borderRadius: width * 0.75,
+    top: -width * 0.5,
+    right: -width * 0.5,
+  },
+  gradientCircle2: {
+    position: 'absolute',
+    width: width * 1.2,
+    height: width * 1.2,
+    borderRadius: width * 0.6,
+    bottom: -width * 0.3,
+    left: -width * 0.4,
+  },
+  splashLogoContainer: {
+    marginBottom: 24,
+  },
+  splashLogoWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashTextContainer: {
+    alignItems: 'center',
+  },
+  splashAppName: {
+    fontSize: 42,
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  splashTagline: {
+    fontSize: 16,
+    marginTop: 8,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    bottom: 80,
+  },
+
+  // Main Landing Page Styles
+  container: {
+    flex: 1,
   },
   content: {
     flex: 1,
