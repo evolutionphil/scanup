@@ -108,6 +108,22 @@ export default function DocumentsScreen() {
     );
   };
 
+  const handleMoveToFolder = async (folderId: string | null) => {
+    if (token) {
+      for (const docId of selectedDocs) {
+        try {
+          await updateDocument(token, docId, { folder_id: folderId });
+        } catch (e) {
+          console.error('Error moving document:', e);
+        }
+      }
+      setShowMoveModal(false);
+      setSelectionMode(false);
+      setSelectedDocs([]);
+      Alert.alert('Success', `Moved ${selectedDocs.length} document(s) to ${folderId ? 'folder' : 'main library'}`);
+    }
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
