@@ -537,6 +537,7 @@ export default function DocumentScreen() {
             <ActionButton icon="arrow-undo" label="Revert" onPress={handleRevertToOriginal} theme={theme} />
           )}
           <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? '✓' : undefined} theme={theme} />
+          <ActionButton icon="download-outline" label="Export" onPress={() => setShowExportModal(true)} theme={theme} />
           <ActionButton icon="share-outline" label="Share" onPress={handleShare} theme={theme} />
           {currentDocument.pages.length > 1 && (
             <>
