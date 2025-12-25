@@ -987,7 +987,7 @@ async def process_image(
     request: ImageProcessRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Process an image (crop, rotate, filter)"""
+    """Process an image (crop, rotate, filter, perspective)"""
     result = request.image_base64
     
     if request.operation == "filter":
@@ -1002,8 +1002,45 @@ async def process_image(
         width = request.params.get("width", 100)
         height = request.params.get("height", 100)
         result = crop_image(result, x, y, width, height)
+    elif request.operation == "perspective_crop":
+        corners = request.params.get("corners", [])
+        if corners:
+            result = perspective_crop(result, corners)
     
     return ImageProcessResponse(processed_image_base64=result)
+
+@api_router.post("/images/detect-edges")
+async def detect_edges(
+    request: ImageProcessRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Detect document edges in an image"""
+    result = detect_document_edges(request.image_base64)
+    return result
+
+@api_router.post("/images/auto-crop")
+async def auto_crop_image(
+    request: ImageProcessRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Automatically detect and crop document from image"""
+    # First detect edges
+    edge_result = detect_document_edges(request.image_base64)
+    
+    if edge_result.get("detected") and edge_result.get("corners"):
+        # Apply perspective transform
+        cropped = perspective_crop(request.image_base64, edge_result["corners"])
+        return {
+            "success": True,
+            "cropped_image_base64": cropped,
+            "corners": edge_result["corners"]
+        }
+    
+    return {
+        "success": False,
+        "cropped_image_base64": request.image_base64,
+        "message": "Could not detect document edges"
+    }
 
 # ==================== OCR ENDPOINTS ====================
 
@@ -1012,7 +1049,7 @@ async def extract_text(
     ocr_request: OCRRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Extract text from image using OCR (mock implementation - real OCR on device)"""
+    """Extract text from image using OpenAI Vision OCR"""
     # Check OCR usage limits for free users
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     is_premium = current_user.subscription_type == "premium"
@@ -1036,11 +1073,11 @@ async def extract_text(
             {"$set": {"ocr_usage_today": 1, "ocr_usage_date": today}}
         )
     
-    # Note: Actual OCR happens on device using ML Kit
-    # This endpoint just tracks usage and validates permissions
-    # Return a placeholder - actual text extraction happens client-side
+    # Perform actual OCR using OpenAI Vision
+    extracted_text = perform_ocr_with_openai(ocr_request.image_base64)
+    
     return OCRResponse(
-        text="OCR performed on device",
+        text=extracted_text,
         confidence=0.95
     )
 
