@@ -5,12 +5,18 @@ const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 export interface PageData {
   page_id: string;
   image_base64: string;
+  original_image_base64?: string;  // Original image before filters (non-destructive editing)
   thumbnail_base64?: string;
   ocr_text?: string;
   filter_applied: string;
   rotation: number;
   order: number;
   created_at: string;
+  adjustments?: {
+    brightness: number;
+    contrast: number;
+    saturation: number;
+  };
 }
 
 export interface Document {
@@ -20,6 +26,7 @@ export interface Document {
   folder_id?: string;
   tags: string[];
   pages: PageData[];
+  document_type?: string;  // document, id_card, passport, book, whiteboard, business_card
   ocr_full_text?: string;
   is_password_protected: boolean;
   created_at: string;
