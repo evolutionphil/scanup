@@ -232,6 +232,14 @@ export default function DocumentsScreen() {
         }
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Move to Folder Modal */}
+      <MoveToFolderModal
+        visible={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        folders={folders}
+        onSelectFolder={handleMoveToFolder}
+      />
     </SafeAreaView>
   );
 }
