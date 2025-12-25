@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import { useThemeStore } from '../store/themeStore';
 
 interface ButtonProps {
   title: string;
@@ -31,38 +32,107 @@ export default function Button({
   textStyle,
   icon,
 }: ButtonProps) {
-  const buttonStyles = [
-    styles.button,
-    styles[variant],
-    styles[`${size}Button`],
-    disabled && styles.disabled,
-    style,
-  ];
+  const { theme } = useThemeStore();
 
-  const textStyles = [
-    styles.text,
-    styles[`${variant}Text`],
-    styles[`${size}Text`],
-    disabled && styles.disabledText,
-    textStyle,
-  ];
+  const getBackgroundColor = () => {
+    if (disabled) return theme.surface;
+    switch (variant) {
+      case 'primary':
+        return theme.primary;
+      case 'secondary':
+        return theme.surface;
+      case 'outline':
+        return 'transparent';
+      case 'danger':
+        return theme.danger;
+      default:
+        return theme.primary;
+    }
+  };
+
+  const getTextColor = () => {
+    if (disabled) return theme.textMuted;
+    switch (variant) {
+      case 'primary':
+        return '#FFFFFF';
+      case 'secondary':
+        return theme.text;
+      case 'outline':
+        return theme.primary;
+      case 'danger':
+        return '#FFFFFF';
+      default:
+        return '#FFFFFF';
+    }
+  };
+
+  const getBorderStyle = () => {
+    if (variant === 'outline') {
+      return {
+        borderWidth: 1.5,
+        borderColor: theme.primary,
+      };
+    }
+    return {};
+  };
+
+  const getPaddingStyle = () => {
+    switch (size) {
+      case 'small':
+        return { paddingVertical: 8, paddingHorizontal: 16 };
+      case 'medium':
+        return { paddingVertical: 14, paddingHorizontal: 24 };
+      case 'large':
+        return { paddingVertical: 18, paddingHorizontal: 32 };
+      default:
+        return { paddingVertical: 14, paddingHorizontal: 24 };
+    }
+  };
+
+  const getFontSize = () => {
+    switch (size) {
+      case 'small':
+        return 14;
+      case 'medium':
+        return 16;
+      case 'large':
+        return 18;
+      default:
+        return 16;
+    }
+  };
 
   return (
     <TouchableOpacity
-      style={buttonStyles}
+      style={[
+        styles.button,
+        { backgroundColor: getBackgroundColor() },
+        getBorderStyle(),
+        getPaddingStyle(),
+        disabled && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'outline' ? '#3B82F6' : '#FFFFFF'}
+          color={variant === 'outline' ? theme.primary : '#FFFFFF'}
           size="small"
         />
       ) : (
         <>
           {icon}
-          <Text style={textStyles}>{title}</Text>
+          <Text
+            style={[
+              styles.text,
+              { color: getTextColor(), fontSize: getFontSize() },
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
         </>
       )}
     </TouchableOpacity>
@@ -77,60 +147,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  primary: {
-    backgroundColor: '#3B82F6',
-  },
-  secondary: {
-    backgroundColor: '#1E293B',
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: '#3B82F6',
-  },
-  danger: {
-    backgroundColor: '#EF4444',
-  },
-  smallButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  mediumButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  largeButton: {
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-  },
   disabled: {
     opacity: 0.5,
   },
   text: {
     fontWeight: '600',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-  },
-  secondaryText: {
-    color: '#FFFFFF',
-  },
-  outlineText: {
-    color: '#3B82F6',
-  },
-  dangerText: {
-    color: '#FFFFFF',
-  },
-  smallText: {
-    fontSize: 14,
-  },
-  mediumText: {
-    fontSize: 16,
-  },
-  largeText: {
-    fontSize: 18,
-  },
-  disabledText: {
-    opacity: 0.7,
   },
 });

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../src/store/authStore';
+import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
@@ -25,6 +26,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ScannerScreen() {
   const { token } = useAuthStore();
+  const { theme } = useThemeStore();
   const { createDocument } = useDocumentStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
@@ -47,7 +49,6 @@ export default function ScannerScreen() {
       if (photo?.base64) {
         let imageToAdd = photo.base64;
 
-        // Try auto-crop if enabled
         if (autoCropEnabled && token) {
           try {
             const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
@@ -139,21 +140,21 @@ export default function ScannerScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.permissionContainer}>
-          <View style={styles.permissionIconWrapper}>
-            <Ionicons name="camera" size={60} color="#3B82F6" />
+          <View style={[styles.permissionIconWrapper, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="camera" size={60} color={theme.primary} />
           </View>
-          <Text style={styles.permissionTitle}>Camera Access Required</Text>
-          <Text style={styles.permissionText}>
+          <Text style={[styles.permissionTitle, { color: theme.text }]}>Camera Access Required</Text>
+          <Text style={[styles.permissionText, { color: theme.textMuted }]}>
             Please grant camera access to scan documents
           </Text>
           <Button
@@ -192,7 +193,7 @@ export default function ScannerScreen() {
               
               <View style={styles.topBarCenter}>
                 <TouchableOpacity
-                  style={[styles.toggleButton, autoCropEnabled && styles.toggleActive]}
+                  style={[styles.toggleButton, autoCropEnabled && { backgroundColor: theme.primary + 'CC' }]}
                   onPress={() => setAutoCropEnabled(!autoCropEnabled)}
                 >
                   <Ionicons name="crop" size={18} color={autoCropEnabled ? '#FFF' : '#94A3B8'} />
@@ -216,14 +217,13 @@ export default function ScannerScreen() {
 
             {/* Document Detection Frame */}
             <View style={styles.scanFrame}>
-              <View style={[styles.corner, styles.topLeft]} />
-              <View style={[styles.corner, styles.topRight]} />
-              <View style={[styles.corner, styles.bottomLeft]} />
-              <View style={[styles.corner, styles.bottomRight]} />
+              <View style={[styles.corner, styles.topLeft, { borderColor: theme.primary }]} />
+              <View style={[styles.corner, styles.topRight, { borderColor: theme.primary }]} />
+              <View style={[styles.corner, styles.bottomLeft, { borderColor: theme.primary }]} />
+              <View style={[styles.corner, styles.bottomRight, { borderColor: theme.primary }]} />
               
-              {/* Center guide text */}
               <View style={styles.guideContainer}>
-                <Ionicons name="document-text-outline" size={40} color="rgba(59, 130, 246, 0.5)" />
+                <Ionicons name="document-text-outline" size={40} color={theme.primary + '80'} />
                 <Text style={styles.guideText}>
                   Position document within frame
                 </Text>
@@ -242,7 +242,7 @@ export default function ScannerScreen() {
                 disabled={isCapturing}
               >
                 {isCapturing ? (
-                  <ActivityIndicator color="#3B82F6" size="small" />
+                  <ActivityIndicator color={theme.primary} size="small" />
                 ) : (
                   <View style={styles.captureInner} />
                 )}
@@ -256,22 +256,22 @@ export default function ScannerScreen() {
           </SafeAreaView>
         </CameraView>
       ) : (
-        <SafeAreaView style={styles.previewContainer}>
+        <SafeAreaView style={[styles.previewContainer, { backgroundColor: theme.background }]}>
           <View style={styles.previewHeader}>
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: theme.surface }]}
               onPress={() => setCapturedImages([])}
             >
-              <Ionicons name="arrow-back" size={28} color="#FFF" />
+              <Ionicons name="arrow-back" size={28} color={theme.text} />
             </TouchableOpacity>
-            <Text style={styles.previewTitle}>
+            <Text style={[styles.previewTitle, { color: theme.text }]}>
               {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
             </Text>
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: theme.surface }]}
               onPress={() => setCapturedImages([])}
             >
-              <Ionicons name="camera" size={24} color="#FFF" />
+              <Ionicons name="camera" size={24} color={theme.text} />
             </TouchableOpacity>
           </View>
 
@@ -283,14 +283,14 @@ export default function ScannerScreen() {
               <View key={index} style={styles.previewImageContainer}>
                 <Image
                   source={{ uri: `data:image/jpeg;base64,${image}` }}
-                  style={styles.previewImage}
+                  style={[styles.previewImage, { backgroundColor: theme.surface }]}
                   resizeMode="contain"
                 />
                 <TouchableOpacity
-                  style={styles.removeButton}
+                  style={[styles.removeButton, { backgroundColor: theme.background }]}
                   onPress={() => removeImage(index)}
                 >
-                  <Ionicons name="close-circle" size={32} color="#EF4444" />
+                  <Ionicons name="close-circle" size={32} color={theme.danger} />
                 </TouchableOpacity>
                 <View style={styles.pageNumber}>
                   <Text style={styles.pageNumberText}>Page {index + 1}</Text>
@@ -305,7 +305,7 @@ export default function ScannerScreen() {
               variant="secondary"
               onPress={() => setCapturedImages([])}
               style={styles.actionButton}
-              icon={<Ionicons name="camera" size={20} color="#FFF" />}
+              icon={<Ionicons name="camera" size={20} color={theme.text} />}
             />
             <Button
               title="Save Document"
@@ -352,9 +352,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
   },
-  toggleActive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-  },
   toggleText: {
     fontSize: 13,
     color: '#94A3B8',
@@ -382,7 +379,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 50,
     height: 50,
-    borderColor: '#3B82F6',
     borderWidth: 4,
   },
   topLeft: {
@@ -471,13 +467,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: '#0F172A',
   },
   permissionIconWrapper: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -485,13 +479,11 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#F1F5F9',
     marginBottom: 12,
     textAlign: 'center',
   },
   permissionText: {
     fontSize: 16,
-    color: '#64748B',
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -501,7 +493,6 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   previewHeader: {
     flexDirection: 'row',
@@ -512,7 +503,6 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F1F5F9',
   },
   previewScrollView: {
     flex: 1,
@@ -531,13 +521,11 @@ const styles = StyleSheet.create({
   previewImage: {
     flex: 1,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
   },
   removeButton: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#0F172A',
     borderRadius: 16,
   },
   pageNumber: {

@@ -8,6 +8,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useThemeStore } from '../store/themeStore';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -24,23 +25,28 @@ export default function Input({
   style,
   ...props
 }: InputProps) {
+  const { theme } = useThemeStore();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputContainer, error && styles.inputError]}>
+      {label && <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>}
+      <View style={[
+        styles.inputContainer, 
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        error && { borderColor: theme.danger }
+      ]}>
         {leftIcon && (
           <Ionicons
             name={leftIcon}
             size={20}
-            color="#64748B"
+            color={theme.textMuted}
             style={styles.leftIcon}
           />
         )}
         <TextInput
-          style={[styles.input, style]}
-          placeholderTextColor="#64748B"
+          style={[styles.input, { color: theme.text }, style]}
+          placeholderTextColor={theme.textMuted}
           secureTextEntry={isPassword && !showPassword}
           {...props}
         />
@@ -52,12 +58,12 @@ export default function Input({
             <Ionicons
               name={showPassword ? 'eye-off' : 'eye'}
               size={20}
-              color="#64748B"
+              color={theme.textMuted}
             />
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text style={[styles.error, { color: theme.danger }]}>{error}</Text>}
     </View>
   );
 }
@@ -69,19 +75,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#E2E8F0',
     marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
-  },
-  inputError: {
-    borderColor: '#EF4444',
   },
   leftIcon: {
     marginLeft: 16,
@@ -91,14 +91,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#F1F5F9',
   },
   eyeIcon: {
     padding: 12,
   },
   error: {
     fontSize: 12,
-    color: '#EF4444',
     marginTop: 4,
   },
 });

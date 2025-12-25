@@ -1,12 +1,8 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Folder } from '../store/documentStore';
+import { useThemeStore } from '../store/themeStore';
 
 interface FolderCardProps {
   folder: Folder;
@@ -21,25 +17,28 @@ export default function FolderCard({
   onPress,
   onLongPress,
 }: FolderCardProps) {
+  const { theme } = useThemeStore();
+  const folderColor = folder.color || theme.primary;
+
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.surface }]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: folder.color + '20' }]}>
-        <Ionicons name="folder" size={32} color={folder.color} />
+      <View style={[styles.iconContainer, { backgroundColor: folderColor + '20' }]}>
+        <Ionicons name="folder" size={32} color={folderColor} />
       </View>
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
           {folder.name}
         </Text>
-        <Text style={styles.count}>
+        <Text style={[styles.count, { color: theme.textMuted }]}>
           {documentCount} {documentCount === 1 ? 'document' : 'documents'}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#64748B" />
+      <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -48,30 +47,27 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 16,
     marginBottom: 12,
   },
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 14,
   },
   info: {
     flex: 1,
-    marginLeft: 16,
   },
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F1F5F9',
+    marginBottom: 4,
   },
   count: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
   },
 });

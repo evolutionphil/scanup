@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useThemeStore } from '../store/themeStore';
 
 interface LoadingScreenProps {
   message?: string;
 }
 
-export default function LoadingScreen({ message }: LoadingScreenProps) {
+export default function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
+  const { theme } = useThemeStore();
+
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#3B82F6" />
-      {message && <Text style={styles.message}>{message}</Text>}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ActivityIndicator size="large" color={theme.primary} />
+      <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
     </View>
   );
 }
@@ -19,11 +22,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
   },
   message: {
     marginTop: 16,
     fontSize: 16,
-    color: '#94A3B8',
   },
 });

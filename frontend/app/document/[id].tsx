@@ -20,6 +20,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, PageData } from '../../src/store/documentStore';
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
@@ -38,6 +39,7 @@ const FILTERS = [
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token, user, refreshUser } = useAuthStore();
+  const { theme } = useThemeStore();
   const { currentDocument, fetchDocument, updateDocument, deleteDocument, processImage } = useDocumentStore();
   const [loading, setLoading] = useState(true);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
@@ -167,7 +169,6 @@ export default function DocumentScreen() {
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
-      // Call auto-crop API
       const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
         method: 'POST',
         headers: {
@@ -206,7 +207,6 @@ export default function DocumentScreen() {
   const handleOCR = async () => {
     if (!currentDocument || !user || !token) return;
     
-    // Check OCR limits for free users
     if (!user.is_premium && user.ocr_remaining_today <= 0) {
       Alert.alert(
         'OCR Limit Reached',
@@ -221,7 +221,6 @@ export default function DocumentScreen() {
 
     const currentPage = currentDocument.pages[selectedPageIndex];
     
-    // If OCR already exists for this page, show it
     if (currentPage.ocr_text) {
       setOcrText(currentPage.ocr_text);
       setShowOcrModal(true);
@@ -230,7 +229,6 @@ export default function DocumentScreen() {
 
     setOcrLoading(true);
     try {
-      // Call OCR API
       const response = await fetch(`${BACKEND_URL}/api/ocr/extract`, {
         method: 'POST',
         headers: {
@@ -250,7 +248,6 @@ export default function DocumentScreen() {
 
       const result = await response.json();
       
-      // Save OCR text to document
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
@@ -262,7 +259,6 @@ export default function DocumentScreen() {
       setOcrText(result.text);
       setShowOcrModal(true);
       
-      // Refresh user to update OCR count
       refreshUser();
     } catch (e: any) {
       console.error('OCR error:', e);
@@ -288,55 +284,14 @@ export default function DocumentScreen() {
       const fileName = `${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}_page${selectedPageIndex + 1}.jpg`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
-      // Write base64 to file
       await FileSystem.writeAsStringAsync(fileUri, currentPage.image_base64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
       
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
-          mimeType: 'image/jpeg',
-          dialogTitle: `Share ${currentDocument.name}`,
-          UTI: 'public.jpeg',
-        });
-      } else {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device');
-      }
-    } catch (e: any) {
-      console.error('Share error:', e);
-      Alert.alert('Share Error', 'Failed to share document. Please try again.');
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  const handleShareAllPages = async () => {
-    if (!currentDocument || currentDocument.pages.length === 0) return;
-    
-    setShareLoading(true);
-    try {
-      // Share all pages as individual images
-      const fileUris: string[] = [];
-      
-      for (let i = 0; i < currentDocument.pages.length; i++) {
-        const page = currentDocument.pages[i];
-        const fileName = `${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}_page${i + 1}.jpg`;
-        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-        
-        await FileSystem.writeAsStringAsync(fileUri, page.image_base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        fileUris.push(fileUri);
-      }
-
-      const isAvailable = await Sharing.isAvailableAsync();
-      
-      if (isAvailable && fileUris.length > 0) {
-        // Share the first file (most platforms don't support multi-file sharing)
-        await Sharing.shareAsync(fileUris[0], {
           mimeType: 'image/jpeg',
           dialogTitle: `Share ${currentDocument.name}`,
           UTI: 'public.jpeg',
@@ -389,10 +344,10 @@ export default function DocumentScreen() {
   const currentPage = currentDocument.pages[selectedPageIndex];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#F1F5F9" />
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.titleContainer}
@@ -401,13 +356,13 @@ export default function DocumentScreen() {
             setShowRenameModal(true);
           }}
         >
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {currentDocument.name}
           </Text>
-          <Ionicons name="pencil" size={16} color="#64748B" />
+          <Ionicons name="pencil" size={16} color={theme.textMuted} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuButton} onPress={handleDelete}>
-          <Ionicons name="trash-outline" size={24} color="#EF4444" />
+        <TouchableOpacity style={[styles.menuButton, { backgroundColor: theme.surface }]} onPress={handleDelete}>
+          <Ionicons name="trash-outline" size={24} color={theme.danger} />
         </TouchableOpacity>
       </View>
 
@@ -418,8 +373,8 @@ export default function DocumentScreen() {
           resizeMode="contain"
         />
         {(processing || ocrLoading || shareLoading) && (
-          <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color="#3B82F6" />
+          <View style={[styles.processingOverlay, { backgroundColor: theme.overlay }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
             <Text style={styles.processingText}>
               {ocrLoading ? 'Extracting text...' : shareLoading ? 'Preparing...' : 'Processing...'}
             </Text>
@@ -429,7 +384,7 @@ export default function DocumentScreen() {
 
       {currentDocument.pages.length > 1 && (
         <View style={styles.pageIndicator}>
-          <Text style={styles.pageIndicatorText}>
+          <Text style={[styles.pageIndicatorText, { color: theme.textMuted }]}>
             Page {selectedPageIndex + 1} of {currentDocument.pages.length}
           </Text>
         </View>
@@ -447,7 +402,7 @@ export default function DocumentScreen() {
               key={page.page_id}
               style={[
                 styles.thumbnailContainer,
-                index === selectedPageIndex && styles.thumbnailSelected,
+                { borderColor: index === selectedPageIndex ? theme.primary : 'transparent' },
               ]}
               onPress={() => setSelectedPageIndex(index)}
             >
@@ -465,14 +420,14 @@ export default function DocumentScreen() {
       )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll}>
-        <View style={styles.actions}>
-          <ActionButton icon="color-wand" label="Filter" onPress={() => setShowFilterModal(true)} />
-          <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} />
-          <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} />
-          <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? 'Done' : undefined} />
-          <ActionButton icon="share-outline" label="Share" onPress={handleShare} />
+        <View style={[styles.actions, { borderTopColor: theme.border }]}>
+          <ActionButton icon="color-wand" label="Filter" onPress={() => setShowFilterModal(true)} theme={theme} />
+          <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
+          <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
+          <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? 'Done' : undefined} theme={theme} />
+          <ActionButton icon="share-outline" label="Share" onPress={handleShare} theme={theme} />
           {currentDocument.pages.length > 1 && (
-            <ActionButton icon="trash" label="Del Page" onPress={handleDeletePage} danger />
+            <ActionButton icon="trash" label="Del Page" onPress={handleDeletePage} danger theme={theme} />
           )}
         </View>
       </ScrollView>
@@ -484,15 +439,15 @@ export default function DocumentScreen() {
         animationType="fade"
         onRequestClose={() => setShowRenameModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Rename Document</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Rename Document</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={newName}
               onChangeText={setNewName}
               placeholder="Document name"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={theme.textMuted}
               autoFocus
             />
             <View style={styles.modalButtons}>
@@ -519,39 +474,38 @@ export default function DocumentScreen() {
         animationType="slide"
         onRequestClose={() => setShowFilterModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.filterModalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.filterModalContent, { backgroundColor: theme.surface }]}>
             <View style={styles.filterModalHeader}>
-              <Text style={styles.modalTitle}>Apply Filter</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Apply Filter</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={24} color="#F1F5F9" />
+                <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.filterGrid}>
               {FILTERS.map((filter) => (
                 <TouchableOpacity
                   key={filter.id}
-                  style={[
-                    styles.filterOption,
-                    currentPage.filter_applied === filter.id && styles.filterSelected,
-                  ]}
+                  style={styles.filterOption}
                   onPress={() => handleApplyFilter(filter.id)}
                   disabled={processing}
                 >
                   <View style={[
                     styles.filterIcon,
-                    currentPage.filter_applied === filter.id && styles.filterIconSelected
+                    { backgroundColor: theme.background },
+                    currentPage.filter_applied === filter.id && { backgroundColor: theme.primary }
                   ]}>
                     <Ionicons
                       name={filter.icon as any}
                       size={28}
-                      color={currentPage.filter_applied === filter.id ? '#FFF' : '#94A3B8'}
+                      color={currentPage.filter_applied === filter.id ? '#FFF' : theme.textMuted}
                     />
                   </View>
                   <Text
                     style={[
                       styles.filterName,
-                      currentPage.filter_applied === filter.id && styles.filterNameSelected,
+                      { color: theme.textMuted },
+                      currentPage.filter_applied === filter.id && { color: theme.primary, fontWeight: '600' },
                     ]}
                   >
                     {filter.name}
@@ -570,16 +524,16 @@ export default function DocumentScreen() {
         animationType="slide"
         onRequestClose={() => setShowOcrModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.ocrModalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.ocrModalContent, { backgroundColor: theme.surface }]}>
             <View style={styles.filterModalHeader}>
-              <Text style={styles.modalTitle}>Extracted Text</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Extracted Text</Text>
               <TouchableOpacity onPress={() => setShowOcrModal(false)}>
-                <Ionicons name="close" size={24} color="#F1F5F9" />
+                <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.ocrTextContainer}>
-              <Text style={styles.ocrText} selectable>{ocrText || 'No text detected'}</Text>
+            <ScrollView style={[styles.ocrTextContainer, { backgroundColor: theme.background }]}>
+              <Text style={[styles.ocrText, { color: theme.textSecondary }]} selectable>{ocrText || 'No text detected'}</Text>
             </ScrollView>
             <Button
               title="Copy Text"
@@ -600,24 +554,29 @@ function ActionButton({
   onPress,
   danger,
   badge,
+  theme,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   danger?: boolean;
   badge?: string;
+  theme: any;
 }) {
   return (
     <TouchableOpacity style={styles.actionButton} onPress={onPress}>
-      <View style={[styles.actionIcon, danger && styles.actionIconDanger]}>
-        <Ionicons name={icon} size={22} color={danger ? '#EF4444' : '#3B82F6'} />
+      <View style={[
+        styles.actionIcon,
+        { backgroundColor: danger ? theme.danger + '15' : theme.primary + '15' }
+      ]}>
+        <Ionicons name={icon} size={22} color={danger ? theme.danger : theme.primary} />
         {badge && (
-          <View style={styles.badge}>
+          <View style={[styles.badge, { backgroundColor: theme.success }]}>
             <Text style={styles.badgeText}>{badge}</Text>
           </View>
         )}
       </View>
-      <Text style={[styles.actionLabel, danger && styles.actionLabelDanger]}>{label}</Text>
+      <Text style={[styles.actionLabel, { color: danger ? theme.danger : theme.textMuted }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -625,7 +584,6 @@ function ActionButton({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',
@@ -637,7 +595,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -652,13 +609,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#F1F5F9',
   },
   menuButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -672,7 +627,6 @@ const styles = StyleSheet.create({
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -687,7 +641,6 @@ const styles = StyleSheet.create({
   },
   pageIndicatorText: {
     fontSize: 13,
-    color: '#64748B',
   },
   thumbnailScroll: {
     maxHeight: 100,
@@ -703,11 +656,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'transparent',
     position: 'relative',
-  },
-  thumbnailSelected: {
-    borderColor: '#3B82F6',
   },
   thumbnail: {
     width: '100%',
@@ -736,7 +685,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 16,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
   },
   actionButton: {
     alignItems: 'center',
@@ -746,27 +694,18 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
     position: 'relative',
   },
-  actionIconDanger: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
   actionLabel: {
     fontSize: 11,
-    color: '#94A3B8',
-  },
-  actionLabelDanger: {
-    color: '#EF4444',
   },
   badge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#10B981',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 6,
@@ -778,13 +717,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1E293B',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -793,18 +730,14 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F1F5F9',
     marginBottom: 20,
   },
   input: {
-    backgroundColor: '#0F172A',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#334155',
     marginBottom: 20,
   },
   modalButtons: {
@@ -815,7 +748,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filterModalContent: {
-    backgroundColor: '#1E293B',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -839,30 +771,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 60,
   },
-  filterSelected: {},
   filterIcon: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  filterIconSelected: {
-    backgroundColor: '#3B82F6',
-  },
   filterName: {
     fontSize: 12,
-    color: '#94A3B8',
     textAlign: 'center',
   },
-  filterNameSelected: {
-    color: '#3B82F6',
-    fontWeight: '600',
-  },
   ocrModalContent: {
-    backgroundColor: '#1E293B',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -872,7 +793,6 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   ocrTextContainer: {
-    backgroundColor: '#0F172A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -880,7 +800,6 @@ const styles = StyleSheet.create({
   },
   ocrText: {
     fontSize: 15,
-    color: '#E2E8F0',
     lineHeight: 24,
   },
   copyButton: {
