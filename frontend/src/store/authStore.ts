@@ -20,6 +20,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   googleLogin: (sessionId: string) => Promise<void>;
@@ -27,6 +28,7 @@ interface AuthState {
   loadStoredAuth: () => Promise<void>;
   updateUser: (user: User) => void;
   refreshUser: () => Promise<void>;
+  continueAsGuest: () => void;
 }
 
 const getStorage = async (key: string): Promise<string | null> => {
@@ -52,11 +54,21 @@ const removeStorage = async (key: string): Promise<void> => {
   }
 };
 
+const guestUser: User = {
+  user_id: 'guest',
+  email: 'guest@local',
+  name: 'Guest',
+  subscription_type: 'free',
+  is_premium: false,
+  ocr_remaining_today: 3,
+};
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isLoading: true,
   isAuthenticated: false,
+  isGuest: false,
 
   login: async (email: string, password: string) => {
     const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
@@ -73,7 +85,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const data = await response.json();
     await setStorage('token', data.token);
     await setStorage('user', JSON.stringify(data.user));
-    set({ user: data.user, token: data.token, isAuthenticated: true });
+    set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false });
   },
 
   register: async (email: string, password: string, name: string) => {
@@ -91,7 +103,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const data = await response.json();
     await setStorage('token', data.token);
     await setStorage('user', JSON.stringify(data.user));
-    set({ user: data.user, token: data.token, isAuthenticated: true });
+    set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false });
   },
 
   googleLogin: async (sessionId: string) => {
@@ -109,33 +121,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const data = await response.json();
     await setStorage('token', data.token);
     await setStorage('user', JSON.stringify(data.user));
-    set({ user: data.user, token: data.token, isAuthenticated: true });
+    set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false });
   },
 
   logout: async () => {
     const token = get().token;
-    try {
-      await fetch(`${BACKEND_URL}/api/auth/logout`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch (e) {
-      console.log('Logout API error:', e);
+    if (token && !get().isGuest) {
+      try {
+        await fetch(`${BACKEND_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        console.log('Logout API error:', e);
+      }
     }
     await removeStorage('token');
     await removeStorage('user');
-    set({ user: null, token: null, isAuthenticated: false });
+    await removeStorage('isGuest');
+    set({ user: null, token: null, isAuthenticated: false, isGuest: false });
   },
 
   loadStoredAuth: async () => {
     try {
+      const isGuestStored = await getStorage('isGuest');
+      if (isGuestStored === 'true') {
+        set({ user: guestUser, isAuthenticated: true, isGuest: true, isLoading: false });
+        return;
+      }
+
       const token = await getStorage('token');
       const userStr = await getStorage('user');
 
       if (token && userStr) {
         const user = JSON.parse(userStr);
         set({ user, token, isAuthenticated: true, isLoading: false });
-        // Refresh user data in background
         get().refreshUser();
       } else {
         set({ isLoading: false });
@@ -153,7 +173,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshUser: async () => {
     const token = get().token;
-    if (!token) return;
+    if (!token || get().isGuest) return;
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
@@ -165,11 +185,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user });
         await setStorage('user', JSON.stringify(user));
       } else if (response.status === 401) {
-        // Token expired
         await get().logout();
       }
     } catch (e) {
       console.log('Error refreshing user:', e);
     }
+  },
+
+  continueAsGuest: () => {
+    set({ user: guestUser, isAuthenticated: true, isGuest: true, isLoading: false });
+    setStorage('isGuest', 'true');
   },
 }));
