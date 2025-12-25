@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,23 @@ import {
   Alert,
   TextInput,
   Modal,
-  Share,
   Platform,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
 import { useDocumentStore, Document, PageData } from '../../src/store/documentStore';
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const FILTERS = [
   { id: 'original', name: 'Original', icon: 'image' },
@@ -34,7 +37,7 @@ const FILTERS = [
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, user } = useAuthStore();
+  const { token, user, refreshUser } = useAuthStore();
   const { currentDocument, fetchDocument, updateDocument, deleteDocument, processImage } = useDocumentStore();
   const [loading, setLoading] = useState(true);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
@@ -44,6 +47,9 @@ export default function DocumentScreen() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [showOcrModal, setShowOcrModal] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
     loadDocument();
@@ -154,8 +160,51 @@ export default function DocumentScreen() {
     }
   };
 
+  const handleAutoCrop = async () => {
+    if (!currentDocument || !token || processing) return;
+    
+    setProcessing(true);
+    try {
+      const currentPage = currentDocument.pages[selectedPageIndex];
+      
+      // Call auto-crop API
+      const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_base64: currentPage.image_base64,
+          operation: 'auto_crop',
+          params: {}
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const updatedPages = [...currentDocument.pages];
+        updatedPages[selectedPageIndex] = {
+          ...updatedPages[selectedPageIndex],
+          image_base64: result.cropped_image_base64,
+        };
+
+        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        Alert.alert('Success', 'Document cropped automatically');
+      } else {
+        Alert.alert('Auto-crop', result.message || 'Could not detect document edges. Try manual crop.');
+      }
+    } catch (e) {
+      console.error('Auto-crop error:', e);
+      Alert.alert('Error', 'Failed to auto-crop image');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleOCR = async () => {
-    if (!currentDocument || !user) return;
+    if (!currentDocument || !user || !token) return;
     
     // Check OCR limits for free users
     if (!user.is_premium && user.ocr_remaining_today <= 0) {
@@ -179,39 +228,127 @@ export default function DocumentScreen() {
       return;
     }
 
-    // Note: Real OCR would be done on-device using ML Kit
-    // For this demo, we'll simulate OCR with placeholder text
-    Alert.alert(
-      'OCR Feature',
-      'In production, this would use Google ML Kit for on-device OCR. For this demo, OCR text extraction is simulated.',
-      [
-        { text: 'OK' },
-      ]
-    );
+    setOcrLoading(true);
+    try {
+      // Call OCR API
+      const response = await fetch(`${BACKEND_URL}/api/ocr/extract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_base64: currentPage.image_base64,
+          language: 'en',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'OCR failed');
+      }
+
+      const result = await response.json();
+      
+      // Save OCR text to document
+      const updatedPages = [...currentDocument.pages];
+      updatedPages[selectedPageIndex] = {
+        ...updatedPages[selectedPageIndex],
+        ocr_text: result.text,
+      };
+
+      await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+      
+      setOcrText(result.text);
+      setShowOcrModal(true);
+      
+      // Refresh user to update OCR count
+      refreshUser();
+    } catch (e: any) {
+      console.error('OCR error:', e);
+      Alert.alert('OCR Error', e.message || 'Failed to extract text');
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  const handleCopyText = async () => {
+    if (ocrText) {
+      await Clipboard.setStringAsync(ocrText);
+      Alert.alert('Copied', 'Text copied to clipboard');
+    }
   };
 
   const handleShare = async () => {
     if (!currentDocument) return;
     
+    setShareLoading(true);
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
-      const fileUri = `${FileSystem.cacheDirectory}${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+      const fileName = `${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}_page${selectedPageIndex + 1}.jpg`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
+      // Write base64 to file
       await FileSystem.writeAsStringAsync(fileUri, currentPage.image_base64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      if (await Sharing.isAvailableAsync()) {
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'image/jpeg',
           dialogTitle: `Share ${currentDocument.name}`,
+          UTI: 'public.jpeg',
         });
       } else {
         Alert.alert('Sharing not available', 'Sharing is not available on this device');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Share error:', e);
-      Alert.alert('Error', 'Failed to share document');
+      Alert.alert('Share Error', 'Failed to share document. Please try again.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleShareAllPages = async () => {
+    if (!currentDocument || currentDocument.pages.length === 0) return;
+    
+    setShareLoading(true);
+    try {
+      // Share all pages as individual images
+      const fileUris: string[] = [];
+      
+      for (let i = 0; i < currentDocument.pages.length; i++) {
+        const page = currentDocument.pages[i];
+        const fileName = `${currentDocument.name.replace(/[^a-z0-9]/gi, '_')}_page${i + 1}.jpg`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+        
+        await FileSystem.writeAsStringAsync(fileUri, page.image_base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        fileUris.push(fileUri);
+      }
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable && fileUris.length > 0) {
+        // Share the first file (most platforms don't support multi-file sharing)
+        await Sharing.shareAsync(fileUris[0], {
+          mimeType: 'image/jpeg',
+          dialogTitle: `Share ${currentDocument.name}`,
+          UTI: 'public.jpeg',
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device');
+      }
+    } catch (e: any) {
+      console.error('Share error:', e);
+      Alert.alert('Share Error', 'Failed to share document. Please try again.');
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -280,9 +417,12 @@ export default function DocumentScreen() {
           style={styles.mainImage}
           resizeMode="contain"
         />
-        {processing && (
+        {(processing || ocrLoading || shareLoading) && (
           <View style={styles.processingOverlay}>
-            <Text style={styles.processingText}>Processing...</Text>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.processingText}>
+              {ocrLoading ? 'Extracting text...' : shareLoading ? 'Preparing...' : 'Processing...'}
+            </Text>
           </View>
         )}
       </View>
@@ -324,15 +464,18 @@ export default function DocumentScreen() {
         </ScrollView>
       )}
 
-      <View style={styles.actions}>
-        <ActionButton icon="color-wand" label="Filter" onPress={() => setShowFilterModal(true)} />
-        <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} />
-        <ActionButton icon="text" label="OCR" onPress={handleOCR} />
-        <ActionButton icon="share-outline" label="Share" onPress={handleShare} />
-        {currentDocument.pages.length > 1 && (
-          <ActionButton icon="trash" label="Delete" onPress={handleDeletePage} danger />
-        )}
-      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll}>
+        <View style={styles.actions}>
+          <ActionButton icon="color-wand" label="Filter" onPress={() => setShowFilterModal(true)} />
+          <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} />
+          <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} />
+          <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? 'Done' : undefined} />
+          <ActionButton icon="share-outline" label="Share" onPress={handleShare} />
+          {currentDocument.pages.length > 1 && (
+            <ActionButton icon="trash" label="Del Page" onPress={handleDeletePage} danger />
+          )}
+        </View>
+      </ScrollView>
 
       {/* Rename Modal */}
       <Modal
@@ -395,11 +538,14 @@ export default function DocumentScreen() {
                   onPress={() => handleApplyFilter(filter.id)}
                   disabled={processing}
                 >
-                  <View style={styles.filterIcon}>
+                  <View style={[
+                    styles.filterIcon,
+                    currentPage.filter_applied === filter.id && styles.filterIconSelected
+                  ]}>
                     <Ionicons
                       name={filter.icon as any}
                       size={28}
-                      color={currentPage.filter_applied === filter.id ? '#3B82F6' : '#94A3B8'}
+                      color={currentPage.filter_applied === filter.id ? '#FFF' : '#94A3B8'}
                     />
                   </View>
                   <Text
@@ -433,14 +579,11 @@ export default function DocumentScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.ocrTextContainer}>
-              <Text style={styles.ocrText}>{ocrText || 'No text extracted'}</Text>
+              <Text style={styles.ocrText} selectable>{ocrText || 'No text detected'}</Text>
             </ScrollView>
             <Button
               title="Copy Text"
-              onPress={() => {
-                // Copy to clipboard
-                Alert.alert('Copied', 'Text copied to clipboard');
-              }}
+              onPress={handleCopyText}
               style={styles.copyButton}
               icon={<Ionicons name="copy" size={20} color="#FFF" />}
             />
@@ -456,16 +599,23 @@ function ActionButton({
   label,
   onPress,
   danger,
+  badge,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   danger?: boolean;
+  badge?: string;
 }) {
   return (
     <TouchableOpacity style={styles.actionButton} onPress={onPress}>
       <View style={[styles.actionIcon, danger && styles.actionIconDanger]}>
         <Ionicons name={icon} size={22} color={danger ? '#EF4444' : '#3B82F6'} />
+        {badge && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        )}
       </View>
       <Text style={[styles.actionLabel, danger && styles.actionLabelDanger]}>{label}</Text>
     </TouchableOpacity>
@@ -577,11 +727,14 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600',
   },
+  actionsScroll: {
+    maxHeight: 90,
+  },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 16,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
@@ -597,16 +750,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
+    position: 'relative',
   },
   actionIconDanger: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
   },
   actionLabelDanger: {
     color: '#EF4444',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 8,
+    color: '#FFF',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -665,14 +833,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+    justifyContent: 'space-around',
   },
   filterOption: {
     alignItems: 'center',
-    width: '18%',
+    width: 60,
   },
-  filterSelected: {
-    opacity: 1,
-  },
+  filterSelected: {},
   filterIcon: {
     width: 56,
     height: 56,
@@ -681,6 +848,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  filterIconSelected: {
+    backgroundColor: '#3B82F6',
   },
   filterName: {
     fontSize: 12,
