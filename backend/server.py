@@ -277,6 +277,12 @@ def create_thumbnail(image_base64: str, max_size: int = 200) -> str:
         image_data = base64.b64decode(image_base64)
         image = Image.open(BytesIO(image_data))
         
+        # Convert RGBA to RGB if needed
+        if image.mode == 'RGBA':
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            background.paste(image, mask=image.split()[3])
+            image = background
+        
         # Create thumbnail
         image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
         
@@ -288,6 +294,16 @@ def create_thumbnail(image_base64: str, max_size: int = 200) -> str:
         logger.error(f"Error creating thumbnail: {e}")
         return image_base64
 
+def convert_to_rgb(image: Image.Image) -> Image.Image:
+    """Convert image to RGB mode"""
+    if image.mode == 'RGBA':
+        background = Image.new('RGB', image.size, (255, 255, 255))
+        background.paste(image, mask=image.split()[3])
+        return background
+    elif image.mode != 'RGB':
+        return image.convert('RGB')
+    return image
+
 def apply_image_filter(image_base64: str, filter_type: str) -> str:
     """Apply filter to image"""
     try:
@@ -296,6 +312,7 @@ def apply_image_filter(image_base64: str, filter_type: str) -> str:
         
         image_data = base64.b64decode(image_base64)
         image = Image.open(BytesIO(image_data))
+        image = convert_to_rgb(image)
         
         if filter_type == "grayscale":
             image = image.convert("L").convert("RGB")
@@ -334,6 +351,7 @@ def rotate_image(image_base64: str, degrees: int) -> str:
         
         image_data = base64.b64decode(image_base64)
         image = Image.open(BytesIO(image_data))
+        image = convert_to_rgb(image)
         
         # Rotate image (negative because PIL rotates counter-clockwise)
         image = image.rotate(-degrees, expand=True, fillcolor='white')
@@ -353,6 +371,7 @@ def crop_image(image_base64: str, x: int, y: int, width: int, height: int) -> st
         
         image_data = base64.b64decode(image_base64)
         image = Image.open(BytesIO(image_data))
+        image = convert_to_rgb(image)
         
         # Crop image
         image = image.crop((x, y, x + width, y + height))
@@ -363,6 +382,176 @@ def crop_image(image_base64: str, x: int, y: int, width: int, height: int) -> st
     except Exception as e:
         logger.error(f"Error cropping image: {e}")
         return image_base64
+
+def detect_document_edges(image_base64: str) -> Dict[str, Any]:
+    """Detect document edges using OpenCV"""
+    try:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        image_data = base64.b64decode(image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {"detected": False, "corners": None}
+        
+        height, width = img.shape[:2]
+        
+        # Resize for faster processing
+        scale = min(1.0, 1000 / max(width, height))
+        if scale < 1.0:
+            img_small = cv2.resize(img, None, fx=scale, fy=scale)
+        else:
+            img_small = img
+            scale = 1.0
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(img_small, cv2.COLOR_BGR2GRAY)
+        
+        # Apply Gaussian blur
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        # Edge detection
+        edges = cv2.Canny(blurred, 50, 150)
+        
+        # Dilate edges
+        kernel = np.ones((3, 3), np.uint8)
+        edges = cv2.dilate(edges, kernel, iterations=2)
+        
+        # Find contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return {"detected": False, "corners": None}
+        
+        # Find the largest contour
+        largest_contour = max(contours, key=cv2.contourArea)
+        
+        # Approximate the contour to a polygon
+        epsilon = 0.02 * cv2.arcLength(largest_contour, True)
+        approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+        
+        # Check if we got a quadrilateral
+        if len(approx) == 4:
+            # Scale corners back to original size
+            corners = []
+            for point in approx:
+                x, y = point[0]
+                corners.append({
+                    "x": int(x / scale),
+                    "y": int(y / scale)
+                })
+            
+            # Order corners: top-left, top-right, bottom-right, bottom-left
+            corners = order_corners(corners)
+            
+            return {
+                "detected": True,
+                "corners": corners,
+                "width": width,
+                "height": height
+            }
+        
+        return {"detected": False, "corners": None}
+    except Exception as e:
+        logger.error(f"Error detecting edges: {e}")
+        return {"detected": False, "corners": None}
+
+def order_corners(corners: List[Dict]) -> List[Dict]:
+    """Order corners as: top-left, top-right, bottom-right, bottom-left"""
+    # Sort by y coordinate (top to bottom)
+    sorted_by_y = sorted(corners, key=lambda c: c["y"])
+    top_two = sorted(sorted_by_y[:2], key=lambda c: c["x"])
+    bottom_two = sorted(sorted_by_y[2:], key=lambda c: c["x"])
+    return [top_two[0], top_two[1], bottom_two[1], bottom_two[0]]
+
+def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
+    """Apply perspective transform to crop document"""
+    try:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        image_data = base64.b64decode(image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None or len(corners) != 4:
+            return image_base64
+        
+        # Source points
+        src_pts = np.float32([
+            [corners[0]["x"], corners[0]["y"]],  # top-left
+            [corners[1]["x"], corners[1]["y"]],  # top-right
+            [corners[2]["x"], corners[2]["y"]],  # bottom-right
+            [corners[3]["x"], corners[3]["y"]]   # bottom-left
+        ])
+        
+        # Calculate output dimensions
+        width_top = np.sqrt((corners[1]["x"] - corners[0]["x"])**2 + (corners[1]["y"] - corners[0]["y"])**2)
+        width_bottom = np.sqrt((corners[2]["x"] - corners[3]["x"])**2 + (corners[2]["y"] - corners[3]["y"])**2)
+        width = int(max(width_top, width_bottom))
+        
+        height_left = np.sqrt((corners[3]["x"] - corners[0]["x"])**2 + (corners[3]["y"] - corners[0]["y"])**2)
+        height_right = np.sqrt((corners[2]["x"] - corners[1]["x"])**2 + (corners[2]["y"] - corners[1]["y"])**2)
+        height = int(max(height_left, height_right))
+        
+        # Destination points
+        dst_pts = np.float32([
+            [0, 0],
+            [width - 1, 0],
+            [width - 1, height - 1],
+            [0, height - 1]
+        ])
+        
+        # Get perspective transform matrix
+        matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
+        
+        # Apply perspective transform
+        warped = cv2.warpPerspective(img, matrix, (width, height))
+        
+        # Encode back to base64
+        _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        return base64.b64encode(buffer).decode()
+    except Exception as e:
+        logger.error(f"Error in perspective crop: {e}")
+        return image_base64
+
+def perform_ocr_with_openai(image_base64: str) -> str:
+    """Perform OCR using OpenAI Vision API"""
+    if not openai_client:
+        return "OCR service not configured. Please add EMERGENT_LLM_KEY to backend/.env"
+    
+    try:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Extract all text from this document image. Return only the extracted text, nothing else. If no text is found, return 'No text detected'."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=4096
+        )
+        
+        return response.choices[0].message.content or "No text detected"
+    except Exception as e:
+        logger.error(f"OCR error: {e}")
+        return f"OCR error: {str(e)}"
 
 # ==================== AUTH ENDPOINTS ====================
 
