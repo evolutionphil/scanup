@@ -19,7 +19,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 import re
 import cv2
 import numpy as np
-from openai import OpenAI
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
