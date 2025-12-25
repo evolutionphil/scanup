@@ -146,51 +146,63 @@ backend:
 
   - task: "Document CRUD Operations"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Create, Read, Update, Delete document endpoints implemented"
+      - working: true
+        agent: "testing"
+        comment: "All document CRUD operations working correctly. Tested: create document with pages, get documents list, get single document, update document, add pages to document, delete document. All endpoints return proper responses and handle authentication."
 
   - task: "Folder Management"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Create folder, list folders, delete folder endpoints implemented"
+      - working: true
+        agent: "testing"
+        comment: "Folder management working correctly. Tested: create folder, get folders list, delete folder. Folder deletion properly moves documents to root. All endpoints authenticated and working."
 
   - task: "Image Processing"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Filter, rotate, crop operations implemented using Pillow"
+      - working: true
+        agent: "testing"
+        comment: "Minor: Image processing working for core functionality. All operations (filter, rotate, crop) return processed images. Note: Some RGBA to JPEG conversion warnings in logs but operations complete successfully."
 
   - task: "Subscription Management"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Mock subscription upgrade/downgrade implemented"
+      - working: true
+        agent: "testing"
+        comment: "Subscription management working correctly. Tested upgrade to premium and downgrade to free. Premium status affects OCR limits (unlimited vs 5/day). User profile correctly reflects subscription status."
 
 frontend:
   - task: "Landing Page"
