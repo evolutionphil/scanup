@@ -9,7 +9,6 @@ import {
   Alert,
   TextInput,
   Modal,
-  Platform,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
@@ -24,17 +23,10 @@ import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, PageData } from '../../src/store/documentStore';
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
+import FilterEditor from '../../src/components/FilterEditor';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const FILTERS = [
-  { id: 'original', name: 'Original', icon: 'image' },
-  { id: 'enhanced', name: 'Enhanced', icon: 'color-wand' },
-  { id: 'grayscale', name: 'Grayscale', icon: 'contrast' },
-  { id: 'bw', name: 'B&W', icon: 'moon' },
-  { id: 'document', name: 'Document', icon: 'document-text' },
-];
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,12 +38,12 @@ export default function DocumentScreen() {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showFilterEditor, setShowFilterEditor] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [showCropModal, setShowCropModal] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
 
   useEffect(() => {
     loadDocument();
@@ -105,29 +97,53 @@ export default function DocumentScreen() {
     );
   };
 
-  const handleApplyFilter = async (filterType: string) => {
+  const handleApplyFilter = async (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => {
     if (!currentDocument || !token || processing) return;
     
     setProcessing(true);
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
-      const processedImage = await processImage(
-        token,
-        currentPage.image_base64,
-        'filter',
-        { type: filterType }
-      );
+      
+      // Use original image as base for non-destructive editing
+      const baseImage = currentPage.original_image_base64 || currentPage.image_base64;
+      
+      const response = await fetch(`${BACKEND_URL}/api/images/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_base64: baseImage,
+          operation: 'filter',
+          params: {
+            type: filterType,
+            brightness: adjustments.brightness,
+            contrast: adjustments.contrast,
+            saturation: adjustments.saturation,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process image');
+      }
+
+      const result = await response.json();
 
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
-        image_base64: processedImage,
+        image_base64: result.processed_image_base64,
+        original_image_base64: currentPage.original_image_base64 || currentPage.image_base64,
         filter_applied: filterType,
+        adjustments: adjustments,
       };
 
       await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
-      setShowFilterModal(false);
+      setShowFilterEditor(false);
     } catch (e) {
+      console.error('Filter error:', e);
       Alert.alert('Error', 'Failed to apply filter');
     } finally {
       setProcessing(false);
@@ -147,11 +163,18 @@ export default function DocumentScreen() {
         { degrees: 90 }
       );
 
+      // Also rotate the original if it exists
+      let rotatedOriginal = currentPage.original_image_base64;
+      if (rotatedOriginal) {
+        rotatedOriginal = await processImage(token, rotatedOriginal, 'rotate', { degrees: 90 });
+      }
+
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: processedImage,
-        rotation: (currentPage.rotation + 90) % 360,
+        original_image_base64: rotatedOriginal || processedImage,
+        rotation: ((currentPage.rotation || 0) + 90) % 360,
       };
 
       await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
@@ -202,6 +225,45 @@ export default function DocumentScreen() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleRevertToOriginal = async () => {
+    if (!currentDocument || !token || processing) return;
+    
+    const currentPage = currentDocument.pages[selectedPageIndex];
+    if (!currentPage.original_image_base64) {
+      Alert.alert('Info', 'No original image saved for this page');
+      return;
+    }
+
+    Alert.alert(
+      'Revert to Original',
+      'This will remove all filters and adjustments. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Revert',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const updatedPages = [...currentDocument.pages];
+              updatedPages[selectedPageIndex] = {
+                ...updatedPages[selectedPageIndex],
+                image_base64: currentPage.original_image_base64!,
+                filter_applied: 'original',
+                adjustments: undefined,
+              };
+
+              await updateDocument(token!, currentDocument.document_id, { pages: updatedPages });
+            } catch (e) {
+              Alert.alert('Error', 'Failed to revert image');
+            } finally {
+              setProcessing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleOCR = async () => {
@@ -337,11 +399,34 @@ export default function DocumentScreen() {
     );
   };
 
+  const handleMovePage = async (direction: 'up' | 'down') => {
+    if (!currentDocument || !token) return;
+    
+    const newIndex = direction === 'up' ? selectedPageIndex - 1 : selectedPageIndex + 1;
+    if (newIndex < 0 || newIndex >= currentDocument.pages.length) return;
+    
+    const updatedPages = [...currentDocument.pages];
+    [updatedPages[selectedPageIndex], updatedPages[newIndex]] = [updatedPages[newIndex], updatedPages[selectedPageIndex]];
+    
+    // Update order property
+    updatedPages.forEach((page, index) => {
+      page.order = index;
+    });
+    
+    try {
+      await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+      setSelectedPageIndex(newIndex);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reorder pages');
+    }
+  };
+
   if (loading || !currentDocument) {
     return <LoadingScreen message="Loading document..." />;
   }
 
   const currentPage = currentDocument.pages[selectedPageIndex];
+  const hasOriginal = !!currentPage.original_image_base64 && currentPage.filter_applied !== 'original';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
@@ -380,13 +465,35 @@ export default function DocumentScreen() {
             </Text>
           </View>
         )}
+        
+        {/* Filter badge */}
+        {currentPage.filter_applied && currentPage.filter_applied !== 'original' && (
+          <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
+            <Ionicons name="color-wand" size={12} color="#FFF" />
+            <Text style={styles.filterBadgeText}>{currentPage.filter_applied}</Text>
+          </View>
+        )}
       </View>
 
       {currentDocument.pages.length > 1 && (
         <View style={styles.pageIndicator}>
+          <TouchableOpacity 
+            onPress={() => selectedPageIndex > 0 && setSelectedPageIndex(selectedPageIndex - 1)}
+            disabled={selectedPageIndex === 0}
+            style={[styles.pageNavBtn, selectedPageIndex === 0 && { opacity: 0.3 }]}
+          >
+            <Ionicons name="chevron-back" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
           <Text style={[styles.pageIndicatorText, { color: theme.textMuted }]}>
             Page {selectedPageIndex + 1} of {currentDocument.pages.length}
           </Text>
+          <TouchableOpacity 
+            onPress={() => selectedPageIndex < currentDocument.pages.length - 1 && setSelectedPageIndex(selectedPageIndex + 1)}
+            disabled={selectedPageIndex === currentDocument.pages.length - 1}
+            style={[styles.pageNavBtn, selectedPageIndex === currentDocument.pages.length - 1 && { opacity: 0.3 }]}
+          >
+            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -421,13 +528,32 @@ export default function DocumentScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll}>
         <View style={[styles.actions, { borderTopColor: theme.border }]}>
-          <ActionButton icon="color-wand" label="Filter" onPress={() => setShowFilterModal(true)} theme={theme} />
+          <ActionButton icon="color-wand" label="Filters" onPress={() => setShowFilterEditor(true)} theme={theme} />
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
-          <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? 'Done' : undefined} theme={theme} />
+          {hasOriginal && (
+            <ActionButton icon="arrow-undo" label="Revert" onPress={handleRevertToOriginal} theme={theme} />
+          )}
+          <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? '✓' : undefined} theme={theme} />
           <ActionButton icon="share-outline" label="Share" onPress={handleShare} theme={theme} />
           {currentDocument.pages.length > 1 && (
-            <ActionButton icon="trash" label="Del Page" onPress={handleDeletePage} danger theme={theme} />
+            <>
+              <ActionButton 
+                icon="arrow-up" 
+                label="Move Up" 
+                onPress={() => handleMovePage('up')} 
+                disabled={selectedPageIndex === 0}
+                theme={theme} 
+              />
+              <ActionButton 
+                icon="arrow-down" 
+                label="Move Down" 
+                onPress={() => handleMovePage('down')} 
+                disabled={selectedPageIndex === currentDocument.pages.length - 1}
+                theme={theme} 
+              />
+              <ActionButton icon="trash" label="Del Page" onPress={handleDeletePage} danger theme={theme} />
+            </>
           )}
         </View>
       </ScrollView>
@@ -467,55 +593,16 @@ export default function DocumentScreen() {
         </View>
       </Modal>
 
-      {/* Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
-          <View style={[styles.filterModalContent, { backgroundColor: theme.surface }]}>
-            <View style={styles.filterModalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Apply Filter</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={24} color={theme.text} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.filterGrid}>
-              {FILTERS.map((filter) => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={styles.filterOption}
-                  onPress={() => handleApplyFilter(filter.id)}
-                  disabled={processing}
-                >
-                  <View style={[
-                    styles.filterIcon,
-                    { backgroundColor: theme.background },
-                    currentPage.filter_applied === filter.id && { backgroundColor: theme.primary }
-                  ]}>
-                    <Ionicons
-                      name={filter.icon as any}
-                      size={28}
-                      color={currentPage.filter_applied === filter.id ? '#FFF' : theme.textMuted}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.filterName,
-                      { color: theme.textMuted },
-                      currentPage.filter_applied === filter.id && { color: theme.primary, fontWeight: '600' },
-                    ]}
-                  >
-                    {filter.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Filter Editor */}
+      <FilterEditor
+        visible={showFilterEditor}
+        onClose={() => setShowFilterEditor(false)}
+        imageBase64={currentPage.image_base64}
+        originalImageBase64={currentPage.original_image_base64}
+        currentFilter={currentPage.filter_applied || 'original'}
+        onApply={handleApplyFilter}
+        isProcessing={processing}
+      />
 
       {/* OCR Modal */}
       <Modal
@@ -526,7 +613,7 @@ export default function DocumentScreen() {
       >
         <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.ocrModalContent, { backgroundColor: theme.surface }]}>
-            <View style={styles.filterModalHeader}>
+            <View style={styles.ocrModalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Extracted Text</Text>
               <TouchableOpacity onPress={() => setShowOcrModal(false)}>
                 <Ionicons name="close" size={24} color={theme.text} />
@@ -554,6 +641,7 @@ function ActionButton({
   onPress,
   danger,
   badge,
+  disabled,
   theme,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -561,10 +649,15 @@ function ActionButton({
   onPress: () => void;
   danger?: boolean;
   badge?: string;
+  disabled?: boolean;
   theme: any;
 }) {
   return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+    <TouchableOpacity 
+      style={[styles.actionButton, disabled && { opacity: 0.4 }]} 
+      onPress={onPress}
+      disabled={disabled}
+    >
       <View style={[
         styles.actionIcon,
         { backgroundColor: danger ? theme.danger + '15' : theme.primary + '15' }
@@ -635,9 +728,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
   },
-  pageIndicator: {
+  filterBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  filterBadgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  pageIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
+    gap: 16,
+  },
+  pageNavBtn: {
+    padding: 4,
   },
   pageIndicatorText: {
     fontSize: 13,
@@ -683,12 +799,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 12,
     borderTopWidth: 1,
   },
   actionButton: {
     alignItems: 'center',
-    minWidth: 60,
+    minWidth: 56,
   },
   actionIcon: {
     width: 48,
@@ -700,18 +816,18 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   actionLabel: {
-    fontSize: 11,
+    fontSize: 10,
   },
   badge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   badgeText: {
-    fontSize: 8,
+    fontSize: 9,
     color: '#FFF',
     fontWeight: '600',
   },
@@ -747,42 +863,6 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
   },
-  filterModalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-  },
-  filterModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  filterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    justifyContent: 'space-around',
-  },
-  filterOption: {
-    alignItems: 'center',
-    width: 60,
-  },
-  filterIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  filterName: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
   ocrModalContent: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -791,6 +871,12 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
     position: 'absolute',
     bottom: 0,
+  },
+  ocrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   ocrTextContainer: {
     borderRadius: 12,
