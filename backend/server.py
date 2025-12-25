@@ -1074,6 +1074,54 @@ async def auto_crop_image(
         "message": "Could not detect document edges"
     }
 
+class ManualCropRequest(BaseModel):
+    image_base64: str
+    corners: List[Dict[str, float]]  # [{x: 0-1, y: 0-1}, ...]
+
+@api_router.post("/images/perspective-crop")
+async def manual_perspective_crop(
+    request: ManualCropRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Apply manual perspective crop with user-defined corners"""
+    try:
+        # Convert normalized coordinates to pixel coordinates
+        if "," in request.image_base64:
+            img_data = request.image_base64.split(",")[1]
+        else:
+            img_data = request.image_base64
+            
+        image_bytes = base64.b64decode(img_data)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {"success": False, "cropped_image_base64": request.image_base64}
+        
+        height, width = img.shape[:2]
+        
+        # Convert normalized corners to pixel coordinates
+        pixel_corners = []
+        for corner in request.corners:
+            px = int(corner.get('x', 0) * width)
+            py = int(corner.get('y', 0) * height)
+            pixel_corners.append({'x': px, 'y': py})
+        
+        # Apply perspective transform
+        cropped = perspective_crop(request.image_base64, pixel_corners)
+        
+        return {
+            "success": True,
+            "cropped_image_base64": cropped
+        }
+    except Exception as e:
+        logger.error(f"Manual crop error: {e}")
+        return {
+            "success": False,
+            "cropped_image_base64": request.image_base64,
+            "message": str(e)
+        }
+
 # ==================== OCR ENDPOINTS ====================
 
 @api_router.post("/ocr/extract", response_model=OCRResponse)
