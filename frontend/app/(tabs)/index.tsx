@@ -185,9 +185,14 @@ export default function DocumentsScreen() {
           <Text style={[styles.selectedCount, { color: theme.text }]}>
             {selectedDocs.length} selected
           </Text>
-          <TouchableOpacity onPress={handleDeleteSelected}>
-            <Ionicons name="trash-outline" size={24} color={theme.danger} />
-          </TouchableOpacity>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity onPress={() => setShowMoveModal(true)} style={styles.selectionAction}>
+              <Ionicons name="folder-outline" size={22} color={theme.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDeleteSelected} style={styles.selectionAction}>
+              <Ionicons name="trash-outline" size={22} color={theme.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
