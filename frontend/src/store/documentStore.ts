@@ -40,6 +40,7 @@ export interface Folder {
   color: string;
   parent_id?: string;
   is_protected?: boolean;
+  password_hash?: string;
   created_at: string;
 }
 
@@ -52,7 +53,7 @@ interface DocumentState {
   // Document actions
   fetchDocuments: (token: string, params?: { folder_id?: string; search?: string; tag?: string }) => Promise<void>;
   fetchDocument: (token: string, documentId: string) => Promise<Document>;
-  createDocument: (token: string, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[] }) => Promise<Document>;
+  createDocument: (token: string, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[]; document_type?: string }) => Promise<Document>;
   updateDocument: (token: string, documentId: string, data: Partial<Document>) => Promise<Document>;
   deleteDocument: (token: string, documentId: string) => Promise<void>;
   addPageToDocument: (token: string, documentId: string, page: Partial<PageData>) => Promise<Document>;
@@ -61,6 +62,7 @@ interface DocumentState {
   // Folder actions
   fetchFolders: (token: string) => Promise<void>;
   createFolder: (token: string, data: { name: string; color?: string }) => Promise<Folder>;
+  updateFolder: (token: string, folderId: string, data: Partial<Folder>) => Promise<Folder>;
   deleteFolder: (token: string, folderId: string) => Promise<void>;
   
   // Image processing
