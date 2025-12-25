@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../src/store/authStore';
@@ -6,11 +6,16 @@ import { View, StyleSheet } from 'react-native';
 import LoadingScreen from '../src/components/LoadingScreen';
 
 export default function RootLayout() {
-  const { isLoading, loadStoredAuth } = useAuthStore();
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const loadStoredAuth = useAuthStore((state) => state.loadStoredAuth);
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
-    loadStoredAuth();
-  }, []);
+    if (!hasLoaded.current) {
+      hasLoaded.current = true;
+      loadStoredAuth();
+    }
+  }, [loadStoredAuth]);
 
   if (isLoading) {
     return <LoadingScreen message="Loading..." />;
