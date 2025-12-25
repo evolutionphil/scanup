@@ -28,6 +28,7 @@ export default function LoginScreen() {
   const { login, googleLogin } = useAuthStore();
 
   const handleLogin = async () => {
+    console.log('Login button pressed', { email, password: !!password });
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -35,9 +36,12 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      console.log('Attempting login...');
       await login(email, password);
+      console.log('Login successful, navigating...');
       router.replace('/(tabs)');
     } catch (error: any) {
+      console.error('Login error:', error);
       Alert.alert('Login Failed', error.message || 'Please check your credentials');
     } finally {
       setLoading(false);
