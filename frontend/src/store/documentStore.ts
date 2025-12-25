@@ -211,6 +211,26 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     return folder;
   },
 
+  updateFolder: async (token, folderId, data) => {
+    const response = await fetch(`${BACKEND_URL}/api/folders/${folderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) throw new Error('Failed to update folder');
+    const folder = await response.json();
+    set((state) => ({
+      folders: state.folders.map((f) =>
+        f.folder_id === folderId ? folder : f
+      ),
+    }));
+    return folder;
+  },
+
   deleteFolder: async (token, folderId) => {
     const response = await fetch(`${BACKEND_URL}/api/folders/${folderId}`, {
       method: 'DELETE',
