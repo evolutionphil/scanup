@@ -513,38 +513,35 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
         logger.error(f"Error in perspective crop: {e}")
         return image_base64
 
-def perform_ocr_with_openai(image_base64: str) -> str:
-    """Perform OCR using OpenAI Vision API"""
-    if not openai_client:
+async def perform_ocr_with_openai(image_base64: str) -> str:
+    """Perform OCR using Emergent LLM with image analysis"""
+    if not EMERGENT_LLM_KEY:
         return "OCR service not configured. Please add EMERGENT_LLM_KEY to backend/.env"
     
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
         
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Extract all text from this document image. Return only the extracted text, nothing else. If no text is found, return 'No text detected'."
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_base64}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens=4096
+        # Create a new chat session for OCR
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"ocr_{uuid.uuid4().hex[:8]}",
+            system_message="You are an OCR assistant. Extract all text from images accurately."
+        ).with_model("openai", "gpt-4o")
+        
+        # Create image content
+        image_content = ImageContent(image_base64=image_base64)
+        
+        # Create message with image
+        user_message = UserMessage(
+            text="Extract all text from this document image. Return only the extracted text exactly as it appears, preserving line breaks and formatting. If no text is found, return 'No text detected'.",
+            file_contents=[image_content]
         )
         
-        return response.choices[0].message.content or "No text detected"
+        # Send message and get response
+        response = await chat.send_message(user_message)
+        
+        return response or "No text detected"
     except Exception as e:
         logger.error(f"OCR error: {e}")
         return f"OCR error: {str(e)}"
