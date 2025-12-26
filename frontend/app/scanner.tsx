@@ -1133,16 +1133,36 @@ export default function ScannerScreen() {
           </>
         )}
         
-        {/* Book mode - horizontal center divider for two-page alignment */}
+        {/* Book mode - split frame for two-page alignment */}
         {currentType.type === 'book' && (
           <>
-            {/* Vertical center line (book spine) */}
-            <Line x1={width / 2} y1={8} x2={width / 2} y2={height - 8} 
-              stroke={currentType.color} strokeWidth={2} strokeDasharray="8,4" />
-            {/* Horizontal center line for page alignment */}
-            <Line x1={8} y1={height / 2} x2={width - 8} y2={height / 2} 
-              stroke={currentType.color + '60'} strokeWidth={1.5} strokeDasharray="6,4" />
-            {/* Page labels */}
+            {/* Vertical center line (book spine/gutter) - prominent */}
+            <Line x1={width / 2} y1={6} x2={width / 2} y2={height - 6} 
+              stroke={currentType.color} strokeWidth={3} strokeDasharray="12,6" />
+            
+            {/* Left page box */}
+            <Rect x={10} y={10} width={(width / 2) - 18} height={height - 20}
+              rx={4} stroke={currentType.color + '50'} strokeWidth={1.5} strokeDasharray="6,4" fill="transparent" />
+            
+            {/* Right page box */}
+            <Rect x={(width / 2) + 8} y={10} width={(width / 2) - 18} height={height - 20}
+              rx={4} stroke={currentType.color + '50'} strokeWidth={1.5} strokeDasharray="6,4" fill="transparent" />
+            
+            {/* Page number labels */}
+            <SvgText x={width * 0.25} y={height - 20} 
+              fontSize={14} fontWeight="bold" fill={currentType.color} 
+              textAnchor="middle">1</SvgText>
+            <SvgText x={width * 0.75} y={height - 20} 
+              fontSize={14} fontWeight="bold" fill={currentType.color} 
+              textAnchor="middle">2</SvgText>
+              
+            {/* Page indicators at top */}
+            <SvgText x={width * 0.25} y={26} 
+              fontSize={10} fill={currentType.color + '90'} 
+              textAnchor="middle">Left Page</SvgText>
+            <SvgText x={width * 0.75} y={26} 
+              fontSize={10} fill={currentType.color + '90'} 
+              textAnchor="middle">Right Page</SvgText>
           </>
         )}
       </Svg>
