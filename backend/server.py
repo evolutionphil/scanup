@@ -417,8 +417,15 @@ def crop_image(image_base64: str, x: int, y: int, width: int, height: int) -> st
         logger.error(f"Error cropping image: {e}")
         return image_base64
 
-def detect_document_edges(image_base64: str) -> Dict[str, Any]:
-    """Detect document edges using OpenCV with improved detection"""
+def detect_document_edges(image_base64: str, document_type: str = "document") -> Dict[str, Any]:
+    """Detect document edges using OpenCV with improved multi-approach detection
+    
+    This function tries multiple detection strategies to find document edges:
+    1. Canny edge detection with various thresholds
+    2. Adaptive thresholding
+    3. Color-based detection (for white documents on darker backgrounds)
+    4. Morphological operations
+    """
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
@@ -428,74 +435,148 @@ def detect_document_edges(image_base64: str) -> Dict[str, Any]:
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
-            return {"detected": False, "corners": None}
+            return {"detected": False, "corners": None, "message": "Could not decode image"}
         
         height, width = img.shape[:2]
         
         # Resize for faster processing
-        max_dim = 800
+        max_dim = 1000  # Increased for better accuracy
         scale = min(1.0, max_dim / max(width, height))
         if scale < 1.0:
             img_small = cv2.resize(img, None, fx=scale, fy=scale)
         else:
-            img_small = img
+            img_small = img.copy()
             scale = 1.0
         
-        # Convert to grayscale
-        gray = cv2.cvtColor(img_small, cv2.COLOR_BGR2GRAY)
+        small_h, small_w = img_small.shape[:2]
         
-        # Apply bilateral filter to reduce noise while keeping edges sharp
-        blurred = cv2.bilateralFilter(gray, 9, 75, 75)
+        # Minimum area threshold - lowered to 3% for better detection
+        min_area = small_h * small_w * 0.03
+        # Maximum area - no more than 99% of image
+        max_area = small_h * small_w * 0.99
         
-        # Try multiple edge detection approaches
         best_contour = None
-        best_area = 0
+        best_score = 0
         
-        # Approach 1: Canny edge detection with different thresholds
-        for low_thresh, high_thresh in [(30, 100), (50, 150), (75, 200)]:
-            edges = cv2.Canny(blurred, low_thresh, high_thresh)
+        def score_contour(contour, approx):
+            """Score a contour based on multiple criteria"""
+            area = cv2.contourArea(contour)
+            if area < min_area or area > max_area:
+                return 0
             
-            # Dilate edges to connect broken lines
-            kernel = np.ones((3, 3), np.uint8)
-            edges = cv2.dilate(edges, kernel, iterations=2)
-            edges = cv2.erode(edges, kernel, iterations=1)
+            # Must be quadrilateral
+            if len(approx) != 4:
+                return 0
             
-            # Find contours
-            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Check if it's convex
+            if not cv2.isContourConvex(approx):
+                return 0
             
-            for contour in contours:
-                area = cv2.contourArea(contour)
-                if area > best_area and area > (img_small.shape[0] * img_small.shape[1] * 0.1):
-                    # Approximate to polygon
-                    epsilon = 0.02 * cv2.arcLength(contour, True)
-                    approx = cv2.approxPolyDP(contour, epsilon, True)
+            # Score based on area (larger is better, but not too large)
+            area_score = area / (small_h * small_w)
+            
+            # Score based on how rectangular it is (aspect ratio)
+            rect = cv2.minAreaRect(approx)
+            rect_area = rect[1][0] * rect[1][1]
+            if rect_area > 0:
+                rectangularity = area / rect_area
+            else:
+                rectangularity = 0
+            
+            # Combined score
+            return area_score * 0.6 + rectangularity * 0.4
+        
+        # Convert to different color spaces
+        gray = cv2.cvtColor(img_small, cv2.COLOR_BGR2GRAY)
+        hsv = cv2.cvtColor(img_small, cv2.COLOR_BGR2HSV)
+        
+        # APPROACH 1: Multiple Canny edge detection with different preprocessing
+        preprocessed_images = [
+            cv2.GaussianBlur(gray, (5, 5), 0),
+            cv2.bilateralFilter(gray, 9, 75, 75),
+            cv2.medianBlur(gray, 5),
+        ]
+        
+        canny_params = [(20, 80), (30, 100), (50, 150), (75, 200), (100, 250)]
+        
+        for prep_img in preprocessed_images:
+            for low_thresh, high_thresh in canny_params:
+                edges = cv2.Canny(prep_img, low_thresh, high_thresh)
+                
+                # Dilate to connect broken lines
+                kernel = np.ones((3, 3), np.uint8)
+                edges = cv2.dilate(edges, kernel, iterations=2)
+                edges = cv2.erode(edges, kernel, iterations=1)
+                
+                contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                
+                for contour in contours:
+                    for epsilon_factor in [0.01, 0.02, 0.03, 0.04]:
+                        epsilon = epsilon_factor * cv2.arcLength(contour, True)
+                        approx = cv2.approxPolyDP(contour, epsilon, True)
+                        
+                        score = score_contour(contour, approx)
+                        if score > best_score:
+                            best_score = score
+                            best_contour = approx
+        
+        # APPROACH 2: Adaptive thresholding
+        if best_score < 0.3:
+            for block_size in [11, 15, 21]:
+                for c in [2, 5, 10]:
+                    thresh = cv2.adaptiveThreshold(
+                        cv2.GaussianBlur(gray, (5, 5), 0), 
+                        255, 
+                        cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                        cv2.THRESH_BINARY, 
+                        block_size, 
+                        c
+                    )
                     
-                    if len(approx) == 4:
-                        best_contour = approx
-                        best_area = area
-        
-        # Approach 2: Adaptive thresholding if Canny didn't work well
-        if best_contour is None:
-            thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                          cv2.THRESH_BINARY, 11, 2)
-            thresh = cv2.bitwise_not(thresh)
-            
-            kernel = np.ones((5, 5), np.uint8)
-            thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-            
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            for contour in contours:
-                area = cv2.contourArea(contour)
-                if area > best_area and area > (img_small.shape[0] * img_small.shape[1] * 0.1):
-                    epsilon = 0.02 * cv2.arcLength(contour, True)
-                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    # Morphological operations
+                    kernel = np.ones((5, 5), np.uint8)
+                    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+                    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
                     
-                    if len(approx) == 4:
-                        best_contour = approx
-                        best_area = area
+                    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    
+                    for contour in contours:
+                        for epsilon_factor in [0.01, 0.02, 0.03]:
+                            epsilon = epsilon_factor * cv2.arcLength(contour, True)
+                            approx = cv2.approxPolyDP(contour, epsilon, True)
+                            
+                            score = score_contour(contour, approx)
+                            if score > best_score:
+                                best_score = score
+                                best_contour = approx
         
-        if best_contour is not None:
+        # APPROACH 3: Color-based detection for white/light documents
+        if best_score < 0.3:
+            # Detect bright regions (documents are usually white/light)
+            _, bright_mask = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+            
+            # Also try detecting by saturation (documents have low saturation)
+            s_channel = hsv[:, :, 1]
+            _, low_sat_mask = cv2.threshold(s_channel, 50, 255, cv2.THRESH_BINARY_INV)
+            
+            for mask in [bright_mask, low_sat_mask]:
+                kernel = np.ones((7, 7), np.uint8)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+                
+                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                
+                for contour in contours:
+                    for epsilon_factor in [0.01, 0.02, 0.03]:
+                        epsilon = epsilon_factor * cv2.arcLength(contour, True)
+                        approx = cv2.approxPolyDP(contour, epsilon, True)
+                        
+                        score = score_contour(contour, approx)
+                        if score > best_score:
+                            best_score = score
+                            best_contour = approx
+        
+        if best_contour is not None and best_score > 0.05:
             # Scale corners back to original size
             corners = []
             for point in best_contour:
@@ -512,13 +593,29 @@ def detect_document_edges(image_base64: str) -> Dict[str, Any]:
                 "detected": True,
                 "corners": corners,
                 "width": width,
-                "height": height
+                "height": height,
+                "confidence": round(best_score, 2)
             }
         
-        return {"detected": False, "corners": None}
+        # Return default corners if no detection - full frame with slight padding
+        padding = 0.05
+        default_corners = [
+            {"x": int(width * padding), "y": int(height * padding)},
+            {"x": int(width * (1 - padding)), "y": int(height * padding)},
+            {"x": int(width * (1 - padding)), "y": int(height * (1 - padding))},
+            {"x": int(width * padding), "y": int(height * (1 - padding))}
+        ]
+        
+        return {
+            "detected": False, 
+            "corners": default_corners,
+            "width": width,
+            "height": height,
+            "message": "Could not detect document edges. Default crop area provided."
+        }
     except Exception as e:
         logger.error(f"Error detecting edges: {e}")
-        return {"detected": False, "corners": None}
+        return {"detected": False, "corners": None, "message": str(e)}
 
 def order_corners(corners: List[Dict]) -> List[Dict]:
     """Order corners as: top-left, top-right, bottom-right, bottom-left"""
