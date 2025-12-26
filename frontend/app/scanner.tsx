@@ -985,6 +985,12 @@ export default function ScannerScreen() {
       setShowCropScreen(false);
       setCropImage(null);
       setIsCapturing(false);
+      
+      // In batch mode, immediately return to camera for next scan
+      if (batchMode) {
+        setBatchCount(prev => prev + 1);
+        setShowCamera(true);
+      }
     }
   };
 
