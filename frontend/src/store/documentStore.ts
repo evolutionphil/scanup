@@ -559,7 +559,47 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     return document;
   },
 
-  setCurrentDocument: (doc) => set({ currentDocument: doc }),
+  setCurrentDocument: async (doc) => {
+    if (!doc) {
+      set({ currentDocument: null });
+      return;
+    }
+    
+    // Check if we need to download images from S3 URLs
+    const hasUrls = doc.pages?.some(p => p.image_url && (!p.image_base64 || p.image_base64.length < 100));
+    
+    if (hasUrls) {
+      // Download images from S3 URLs and add base64 data
+      const pagesWithBase64 = await Promise.all(doc.pages.map(async (page) => {
+        if (page.image_url && (!page.image_base64 || page.image_base64.length < 100)) {
+          try {
+            const response = await fetch(page.image_url);
+            if (response.ok) {
+              const blob = await response.blob();
+              const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const result = reader.result as string;
+                  // Remove data:image/jpeg;base64, prefix if present
+                  const base64Data = result.includes(',') ? result.split(',')[1] : result;
+                  resolve(base64Data);
+                };
+                reader.readAsDataURL(blob);
+              });
+              return { ...page, image_base64: base64 };
+            }
+          } catch (e) {
+            console.error('Failed to download image from S3:', e);
+          }
+        }
+        return page;
+      }));
+      
+      set({ currentDocument: { ...doc, pages: pagesWithBase64 } });
+    } else {
+      set({ currentDocument: doc });
+    }
+  },
 
   fetchFolders: async (token) => {
     // If no token (guest mode), load from local storage
