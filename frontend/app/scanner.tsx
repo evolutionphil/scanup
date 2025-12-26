@@ -158,6 +158,10 @@ export default function ScannerScreen() {
   const [batchMode, setBatchMode] = useState(false);
   const [batchCount, setBatchCount] = useState(0);
   
+  // Document Template
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('auto');
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  
   // Auto-capture state
   const [autoCapture, setAutoCapture] = useState(false);
   const [edgesDetected, setEdgesDetected] = useState(false);
