@@ -605,6 +605,7 @@ export default function DocumentScreen() {
         currentFilter={currentPage.filter_applied || 'original'}
         onApply={handleApplyFilter}
         isProcessing={processing}
+        token={token || ''}
       />
 
       {/* OCR Modal */}
