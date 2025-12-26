@@ -566,7 +566,7 @@ export default function ScannerScreen() {
   }
 
   // Preview mode with captured images
-  if (capturedImages.length > 0 && !showCropScreen) {
+  if (capturedImages.length > 0 && !showCropScreen && !showCamera) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
         <View style={styles.previewHeader}>
@@ -576,7 +576,7 @@ export default function ScannerScreen() {
           <Text style={[styles.previewTitle, { color: theme.text }]}>
             {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
           </Text>
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.primary }]} onPress={takePicture}>
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.primary }]} onPress={handleAddMore}>
             <Ionicons name="add" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
@@ -598,7 +598,7 @@ export default function ScannerScreen() {
           <Button 
             title="Add More" 
             variant="outline" 
-            onPress={takePicture} 
+            onPress={handleAddMore} 
             style={{ flex: 1 }} 
             icon={<Ionicons name="add-circle" size={20} color={theme.primary} />} 
           />
