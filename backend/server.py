@@ -2476,9 +2476,9 @@ class EdgeDetectionRequest(BaseModel):
     mode: str = "document"  # document, book, id_card
 
 
-def detect_document_edges(img: np.ndarray) -> Optional[List[Dict]]:
+def detect_document_edges_cv(img: np.ndarray) -> Optional[List[Dict]]:
     """
-    Detect document edges using contour detection.
+    Detect document edges using contour detection (OpenCV based).
     Returns 4 corner points normalized to 0-1 range, or None if not found.
     """
     height, width = img.shape[:2]
