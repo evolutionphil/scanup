@@ -1091,6 +1091,21 @@ export default function ScannerScreen() {
             <Text style={[styles.guideText, { color: currentType.color }]}>{currentType.guide}</Text>
           </View>
 
+          {/* Capturing Progress Indicator */}
+          <Animated.View 
+            style={[
+              styles.capturingIndicator, 
+              { opacity: capturingOpacity }
+            ]}
+            pointerEvents="none"
+          >
+            <View style={styles.capturingContent}>
+              <ActivityIndicator size="small" color="#FFF" />
+              <Text style={styles.capturingText}>Capturing...</Text>
+              <Text style={styles.capturingSubtext}>Please wait</Text>
+            </View>
+          </Animated.View>
+
           <View style={styles.bottomSection}>
             <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.typeSelector} snapToInterval={90} decelerationRate="fast">
