@@ -720,6 +720,14 @@ export default function DocumentScreen() {
         token={token || ''}
         pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
       />
+
+      {/* Signature Modal */}
+      <SignatureModal
+        visible={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        onSave={handleAddSignature}
+        theme={theme}
+      />
     </SafeAreaView>
   );
 }
