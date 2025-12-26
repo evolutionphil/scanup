@@ -1659,7 +1659,26 @@ async def delete_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Delete a document"""
+    """Delete a document and its S3 files"""
+    # First get the document to check ownership
+    document = await db.documents.find_one(
+        {"document_id": document_id, "user_id": current_user.user_id},
+        {"_id": 0}
+    )
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Delete files from S3 if S3 is configured
+    if s3_client and AWS_S3_BUCKET_NAME:
+        try:
+            delete_from_s3(current_user.user_id, document_id)
+            logger.info(f"Deleted S3 files for document {document_id}")
+        except Exception as e:
+            logger.error(f"Failed to delete S3 files for document {document_id}: {e}")
+            # Continue with database deletion even if S3 fails
+    
+    # Delete from database
     result = await db.documents.delete_one(
         {"document_id": document_id, "user_id": current_user.user_id}
     )
