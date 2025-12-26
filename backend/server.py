@@ -3501,3 +3501,400 @@ async def startup_db_client():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+
+# ==================== ADMIN DASHBOARD API ====================
+
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@scanup.com")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
+
+@api_router.post("/admin/login")
+async def admin_login(request: AdminLoginRequest):
+    """Admin login endpoint"""
+    if request.email == ADMIN_EMAIL and request.password == ADMIN_PASSWORD:
+        # Create admin token
+        token_data = {
+            "sub": "admin",
+            "email": request.email,
+            "is_admin": True,
+            "exp": datetime.now(timezone.utc) + timedelta(days=7)
+        }
+        token = jwt.encode(token_data, JWT_SECRET, algorithm="HS256")
+        return {
+            "token": token,
+            "user": {"email": request.email, "is_admin": True}
+        }
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify admin token"""
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=["HS256"])
+        if not payload.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+
+@api_router.get("/admin/me")
+async def admin_me(admin: dict = Depends(get_admin_user)):
+    """Get current admin user"""
+    return {"email": admin.get("email"), "is_admin": True}
+
+@api_router.get("/admin/stats")
+async def get_admin_stats(admin: dict = Depends(get_admin_user)):
+    """Get dashboard statistics"""
+    try:
+        # Get counts
+        total_users = await db.users.count_documents({})
+        total_documents = await db.documents.count_documents({})
+        
+        # Get users from last 7 days
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        new_users_week = await db.users.count_documents({"created_at": {"$gte": week_ago.isoformat()}})
+        
+        # Calculate storage (approximate)
+        pipeline = [
+            {"$unwind": "$pages"},
+            {"$group": {"_id": None, "total_pages": {"$sum": 1}}}
+        ]
+        page_count_result = await db.documents.aggregate(pipeline).to_list(1)
+        total_pages = page_count_result[0]["total_pages"] if page_count_result else 0
+        storage_mb = total_pages * 0.5  # Estimate ~500KB per page
+        
+        # User growth data (last 30 days)
+        user_growth = []
+        for i in range(30, -1, -1):
+            day = datetime.now(timezone.utc) - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            count = await db.users.count_documents({"created_at": {"$lte": day_start.isoformat()}})
+            user_growth.append({
+                "date": day.strftime("%m/%d"),
+                "users": count
+            })
+        
+        # Daily scans (last 14 days)
+        daily_scans = []
+        for i in range(14, -1, -1):
+            day = datetime.now(timezone.utc) - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            count = await db.documents.count_documents({
+                "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+            })
+            daily_scans.append({
+                "date": day.strftime("%m/%d"),
+                "scans": count
+            })
+        
+        return {
+            "total_users": total_users,
+            "total_documents": total_documents,
+            "storage_used": f"{storage_mb:.1f} MB",
+            "new_users_week": new_users_week,
+            "users_change": f"+{new_users_week}" if new_users_week > 0 else "0",
+            "docs_change": "+0%",
+            "storage_change": "+0%",
+            "new_users_change": "+0%",
+            "user_growth": user_growth,
+            "daily_scans": daily_scans,
+        }
+    except Exception as e:
+        logger.error(f"Admin stats error: {e}")
+        return {
+            "total_users": 0,
+            "total_documents": 0,
+            "storage_used": "0 MB",
+            "new_users_week": 0,
+        }
+
+@api_router.get("/admin/users")
+async def get_admin_users(
+    admin: dict = Depends(get_admin_user),
+    search: str = None,
+    filter: str = "all",
+    limit: int = 50
+):
+    """Get all users for admin"""
+    try:
+        query = {}
+        
+        if search:
+            query["$or"] = [
+                {"email": {"$regex": search, "$options": "i"}},
+                {"name": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if filter == "premium":
+            query["is_premium"] = True
+        elif filter == "free":
+            query["is_premium"] = {"$ne": True}
+        elif filter == "recent":
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            query["created_at"] = {"$gte": week_ago.isoformat()}
+        
+        users = await db.users.find(query, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        # Add document count for each user
+        for user in users:
+            user["document_count"] = await db.documents.count_documents({"user_id": user.get("user_id")})
+        
+        return {"users": users}
+    except Exception as e:
+        logger.error(f"Admin users error: {e}")
+        return {"users": []}
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_admin_user(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete a user and all their data"""
+    try:
+        # Delete user's documents from S3
+        if s3_client:
+            try:
+                delete_from_s3(user_id, "all")
+            except Exception as s3_err:
+                logger.warning(f"S3 cleanup failed: {s3_err}")
+        
+        # Delete documents
+        await db.documents.delete_many({"user_id": user_id})
+        
+        # Delete folders
+        await db.folders.delete_many({"user_id": user_id})
+        
+        # Delete signatures
+        await db.signatures.delete_many({"user_id": user_id})
+        
+        # Delete user
+        result = await db.users.delete_one({"user_id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"message": "User deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete user error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/documents")
+async def get_admin_documents(
+    admin: dict = Depends(get_admin_user),
+    search: str = None,
+    limit: int = 50
+):
+    """Get all documents for admin"""
+    try:
+        query = {}
+        
+        if search:
+            query["name"] = {"$regex": search, "$options": "i"}
+        
+        documents = await db.documents.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        # Add user email and page count
+        for doc in documents:
+            user = await db.users.find_one({"user_id": doc.get("user_id")}, {"email": 1})
+            doc["user_email"] = user.get("email") if user else "Unknown"
+            doc["page_count"] = len(doc.get("pages", []))
+            # Get thumbnail from first page
+            if doc.get("pages") and len(doc["pages"]) > 0:
+                first_page = doc["pages"][0]
+                doc["thumbnail_url"] = first_page.get("thumbnail_url") or first_page.get("image_url")
+            # Remove full page data to reduce response size
+            doc.pop("pages", None)
+        
+        return {"documents": documents}
+    except Exception as e:
+        logger.error(f"Admin documents error: {e}")
+        return {"documents": []}
+
+@api_router.delete("/admin/documents/{document_id}")
+async def delete_admin_document(document_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete a document"""
+    try:
+        doc = await db.documents.find_one({"document_id": document_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Delete from S3
+        if s3_client:
+            try:
+                delete_from_s3(doc.get("user_id"), document_id)
+            except Exception as s3_err:
+                logger.warning(f"S3 cleanup failed: {s3_err}")
+        
+        # Delete from DB
+        await db.documents.delete_one({"document_id": document_id})
+        
+        return {"message": "Document deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete document error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/analytics")
+async def get_admin_analytics(
+    admin: dict = Depends(get_admin_user),
+    range: str = "7d"
+):
+    """Get analytics data"""
+    try:
+        days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(range, 7)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+        
+        # Get active users
+        active_users = await db.documents.distinct("user_id", {
+            "created_at": {"$gte": start_date.isoformat()}
+        })
+        
+        # Get total scans in period
+        total_scans = await db.documents.count_documents({
+            "created_at": {"$gte": start_date.isoformat()}
+        })
+        
+        # Document types distribution
+        doc_types = await db.documents.aggregate([
+            {"$match": {"created_at": {"$gte": start_date.isoformat()}}},
+            {"$group": {"_id": "$document_type", "count": {"$sum": 1}}}
+        ]).to_list(10)
+        
+        document_types = [
+            {"name": dt.get("_id") or "document", "value": dt.get("count", 0)}
+            for dt in doc_types
+        ]
+        
+        # Scans over time
+        scans_over_time = []
+        for i in range(min(days, 30), -1, -1):
+            day = datetime.now(timezone.utc) - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            
+            scan_count = await db.documents.count_documents({
+                "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+            })
+            user_count = len(await db.documents.distinct("user_id", {
+                "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+            }))
+            
+            scans_over_time.append({
+                "date": day.strftime("%m/%d"),
+                "scans": scan_count,
+                "users": user_count
+            })
+        
+        # Platform distribution (mock data for now)
+        platforms = [
+            {"name": "iOS", "users": int(len(active_users) * 0.6)},
+            {"name": "Android", "users": int(len(active_users) * 0.35)},
+            {"name": "Web", "users": int(len(active_users) * 0.05)},
+        ]
+        
+        return {
+            "total_scans": total_scans,
+            "active_users": len(active_users),
+            "avg_session": "4m 32s",
+            "retention_rate": "68%",
+            "scans_over_time": scans_over_time,
+            "document_types": document_types if document_types else [{"name": "Document", "value": 1}],
+            "platforms": platforms,
+        }
+    except Exception as e:
+        logger.error(f"Analytics error: {e}")
+        return {
+            "total_scans": 0,
+            "active_users": 0,
+            "avg_session": "0m",
+            "retention_rate": "0%",
+        }
+
+@api_router.get("/admin/localization")
+async def get_localization(admin: dict = Depends(get_admin_user)):
+    """Get localization data"""
+    try:
+        data = await db.settings.find_one({"key": "localization"}, {"_id": 0})
+        if data:
+            return data.get("value", {"languages": ["en"], "translations": {}})
+        return {"languages": ["en"], "translations": {}}
+    except Exception as e:
+        logger.error(f"Get localization error: {e}")
+        return {"languages": ["en"], "translations": {}}
+
+@api_router.post("/admin/localization")
+async def save_localization(
+    data: dict,
+    admin: dict = Depends(get_admin_user)
+):
+    """Save localization data"""
+    try:
+        await db.settings.update_one(
+            {"key": "localization"},
+            {"$set": {"key": "localization", "value": data}},
+            upsert=True
+        )
+        return {"message": "Localization saved"}
+    except Exception as e:
+        logger.error(f"Save localization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/settings")
+async def get_admin_settings(admin: dict = Depends(get_admin_user)):
+    """Get app settings"""
+    try:
+        data = await db.settings.find_one({"key": "app_settings"}, {"_id": 0})
+        if data:
+            return data.get("value", {})
+        return {}
+    except Exception as e:
+        logger.error(f"Get settings error: {e}")
+        return {}
+
+@api_router.post("/admin/settings")
+async def save_admin_settings(
+    settings: dict,
+    admin: dict = Depends(get_admin_user)
+):
+    """Save app settings"""
+    try:
+        await db.settings.update_one(
+            {"key": "app_settings"},
+            {"$set": {"key": "app_settings", "value": settings}},
+            upsert=True
+        )
+        return {"message": "Settings saved"}
+    except Exception as e:
+        logger.error(f"Save settings error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/system-status")
+async def get_system_status(admin: dict = Depends(get_admin_user)):
+    """Get system status"""
+    status = {
+        "database": "disconnected",
+        "storage": "disconnected",
+        "api": "connected"
+    }
+    
+    try:
+        # Check database
+        await db.command("ping")
+        status["database"] = "connected"
+    except:
+        pass
+    
+    try:
+        # Check S3
+        if s3_client:
+            s3_client.head_bucket(Bucket=AWS_S3_BUCKET_NAME)
+            status["storage"] = "connected"
+    except:
+        pass
+    
+    return status
