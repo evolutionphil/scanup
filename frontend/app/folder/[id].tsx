@@ -157,14 +157,32 @@ export default function FolderDetailScreen() {
     }
   };
 
-  const handleUnlockFolder = () => {
-    // Simple password check (in production, verify hash)
-    if (enteredPassword === currentFolder?.password_hash) {
-      setIsUnlocked(true);
-      setShowPasswordPrompt(false);
-      setEnteredPassword('');
-    } else {
-      Alert.alert('Error', 'Incorrect password');
+  const handleUnlockFolder = async () => {
+    if (!token || !enteredPassword) {
+      Alert.alert('Error', 'Please enter a password');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/folders/${id}/verify-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: enteredPassword }),
+      });
+      
+      if (response.ok) {
+        setIsUnlocked(true);
+        setShowPasswordPrompt(false);
+        setEnteredPassword('');
+      } else {
+        Alert.alert('Error', 'Incorrect password');
+      }
+    } catch (e) {
+      console.error('Password verification error:', e);
+      Alert.alert('Error', 'Failed to verify password');
     }
   };
 
