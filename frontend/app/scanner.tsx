@@ -1167,6 +1167,31 @@ const styles = StyleSheet.create({
   bl: { bottom: -2, left: -2, borderTopWidth: 0, borderRightWidth: 0, borderBottomLeftRadius: 6 },
   br: { bottom: -2, right: -2, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 6 },
   guideText: { marginTop: 16, fontSize: 14, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  // Capturing indicator styles
+  capturingIndicator: { 
+    position: 'absolute', 
+    right: 20, 
+    top: '40%',
+    backgroundColor: 'rgba(0,0,0,0.75)', 
+    paddingVertical: 16, 
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  capturingContent: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  capturingText: { 
+    color: '#FFF', 
+    fontSize: 13, 
+    fontWeight: '600',
+  },
+  capturingSubtext: { 
+    color: '#AAA', 
+    fontSize: 11, 
+  },
   bottomSection: { paddingBottom: 8 },
   typeSelector: { paddingHorizontal: 12, gap: 8 },
   typeBtn: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderRadius: 14, minWidth: 78, backgroundColor: 'rgba(0,0,0,0.3)' },
