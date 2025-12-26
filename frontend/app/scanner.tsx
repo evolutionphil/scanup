@@ -687,8 +687,23 @@ export default function ScannerScreen() {
           setCropImage(imageBase64);
           
           // Map frame overlay to sensor coordinates
-          const frameCropPoints = mapFrameToSensorCoordinates(width, height);
-          setCropPoints(frameCropPoints);
+          // For book mode, use 6 points; otherwise use 4 points
+          if (currentType.type === 'book') {
+            const pad = 0.05;
+            // 6 points for book: TL, GT, TR, BR, GB, BL
+            const bookCropPoints = [
+              { x: width * pad, y: height * pad },           // 0: TL - Top Left
+              { x: width * 0.5, y: height * pad },           // 1: GT - Gutter Top
+              { x: width * (1 - pad), y: height * pad },     // 2: TR - Top Right
+              { x: width * (1 - pad), y: height * (1 - pad) }, // 3: BR - Bottom Right
+              { x: width * 0.5, y: height * (1 - pad) },     // 4: GB - Gutter Bottom
+              { x: width * pad, y: height * (1 - pad) },     // 5: BL - Bottom Left
+            ];
+            setCropPoints(bookCropPoints);
+          } else {
+            const frameCropPoints = mapFrameToSensorCoordinates(width, height);
+            setCropPoints(frameCropPoints);
+          }
           
           setShowCropScreen(true);
           setShowCamera(false);
