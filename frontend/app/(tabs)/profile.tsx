@@ -69,8 +69,7 @@ export default function ProfileScreen() {
               await startTrial();
               Alert.alert('🎉 Trial Started!', 'Enjoy 7 days of premium features!');
             } catch (e) {
-              const err = e as Error;
-              Alert.alert('Error', err.message || 'Failed to start trial');
+              Alert.alert('Error', String(e) || 'Failed to start trial');
             } finally {
               setStartingTrial(false);
             }
