@@ -382,42 +382,8 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
     </Modal>
   );
 }
-              style={[
-                styles.signatureOverlay,
-                {
-                  left: signatureX,
-                  top: signatureY,
-                  width: signatureWidth,
-                  height: signatureHeight,
-                },
-              ]}
-              pointerEvents="none"
-            >
-              <Image
-                source={{ uri: `data:image/png;base64,${signatureImage}` }}
-                style={styles.signatureImage}
-                resizeMode="contain"
-              />
-              <View style={[styles.resizeHandle, styles.handleTL, { backgroundColor: theme.primary }]} />
-              <View style={[styles.resizeHandle, styles.handleTR, { backgroundColor: theme.primary }]} />
-              <View style={[styles.resizeHandle, styles.handleBL, { backgroundColor: theme.primary }]} />
-              <View style={[styles.resizeHandle, styles.handleBR, { backgroundColor: theme.primary }]} />
-            </View>
-          )}
-        </View>
 
-        <View style={[styles.sizeControls, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <TouchableOpacity style={styles.sizeButton} onPress={() => setScale(s => Math.max(0.1, s - 0.05))}>
-            <Ionicons name="remove" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <View style={styles.sizeInfo}>
-            <Text style={styles.sizeLabel}>Size: {Math.round(scale * 100)}%</Text>
-            <Text style={styles.sizeHint}>Pinch on document to resize</Text>
-          </View>
-          <TouchableOpacity style={styles.sizeButton} onPress={() => setScale(s => Math.min(0.8, s + 0.05))}>
-            <Ionicons name="add" size={28} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+// ============ STYLES ============
       </View>
     </Modal>
   );
