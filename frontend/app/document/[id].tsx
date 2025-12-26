@@ -57,6 +57,23 @@ export default function DocumentScreen() {
     loadDocument();
   }, [id]);
 
+  // Helper to show upgrade prompt for premium features
+  const showUpgradePrompt = (featureName: string) => {
+    Alert.alert(
+      'Premium Feature',
+      `${featureName} is available for premium users. Upgrade your plan to unlock this feature!`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => router.push('/(tabs)/profile') },
+      ]
+    );
+  };
+
+  // Check if user can use premium features
+  const canUsePremiumFeature = () => {
+    return token && (user?.is_premium || user?.is_trial);
+  };
+
   const loadDocument = async () => {
     if (!id) return;
     setLoading(true);
