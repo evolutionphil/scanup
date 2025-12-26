@@ -529,7 +529,7 @@ export default function ScannerScreen() {
   };
 
   const handleCornerTouchMove = (e: GestureResponderEvent) => {
-    if (activeDragIndex === null) return;
+    if (activeDragIndex === null && activeEdgeIndex === null) return;
     
     const touchX = e.nativeEvent.pageX - previewLayout.x;
     const touchY = e.nativeEvent.pageY - previewLayout.y;
@@ -539,14 +539,57 @@ export default function ScannerScreen() {
     
     const newPoint = toImage(clampedX, clampedY);
     
-    setCropPoints(prev => {
-      const updated = [...prev];
-      updated[activeDragIndex] = newPoint;
-      return updated;
-    });
+    // Handle corner dragging
+    if (activeDragIndex !== null) {
+      setCropPoints(prev => {
+        const updated = [...prev];
+        updated[activeDragIndex] = newPoint;
+        return updated;
+      });
+      return;
+    }
+    
+    // Handle edge dragging - moves two adjacent corners
+    if (activeEdgeIndex !== null) {
+      setCropPoints(prev => {
+        const updated = [...prev];
+        
+        switch (activeEdgeIndex) {
+          case 0: // Top edge - move TL and TR vertically
+            const topDeltaY = newPoint.y - (updated[0].y + updated[1].y) / 2;
+            updated[0] = { ...updated[0], y: updated[0].y + topDeltaY };
+            updated[1] = { ...updated[1], y: updated[1].y + topDeltaY };
+            break;
+          case 1: // Right edge - move TR and BR horizontally
+            const rightDeltaX = newPoint.x - (updated[1].x + updated[2].x) / 2;
+            updated[1] = { ...updated[1], x: updated[1].x + rightDeltaX };
+            updated[2] = { ...updated[2], x: updated[2].x + rightDeltaX };
+            break;
+          case 2: // Bottom edge - move BR and BL vertically
+            const bottomDeltaY = newPoint.y - (updated[2].y + updated[3].y) / 2;
+            updated[2] = { ...updated[2], y: updated[2].y + bottomDeltaY };
+            updated[3] = { ...updated[3], y: updated[3].y + bottomDeltaY };
+            break;
+          case 3: // Left edge - move BL and TL horizontally
+            const leftDeltaX = newPoint.x - (updated[3].x + updated[0].x) / 2;
+            updated[3] = { ...updated[3], x: updated[3].x + leftDeltaX };
+            updated[0] = { ...updated[0], x: updated[0].x + leftDeltaX };
+            break;
+        }
+        
+        // Clamp all points to image bounds
+        return updated.map(p => ({
+          x: Math.max(10, Math.min(imageSize.width - 10, p.x)),
+          y: Math.max(10, Math.min(imageSize.height - 10, p.y)),
+        }));
+      });
+    }
   };
 
-  const handleCornerTouchEnd = () => setActiveDragIndex(null);
+  const handleCornerTouchEnd = () => {
+    setActiveDragIndex(null);
+    setActiveEdgeIndex(null);
+  };
 
   const handleApplyCrop = async () => {
     if (!cropImage || cropPoints.length !== 4) {
