@@ -1513,6 +1513,27 @@ const styles = StyleSheet.create({
   captureInner: { width: 54, height: 54, borderRadius: 27 },
   autoCaptureActive: { borderStyle: 'dashed' },
   autoCaptureRing: { position: 'absolute', width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderStyle: 'dashed' },
+  autoDetectStatus: {
+    position: 'absolute',
+    bottom: 180,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  autoDetectIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    gap: 8,
+  },
+  autoDetectText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   viewPagesBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
