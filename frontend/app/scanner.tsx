@@ -139,14 +139,53 @@ export default function ScannerScreen() {
   const [cropPoints, setCropPoints] = useState<CropPoint[]>([]);  // Pixel coords
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+  const [activeEdgeIndex, setActiveEdgeIndex] = useState<number | null>(null); // For edge handles
   const [previewLayout, setPreviewLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
   
   // Camera layout for aspect ratio mapping
   const [cameraLayout, setCameraLayout] = useState<CameraLayoutInfo | null>(null);
   
+  // Animation for capturing indicator
+  const capturingOpacity = useRef(new Animated.Value(0)).current;
+  
   const cameraRef = useRef<CameraView>(null);
   const scrollRef = useRef<ScrollView>(null);
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
+
+  // Show/hide capturing indicator with animation
+  useEffect(() => {
+    if (isCapturing) {
+      Animated.timing(capturingOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(capturingOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isCapturing]);
+
+  /**
+   * Calculate edge midpoints for edge handles
+   */
+  const getEdgeMidpoints = useCallback((): CropPoint[] => {
+    if (cropPoints.length !== 4) return [];
+    
+    return [
+      // Top edge midpoint (between TL and TR)
+      { x: (cropPoints[0].x + cropPoints[1].x) / 2, y: (cropPoints[0].y + cropPoints[1].y) / 2 },
+      // Right edge midpoint (between TR and BR)
+      { x: (cropPoints[1].x + cropPoints[2].x) / 2, y: (cropPoints[1].y + cropPoints[2].y) / 2 },
+      // Bottom edge midpoint (between BR and BL)
+      { x: (cropPoints[2].x + cropPoints[3].x) / 2, y: (cropPoints[2].y + cropPoints[3].y) / 2 },
+      // Left edge midpoint (between BL and TL)
+      { x: (cropPoints[3].x + cropPoints[0].x) / 2, y: (cropPoints[3].y + cropPoints[0].y) / 2 },
+    ];
+  }, [cropPoints]);
 
   /**
    * Calculate frame dimensions in SCREEN PIXELS for display
