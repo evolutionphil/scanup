@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const GUEST_DOCUMENTS_KEY = 'guest_documents';
+const GUEST_FOLDERS_KEY = 'guest_folders';
 
 export interface PageData {
   page_id: string;
