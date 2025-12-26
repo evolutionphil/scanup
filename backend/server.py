@@ -2468,6 +2468,208 @@ async def book_six_point_crop(request: BookSixPointRequest):
         }
 
 
+# ==================== REAL-TIME EDGE DETECTION ====================
+
+class EdgeDetectionRequest(BaseModel):
+    """Request for real-time edge detection"""
+    image_base64: str
+    mode: str = "document"  # document, book, id_card
+
+
+def detect_document_edges(img: np.ndarray) -> Optional[List[Dict]]:
+    """
+    Detect document edges using contour detection.
+    Returns 4 corner points normalized to 0-1 range, or None if not found.
+    """
+    height, width = img.shape[:2]
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Edge detection using Canny
+    edges = cv2.Canny(blurred, 50, 150)
+    
+    # Dilate edges to close gaps
+    kernel = np.ones((3, 3), np.uint8)
+    edges = cv2.dilate(edges, kernel, iterations=1)
+    
+    # Find contours
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
+        return None
+    
+    # Sort by area and get largest contours
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
+    
+    for contour in contours:
+        # Approximate contour
+        peri = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+        
+        # If we found a quadrilateral
+        if len(approx) == 4:
+            # Check if area is significant (at least 10% of image)
+            area = cv2.contourArea(approx)
+            if area < (height * width * 0.1):
+                continue
+            
+            # Extract points and order them
+            points = approx.reshape(4, 2)
+            
+            # Order points: TL, TR, BR, BL
+            # Sort by y first to get top and bottom pairs
+            sorted_by_y = points[np.argsort(points[:, 1])]
+            top_points = sorted_by_y[:2]
+            bottom_points = sorted_by_y[2:]
+            
+            # Sort top points by x (left to right)
+            top_points = top_points[np.argsort(top_points[:, 0])]
+            # Sort bottom points by x (left to right)  
+            bottom_points = bottom_points[np.argsort(bottom_points[:, 0])]
+            
+            # TL, TR, BR, BL
+            ordered = [
+                {'x': float(top_points[0][0]) / width, 'y': float(top_points[0][1]) / height},
+                {'x': float(top_points[1][0]) / width, 'y': float(top_points[1][1]) / height},
+                {'x': float(bottom_points[1][0]) / width, 'y': float(bottom_points[1][1]) / height},
+                {'x': float(bottom_points[0][0]) / width, 'y': float(bottom_points[0][1]) / height},
+            ]
+            
+            return ordered
+    
+    return None
+
+
+def detect_book_edges(img: np.ndarray) -> Optional[List[Dict]]:
+    """
+    Detect book edges - returns 6 points for two-page layout.
+    Points: [TL, GT, TR, BR, GB, BL]
+    """
+    height, width = img.shape[:2]
+    
+    # First detect outer edges
+    outer_corners = detect_document_edges(img)
+    
+    if not outer_corners:
+        return None
+    
+    # Now detect the gutter (center line)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Focus on the center region for gutter detection
+    center_start = int(width * 0.35)
+    center_end = int(width * 0.65)
+    center_region = gray[:, center_start:center_end]
+    
+    # Apply edge detection to find vertical lines
+    edges = cv2.Canny(center_region, 50, 150)
+    
+    # Use Hough transform to find vertical lines
+    lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=height * 0.3, maxLineGap=20)
+    
+    gutter_x = width * 0.5  # Default to center
+    
+    if lines is not None:
+        vertical_lines = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            # Check if line is mostly vertical
+            angle = abs(np.arctan2(y2 - y1, x2 - x1) * 180 / np.pi)
+            if angle > 80 or angle < 10:
+                avg_x = (x1 + x2) / 2 + center_start
+                vertical_lines.append(avg_x)
+        
+        if vertical_lines:
+            gutter_x = np.median(vertical_lines)
+    else:
+        # Fallback: use brightness analysis
+        col_intensity = np.mean(gray[:, center_start:center_end], axis=0)
+        min_idx = np.argmin(col_intensity)
+        gutter_x = min_idx + center_start
+    
+    # Calculate gutter top and bottom y positions
+    # Use the detected outer corners y values
+    tl_y = outer_corners[0]['y']
+    bl_y = outer_corners[3]['y']
+    tr_y = outer_corners[1]['y']
+    br_y = outer_corners[2]['y']
+    
+    # Gutter top is average of top corners y, gutter bottom is average of bottom corners y
+    gt_y = (tl_y + tr_y) / 2
+    gb_y = (bl_y + br_y) / 2
+    
+    # Normalize gutter_x
+    gutter_x_norm = gutter_x / width
+    
+    # Return 6 points: [TL, GT, TR, BR, GB, BL]
+    return [
+        outer_corners[0],  # TL
+        {'x': gutter_x_norm, 'y': gt_y},  # GT (Gutter Top)
+        outer_corners[1],  # TR
+        outer_corners[2],  # BR  
+        {'x': gutter_x_norm, 'y': gb_y},  # GB (Gutter Bottom)
+        outer_corners[3],  # BL
+    ]
+
+
+@api_router.post("/images/detect-edges")
+async def detect_edges_endpoint(request: EdgeDetectionRequest):
+    """
+    Real-time edge detection for document scanning.
+    
+    Returns detected corner points for:
+    - document mode: 4 points [TL, TR, BR, BL]
+    - book mode: 6 points [TL, GT, TR, BR, GB, BL]
+    - id_card mode: 4 points [TL, TR, BR, BL]
+    
+    All points are normalized to 0-1 range.
+    """
+    try:
+        # Decode image
+        img_data = request.image_base64
+        if "," in img_data:
+            img_data = img_data.split(",")[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {"success": False, "message": "Could not decode image"}
+        
+        height, width = img.shape[:2]
+        
+        if request.mode == "book":
+            points = detect_book_edges(img)
+            point_count = 6
+        else:
+            points = detect_document_edges(img)
+            point_count = 4
+        
+        if points and len(points) == point_count:
+            return {
+                "success": True,
+                "points": points,
+                "image_size": {"width": width, "height": height}
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Document edges not clearly detected"
+            }
+            
+    except Exception as e:
+        logger.error(f"[EdgeDetect] Error: {e}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
 @api_router.post("/images/perspective-crop-public")
 async def public_perspective_crop(request: ManualCropRequest):
     """
