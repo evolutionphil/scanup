@@ -1360,24 +1360,29 @@ export default function ScannerScreen() {
             </View>
           </Animated.View>
 
-          {/* Scanning Animation Overlay */}
+          {/* Scanning Animation Overlay - positioned INSIDE the document frame */}
           {isScanning && (
             <Animated.View 
               style={[
                 styles.scanningOverlay,
                 {
+                  // Position at the top of the document frame and animate downward within it
+                  top: (SCREEN_HEIGHT * 0.5) - (frameDimensions.height / 2) - 50, // Adjust to align with frame top
+                  left: (SCREEN_WIDTH - frameDimensions.width) / 2,
+                  width: frameDimensions.width,
                   opacity: scanningAnim.interpolate({
                     inputRange: [0, 0.5, 1],
-                    outputRange: [0.3, 0.7, 0.3],
+                    outputRange: [0.3, 0.8, 0.3],
                   }),
                   transform: [{
                     translateY: scanningAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0, frameDimensions.height],
+                      outputRange: [0, frameDimensions.height - 6], // Stay within frame bounds
                     }),
                   }],
                 },
               ]}
+              pointerEvents="none"
             >
               <View style={[styles.scanLine, { backgroundColor: currentType.color }]} />
             </Animated.View>
