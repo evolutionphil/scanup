@@ -94,24 +94,29 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   loadGuestDocuments: async () => {
     try {
-      const stored = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
-      if (stored) {
-        const documents = JSON.parse(stored);
-        set({ documents });
-      }
+      const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
+      const storedFolders = await AsyncStorage.getItem(GUEST_FOLDERS_KEY);
+      
+      const documents = storedDocs ? JSON.parse(storedDocs) : [];
+      const folders = storedFolders ? JSON.parse(storedFolders) : [];
+      
+      set({ documents, folders });
     } catch (e) {
-      console.error('Error loading guest documents:', e);
+      console.error('Error loading guest data:', e);
     }
   },
 
   saveGuestDocuments: async () => {
     try {
-      const { documents } = get();
-      // Only save local documents (those with 'local_' prefix)
+      const { documents, folders } = get();
+      // Only save local documents and folders (those with 'local_' prefix)
       const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
+      const localFolders = folders.filter(f => f.folder_id.startsWith('local_'));
+      
       await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
+      await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
     } catch (e) {
-      console.error('Error saving guest documents:', e);
+      console.error('Error saving guest data:', e);
     }
   },
 
