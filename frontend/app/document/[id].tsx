@@ -109,6 +109,21 @@ export default function DocumentScreen() {
       // Use original image as base for non-destructive editing
       const baseImage = currentPage.original_image_base64 || currentPage.image_base64;
       
+      // If filter is "original" and no adjustments, just restore original
+      if (filterType === 'original' && adjustments.brightness === 0 && adjustments.contrast === 0 && adjustments.saturation === 0) {
+        const updatedPages = [...currentDocument.pages];
+        updatedPages[selectedPageIndex] = {
+          ...updatedPages[selectedPageIndex],
+          image_base64: baseImage,
+          filter_applied: 'original',
+          adjustments: undefined,
+        };
+        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        setShowFilterEditor(false);
+        setProcessing(false);
+        return;
+      }
+      
       const response = await fetch(`${BACKEND_URL}/api/images/process`, {
         method: 'POST',
         headers: {
