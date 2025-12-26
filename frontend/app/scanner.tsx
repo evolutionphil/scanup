@@ -120,7 +120,7 @@ const logDebug = (tag: string, message: string, data?: any) => {
 
 export default function ScannerScreen() {
   const params = useLocalSearchParams();
-  const { token, isGuest } = useAuthStore();
+  const { token, isGuest, user, refreshUser } = useAuthStore();
   const { theme } = useThemeStore();
   const { currentDocument, createDocument, updateDocument, fetchDocument, fetchDocuments } = useDocumentStore();
   
