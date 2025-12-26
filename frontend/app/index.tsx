@@ -114,7 +114,7 @@ export default function Index() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <Animated.View style={[styles.content, { opacity: contentFadeAnim }]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
