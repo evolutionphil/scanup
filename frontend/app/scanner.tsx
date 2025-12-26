@@ -11,6 +11,7 @@ import {
   Dimensions,
   GestureResponderEvent,
   LayoutChangeEvent,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -26,14 +27,37 @@ import Svg, { Rect, Line, Path, Defs, Mask, Circle } from 'react-native-svg';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+/*
+ * =============================================================================
+ * ASPECT RATIO ANALYSIS
+ * =============================================================================
+ * 
+ * Problem: Wide-screen preview vs standard sensor capture
+ * 
+ * Phone screens are typically 19.5:9, 20:9, or 21:9 (wide)
+ * Camera sensors are typically 4:3 (standard) or 16:9
+ * 
+ * When CameraView fills a wide screen with a 4:3 sensor:
+ * - The preview uses "cover" mode (fills the view, crops overflow)
+ * - The sensor image is CENTER-CROPPED to fit the wide preview
+ * - Top/bottom of the sensor image are hidden in preview
+ * 
+ * This means:
+ * - Frame overlay coordinates are in PREVIEW space (wide)
+ * - Captured image is in SENSOR space (4:3)
+ * - We must map from preview to sensor, accounting for the crop
+ * 
+ * =============================================================================
+ */
+
 type DocumentType = 'document' | 'id_card' | 'book' | 'whiteboard' | 'business_card';
 
 interface DocTypeConfig {
   type: DocumentType;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  aspectRatio: number;  // width / height
-  frameWidth: number;   // fraction of screen width
+  aspectRatio: number;
+  frameWidth: number;
   color: string;
   guide: string;
 }
@@ -48,14 +72,11 @@ const DOCUMENT_TYPES: DocTypeConfig[] = [
 
 interface CropPoint { x: number; y: number; }
 
-// Camera preview layout info
-interface CameraLayout {
+// Camera layout tracking
+interface CameraLayoutInfo {
   previewWidth: number;
   previewHeight: number;
-  frameLeft: number;
-  frameTop: number;
-  frameWidth: number;
-  frameHeight: number;
+  previewAspect: number;
 }
 
 export default function ScannerScreen() {
@@ -72,7 +93,6 @@ export default function ScannerScreen() {
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [showCamera, setShowCamera] = useState(true);
   
-  // Mode for adding to existing document
   const addToDocumentId = params.addToDocument as string | undefined;
   
   // Crop state
@@ -83,52 +103,42 @@ export default function ScannerScreen() {
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [previewLayout, setPreviewLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
   
-  // Camera layout for frame-to-sensor mapping
-  const [cameraLayout, setCameraLayout] = useState<CameraLayout | null>(null);
+  // Camera layout for aspect ratio mapping
+  const [cameraLayout, setCameraLayout] = useState<CameraLayoutInfo | null>(null);
   
   const cameraRef = useRef<CameraView>(null);
   const scrollRef = useRef<ScrollView>(null);
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
 
-  // Calculate the overlay frame dimensions in screen coordinates
+  // Frame dimensions in screen coordinates
   const getFrameDimensions = useCallback(() => {
     const maxFrameWidth = SCREEN_WIDTH * currentType.frameWidth - 40;
     const frameHeight = maxFrameWidth / currentType.aspectRatio;
-    const maxHeight = SCREEN_HEIGHT * 0.45;
+    const maxHeight = SCREEN_HEIGHT * 0.40; // Keep frame well within safe area
     
     if (frameHeight > maxHeight) {
-      return { 
-        width: maxHeight * currentType.aspectRatio, 
-        height: maxHeight 
-      };
+      return { width: maxHeight * currentType.aspectRatio, height: maxHeight };
     }
     return { width: maxFrameWidth, height: frameHeight };
   }, [currentType]);
 
   const frameDimensions = getFrameDimensions();
 
-  // Handle camera layout to track where the preview is on screen
+  // Track camera preview layout
   const handleCameraLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width, height, x, y } = event.nativeEvent.layout;
-    
-    // Calculate frame position relative to camera preview
-    // Frame is centered in the camera view
-    const frameLeft = (width - frameDimensions.width) / 2;
-    const frameTop = (height - frameDimensions.height) / 2 - 50; // Account for top bar offset
+    const { width, height } = event.nativeEvent.layout;
+    const aspect = width / height;
     
     setCameraLayout({
       previewWidth: width,
       previewHeight: height,
-      frameLeft,
-      frameTop: Math.max(0, frameTop),
-      frameWidth: frameDimensions.width,
-      frameHeight: frameDimensions.height,
+      previewAspect: aspect,
     });
     
-    console.log('Camera layout:', { width, height, frameLeft, frameTop, frameDimensions });
-  }, [frameDimensions]);
+    console.log(`📷 Camera preview: ${width.toFixed(0)}x${height.toFixed(0)} (aspect: ${aspect.toFixed(3)})`);
+  }, []);
 
-  // Calculate scales for coordinate conversion (crop screen)
+  // Coordinate conversion for crop screen
   const scaleX = previewLayout.width > 0 ? previewLayout.width / imageSize.width : 1;
   const scaleY = previewLayout.height > 0 ? previewLayout.height / imageSize.height : 1;
 
@@ -151,132 +161,156 @@ export default function ScannerScreen() {
   }, []);
 
   /**
-   * Map overlay frame from preview coordinates to full-resolution sensor coordinates.
+   * ==========================================================================
+   * CRITICAL: Map frame from preview space to sensor space
+   * ==========================================================================
    * 
-   * This is CRITICAL for quality:
-   * 1. Camera preview aspect ratio may differ from sensor aspect ratio
-   * 2. Preview may be scaled/letterboxed to fit screen
-   * 3. Frame overlay is positioned relative to preview, not sensor
+   * The camera preview (CameraView) uses "cover" scaling:
+   * - It fills the entire view
+   * - It center-crops the sensor image if aspects don't match
+   * 
+   * For a phone with 20:9 screen and 4:3 (1.33:1) sensor:
+   * - Preview aspect: ~0.45 (tall and narrow)
+   * - Sensor aspect: 0.75 (shorter, captured in portrait = taller)
+   * - Wait - captured image is in portrait so sensor aspect is 0.75 (3:4)
+   * 
+   * Actually: Phone cameras capture in sensor orientation.
+   * If phone is portrait, and sensor is 4:3, the captured image is 3:4 (0.75)
+   * Preview might be filling a 9:20 screen = 0.45 aspect
+   * 
+   * So sensor (0.75) is WIDER than preview (0.45)
+   * This means LEFT/RIGHT edges of sensor are cropped in preview
+   * 
+   * ==========================================================================
    */
   const mapFrameToSensorCoordinates = useCallback((
-    sensorWidth: number, 
+    sensorWidth: number,
     sensorHeight: number
   ): CropPoint[] => {
+    // Default fallback - 10% padding
+    const defaultPad = 0.10;
+    const defaultPoints: CropPoint[] = [
+      { x: sensorWidth * defaultPad, y: sensorHeight * defaultPad },
+      { x: sensorWidth * (1 - defaultPad), y: sensorHeight * defaultPad },
+      { x: sensorWidth * (1 - defaultPad), y: sensorHeight * (1 - defaultPad) },
+      { x: sensorWidth * defaultPad, y: sensorHeight * (1 - defaultPad) },
+    ];
+
     if (!cameraLayout) {
-      // Fallback: initialize with 8% padding
-      const pad = 0.08;
-      return [
-        { x: sensorWidth * pad, y: sensorHeight * pad },
-        { x: sensorWidth * (1 - pad), y: sensorHeight * pad },
-        { x: sensorWidth * (1 - pad), y: sensorHeight * (1 - pad) },
-        { x: sensorWidth * pad, y: sensorHeight * (1 - pad) },
-      ];
+      console.log('⚠️ No camera layout, using default padding');
+      return defaultPoints;
     }
 
-    // Calculate aspect ratios
-    const previewAspect = cameraLayout.previewWidth / cameraLayout.previewHeight;
     const sensorAspect = sensorWidth / sensorHeight;
-    
-    console.log('Aspect ratios:', { previewAspect, sensorAspect });
-    
-    // Determine how the sensor image maps to preview
-    // Camera typically uses "cover" mode - fills preview, may crop sensor edges
-    let sensorVisibleWidth = sensorWidth;
-    let sensorVisibleHeight = sensorHeight;
+    const previewAspect = cameraLayout.previewAspect;
+
+    console.log('📐 Aspect ratio analysis:');
+    console.log(`   Sensor: ${sensorWidth}x${sensorHeight} (${sensorAspect.toFixed(3)})`);
+    console.log(`   Preview: ${cameraLayout.previewWidth.toFixed(0)}x${cameraLayout.previewHeight.toFixed(0)} (${previewAspect.toFixed(3)})`);
+
+    // Determine visible sensor region in preview (after center-crop)
+    let visibleSensorWidth = sensorWidth;
+    let visibleSensorHeight = sensorHeight;
     let sensorOffsetX = 0;
     let sensorOffsetY = 0;
-    
+
     if (sensorAspect > previewAspect) {
-      // Sensor is wider - sides are cropped in preview
-      sensorVisibleWidth = sensorHeight * previewAspect;
-      sensorOffsetX = (sensorWidth - sensorVisibleWidth) / 2;
+      // Sensor is wider than preview → left/right edges are cropped
+      visibleSensorWidth = sensorHeight * previewAspect;
+      sensorOffsetX = (sensorWidth - visibleSensorWidth) / 2;
+      console.log(`   → Sensor WIDER than preview: cropping ${sensorOffsetX.toFixed(0)}px from each side`);
     } else if (sensorAspect < previewAspect) {
-      // Sensor is taller - top/bottom are cropped in preview
-      sensorVisibleHeight = sensorWidth / previewAspect;
-      sensorOffsetY = (sensorHeight - sensorVisibleHeight) / 2;
+      // Sensor is taller than preview → top/bottom edges are cropped  
+      visibleSensorHeight = sensorWidth / previewAspect;
+      sensorOffsetY = (sensorHeight - visibleSensorHeight) / 2;
+      console.log(`   → Sensor TALLER than preview: cropping ${sensorOffsetY.toFixed(0)}px from top/bottom`);
+    } else {
+      console.log(`   → Aspect ratios match perfectly`);
     }
-    
-    console.log('Sensor mapping:', { 
-      sensorVisibleWidth, sensorVisibleHeight, 
-      sensorOffsetX, sensorOffsetY 
-    });
-    
-    // Scale factors from preview to visible sensor area
-    const scalePreviewToSensor = sensorVisibleWidth / cameraLayout.previewWidth;
-    
-    // Map frame corners from preview to sensor coordinates
-    const frameInSensor = {
-      left: sensorOffsetX + cameraLayout.frameLeft * scalePreviewToSensor,
-      top: sensorOffsetY + cameraLayout.frameTop * scalePreviewToSensor,
-      width: cameraLayout.frameWidth * scalePreviewToSensor,
-      height: cameraLayout.frameHeight * scalePreviewToSensor,
-    };
-    
-    console.log('Frame in sensor coords:', frameInSensor);
-    
-    // Clamp to valid sensor bounds
+
+    // Scale from preview to visible sensor area
+    const scalePreviewToSensor = visibleSensorWidth / cameraLayout.previewWidth;
+
+    // Frame position in preview coordinates (centered)
+    const frameLeft = (cameraLayout.previewWidth - frameDimensions.width) / 2;
+    const frameTop = (cameraLayout.previewHeight - frameDimensions.height) / 2;
+
+    console.log(`📍 Frame in preview: left=${frameLeft.toFixed(0)}, top=${frameTop.toFixed(0)}, size=${frameDimensions.width.toFixed(0)}x${frameDimensions.height.toFixed(0)}`);
+
+    // Map frame to sensor coordinates
+    const frameSensorLeft = sensorOffsetX + (frameLeft * scalePreviewToSensor);
+    const frameSensorTop = sensorOffsetY + (frameTop * scalePreviewToSensor);
+    const frameSensorWidth = frameDimensions.width * scalePreviewToSensor;
+    const frameSensorHeight = frameDimensions.height * scalePreviewToSensor;
+
+    console.log(`📍 Frame in sensor: left=${frameSensorLeft.toFixed(0)}, top=${frameSensorTop.toFixed(0)}, size=${frameSensorWidth.toFixed(0)}x${frameSensorHeight.toFixed(0)}`);
+
+    // Clamp to sensor bounds with small safety margin
+    const margin = 5;
     const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
-    
-    return [
-      { 
-        x: clamp(frameInSensor.left, 0, sensorWidth), 
-        y: clamp(frameInSensor.top, 0, sensorHeight) 
+
+    const corners: CropPoint[] = [
+      { // Top-Left
+        x: clamp(frameSensorLeft, margin, sensorWidth - margin),
+        y: clamp(frameSensorTop, margin, sensorHeight - margin),
       },
-      { 
-        x: clamp(frameInSensor.left + frameInSensor.width, 0, sensorWidth), 
-        y: clamp(frameInSensor.top, 0, sensorHeight) 
+      { // Top-Right
+        x: clamp(frameSensorLeft + frameSensorWidth, margin, sensorWidth - margin),
+        y: clamp(frameSensorTop, margin, sensorHeight - margin),
       },
-      { 
-        x: clamp(frameInSensor.left + frameInSensor.width, 0, sensorWidth), 
-        y: clamp(frameInSensor.top + frameInSensor.height, 0, sensorHeight) 
+      { // Bottom-Right
+        x: clamp(frameSensorLeft + frameSensorWidth, margin, sensorWidth - margin),
+        y: clamp(frameSensorTop + frameSensorHeight, margin, sensorHeight - margin),
       },
-      { 
-        x: clamp(frameInSensor.left, 0, sensorWidth), 
-        y: clamp(frameInSensor.top + frameInSensor.height, 0, sensorHeight) 
+      { // Bottom-Left
+        x: clamp(frameSensorLeft, margin, sensorWidth - margin),
+        y: clamp(frameSensorTop + frameSensorHeight, margin, sensorHeight - margin),
       },
     ];
-  }, [cameraLayout]);
+
+    console.log('📍 Initial crop corners (sensor coords):', corners.map(c => `(${c.x.toFixed(0)},${c.y.toFixed(0)})`).join(' → '));
+
+    return corners;
+  }, [cameraLayout, frameDimensions]);
 
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
     
     try {
-      // Capture at maximum quality and resolution
+      console.log('📸 Capturing image...');
+      
       const photo = await cameraRef.current.takePictureAsync({ 
-        quality: 1.0,           // No compression
+        quality: 1.0,
         base64: true,
-        exif: true,             // Preserve orientation metadata
-        skipProcessing: false,  // Allow camera processing
+        exif: true,
+        skipProcessing: false,
       });
       
       if (photo?.base64) {
         const capturedWidth = photo.width || 0;
         const capturedHeight = photo.height || 0;
         
-        console.log(`Captured at ${capturedWidth}x${capturedHeight}`);
+        console.log(`📸 Raw capture: ${capturedWidth}x${capturedHeight}`);
         
-        // Get actual dimensions from the image
         Image.getSize(`data:image/jpeg;base64,${photo.base64}`, (width, height) => {
-          console.log(`Verified resolution: ${width}x${height}`);
+          console.log(`📸 Verified size: ${width}x${height}`);
           setImageSize({ width, height });
           setCropImage(photo.base64 || null);
           
-          // Map the overlay frame to sensor coordinates
+          // Map frame overlay to sensor coordinates
           const frameCropPoints = mapFrameToSensorCoordinates(width, height);
-          console.log('Initial crop points from frame:', frameCropPoints);
           setCropPoints(frameCropPoints);
           
           setShowCropScreen(true);
           setShowCamera(false);
-        }, () => {
+        }, (error) => {
+          console.error('Image size error:', error);
           // Fallback
-          const fallbackW = 3024;
-          const fallbackH = 4032;
-          console.log('Using fallback resolution');
-          setImageSize({ width: fallbackW, height: fallbackH });
+          const w = 3024, h = 4032;
+          setImageSize({ width: w, height: h });
           setCropImage(photo.base64 || null);
-          setCropPoints(mapFrameToSensorCoordinates(fallbackW, fallbackH));
+          setCropPoints(mapFrameToSensorCoordinates(w, h));
           setShowCropScreen(true);
           setShowCamera(false);
         });
@@ -289,9 +323,7 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleAddMore = () => {
-    setShowCamera(true);
-  };
+  const handleAddMore = () => setShowCamera(true);
 
   const handleCornerTouchStart = (index: number) => (e: GestureResponderEvent) => {
     e.stopPropagation();
@@ -316,9 +348,7 @@ export default function ScannerScreen() {
     });
   };
 
-  const handleCornerTouchEnd = () => {
-    setActiveDragIndex(null);
-  };
+  const handleCornerTouchEnd = () => setActiveDragIndex(null);
 
   const handleApplyCrop = async () => {
     if (!cropImage || cropPoints.length !== 4) {
@@ -333,17 +363,15 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     try {
       if (isGuest || !token) {
-        // For guests, save without cropping
         setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
       } else {
-        // Normalize corners to 0-1 range for backend
+        // Normalize to 0-1 range
         const normalizedCorners = cropPoints.map(p => ({
           x: p.x / imageSize.width,
           y: p.y / imageSize.height,
         }));
 
-        console.log('Sending normalized corners:', normalizedCorners);
-        console.log('Image size:', imageSize);
+        console.log('🔲 Sending crop:', normalizedCorners.map(c => `(${c.x.toFixed(3)},${c.y.toFixed(3)})`).join(' → '));
 
         const response = await fetch(`${BACKEND_URL}/api/images/perspective-crop`, {
           method: 'POST',
@@ -354,10 +382,10 @@ export default function ScannerScreen() {
         const result = await response.json();
         
         if (result.success && result.cropped_image_base64) {
-          console.log('Crop successful');
+          console.log('✅ Crop successful');
           setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
         } else {
-          console.log('Crop failed:', result.message);
+          console.log('⚠️ Crop failed:', result.message);
           setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
         }
       }
@@ -372,7 +400,6 @@ export default function ScannerScreen() {
   };
 
   const handleResetCrop = () => {
-    // Reset to frame-based crop points
     const frameCropPoints = mapFrameToSensorCoordinates(imageSize.width, imageSize.height);
     setCropPoints(frameCropPoints);
   };
@@ -483,7 +510,6 @@ export default function ScannerScreen() {
         <Rect x="0" y="0" width={previewLayout.width} height={previewLayout.height} fill="rgba(0,0,0,0.6)" mask="url(#cropMask)" />
         <Path d={pathD} stroke={currentType.color} strokeWidth={2} fill="transparent" />
         
-        {/* Grid lines */}
         {[0.33, 0.66].map((r, i) => (
           <React.Fragment key={i}>
             <Line 
@@ -547,7 +573,7 @@ export default function ScannerScreen() {
     );
   }, [activeDragIndex, cropPoints, cropImage, previewLayout, toScreen, currentType.color]);
 
-  // Document guide SVG for camera
+  // Document guide overlay
   const DocumentGuide = useMemo(() => {
     const { width, height } = frameDimensions;
     return (
@@ -649,7 +675,7 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        <Text style={styles.cropHint}>Drag corners to adjust crop area</Text>
+        <Text style={styles.cropHint}>Drag corners to adjust • Frame mapped from camera view</Text>
 
         <View style={styles.cropActions}>
           <TouchableOpacity 
@@ -657,9 +683,7 @@ export default function ScannerScreen() {
             onPress={handleApplyCrop} 
             disabled={isCapturing}
           >
-            {isCapturing ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
+            {isCapturing ? <ActivityIndicator color="#FFF" /> : (
               <>
                 <Ionicons name="checkmark" size={22} color="#FFF" />
                 <Text style={styles.cropBtnText}>Save & Crop</Text>
