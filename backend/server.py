@@ -2301,6 +2301,173 @@ async def split_book_pages_endpoint(request: BookSplitRequest):
         }
 
 
+# ==================== 6-POINT BOOK PERSPECTIVE CORRECTION ====================
+
+class BookSixPointRequest(BaseModel):
+    """Request model for 6-point book perspective correction"""
+    image_base64: str
+    points: List[Dict]  # 6 points: [TL, GT, TR, BR, GB, BL] - all normalized 0-1
+    # TL = Top Left, GT = Gutter Top, TR = Top Right
+    # BR = Bottom Right, GB = Gutter Bottom, BL = Bottom Left
+
+
+def perspective_transform_page(img: np.ndarray, src_points: List[List[float]], is_portrait: bool = True) -> np.ndarray:
+    """
+    Apply perspective transform to a single page using 4 source points.
+    
+    Args:
+        img: OpenCV image (BGR)
+        src_points: List of 4 [x, y] points in order: TL, TR, BR, BL (pixel coordinates)
+        is_portrait: Whether the output should be portrait orientation
+        
+    Returns:
+        Perspective-corrected image
+    """
+    src_pts = np.float32(src_points)
+    
+    # Calculate output dimensions from source points
+    width_top = np.linalg.norm(src_pts[0] - src_pts[1])
+    width_bottom = np.linalg.norm(src_pts[3] - src_pts[2])
+    height_left = np.linalg.norm(src_pts[0] - src_pts[3])
+    height_right = np.linalg.norm(src_pts[1] - src_pts[2])
+    
+    output_width = int(max(width_top, width_bottom))
+    output_height = int(max(height_left, height_right))
+    
+    # Ensure minimum dimensions
+    output_width = max(output_width, 100)
+    output_height = max(output_height, 100)
+    
+    # For book pages, we want portrait output (height > width typically)
+    # If needed, we can adjust aspect ratio
+    
+    # Destination points - perfect rectangle
+    dst_pts = np.float32([
+        [0, 0],                                # TL
+        [output_width - 1, 0],                 # TR
+        [output_width - 1, output_height - 1], # BR
+        [0, output_height - 1]                 # BL
+    ])
+    
+    # Get perspective transform matrix
+    matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
+    
+    # Apply transform with high-quality interpolation
+    warped = cv2.warpPerspective(
+        img, 
+        matrix, 
+        (output_width, output_height),
+        flags=cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255)
+    )
+    
+    return warped
+
+
+@api_router.post("/images/book-6point-crop")
+async def book_six_point_crop(request: BookSixPointRequest):
+    """
+    Apply 6-point perspective correction for book scanning.
+    
+    This provides precise control over each page's perspective by using:
+    - 4 outer corners (TL, TR, BR, BL)
+    - 2 gutter points (GT, GB) that define the book spine
+    
+    Each page gets its own 4-point perspective transform:
+    - Left page: TL, GT, GB, BL
+    - Right page: GT, TR, BR, GB
+    
+    Point order expected: [TL, GT, TR, BR, GB, BL]
+    All coordinates should be normalized (0-1).
+    
+    Returns:
+        {
+            "success": bool,
+            "left_page_base64": str,   # Page 1 (left side of book)
+            "right_page_base64": str,  # Page 2 (right side of book)
+            "message": str
+        }
+    """
+    try:
+        # Validate we have exactly 6 points
+        if not request.points or len(request.points) != 6:
+            return {
+                "success": False,
+                "message": f"Expected 6 points, got {len(request.points) if request.points else 0}"
+            }
+        
+        # Decode image
+        img_data = request.image_base64
+        if "," in img_data:
+            img_data = img_data.split(",")[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        
+        # Fix EXIF orientation
+        corrected_bytes, was_rotated, orientation = fix_image_orientation_pil(image_bytes)
+        logger.info(f"[Book6Point] EXIF orientation: {orientation}, was_rotated: {was_rotated}")
+        
+        # Decode with OpenCV
+        nparr = np.frombuffer(corrected_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {
+                "success": False,
+                "message": "Could not decode image"
+            }
+        
+        height, width = img.shape[:2]
+        logger.info(f"[Book6Point] Image dimensions: {width}x{height}")
+        
+        # Extract and convert normalized points to pixel coordinates
+        # Expected order: [TL, GT, TR, BR, GB, BL]
+        points = request.points
+        
+        TL = [float(points[0].get('x', 0)) * width, float(points[0].get('y', 0)) * height]
+        GT = [float(points[1].get('x', 0.5)) * width, float(points[1].get('y', 0)) * height]  # Gutter Top
+        TR = [float(points[2].get('x', 1)) * width, float(points[2].get('y', 0)) * height]
+        BR = [float(points[3].get('x', 1)) * width, float(points[3].get('y', 1)) * height]
+        GB = [float(points[4].get('x', 0.5)) * width, float(points[4].get('y', 1)) * height]  # Gutter Bottom
+        BL = [float(points[5].get('x', 0)) * width, float(points[5].get('y', 1)) * height]
+        
+        logger.info(f"[Book6Point] Points - TL:{TL}, GT:{GT}, TR:{TR}, BR:{BR}, GB:{GB}, BL:{BL}")
+        
+        # Left page: TL -> GT -> GB -> BL (clockwise from top-left)
+        left_src = [TL, GT, GB, BL]
+        left_page = perspective_transform_page(img, left_src)
+        logger.info(f"[Book6Point] Left page shape: {left_page.shape}")
+        
+        # Right page: GT -> TR -> BR -> GB (clockwise from top-left of right page)
+        right_src = [GT, TR, BR, GB]
+        right_page = perspective_transform_page(img, right_src)
+        logger.info(f"[Book6Point] Right page shape: {right_page.shape}")
+        
+        # Encode both pages to base64
+        _, left_buffer = cv2.imencode('.jpg', left_page, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        _, right_buffer = cv2.imencode('.jpg', right_page, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        
+        left_base64 = base64.b64encode(left_buffer.tobytes()).decode()
+        right_base64 = base64.b64encode(right_buffer.tobytes()).decode()
+        
+        return {
+            "success": True,
+            "left_page_base64": left_base64,
+            "right_page_base64": right_base64,
+            "message": "Book pages perspective-corrected successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"[Book6Point] Error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
 @api_router.post("/images/perspective-crop-public")
 async def public_perspective_crop(request: ManualCropRequest):
     """
