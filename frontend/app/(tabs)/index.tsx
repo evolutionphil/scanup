@@ -57,6 +57,27 @@ export default function DocumentsScreen() {
     return () => unsubscribe();
   }, [token, isGuest]);
 
+  // Migrate guest documents after login
+  useEffect(() => {
+    const migrateIfNeeded = async () => {
+      if (token && !isGuest && user) {
+        // User just logged in - check for local documents to migrate
+        const { migrateGuestDocumentsToAccount } = useDocumentStore.getState();
+        const migratedCount = await migrateGuestDocumentsToAccount(token);
+        if (migratedCount > 0) {
+          Alert.alert(
+            'Documents Migrated',
+            `${migratedCount} document${migratedCount > 1 ? 's' : ''} from guest mode ${migratedCount > 1 ? 'have' : 'has'} been added to your account.`,
+            [{ text: 'OK' }]
+          );
+          // Refresh documents list
+          fetchDocuments(token);
+        }
+      }
+    };
+    migrateIfNeeded();
+  }, [token, isGuest, user]);
+
   // Load saved view mode preference
   useEffect(() => {
     const loadViewMode = async () => {
