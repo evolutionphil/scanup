@@ -108,6 +108,16 @@ export default function ScannerScreen() {
     }
   }, []);
 
+  // Function to go back to camera and scan more
+  const scanMore = useCallback(() => {
+    // Don't clear captured images - just go back to camera mode
+    // The preview screen condition checks capturedImages.length > 0 && !showCropScreen
+    // But we also need a way to show camera while keeping images
+    // Solution: Use a separate state to track if we're in scan mode
+  }, []);
+
+  const [showCamera, setShowCamera] = useState(true);
+
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
@@ -128,10 +138,12 @@ export default function ScannerScreen() {
             { x: width * pad, y: height * (1 - pad) },
           ]);
           setShowCropScreen(true);
+          setShowCamera(false);
         }, () => {
           setImageSize({ width: 1080, height: 1920 });
           setCropImage(photo.base64 || null);
           setShowCropScreen(true);
+          setShowCamera(false);
         });
       }
     } catch (error) {
@@ -140,6 +152,11 @@ export default function ScannerScreen() {
     } finally {
       setIsCapturing(false);
     }
+  };
+
+  // Add more pages - go back to camera
+  const handleAddMore = () => {
+    setShowCamera(true);
   };
 
   // Handle touch on crop corner - using direct touch events
