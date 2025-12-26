@@ -329,6 +329,23 @@ export default function DocumentsScreen() {
         key={viewMode} // Force re-render when view mode changes
         columnWrapperStyle={viewMode === 'grid' ? styles.row : undefined}
         ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={() => (
+          viewMode === 'list' && folders.length > 0 ? (
+            <View style={styles.foldersSection}>
+              <Text style={[styles.foldersSectionTitle, { color: theme.textSecondary }]}>
+                Folders
+              </Text>
+              {folders.map((folder) => (
+                <FolderListItem
+                  key={folder.folder_id}
+                  folder={folder}
+                  onPress={() => router.push(`/folder/${folder.folder_id}`)}
+                  theme={theme}
+                />
+              ))}
+            </View>
+          ) : null
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
