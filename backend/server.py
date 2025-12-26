@@ -1192,38 +1192,73 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
         logger.error(traceback.format_exc())
         return image_base64
 
-async def perform_ocr_with_openai(image_base64: str) -> str:
-    """Perform OCR using Emergent LLM with image analysis"""
-    if not EMERGENT_LLM_KEY:
-        return "OCR service not configured. Please add EMERGENT_LLM_KEY to backend/.env"
+async def perform_ocr_with_tesseract(image_base64: str) -> str:
+    """Perform OCR using Tesseract OCR (public, free alternative)
+    
+    This function uses pytesseract which works with the Tesseract OCR engine.
+    It's a robust, free, and widely-used OCR solution that works on any platform.
+    """
+    if not TESSERACT_AVAILABLE:
+        return "OCR service not available. Tesseract OCR is not installed."
     
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
         
-        # Create a new chat session for OCR
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"ocr_{uuid.uuid4().hex[:8]}",
-            system_message="You are an OCR assistant. Extract all text from images accurately."
-        ).with_model("openai", "gpt-4o")
+        # Decode base64 image
+        image_data = base64.b64decode(image_base64)
+        image = Image.open(BytesIO(image_data))
         
-        # Create image content
-        image_content = ImageContent(image_base64=image_base64)
+        # Convert to RGB if necessary (Tesseract works better with RGB)
+        if image.mode in ('RGBA', 'P'):
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == 'RGBA':
+                background.paste(image, mask=image.split()[3])
+            else:
+                background.paste(image)
+            image = background
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
         
-        # Create message with image
-        user_message = UserMessage(
-            text="Extract all text from this document image. Return only the extracted text exactly as it appears, preserving line breaks and formatting. If no text is found, return 'No text detected'.",
-            file_contents=[image_content]
+        # Preprocess image for better OCR results
+        # Convert to grayscale
+        image_np = np.array(image)
+        gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+        
+        # Apply adaptive thresholding for better text detection
+        # This helps with varying lighting conditions
+        processed = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
         )
         
-        # Send message and get response
-        response = await chat.send_message(user_message)
+        # Convert back to PIL Image for Tesseract
+        processed_image = Image.fromarray(processed)
         
-        return response or "No text detected"
+        # Perform OCR with Tesseract
+        # Configure Tesseract for best document scanning results
+        custom_config = r'--oem 3 --psm 6'  # OEM 3 = default, PSM 6 = uniform block of text
+        
+        extracted_text = pytesseract.image_to_string(processed_image, config=custom_config)
+        
+        # Clean up the extracted text
+        extracted_text = extracted_text.strip()
+        
+        if not extracted_text:
+            # Try again with original image (sometimes preprocessing hurts)
+            extracted_text = pytesseract.image_to_string(image, config=custom_config)
+            extracted_text = extracted_text.strip()
+        
+        return extracted_text if extracted_text else "No text detected"
+    
     except Exception as e:
         logger.error(f"OCR error: {e}")
         return f"OCR error: {str(e)}"
+
+
+# Alias for backward compatibility
+async def perform_ocr_with_openai(image_base64: str) -> str:
+    """Backward compatible OCR function - now uses Tesseract"""
+    return await perform_ocr_with_tesseract(image_base64)
 
 # ==================== AUTH ENDPOINTS ====================
 
