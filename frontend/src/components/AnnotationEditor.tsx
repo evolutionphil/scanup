@@ -187,6 +187,21 @@ export default function AnnotationEditor({
           const color = selectedColorRef.current;
           const width = strokeWidthRef.current;
           
+          // Handle select tool - try to find and select an annotation
+          if (tool === 'select') {
+            const found = findAnnotationAtPoint(locationX, locationY);
+            if (found) {
+              setSelectedAnnotationId(found.id);
+              selectedAnnotationIdRef.current = found.id;
+              dragStartRef.current = { x: locationX, y: locationY };
+              originalPositionRef.current = { x: found.x, y: found.y };
+            } else {
+              setSelectedAnnotationId(null);
+              selectedAnnotationIdRef.current = null;
+            }
+            return;
+          }
+          
           if (tool === 'text') {
             setTextPosition({ x: locationX, y: locationY });
             setShowTextInput(true);
@@ -207,11 +222,47 @@ export default function AnnotationEditor({
           setCurrentAnnotation(newAnnotation);
         },
         onPanResponderMove: (e) => {
-          const current = currentAnnotationRef.current;
-          const tool = selectedToolRef.current;
-          if (!current || tool === 'text') return;
-          
           const { locationX, locationY } = e.nativeEvent;
+          const tool = selectedToolRef.current;
+          
+          // Handle moving a selected annotation
+          if (tool === 'select' && selectedAnnotationIdRef.current && dragStartRef.current) {
+            const deltaX = locationX - dragStartRef.current.x;
+            const deltaY = locationY - dragStartRef.current.y;
+            
+            // Update the annotation position
+            setAnnotations(prev => prev.map(ann => {
+              if (ann.id !== selectedAnnotationIdRef.current) return ann;
+              
+              const orig = annotationsRef.current.find(a => a.id === ann.id);
+              if (!orig) return ann;
+              
+              const origX = originalPositionRef.current?.x || orig.x;
+              const origY = originalPositionRef.current?.y || orig.y;
+              
+              const updated = { ...ann, x: origX + deltaX, y: origY + deltaY };
+              
+              // Move all related points
+              if (orig.endX !== undefined) updated.endX = orig.endX + deltaX;
+              if (orig.endY !== undefined) updated.endY = orig.endY + deltaY;
+              
+              if (orig.points) {
+                const origAnn = existingAnnotations.find(a => a.id === ann.id) || annotationsRef.current.find(a => a.id === ann.id);
+                if (origAnn?.points) {
+                  updated.points = origAnn.points.map(p => ({ 
+                    x: p.x + deltaX, 
+                    y: p.y + deltaY 
+                  }));
+                }
+              }
+              
+              return updated;
+            }));
+            return;
+          }
+          
+          const current = currentAnnotationRef.current;
+          if (!current || tool === 'text' || tool === 'select') return;
           
           let updated: Annotation;
           if (current.type === 'freehand' || current.type === 'highlight') {
@@ -233,8 +284,16 @@ export default function AnnotationEditor({
           setCurrentAnnotation(updated);
         },
         onPanResponderRelease: () => {
-          const current = currentAnnotationRef.current;
           const tool = selectedToolRef.current;
+          
+          // Clear drag state for select tool
+          if (tool === 'select') {
+            dragStartRef.current = null;
+            originalPositionRef.current = null;
+            return;
+          }
+          
+          const current = currentAnnotationRef.current;
           if (current && tool !== 'text') {
             const newAnnotations = [...annotationsRef.current, current];
             setAnnotations(newAnnotations);
@@ -244,7 +303,7 @@ export default function AnnotationEditor({
           }
         },
       }),
-    []
+    [existingAnnotations]
   );
 
   const handleAddText = () => {
