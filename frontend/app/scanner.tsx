@@ -123,7 +123,7 @@ export default function ScannerScreen() {
   const params = useLocalSearchParams();
   const { token, isGuest, user, refreshUser } = useAuthStore();
   const { theme } = useThemeStore();
-  const { currentDocument, createDocument, updateDocument, fetchDocument, fetchDocuments } = useDocumentStore();
+  const { currentDocument, createDocument, createDocumentLocalFirst, updateDocument, fetchDocument, fetchDocuments, syncPendingDocuments } = useDocumentStore();
   
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImages, setCapturedImages] = useState<{ base64: string; original: string }[]>([]);
