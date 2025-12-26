@@ -432,7 +432,10 @@ export default function AnnotationEditor({
             </View>
           )}
         </View>
-      </SafeAreaView>
+        
+        {/* Bottom safe area spacer */}
+        <View style={{ height: insets.bottom }} />
+      </View>
     </Modal>
   );
 }
