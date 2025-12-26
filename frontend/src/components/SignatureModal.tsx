@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  PanResponder,
   GestureResponderEvent,
   Alert,
   StatusBar,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Path, Line, Defs, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -36,16 +36,8 @@ interface SignaturePlacementProps {
   theme: any;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface PathData {
-  points: Point[];
-  color: string;
-  strokeWidth: number;
-}
+interface Point { x: number; y: number; }
+interface PathData { points: Point[]; color: string; strokeWidth: number; }
 
 const COLORS = ['#000000', '#1E40AF', '#DC2626', '#059669'];
 const STROKE_WIDTHS = [2, 4, 6];
@@ -59,7 +51,8 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState(4);
   const [isSaving, setIsSaving] = useState(false);
   
-  const canvasRef = useRef<View>(null);
+  // This ref captures ONLY the SVG - transparent background
+  const svgContainerRef = useRef<View>(null);
   const isDrawingRef = useRef(false);
 
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
@@ -77,32 +70,18 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
   const handleTouchEnd = useCallback(() => {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
-    
     if (currentPath.length > 1) {
-      setPaths(prev => [...prev, {
-        points: [...currentPath],
-        color: selectedColor,
-        strokeWidth: selectedStrokeWidth,
-      }]);
+      setPaths(prev => [...prev, { points: [...currentPath], color: selectedColor, strokeWidth: selectedStrokeWidth }]);
     }
     setCurrentPath([]);
   }, [currentPath, selectedColor, selectedStrokeWidth]);
 
-  const handleClear = useCallback(() => {
-    setPaths([]);
-    setCurrentPath([]);
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    setPaths(prev => prev.slice(0, -1));
-  }, []);
+  const handleClear = useCallback(() => { setPaths([]); setCurrentPath([]); }, []);
+  const handleUndo = useCallback(() => { setPaths(prev => prev.slice(0, -1)); }, []);
 
   const pointsToPath = useCallback((points: Point[]): string => {
     if (points.length === 0) return '';
-    if (points.length === 1) {
-      return `M ${points[0].x} ${points[0].y} L ${points[0].x + 0.1} ${points[0].y + 0.1}`;
-    }
-    
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y} L ${points[0].x + 0.1} ${points[0].y + 0.1}`;
     let d = `M ${points[0].x} ${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
       if (i < points.length - 1) {
@@ -117,36 +96,31 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (paths.length === 0 && currentPath.length === 0) {
+    if (paths.length === 0) {
       Alert.alert('No Signature', 'Please draw your signature first.');
       return;
     }
-
     setIsSaving(true);
     try {
-      if (canvasRef.current) {
-        // Capture as PNG with transparent background
-        const uri = await captureRef(canvasRef.current, {
+      if (svgContainerRef.current) {
+        // Capture ONLY the SVG container with transparent background
+        const uri = await captureRef(svgContainerRef.current, {
           format: 'png',
           quality: 1,
           result: 'base64',
         });
-        
         onSignatureCreated(uri);
         handleClear();
       }
     } catch (error) {
       console.error('Error saving signature:', error);
-      Alert.alert('Error', 'Failed to save signature. Please try again.');
+      Alert.alert('Error', 'Failed to save signature.');
     } finally {
       setIsSaving(false);
     }
-  }, [paths, currentPath, onSignatureCreated, handleClear]);
+  }, [paths, onSignatureCreated, handleClear]);
 
-  const handleClose = useCallback(() => {
-    handleClear();
-    onClose();
-  }, [handleClear, onClose]);
+  const handleClose = useCallback(() => { handleClear(); onClose(); }, [handleClear, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent presentationStyle="fullScreen" onRequestClose={handleClose}>
@@ -159,7 +133,7 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
           <Text style={styles.title}>Draw Signature</Text>
           <TouchableOpacity 
             onPress={handleSave} 
-            style={[styles.saveButton, { backgroundColor: theme.primary }, (paths.length === 0) && { opacity: 0.5 }]}
+            style={[styles.saveButton, { backgroundColor: theme.primary }, paths.length === 0 && { opacity: 0.5 }]}
             disabled={isSaving || paths.length === 0}
           >
             <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Next'}</Text>
@@ -167,63 +141,49 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
         </View>
 
         <View style={styles.canvasContainer}>
-          <View
-            ref={canvasRef}
-            style={styles.transparentCanvas}
-            onStartShouldSetResponder={() => true}
-            onMoveShouldSetResponder={() => true}
-            onResponderGrant={handleTouchStart}
-            onResponderMove={handleTouchMove}
-            onResponderRelease={handleTouchEnd}
-            onResponderTerminate={handleTouchEnd}
-          >
-            {/* Transparent checkered background to show transparency */}
-            <View style={styles.checkeredBackground}>
+          {/* Checkered background - OUTSIDE the capture ref */}
+          <View style={styles.canvasWrapper}>
+            <View style={styles.checkeredBackground} pointerEvents="none">
               {Array.from({ length: 20 }).map((_, row) => (
                 <View key={row} style={styles.checkeredRow}>
                   {Array.from({ length: 20 }).map((_, col) => (
-                    <View 
-                      key={col} 
-                      style={[
-                        styles.checkeredCell,
-                        (row + col) % 2 === 0 ? styles.checkeredLight : styles.checkeredDark
-                      ]} 
-                    />
+                    <View key={col} style={[styles.checkeredCell, (row + col) % 2 === 0 ? styles.checkeredLight : styles.checkeredDark]} />
                   ))}
                 </View>
               ))}
             </View>
             
-            <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-              {paths.map((path, index) => (
-                <Path
-                  key={`path-${index}`}
-                  d={pointsToPath(path.points)}
-                  stroke={path.color}
-                  strokeWidth={path.strokeWidth}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              ))}
-              {currentPath.length > 0 && (
-                <Path
-                  d={pointsToPath(currentPath)}
-                  stroke={selectedColor}
-                  strokeWidth={selectedStrokeWidth}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
-            </Svg>
+            {/* SVG container - THIS is what gets captured (transparent) */}
+            <View
+              ref={svgContainerRef}
+              style={styles.svgContainer}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleTouchStart}
+              onResponderMove={handleTouchMove}
+              onResponderRelease={handleTouchEnd}
+              onResponderTerminate={handleTouchEnd}
+            >
+              <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                {paths.map((path, index) => (
+                  <Path key={`path-${index}`} d={pointsToPath(path.points)} stroke={path.color} strokeWidth={path.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                ))}
+                {currentPath.length > 0 && (
+                  <Path d={pointsToPath(currentPath)} stroke={selectedColor} strokeWidth={selectedStrokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+              </Svg>
+            </View>
             
+            {/* Placeholder - above SVG but non-interactive */}
             {paths.length === 0 && currentPath.length === 0 && (
               <View style={styles.placeholder} pointerEvents="none">
-                <Ionicons name="create-outline" size={48} color="rgba(0,0,0,0.3)" />
+                <Ionicons name="create-outline" size={48} color="rgba(0,0,0,0.2)" />
                 <Text style={styles.placeholderText}>Sign here</Text>
               </View>
             )}
+            
+            {/* Border overlay */}
+            <View style={styles.canvasBorder} pointerEvents="none" />
           </View>
         </View>
 
@@ -232,32 +192,22 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
             <Text style={styles.toolLabel}>Color</Text>
             <View style={styles.colorOptions}>
               {COLORS.map((color) => (
-                <TouchableOpacity
-                  key={color}
-                  style={[styles.colorOption, { backgroundColor: color }, selectedColor === color && styles.colorOptionSelected]}
-                  onPress={() => setSelectedColor(color)}
-                >
+                <TouchableOpacity key={color} style={[styles.colorOption, { backgroundColor: color }, selectedColor === color && styles.colorOptionSelected]} onPress={() => setSelectedColor(color)}>
                   {selectedColor === color && <Ionicons name="checkmark" size={16} color="#FFF" />}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-
           <View style={styles.toolSection}>
             <Text style={styles.toolLabel}>Thickness</Text>
             <View style={styles.strokeOptions}>
               {STROKE_WIDTHS.map((width) => (
-                <TouchableOpacity
-                  key={width}
-                  style={[styles.strokeOption, selectedStrokeWidth === width && { borderColor: theme.primary, backgroundColor: theme.primary + '15' }]}
-                  onPress={() => setSelectedStrokeWidth(width)}
-                >
+                <TouchableOpacity key={width} style={[styles.strokeOption, selectedStrokeWidth === width && { borderColor: theme.primary, backgroundColor: theme.primary + '15' }]} onPress={() => setSelectedStrokeWidth(width)}>
                   <View style={[styles.strokePreview, { height: width, backgroundColor: selectedColor }]} />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-
           <View style={styles.actions}>
             <TouchableOpacity style={[styles.actionButton, paths.length === 0 && { opacity: 0.4 }]} onPress={handleUndo} disabled={paths.length === 0}>
               <Ionicons name="arrow-undo" size={22} color={paths.length === 0 ? '#999' : '#333'} />
@@ -277,73 +227,76 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
 // ============ SIGNATURE PLACEMENT MODAL ============
 export function SignaturePlacementModal({ visible, documentImage, signatureImage, onClose, onApply, theme }: SignaturePlacementProps) {
   const insets = useSafeAreaInsets();
-  const [position, setPosition] = useState({ x: 0.5, y: 0.7 }); // Normalized 0-1
+  const [position, setPosition] = useState({ x: 0.5, y: 0.7 });
   const [scale, setScale] = useState(0.3);
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   
-  const initialPinchDistance = useRef(0);
+  // For pinch-to-zoom
+  const initialDistance = useRef(0);
   const initialScale = useRef(scale);
+  const lastPosition = useRef(position);
 
-  // Calculate signature dimensions
   const signatureWidth = imageLayout.width * scale;
-  const signatureHeight = signatureWidth * 0.4; // Assume signature aspect ratio
-  
-  // Calculate pixel position
+  const signatureHeight = signatureWidth * 0.35;
   const signatureX = position.x * imageLayout.width - signatureWidth / 2;
   const signatureY = position.y * imageLayout.height - signatureHeight / 2;
 
-  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    const touches = e.nativeEvent.touches;
-    if (touches.length === 2) {
-      // Pinch to resize
-      const dx = touches[1].pageX - touches[0].pageX;
-      const dy = touches[1].pageY - touches[0].pageY;
-      initialPinchDistance.current = Math.sqrt(dx * dx + dy * dy);
-      initialScale.current = scale;
-      setIsResizing(true);
-    } else {
-      setIsDragging(true);
-    }
+  // Create PanResponder for drag and pinch
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const touches = e.nativeEvent.touches;
+        lastPosition.current = position;
+        initialScale.current = scale;
+        
+        if (touches.length === 2) {
+          const dx = touches[1].pageX - touches[0].pageX;
+          const dy = touches[1].pageY - touches[0].pageY;
+          initialDistance.current = Math.sqrt(dx * dx + dy * dy);
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        const touches = e.nativeEvent.touches;
+        
+        if (touches.length === 2 && initialDistance.current > 0) {
+          // Pinch to resize
+          const dx = touches[1].pageX - touches[0].pageX;
+          const dy = touches[1].pageY - touches[0].pageY;
+          const currentDistance = Math.sqrt(dx * dx + dy * dy);
+          const scaleMultiplier = currentDistance / initialDistance.current;
+          const newScale = Math.max(0.1, Math.min(0.8, initialScale.current * scaleMultiplier));
+          setScale(newScale);
+        } else if (touches.length === 1 && imageLayout.width > 0) {
+          // Drag to move
+          const newX = lastPosition.current.x + (gestureState.dx / imageLayout.width);
+          const newY = lastPosition.current.y + (gestureState.dy / imageLayout.height);
+          setPosition({
+            x: Math.max(0.1, Math.min(0.9, newX)),
+            y: Math.max(0.1, Math.min(0.9, newY)),
+          });
+        }
+      },
+      onPanResponderRelease: () => {
+        lastPosition.current = position;
+        initialDistance.current = 0;
+      },
+    })
+  ).current;
+
+  // Update panResponder refs when state changes
+  useEffect(() => {
+    lastPosition.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    initialScale.current = scale;
   }, [scale]);
-
-  const handleTouchMove = useCallback((e: GestureResponderEvent) => {
-    const touches = e.nativeEvent.touches;
-    
-    if (isResizing && touches.length === 2) {
-      // Handle pinch resize
-      const dx = touches[1].pageX - touches[0].pageX;
-      const dy = touches[1].pageY - touches[0].pageY;
-      const currentDistance = Math.sqrt(dx * dx + dy * dy);
-      const scaleChange = currentDistance / initialPinchDistance.current;
-      const newScale = Math.max(0.1, Math.min(0.8, initialScale.current * scaleChange));
-      setScale(newScale);
-    } else if (isDragging && touches.length === 1) {
-      // Handle drag
-      const touch = touches[0];
-      const touchX = touch.pageX - imageLayout.x;
-      const touchY = touch.pageY - imageLayout.y;
-      
-      const normalizedX = Math.max(0.1, Math.min(0.9, touchX / imageLayout.width));
-      const normalizedY = Math.max(0.1, Math.min(0.9, touchY / imageLayout.height));
-      
-      setPosition({ x: normalizedX, y: normalizedY });
-    }
-  }, [isDragging, isResizing, imageLayout]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-  }, []);
 
   const handleApply = useCallback(() => {
     onApply(signatureImage, position, scale);
   }, [signatureImage, position, scale, onApply]);
-
-  const adjustScale = useCallback((delta: number) => {
-    setScale(prev => Math.max(0.1, Math.min(0.8, prev + delta)));
-  }, []);
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -361,28 +314,18 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
 
         <Text style={styles.placementHint}>Drag to move • Pinch to resize</Text>
 
-        <View 
-          style={styles.documentContainer}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderGrant={handleTouchStart}
-          onResponderMove={handleTouchMove}
-          onResponderRelease={handleTouchEnd}
-          onResponderTerminate={handleTouchEnd}
-        >
+        <View style={styles.documentContainer} {...panResponder.panHandlers}>
           <Image
             source={{ uri: `data:image/jpeg;base64,${documentImage}` }}
             style={styles.documentImage}
             resizeMode="contain"
             onLayout={(e) => {
-              const { width, height } = e.nativeEvent.layout;
               e.target.measure((fx, fy, w, h, px, py) => {
                 setImageLayout({ width: w, height: h, x: px, y: py });
               });
             }}
           />
           
-          {/* Signature overlay */}
           {imageLayout.width > 0 && (
             <View
               style={[
@@ -392,77 +335,37 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
                   top: signatureY,
                   width: signatureWidth,
                   height: signatureHeight,
-                  borderColor: isDragging ? theme.primary : 'rgba(255,255,255,0.8)',
                 },
               ]}
+              pointerEvents="none"
             >
               <Image
                 source={{ uri: `data:image/png;base64,${signatureImage}` }}
                 style={styles.signatureImage}
                 resizeMode="contain"
               />
-              
-              {/* Resize handles */}
-              <View style={[styles.resizeHandle, styles.handleTL]} />
-              <View style={[styles.resizeHandle, styles.handleTR]} />
-              <View style={[styles.resizeHandle, styles.handleBL]} />
-              <View style={[styles.resizeHandle, styles.handleBR]} />
+              <View style={[styles.resizeHandle, styles.handleTL, { backgroundColor: theme.primary }]} />
+              <View style={[styles.resizeHandle, styles.handleTR, { backgroundColor: theme.primary }]} />
+              <View style={[styles.resizeHandle, styles.handleBL, { backgroundColor: theme.primary }]} />
+              <View style={[styles.resizeHandle, styles.handleBR, { backgroundColor: theme.primary }]} />
             </View>
           )}
         </View>
 
-        {/* Size controls */}
         <View style={[styles.sizeControls, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <TouchableOpacity style={styles.sizeButton} onPress={() => adjustScale(-0.05)}>
+          <TouchableOpacity style={styles.sizeButton} onPress={() => setScale(s => Math.max(0.1, s - 0.05))}>
             <Ionicons name="remove" size={28} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.sizeLabel}>Size: {Math.round(scale * 100)}%</Text>
-          <TouchableOpacity style={styles.sizeButton} onPress={() => adjustScale(0.05)}>
+          <View style={styles.sizeInfo}>
+            <Text style={styles.sizeLabel}>Size: {Math.round(scale * 100)}%</Text>
+            <Text style={styles.sizeHint}>Pinch on document to resize</Text>
+          </View>
+          <TouchableOpacity style={styles.sizeButton} onPress={() => setScale(s => Math.min(0.8, s + 0.05))}>
             <Ionicons name="add" size={28} color="#FFF" />
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
-  );
-}
-
-// ============ COMBINED EXPORT ============
-export default function SignatureModal({ visible, onClose, onSave, theme }: {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (signatureBase64: string, position: { x: number; y: number }, scale: number) => void;
-  theme: any;
-  documentImage?: string;
-}) {
-  const [signatureBase64, setSignatureBase64] = useState<string | null>(null);
-  const [showPlacement, setShowPlacement] = useState(false);
-
-  const handleSignatureCreated = useCallback((base64: string) => {
-    setSignatureBase64(base64);
-    setShowPlacement(true);
-  }, []);
-
-  const handleApply = useCallback((sig: string, pos: { x: number; y: number }, scale: number) => {
-    onSave(sig, pos, scale);
-    setSignatureBase64(null);
-    setShowPlacement(false);
-    onClose();
-  }, [onSave, onClose]);
-
-  const handleClose = useCallback(() => {
-    setSignatureBase64(null);
-    setShowPlacement(false);
-    onClose();
-  }, [onClose]);
-
-  // For backward compatibility - if no documentImage, just return the drawing modal
-  return (
-    <SignatureDrawingModal
-      visible={visible && !showPlacement}
-      onClose={handleClose}
-      onSignatureCreated={handleSignatureCreated}
-      theme={theme}
-    />
   );
 }
 
@@ -483,14 +386,11 @@ const styles = StyleSheet.create({
   saveButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   saveButtonText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
   canvasContainer: { flex: 1, padding: 16 },
-  transparentCanvas: {
+  canvasWrapper: {
     flex: 1,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
     overflow: 'hidden',
-    backgroundColor: 'transparent',
+    position: 'relative',
   },
   checkeredBackground: {
     ...StyleSheet.absoluteFillObject,
@@ -499,14 +399,25 @@ const styles = StyleSheet.create({
   checkeredRow: { flex: 1, flexDirection: 'row' },
   checkeredCell: { flex: 1 },
   checkeredLight: { backgroundColor: '#FFFFFF' },
-  checkeredDark: { backgroundColor: '#F0F0F0' },
+  checkeredDark: { backgroundColor: '#EEEEEE' },
+  svgContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+  },
+  canvasBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+  },
   placeholder: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
   },
-  placeholderText: { fontSize: 20, fontWeight: '600', color: 'rgba(0,0,0,0.3)' },
+  placeholderText: { fontSize: 20, fontWeight: '600', color: 'rgba(0,0,0,0.2)' },
   toolbar: {
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -545,37 +456,40 @@ const styles = StyleSheet.create({
   signatureOverlay: {
     position: 'absolute',
     borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.8)',
     borderStyle: 'dashed',
     borderRadius: 4,
+    backgroundColor: 'transparent',
   },
   signatureImage: { width: '100%', height: '100%' },
   resizeHandle: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: '#FFF',
   },
-  handleTL: { top: -8, left: -8 },
-  handleTR: { top: -8, right: -8 },
-  handleBL: { bottom: -8, left: -8 },
-  handleBR: { bottom: -8, right: -8 },
+  handleTL: { top: -7, left: -7 },
+  handleTR: { top: -7, right: -7 },
+  handleBL: { bottom: -7, left: -7 },
+  handleBR: { bottom: -7, right: -7 },
   sizeControls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    gap: 24,
+    gap: 20,
   },
   sizeButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sizeLabel: { color: '#FFF', fontSize: 16, fontWeight: '500', minWidth: 100, textAlign: 'center' },
+  sizeInfo: { alignItems: 'center' },
+  sizeLabel: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  sizeHint: { color: '#888', fontSize: 11, marginTop: 2 },
 });
