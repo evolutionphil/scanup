@@ -2721,6 +2721,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_db_client():
+    """Initialize MongoDB collections on startup"""
+    try:
+        # Test connection
+        await client.admin.command('ping')
+        logger.info(f"✅ Connected to MongoDB Atlas: {os.environ.get('DB_NAME', 'scanup')}")
+        
+        # Get list of existing collections
+        existing_collections = await db.list_collection_names()
+        logger.info(f"📋 Existing collections: {existing_collections}")
+        
+        # Define required collections with their indexes
+        required_collections = {
+            'users': [
+                ('user_id', True),  # (field, unique)
+                ('email', True),
+            ],
+            'documents': [
+                ('document_id', True),
+                ('user_id', False),
+            ],
+            'folders': [
+                ('folder_id', True),
+                ('user_id', False),
+            ],
+            'signatures': [
+                ('signature_id', True),
+                ('user_id', False),
+            ],
+        }
+        
+        for collection_name, indexes in required_collections.items():
+            if collection_name not in existing_collections:
+                # Create collection
+                await db.create_collection(collection_name)
+                logger.info(f"✅ Created collection: {collection_name}")
+            
+            # Create indexes
+            collection = db[collection_name]
+            for field, unique in indexes:
+                try:
+                    await collection.create_index(field, unique=unique)
+                    logger.info(f"  📌 Index on {collection_name}.{field} (unique={unique})")
+                except Exception as idx_err:
+                    logger.warning(f"  ⚠️ Index {field} might already exist: {idx_err}")
+        
+        logger.info("✅ MongoDB collections initialized successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ MongoDB initialization error: {e}")
+        raise
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
