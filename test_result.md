@@ -577,3 +577,33 @@ agent_communication:
     Minor: One test partial (invalid base64 gracefully handled but returns success=false, which is correct behavior).
     
     The /api/images/perspective-crop endpoint is fully functional and meets all requirements."
+
+  - agent: "main"
+    message: "FREEMIUM MODEL IMPLEMENTATION COMPLETE:
+    
+    Backend (already working from previous session):
+    1. ✅ Daily scan limits (10 scans/day for free users)
+    2. ✅ Monthly scan limits (100 scans/month for free users)
+    3. ✅ Watermark on images for free users
+    4. ✅ Start trial endpoint (/api/users/start-trial)
+    5. ✅ User response includes scans_remaining_today, scans_remaining_month, is_trial, trial_days_remaining
+    
+    Frontend additions in this session:
+    1. ✅ Profile screen: Trial banner with 'Start' button for free users
+    2. ✅ Profile screen: Enhanced usage stats showing daily scans remaining, OCR remaining, and monthly scans
+    3. ✅ Profile screen: Trial/premium status indicators
+    4. ✅ Scanner screen: Scan limit indicator showing 'X scans left today' for free users
+    5. ✅ Scanner screen: Pre-capture check that blocks scanning when limit is reached
+    6. ✅ Scanner screen: User refresh after document save to update counts
+    7. ✅ authStore: Added startTrial() function to call trial endpoint
+    
+    API Tests verified:
+    - /api/auth/register returns correct freemium fields
+    - /api/users/start-trial activates 7-day trial with unlimited access
+    - /api/documents creates documents and decrements scan count
+    - /api/auth/me returns updated scan counts
+    
+    Please test:
+    - Start trial flow from Profile screen
+    - Scan limit display on scanner screen
+    - Daily/monthly usage stats on profile screen"
