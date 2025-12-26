@@ -1532,6 +1532,84 @@ async def run_document_ocr(
     
     return {"message": "OCR text saved successfully", "full_text": full_text}
 
+# ==================== SIGNATURE ENDPOINTS ====================
+
+class SignatureOverlayRequest(BaseModel):
+    image_base64: str
+    signature_base64: str
+    position_x: float  # Normalized 0-1 position from left
+    position_y: float  # Normalized 0-1 position from top
+    scale: float = 0.3  # Signature scale relative to image width
+
+@api_router.post("/images/add-signature")
+async def add_signature_to_image(
+    request: SignatureOverlayRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Overlay a signature on an image at the specified position"""
+    try:
+        from PIL import Image
+        import io
+        
+        # Decode base image
+        img_data = request.image_base64
+        if ',' in img_data:
+            img_data = img_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        base_image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+        
+        # Decode signature image
+        sig_data = request.signature_base64
+        if ',' in sig_data:
+            sig_data = sig_data.split(',')[1]
+        
+        sig_bytes = base64.b64decode(sig_data)
+        signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
+        
+        # Calculate signature size
+        sig_width = int(base_image.width * request.scale)
+        sig_height = int(signature.height * (sig_width / signature.width))
+        signature = signature.resize((sig_width, sig_height), Image.Resampling.LANCZOS)
+        
+        # Calculate position
+        pos_x = int(request.position_x * base_image.width - sig_width / 2)
+        pos_y = int(request.position_y * base_image.height - sig_height / 2)
+        
+        # Clamp to bounds
+        pos_x = max(0, min(base_image.width - sig_width, pos_x))
+        pos_y = max(0, min(base_image.height - sig_height, pos_y))
+        
+        # Create composite
+        composite = base_image.copy()
+        composite.paste(signature, (pos_x, pos_y), signature)
+        
+        # Convert back to RGB for JPEG
+        if composite.mode == 'RGBA':
+            background = Image.new('RGB', composite.size, (255, 255, 255))
+            background.paste(composite, mask=composite.split()[3])
+            composite = background
+        
+        # Encode result
+        buffer = io.BytesIO()
+        composite.save(buffer, format='JPEG', quality=95)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        logger.info(f"Signature added at ({pos_x}, {pos_y}) with scale {request.scale}")
+        
+        return {
+            "success": True,
+            "signed_image_base64": result_base64,
+            "message": "Signature added successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Signature overlay error: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Failed to add signature: {str(e)}"
+        }
+
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
