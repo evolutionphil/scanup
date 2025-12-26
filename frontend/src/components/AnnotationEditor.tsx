@@ -63,6 +63,7 @@ export default function AnnotationEditor({
   existingAnnotations = [],
 }: AnnotationEditorProps) {
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const [annotations, setAnnotations] = useState<Annotation[]>(existingAnnotations);
   const [selectedTool, setSelectedTool] = useState<string>('freehand');
   const [selectedColor, setSelectedColor] = useState<string>('#EF4444');
@@ -73,60 +74,90 @@ export default function AnnotationEditor({
   const [textInputValue, setTextInputValue] = useState('');
   const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
+  
+  // Use refs to track state inside PanResponder
+  const selectedToolRef = useRef(selectedTool);
+  const selectedColorRef = useRef(selectedColor);
+  const strokeWidthRef = useRef(strokeWidth);
+  const annotationsRef = useRef(annotations);
+  const currentAnnotationRef = useRef<Annotation | null>(null);
+  
+  // Keep refs in sync with state
+  selectedToolRef.current = selectedTool;
+  selectedColorRef.current = selectedColor;
+  strokeWidthRef.current = strokeWidth;
+  annotationsRef.current = annotations;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        const { locationX, locationY } = e.nativeEvent;
-        
-        if (selectedTool === 'text') {
-          setTextPosition({ x: locationX, y: locationY });
-          setShowTextInput(true);
-          return;
-        }
-        
-        const newAnnotation: Annotation = {
-          id: `annotation_${Date.now()}`,
-          type: selectedTool as Annotation['type'],
-          color: selectedTool === 'highlight' ? selectedColor + '60' : selectedColor,
-          strokeWidth: selectedTool === 'highlight' ? 20 : strokeWidth,
-          x: locationX,
-          y: locationY,
-          points: selectedTool === 'freehand' ? [{ x: locationX, y: locationY }] : undefined,
-        };
-        
-        setCurrentAnnotation(newAnnotation);
-      },
-      onPanResponderMove: (e) => {
-        if (!currentAnnotation || selectedTool === 'text') return;
-        
-        const { locationX, locationY } = e.nativeEvent;
-        
-        if (currentAnnotation.type === 'freehand' || currentAnnotation.type === 'highlight') {
-          setCurrentAnnotation({
-            ...currentAnnotation,
-            points: [...(currentAnnotation.points || []), { x: locationX, y: locationY }],
-          });
-        } else {
-          setCurrentAnnotation({
-            ...currentAnnotation,
-            endX: locationX,
-            endY: locationY,
-            width: Math.abs(locationX - currentAnnotation.x),
-            height: Math.abs(locationY - currentAnnotation.y),
-          });
-        }
-      },
-      onPanResponderRelease: () => {
-        if (currentAnnotation && selectedTool !== 'text') {
-          setAnnotations([...annotations, currentAnnotation]);
-          setCurrentAnnotation(null);
-        }
-      },
-    })
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (e) => {
+          const { locationX, locationY } = e.nativeEvent;
+          const tool = selectedToolRef.current;
+          const color = selectedColorRef.current;
+          const width = strokeWidthRef.current;
+          
+          if (tool === 'text') {
+            setTextPosition({ x: locationX, y: locationY });
+            setShowTextInput(true);
+            return;
+          }
+          
+          const newAnnotation: Annotation = {
+            id: `annotation_${Date.now()}`,
+            type: tool as Annotation['type'],
+            color: tool === 'highlight' ? color + '60' : color,
+            strokeWidth: tool === 'highlight' ? 20 : width,
+            x: locationX,
+            y: locationY,
+            points: (tool === 'freehand' || tool === 'highlight') ? [{ x: locationX, y: locationY }] : undefined,
+          };
+          
+          currentAnnotationRef.current = newAnnotation;
+          setCurrentAnnotation(newAnnotation);
+        },
+        onPanResponderMove: (e) => {
+          const current = currentAnnotationRef.current;
+          const tool = selectedToolRef.current;
+          if (!current || tool === 'text') return;
+          
+          const { locationX, locationY } = e.nativeEvent;
+          
+          let updated: Annotation;
+          if (current.type === 'freehand' || current.type === 'highlight') {
+            updated = {
+              ...current,
+              points: [...(current.points || []), { x: locationX, y: locationY }],
+            };
+          } else {
+            updated = {
+              ...current,
+              endX: locationX,
+              endY: locationY,
+              width: Math.abs(locationX - current.x),
+              height: Math.abs(locationY - current.y),
+            };
+          }
+          
+          currentAnnotationRef.current = updated;
+          setCurrentAnnotation(updated);
+        },
+        onPanResponderRelease: () => {
+          const current = currentAnnotationRef.current;
+          const tool = selectedToolRef.current;
+          if (current && tool !== 'text') {
+            const newAnnotations = [...annotationsRef.current, current];
+            setAnnotations(newAnnotations);
+            annotationsRef.current = newAnnotations;
+            currentAnnotationRef.current = null;
+            setCurrentAnnotation(null);
+          }
+        },
+      }),
+    []
+  );
 
   const handleAddText = () => {
     if (textInputValue.trim()) {
