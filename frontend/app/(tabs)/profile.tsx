@@ -18,10 +18,16 @@ import Button from '../../src/components/Button';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+// Free tier limits (should match backend)
+const FREE_SCANS_PER_DAY = 10;
+const FREE_SCANS_PER_MONTH = 100;
+const FREE_OCR_PER_DAY = 3;
+
 export default function ProfileScreen() {
-  const { user, token, isGuest, logout, updateUser } = useAuthStore();
+  const { user, token, isGuest, logout, updateUser, startTrial } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const [upgrading, setUpgrading] = useState(false);
+  const [startingTrial, setStartingTrial] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
