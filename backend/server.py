@@ -75,12 +75,27 @@ class User(BaseModel):
     email: str
     name: str
     picture: Optional[str] = None
-    subscription_type: str = "free"  # free, premium
+    subscription_type: str = "free"  # free, premium, trial
     subscription_expires_at: Optional[datetime] = None
     ocr_usage_today: int = 0
     ocr_usage_date: Optional[str] = None
+    # Scan limits
+    scans_today: int = 0
+    scans_this_month: int = 0
+    last_scan_date: Optional[str] = None
+    scan_month: Optional[str] = None  # Format: "2025-01"
+    # Trial period
+    trial_start_date: Optional[datetime] = None
+    trial_used: bool = False
+    # Timestamps
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+# Free tier limits
+FREE_SCANS_PER_DAY = 10
+FREE_SCANS_PER_MONTH = 100
+FREE_OCR_PER_DAY = 3
+TRIAL_DURATION_DAYS = 7
 
 class UserResponse(BaseModel):
     user_id: str
