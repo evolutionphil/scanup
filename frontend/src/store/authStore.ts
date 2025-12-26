@@ -133,20 +133,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     const token = get().token;
-    if (token && !get().isGuest) {
-      try {
-        await fetch(`${BACKEND_URL}/api/auth/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch (e) {
-        console.log('Logout API error:', e);
-      }
-    }
+    const wasGuest = get().isGuest;
+    
+    // Clear state FIRST to prevent re-renders during logout
+    set({ user: null, token: null, isAuthenticated: false, isGuest: false, isLoading: false });
+    
+    // Then clean up storage
     await removeStorage('token');
     await removeStorage('user');
     await removeStorage('isGuest');
-    set({ user: null, token: null, isAuthenticated: false, isGuest: false });
+    
+    // If was logged in user, try to call logout API (non-blocking)
+    if (token && !wasGuest) {
+      try {
+        fetch(`${BACKEND_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {}); // Ignore errors
+      } catch (e) {
+        // Ignore logout API errors
+      }
+    }
   },
 
   loadStoredAuth: async () => {
