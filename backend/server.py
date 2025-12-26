@@ -259,20 +259,46 @@ async def get_current_user(request: Request, credentials: Optional[HTTPAuthoriza
     raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 def user_to_response(user: User) -> UserResponse:
-    is_premium = user.subscription_type == "premium"
-    if user.subscription_expires_at:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Check if user is in trial period
+    is_trial = False
+    trial_days_remaining = 0
+    if user.subscription_type == "trial" and user.trial_start_date:
+        trial_end = user.trial_start_date + timedelta(days=TRIAL_DURATION_DAYS)
+        if trial_end.tzinfo is None:
+            trial_end = trial_end.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) < trial_end:
+            is_trial = True
+            trial_days_remaining = (trial_end - datetime.now(timezone.utc)).days
+    
+    # Check premium status
+    is_premium = user.subscription_type == "premium" or is_trial
+    if user.subscription_expires_at and user.subscription_type == "premium":
         expires_at = user.subscription_expires_at
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        is_premium = is_premium and expires_at > datetime.now(timezone.utc)
+        is_premium = expires_at > datetime.now(timezone.utc)
     
     # Calculate OCR remaining
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    ocr_remaining = 5  # Free users get 5 OCR per day
+    ocr_remaining = FREE_OCR_PER_DAY
     if is_premium:
         ocr_remaining = 9999  # Unlimited for premium
     elif user.ocr_usage_date == today:
-        ocr_remaining = max(0, 5 - user.ocr_usage_today)
+        ocr_remaining = max(0, FREE_OCR_PER_DAY - user.ocr_usage_today)
+    
+    # Calculate scans remaining today
+    scans_today = 0
+    if user.last_scan_date == today:
+        scans_today = user.scans_today
+    scans_remaining_today = FREE_SCANS_PER_DAY - scans_today if not is_premium else 9999
+    
+    # Calculate scans remaining this month
+    scans_month = 0
+    if user.scan_month == current_month:
+        scans_month = user.scans_this_month
+    scans_remaining_month = FREE_SCANS_PER_MONTH - scans_month if not is_premium else 9999
     
     return UserResponse(
         user_id=user.user_id,
@@ -281,7 +307,125 @@ def user_to_response(user: User) -> UserResponse:
         picture=user.picture,
         subscription_type=user.subscription_type,
         is_premium=is_premium,
-        ocr_remaining_today=ocr_remaining
+        is_trial=is_trial,
+        trial_days_remaining=trial_days_remaining,
+        ocr_remaining_today=ocr_remaining,
+        scans_remaining_today=max(0, scans_remaining_today),
+        scans_remaining_month=max(0, scans_remaining_month)
+    )
+
+def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
+    """Add watermark to image for free users"""
+    try:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        image_data = base64.b64decode(image_base64)
+        image = Image.open(BytesIO(image_data)).convert('RGBA')
+        
+        # Create watermark layer
+        watermark = Image.new('RGBA', image.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(watermark)
+        
+        # Calculate font size based on image size
+        font_size = max(20, min(image.width, image.height) // 20)
+        
+        # Try to use a built-in font, fallback to default
+        try:
+            from PIL import ImageFont
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        except:
+            font = ImageFont.load_default()
+        
+        # Get text size
+        text = watermark_text
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Position: bottom right with padding
+        padding = 20
+        x = image.width - text_width - padding
+        y = image.height - text_height - padding
+        
+        # Draw semi-transparent watermark
+        draw.text((x, y), text, font=font, fill=(128, 128, 128, 100))
+        
+        # Composite
+        watermarked = Image.alpha_composite(image, watermark)
+        
+        # Convert to RGB for JPEG
+        if watermarked.mode == 'RGBA':
+            background = Image.new('RGB', watermarked.size, (255, 255, 255))
+            background.paste(watermarked, mask=watermarked.split()[3])
+            watermarked = background
+        
+        # Encode
+        buffer = BytesIO()
+        watermarked.save(buffer, format='JPEG', quality=95)
+        return base64.b64encode(buffer.getvalue()).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Watermark error: {str(e)}")
+        return image_base64  # Return original if watermarking fails
+
+async def check_scan_limits(user: User) -> Tuple[bool, str]:
+    """Check if user can scan. Returns (can_scan, message)"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Premium users have no limits
+    is_premium = user.subscription_type in ["premium", "trial"]
+    if is_premium:
+        if user.subscription_type == "trial" and user.trial_start_date:
+            trial_end = user.trial_start_date + timedelta(days=TRIAL_DURATION_DAYS)
+            if datetime.now(timezone.utc) >= trial_end.replace(tzinfo=timezone.utc):
+                is_premium = False
+    
+    if is_premium:
+        return True, ""
+    
+    # Check daily limit
+    scans_today = user.scans_today if user.last_scan_date == today else 0
+    if scans_today >= FREE_SCANS_PER_DAY:
+        return False, f"Daily scan limit reached ({FREE_SCANS_PER_DAY} scans/day). Upgrade to Premium for unlimited scans."
+    
+    # Check monthly limit
+    scans_month = user.scans_this_month if user.scan_month == current_month else 0
+    if scans_month >= FREE_SCANS_PER_MONTH:
+        return False, f"Monthly scan limit reached ({FREE_SCANS_PER_MONTH} scans/month). Upgrade to Premium for unlimited scans."
+    
+    return True, ""
+
+async def increment_scan_count(user_id: str):
+    """Increment user's scan count"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        return
+    
+    # Reset daily count if new day
+    scans_today = user.get("scans_today", 0)
+    if user.get("last_scan_date") != today:
+        scans_today = 0
+    
+    # Reset monthly count if new month
+    scans_month = user.get("scans_this_month", 0)
+    if user.get("scan_month") != current_month:
+        scans_month = 0
+    
+    await db.users.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "scans_today": scans_today + 1,
+                "last_scan_date": today,
+                "scans_this_month": scans_month + 1,
+                "scan_month": current_month,
+                "updated_at": datetime.now(timezone.utc)
+            }
+        }
     )
 
 def create_thumbnail(image_base64: str, max_size: int = 200) -> str:
