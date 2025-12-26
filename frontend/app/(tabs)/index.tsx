@@ -323,6 +323,22 @@ export default function DocumentsScreen() {
         </View>
       )}
 
+      {/* Sync Status Banner */}
+      {(isSyncing || pendingSyncCount > 0) && !isGuest && (
+        <View style={[styles.syncBanner, { backgroundColor: isSyncing ? theme.primary + '15' : theme.warning + '15' }]}>
+          <Ionicons 
+            name={isSyncing ? "cloud-upload" : "cloud-offline-outline"} 
+            size={16} 
+            color={isSyncing ? theme.primary : theme.warning} 
+          />
+          <Text style={[styles.syncBannerText, { color: isSyncing ? theme.primary : theme.warning }]}>
+            {isSyncing 
+              ? 'Syncing documents to cloud...' 
+              : `${pendingSyncCount} document${pendingSyncCount > 1 ? 's' : ''} waiting to sync`}
+          </Text>
+        </View>
+      )}
+
       {/* Documents Grid/List */}
       <FlatList
         data={documents}
