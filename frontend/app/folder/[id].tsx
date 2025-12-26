@@ -20,6 +20,7 @@ import { useDocumentStore, Document, Folder } from '../../src/store/documentStor
 import DocumentCard from '../../src/components/DocumentCard';
 import Button from '../../src/components/Button';
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function FolderDetailScreen() {
