@@ -960,15 +960,16 @@ export default function ScannerScreen() {
         if (isGuest) {
           // Guest users can still save documents - they just won't sync to cloud
           // Save using the document store which handles local storage for guests
-          await createDocument(null, { name: docName, pages: newPages, document_type: currentType.type });
+          await createDocumentLocalFirst(null, { name: docName, pages: newPages, document_type: currentType.type });
           await fetchDocuments(null);
           Alert.alert('Document Saved', 'Your document has been saved locally. Sign in to sync across devices.', [
             { text: 'OK', onPress: () => router.back() },
             { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
           ]);
         } else if (token) {
-          await createDocument(token, { name: docName, pages: newPages, document_type: currentType.type });
-          await fetchDocuments(token);
+          // Use local-first approach: save instantly, sync in background
+          await createDocumentLocalFirst(token, { name: docName, pages: newPages, document_type: currentType.type });
+          // No need to fetch - document is already in state!
           // Refresh user to update scan counts
           await refreshUser();
           Alert.alert('Success', 'Document saved!', [
