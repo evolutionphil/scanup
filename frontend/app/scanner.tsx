@@ -1768,16 +1768,25 @@ export default function ScannerScreen() {
         zoom={0}
         onLayout={handleCameraLayout}
       >
-        <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
-          <View style={styles.topBar}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+        <View style={styles.cameraOverlay}>
+          {/* Top Bar - with manual safe area padding */}
+          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+            <TouchableOpacity 
+              style={styles.iconBtn} 
+              onPress={() => router.back()}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Ionicons name="close" size={28} color="#FFF" />
             </TouchableOpacity>
             <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
               <Ionicons name={currentType.icon} size={16} color={currentType.color} />
               <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
             </View>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setFlashMode(f => f === 'off' ? 'on' : 'off')}>
+            <TouchableOpacity 
+              style={styles.iconBtn} 
+              onPress={() => setFlashMode(f => f === 'off' ? 'on' : 'off')}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Ionicons name={flashMode === 'off' ? 'flash-off' : 'flash'} size={28} color="#FFF" />
             </TouchableOpacity>
           </View>
