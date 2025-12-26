@@ -26,6 +26,7 @@ import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
 import ExportModal from '../../src/components/ExportModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
+import AnnotationEditor from '../../src/components/AnnotationEditor';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
