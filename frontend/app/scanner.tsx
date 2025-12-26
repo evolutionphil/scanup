@@ -133,6 +133,10 @@ export default function ScannerScreen() {
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [showCamera, setShowCamera] = useState(true);
   
+  // Batch/Continuous scanning mode
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchCount, setBatchCount] = useState(0);
+  
   // Auto-capture state
   const [autoCapture, setAutoCapture] = useState(false);
   const [edgesDetected, setEdgesDetected] = useState(false);
