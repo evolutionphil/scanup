@@ -936,8 +936,22 @@ export default function ScannerScreen() {
   };
 
   const handleResetCrop = () => {
-    const frameCropPoints = mapFrameToSensorCoordinates(imageSize.width, imageSize.height);
-    setCropPoints(frameCropPoints);
+    if (currentType.type === 'book') {
+      const pad = 0.05;
+      const width = imageSize.width;
+      const height = imageSize.height;
+      setCropPoints([
+        { x: width * pad, y: height * pad },
+        { x: width * 0.5, y: height * pad },
+        { x: width * (1 - pad), y: height * pad },
+        { x: width * (1 - pad), y: height * (1 - pad) },
+        { x: width * 0.5, y: height * (1 - pad) },
+        { x: width * pad, y: height * (1 - pad) },
+      ]);
+    } else {
+      const frameCropPoints = mapFrameToSensorCoordinates(imageSize.width, imageSize.height);
+      setCropPoints(frameCropPoints);
+    }
   };
 
   const pickImage = async () => {
