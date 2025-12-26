@@ -91,8 +91,6 @@ export default function LoginScreen() {
         console.log('Auth result type:', result.type);
         Alert.alert('Login Cancelled', 'Please try signing in again');
       }
-        }
-      }
     } catch (error: any) {
       console.error('Google login error:', error);
       Alert.alert('Error', 'Google sign-in failed');
