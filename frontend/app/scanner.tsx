@@ -1234,7 +1234,7 @@ export default function ScannerScreen() {
   // Preview mode
   if (capturedImages.length > 0 && !showCropScreen && !showCamera) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
         <View style={styles.previewHeader}>
           <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.surface }]} onPress={() => setCapturedImages([])}>
             <Ionicons name="close" size={24} color={theme.text} />
