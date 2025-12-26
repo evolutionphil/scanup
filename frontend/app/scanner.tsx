@@ -231,7 +231,7 @@ export default function ScannerScreen() {
     });
   }, []);
 
-  // Coordinate conversion for crop screen
+  // Coordinate conversion for crop screen (pixel-based for UI interaction)
   const scaleX = previewLayout.width > 0 ? previewLayout.width / imageSize.width : 1;
   const scaleY = previewLayout.height > 0 ? previewLayout.height / imageSize.height : 1;
 
@@ -255,24 +255,32 @@ export default function ScannerScreen() {
 
   /**
    * ==========================================================================
-   * CRITICAL: Map frame from preview space to sensor space
+   * CRITICAL: Map frame from PREVIEW space to SENSOR space
    * ==========================================================================
    * 
-   * The camera preview (CameraView) uses "cover" scaling:
-   * - It fills the entire view
-   * - It center-crops the sensor image if aspects don't match
+   * This function converts the alignment frame overlay position to actual
+   * pixel coordinates on the captured sensor image.
    * 
-   * For a phone with 20:9 screen and 4:3 (1.33:1) sensor:
-   * - Preview aspect: ~0.45 (tall and narrow)
-   * - Sensor aspect: 0.75 (shorter, captured in portrait = taller)
-   * - Wait - captured image is in portrait so sensor aspect is 0.75 (3:4)
+   * ALGORITHM:
+   * 1. Get frame position as normalized coords (0-1) in preview
+   * 2. Map from preview normalized to sensor normalized (accounting for crop)
+   * 3. Convert sensor normalized to pixel coordinates
    * 
-   * Actually: Phone cameras capture in sensor orientation.
-   * If phone is portrait, and sensor is 4:3, the captured image is 3:4 (0.75)
-   * Preview might be filling a 9:20 screen = 0.45 aspect
+   * VISUAL EXAMPLE (phone in portrait, sensor taller than preview):
    * 
-   * So sensor (0.75) is WIDER than preview (0.45)
-   * This means LEFT/RIGHT edges of sensor are cropped in preview
+   *   SENSOR (4:3 = 0.75)          PREVIEW (phone ~0.46)
+   *   ┌─────────────┐              ┌─────────────┐
+   *   │             │              │             │
+   *   │  (hidden)   │              │   FRAME     │
+   *   │─────────────│ ─┐           │   ████████  │
+   *   │             │  │           │   ████████  │
+   *   │   VISIBLE   │  │ visible   │   ████████  │
+   *   │   PORTION   │  │ in        │             │
+   *   │             │  │ preview   │             │
+   *   │─────────────│ ─┘           └─────────────┘
+   *   │  (hidden)   │              
+   *   │             │              
+   *   └─────────────┘              
    * 
    * ==========================================================================
    */
@@ -280,91 +288,118 @@ export default function ScannerScreen() {
     sensorWidth: number,
     sensorHeight: number
   ): CropPoint[] => {
-    // Default fallback - 10% padding
-    const defaultPad = 0.10;
-    const defaultPoints: CropPoint[] = [
-      { x: sensorWidth * defaultPad, y: sensorHeight * defaultPad },
-      { x: sensorWidth * (1 - defaultPad), y: sensorHeight * defaultPad },
-      { x: sensorWidth * (1 - defaultPad), y: sensorHeight * (1 - defaultPad) },
-      { x: sensorWidth * defaultPad, y: sensorHeight * (1 - defaultPad) },
-    ];
-
-    if (!cameraLayout) {
-      console.log('⚠️ No camera layout, using default padding');
-      return defaultPoints;
+    const MARGIN_PX = 10; // Safety margin in pixels
+    
+    // Validate inputs
+    if (sensorWidth <= 0 || sensorHeight <= 0) {
+      logDebug('MAP', '❌ Invalid sensor dimensions', { sensorWidth, sensorHeight });
+      return getDefaultCropPoints(sensorWidth || 1000, sensorHeight || 1000, MARGIN_PX);
     }
-
+    
+    // Check if camera layout is ready
+    if (!cameraLayout || cameraLayout.previewWidth === 0) {
+      logDebug('MAP', '⚠️ Camera layout not ready, using defaults');
+      return getDefaultCropPoints(sensorWidth, sensorHeight, MARGIN_PX);
+    }
+    
     const sensorAspect = sensorWidth / sensorHeight;
-    const previewAspect = cameraLayout.previewAspect;
-
-    console.log('📐 Aspect ratio analysis:');
-    console.log(`   Sensor: ${sensorWidth}x${sensorHeight} (${sensorAspect.toFixed(3)})`);
-    console.log(`   Preview: ${cameraLayout.previewWidth.toFixed(0)}x${cameraLayout.previewHeight.toFixed(0)} (${previewAspect.toFixed(3)})`);
-
-    // Determine visible sensor region in preview (after center-crop)
-    let visibleSensorWidth = sensorWidth;
-    let visibleSensorHeight = sensorHeight;
-    let sensorOffsetX = 0;
-    let sensorOffsetY = 0;
-
-    if (sensorAspect > previewAspect) {
-      // Sensor is wider than preview → left/right edges are cropped
-      visibleSensorWidth = sensorHeight * previewAspect;
-      sensorOffsetX = (sensorWidth - visibleSensorWidth) / 2;
-      console.log(`   → Sensor WIDER than preview: cropping ${sensorOffsetX.toFixed(0)}px from each side`);
-    } else if (sensorAspect < previewAspect) {
-      // Sensor is taller than preview → top/bottom edges are cropped  
-      visibleSensorHeight = sensorWidth / previewAspect;
-      sensorOffsetY = (sensorHeight - visibleSensorHeight) / 2;
-      console.log(`   → Sensor TALLER than preview: cropping ${sensorOffsetY.toFixed(0)}px from top/bottom`);
-    } else {
-      console.log(`   → Aspect ratios match perfectly`);
+    const expectedAspect = SENSOR_ASPECT_PORTRAIT;
+    
+    logDebug('MAP', 'Starting coordinate mapping', {
+      sensor: `${sensorWidth}x${sensorHeight} (${sensorAspect.toFixed(3)})`,
+      expected: expectedAspect.toFixed(3),
+      preview: `${cameraLayout.previewWidth.toFixed(0)}x${cameraLayout.previewHeight.toFixed(0)}`,
+    });
+    
+    // Warn if sensor aspect doesn't match expected 4:3
+    if (Math.abs(sensorAspect - expectedAspect) > 0.15) {
+      logDebug('MAP', `⚠️ Sensor aspect ${sensorAspect.toFixed(2)} differs from expected ${expectedAspect.toFixed(2)}`);
     }
-
-    // Scale from preview to visible sensor area
-    const scalePreviewToSensor = visibleSensorWidth / cameraLayout.previewWidth;
-
-    // Frame position in preview coordinates (centered)
-    const frameLeft = (cameraLayout.previewWidth - frameDimensions.width) / 2;
-    const frameTop = (cameraLayout.previewHeight - frameDimensions.height) / 2;
-
-    console.log(`📍 Frame in preview: left=${frameLeft.toFixed(0)}, top=${frameTop.toFixed(0)}, size=${frameDimensions.width.toFixed(0)}x${frameDimensions.height.toFixed(0)}`);
-
-    // Map frame to sensor coordinates
-    const frameSensorLeft = sensorOffsetX + (frameLeft * scalePreviewToSensor);
-    const frameSensorTop = sensorOffsetY + (frameTop * scalePreviewToSensor);
-    const frameSensorWidth = frameDimensions.width * scalePreviewToSensor;
-    const frameSensorHeight = frameDimensions.height * scalePreviewToSensor;
-
-    console.log(`📍 Frame in sensor: left=${frameSensorLeft.toFixed(0)}, top=${frameSensorTop.toFixed(0)}, size=${frameSensorWidth.toFixed(0)}x${frameSensorHeight.toFixed(0)}`);
-
-    // Clamp to sensor bounds with small safety margin
-    const margin = 5;
+    
+    // STEP 1: Get frame position normalized in preview (0-1)
+    const frameInPreview = getNormalizedFrameInPreview();
+    
+    logDebug('MAP', 'Frame in preview (normalized)', frameInPreview);
+    
+    // STEP 2: Map preview coordinates to sensor coordinates
+    // Account for the fact that preview shows only part of sensor (cover mode)
+    const sensorVisible = cameraLayout.sensorVisibleInPreview;
+    
+    // Convert frame corners from preview-normalized to sensor-normalized
+    const mapPreviewToSensor = (previewNormX: number, previewNormY: number): NormalizedPoint => {
+      // previewNormX is 0-1 within the preview
+      // We need to map this to 0-1 within the full sensor
+      
+      // The visible portion of sensor starts at offsetX and has width visibleWidth
+      const sensorX = sensorVisible.offsetX + (previewNormX * sensorVisible.visibleWidth);
+      const sensorY = sensorVisible.offsetY + (previewNormY * sensorVisible.visibleHeight);
+      
+      return { x: sensorX, y: sensorY };
+    };
+    
+    // Map all four corners
+    const sensorNormTL = mapPreviewToSensor(frameInPreview.left, frameInPreview.top);
+    const sensorNormTR = mapPreviewToSensor(frameInPreview.right, frameInPreview.top);
+    const sensorNormBR = mapPreviewToSensor(frameInPreview.right, frameInPreview.bottom);
+    const sensorNormBL = mapPreviewToSensor(frameInPreview.left, frameInPreview.bottom);
+    
+    logDebug('MAP', 'Frame in sensor (normalized)', {
+      TL: sensorNormTL,
+      TR: sensorNormTR,
+      BR: sensorNormBR,
+      BL: sensorNormBL,
+    });
+    
+    // STEP 3: Convert normalized sensor coords to pixel coords
     const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
-
+    
     const corners: CropPoint[] = [
       { // Top-Left
-        x: clamp(frameSensorLeft, margin, sensorWidth - margin),
-        y: clamp(frameSensorTop, margin, sensorHeight - margin),
+        x: clamp(sensorNormTL.x * sensorWidth, MARGIN_PX, sensorWidth - MARGIN_PX),
+        y: clamp(sensorNormTL.y * sensorHeight, MARGIN_PX, sensorHeight - MARGIN_PX),
       },
       { // Top-Right
-        x: clamp(frameSensorLeft + frameSensorWidth, margin, sensorWidth - margin),
-        y: clamp(frameSensorTop, margin, sensorHeight - margin),
+        x: clamp(sensorNormTR.x * sensorWidth, MARGIN_PX, sensorWidth - MARGIN_PX),
+        y: clamp(sensorNormTR.y * sensorHeight, MARGIN_PX, sensorHeight - MARGIN_PX),
       },
       { // Bottom-Right
-        x: clamp(frameSensorLeft + frameSensorWidth, margin, sensorWidth - margin),
-        y: clamp(frameSensorTop + frameSensorHeight, margin, sensorHeight - margin),
+        x: clamp(sensorNormBR.x * sensorWidth, MARGIN_PX, sensorWidth - MARGIN_PX),
+        y: clamp(sensorNormBR.y * sensorHeight, MARGIN_PX, sensorHeight - MARGIN_PX),
       },
       { // Bottom-Left
-        x: clamp(frameSensorLeft, margin, sensorWidth - margin),
-        y: clamp(frameSensorTop + frameSensorHeight, margin, sensorHeight - margin),
+        x: clamp(sensorNormBL.x * sensorWidth, MARGIN_PX, sensorWidth - MARGIN_PX),
+        y: clamp(sensorNormBL.y * sensorHeight, MARGIN_PX, sensorHeight - MARGIN_PX),
       },
     ];
-
-    console.log('📍 Initial crop corners (sensor coords):', corners.map(c => `(${c.x.toFixed(0)},${c.y.toFixed(0)})`).join(' → '));
-
+    
+    logDebug('MAP', 'Final crop corners (pixels)', 
+      corners.map((c, i) => `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(0)},${c.y.toFixed(0)})`).join(' ')
+    );
+    
+    // Validate the corners form a reasonable quadrilateral
+    const width = corners[1].x - corners[0].x;
+    const height = corners[3].y - corners[0].y;
+    
+    if (width < 50 || height < 50) {
+      logDebug('MAP', '⚠️ Crop area too small, using defaults', { width, height });
+      return getDefaultCropPoints(sensorWidth, sensorHeight, MARGIN_PX);
+    }
+    
     return corners;
-  }, [cameraLayout, frameDimensions]);
+  }, [cameraLayout, getNormalizedFrameInPreview]);
+
+  /**
+   * Generate default crop points with padding
+   */
+  const getDefaultCropPoints = (width: number, height: number, margin: number): CropPoint[] => {
+    const pad = 0.08; // 8% padding
+    return [
+      { x: width * pad, y: height * pad },
+      { x: width * (1 - pad), y: height * pad },
+      { x: width * (1 - pad), y: height * (1 - pad) },
+      { x: width * pad, y: height * (1 - pad) },
+    ];
+  };
 
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
