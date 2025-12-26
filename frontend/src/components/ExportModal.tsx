@@ -92,8 +92,8 @@ export default function ExportModal({
 
       // For guests or JPEG export, create locally
       if (isGuest || selectedFormat === 'jpeg') {
-        if (pages.length === 0) {
-          throw new Error('No pages available for export');
+        if (!pages || pages.length === 0 || !pages[0]?.image_base64) {
+          throw new Error('No image available for export');
         }
         
         // For JPEG, just use the first page
