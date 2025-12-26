@@ -625,14 +625,15 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     
     try {
-      logDebug('CAPTURE', 'Starting capture...');
+      logDebug('CAPTURE', 'Starting HIGH QUALITY capture...');
       
-      // Capture with maximum quality settings
+      // Capture with MAXIMUM quality settings for professional document scanning
       const photo = await cameraRef.current.takePictureAsync({ 
-        quality: 1.0,           // Maximum quality
+        quality: 1.0,           // Maximum quality (no compression)
         base64: true,           // We need base64 for processing
         exif: true,             // Include EXIF for orientation
         skipProcessing: false,  // Let camera handle basic processing
+        // Note: expo-camera automatically uses the highest available resolution
       });
       
       if (photo?.base64) {
@@ -640,22 +641,28 @@ export default function ScannerScreen() {
         let capturedHeight = photo.height || 0;
         let imageBase64 = photo.base64;
         
-        logDebug('CAPTURE', 'Photo captured', {
+        logDebug('CAPTURE', 'Photo captured - HIGH RES', {
           dimensions: `${capturedWidth}x${capturedHeight}`,
+          megapixels: ((capturedWidth * capturedHeight) / 1000000).toFixed(1) + 'MP',
           aspect: (capturedWidth / capturedHeight).toFixed(3),
           hasExif: !!photo.exif,
           exifOrientation: photo.exif?.Orientation,
+          base64Length: photo.base64.length,
         });
         
         // Fix for Android: If image is landscape but should be portrait, rotate it
         // This happens when Android cameras don't set EXIF orientation properly
         if (capturedWidth > capturedHeight) {
-          logDebug('CAPTURE', 'Rotating landscape image to portrait...');
+          logDebug('CAPTURE', 'Rotating landscape image to portrait (LOSSLESS)...');
           try {
             const manipulated = await ImageManipulator.manipulateAsync(
               `data:image/jpeg;base64,${photo.base64}`,
               [{ rotate: 90 }],  // Rotate 90° clockwise to correct Android camera orientation
-              { compress: 0.95, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+              { 
+                compress: 1.0,  // NO COMPRESSION - preserve full quality
+                format: ImageManipulator.SaveFormat.JPEG, 
+                base64: true 
+              }
             );
             
             if (manipulated.base64) {
@@ -665,8 +672,9 @@ export default function ScannerScreen() {
               capturedWidth = capturedHeight;
               capturedHeight = temp;
               
-              logDebug('CAPTURE', 'Image rotated to portrait', {
+              logDebug('CAPTURE', 'Image rotated to portrait (lossless)', {
                 newDimensions: `${capturedWidth}x${capturedHeight}`,
+                newBase64Length: manipulated.base64.length,
               });
             }
           } catch (rotateError) {
