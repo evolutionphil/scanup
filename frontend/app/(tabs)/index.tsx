@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,14 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
+  Modal,
+  Pressable,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document } from '../../src/store/documentStore';
@@ -20,6 +24,9 @@ import LoadingScreen from '../../src/components/LoadingScreen';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const VIEW_MODE_KEY = '@scanup_view_mode';
+
+type ViewMode = 'grid' | 'list';
 
 export default function DocumentsScreen() {
   const { user, token, isGuest } = useAuthStore();
@@ -29,6 +36,34 @@ export default function DocumentsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showViewMenu, setShowViewMenu] = useState(false);
+
+  // Load saved view mode preference
+  useEffect(() => {
+    const loadViewMode = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(VIEW_MODE_KEY);
+        if (saved === 'grid' || saved === 'list') {
+          setViewMode(saved);
+        }
+      } catch (e) {
+        console.log('Could not load view mode preference');
+      }
+    };
+    loadViewMode();
+  }, []);
+
+  // Save view mode preference
+  const changeViewMode = async (mode: ViewMode) => {
+    setViewMode(mode);
+    setShowViewMenu(false);
+    try {
+      await AsyncStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch (e) {
+      console.log('Could not save view mode preference');
+    }
+  };
 
   const loadDocuments = async () => {
     if (token && !isGuest) {
