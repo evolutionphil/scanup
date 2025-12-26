@@ -1298,7 +1298,11 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        <Text style={styles.cropHint}>Drag corners or edges to adjust crop area</Text>
+        <Text style={styles.cropHint}>
+          {currentType.type === 'book' 
+            ? 'Drag corners to align book edges. Pages will be split automatically.' 
+            : 'Drag corners or edges to adjust crop area'}
+        </Text>
 
         <View style={styles.cropActions}>
           <TouchableOpacity 
