@@ -374,6 +374,11 @@ const DocumentListItem = ({
     });
   };
 
+  // Get thumbnail from document or first page
+  const thumbnailSource = document.thumbnail_base64 
+    || document.pages?.[0]?.processed_image_base64 
+    || document.pages?.[0]?.image_base64;
+
   return (
     <TouchableOpacity
       style={[
@@ -387,9 +392,9 @@ const DocumentListItem = ({
     >
       {/* Thumbnail */}
       <View style={[styles.listThumbnail, { backgroundColor: theme.background }]}>
-        {document.thumbnail_base64 ? (
+        {thumbnailSource ? (
           <Image
-            source={{ uri: `data:image/jpeg;base64,${document.thumbnail_base64}` }}
+            source={{ uri: `data:image/jpeg;base64,${thumbnailSource}` }}
             style={styles.listThumbnailImage}
             resizeMode="cover"
           />
@@ -422,6 +427,41 @@ const DocumentListItem = ({
       )}
       
       {/* Chevron */}
+      <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+    </TouchableOpacity>
+  );
+};
+
+// Folder list item component
+const FolderListItem = ({ 
+  folder, 
+  onPress, 
+  theme 
+}: { 
+  folder: any; 
+  onPress: () => void; 
+  theme: any;
+}) => {
+  return (
+    <TouchableOpacity
+      style={[styles.listItem, { backgroundColor: theme.surface }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.folderIcon, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name="folder" size={26} color={theme.primary} />
+      </View>
+      <View style={styles.listItemContent}>
+        <Text style={[styles.listItemTitle, { color: theme.text }]} numberOfLines={1}>
+          {folder.name}
+        </Text>
+        <Text style={[styles.listItemDate, { color: theme.textMuted }]}>
+          {folder.document_count || 0} documents
+        </Text>
+      </View>
+      {folder.is_protected && (
+        <Ionicons name="lock-closed" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
+      )}
       <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
     </TouchableOpacity>
   );
