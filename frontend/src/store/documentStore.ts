@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const GUEST_DOCUMENTS_KEY = 'guest_documents';
 
 export interface PageData {
   page_id: string;
@@ -51,11 +53,11 @@ interface DocumentState {
   isLoading: boolean;
   
   // Document actions
-  fetchDocuments: (token: string, params?: { folder_id?: string; search?: string; tag?: string }) => Promise<void>;
-  fetchDocument: (token: string, documentId: string) => Promise<Document>;
-  createDocument: (token: string, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[]; document_type?: string }) => Promise<Document>;
-  updateDocument: (token: string, documentId: string, data: Partial<Document>) => Promise<Document>;
-  deleteDocument: (token: string, documentId: string) => Promise<void>;
+  fetchDocuments: (token: string | null, params?: { folder_id?: string; search?: string; tag?: string }) => Promise<void>;
+  fetchDocument: (token: string | null, documentId: string) => Promise<Document>;
+  createDocument: (token: string | null, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[]; document_type?: string }) => Promise<Document>;
+  updateDocument: (token: string | null, documentId: string, data: Partial<Document>) => Promise<Document>;
+  deleteDocument: (token: string | null, documentId: string) => Promise<void>;
   addPageToDocument: (token: string, documentId: string, page: Partial<PageData>) => Promise<Document>;
   setCurrentDocument: (doc: Document | null) => void;
   
@@ -67,7 +69,21 @@ interface DocumentState {
   
   // Image processing
   processImage: (token: string, imageBase64: string, operation: string, params: Record<string, any>) => Promise<string>;
+  
+  // Local storage helpers
+  loadGuestDocuments: () => Promise<void>;
+  saveGuestDocuments: () => Promise<void>;
 }
+
+// Helper to generate unique IDs
+const generateId = () => `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+// Helper to create thumbnail (simple resize for local storage)
+const createLocalThumbnail = (base64: string): string => {
+  // For local storage, we'll just use a smaller version or the same image
+  // In a real implementation, you'd resize the image
+  return base64;
+};
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   documents: [],
@@ -75,9 +91,39 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   currentDocument: null,
   isLoading: false,
 
+  loadGuestDocuments: async () => {
+    try {
+      const stored = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
+      if (stored) {
+        const documents = JSON.parse(stored);
+        set({ documents });
+      }
+    } catch (e) {
+      console.error('Error loading guest documents:', e);
+    }
+  },
+
+  saveGuestDocuments: async () => {
+    try {
+      const { documents } = get();
+      // Only save local documents (those with 'local_' prefix)
+      const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
+      await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
+    } catch (e) {
+      console.error('Error saving guest documents:', e);
+    }
+  },
+
   fetchDocuments: async (token, params = {}) => {
     set({ isLoading: true });
     try {
+      // If no token (guest mode), load from local storage
+      if (!token) {
+        await get().loadGuestDocuments();
+        set({ isLoading: false });
+        return;
+      }
+
       const queryParams = new URLSearchParams();
       if (params.folder_id) queryParams.append('folder_id', params.folder_id);
       if (params.search) queryParams.append('search', params.search);
@@ -99,6 +145,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   fetchDocument: async (token, documentId) => {
+    // If no token or local document, find in local state
+    if (!token || documentId.startsWith('local_')) {
+      const { documents } = get();
+      const document = documents.find(d => d.document_id === documentId);
+      if (document) {
+        set({ currentDocument: document });
+        return document;
+      }
+      throw new Error('Document not found');
+    }
+
     const response = await fetch(
       `${BACKEND_URL}/api/documents/${documentId}`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -111,6 +168,37 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   createDocument: async (token, data) => {
+    // If no token (guest mode), save locally
+    if (!token) {
+      const now = new Date().toISOString();
+      const document: Document = {
+        document_id: generateId(),
+        user_id: 'guest',
+        name: data.name,
+        folder_id: data.folder_id,
+        tags: data.tags || [],
+        pages: data.pages.map((p, i) => ({
+          page_id: generateId(),
+          image_base64: p.image_base64 || '',
+          thumbnail_base64: createLocalThumbnail(p.image_base64 || ''),
+          ocr_text: p.ocr_text,
+          filter_applied: p.filter_applied || 'original',
+          rotation: p.rotation || 0,
+          order: i,
+          created_at: now,
+        })),
+        document_type: data.document_type,
+        ocr_full_text: undefined,
+        is_password_protected: false,
+        created_at: now,
+        updated_at: now,
+      };
+      
+      set((state) => ({ documents: [document, ...state.documents] }));
+      await get().saveGuestDocuments();
+      return document;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/documents`, {
       method: 'POST',
       headers: {
@@ -127,6 +215,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   updateDocument: async (token, documentId, data) => {
+    // If no token or local document, update locally
+    if (!token || documentId.startsWith('local_')) {
+      const { documents } = get();
+      const existingDoc = documents.find(d => d.document_id === documentId);
+      if (!existingDoc) throw new Error('Document not found');
+      
+      const updatedDoc: Document = {
+        ...existingDoc,
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      
+      set((state) => ({
+        documents: state.documents.map((d) =>
+          d.document_id === documentId ? updatedDoc : d
+        ),
+        currentDocument: state.currentDocument?.document_id === documentId ? updatedDoc : state.currentDocument,
+      }));
+      await get().saveGuestDocuments();
+      return updatedDoc;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
       method: 'PUT',
       headers: {
@@ -148,6 +258,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   deleteDocument: async (token, documentId) => {
+    // If no token or local document, delete locally
+    if (!token || documentId.startsWith('local_')) {
+      set((state) => ({
+        documents: state.documents.filter((d) => d.document_id !== documentId),
+      }));
+      await get().saveGuestDocuments();
+      return;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
