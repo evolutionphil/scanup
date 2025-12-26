@@ -1,126 +1,109 @@
 <analysis>
-
-**original_problem_statement**: The user wants to enhance the ScanUp mobile app with a variety of new features and bug fixes to improve its functionality and user experience, bringing it closer to competitors like Adobe Scan. The core requests involved fixing scanning mechanics, improving the UI/UX, implementing a freemium model with premium features, and ensuring the app is production-ready with scalable cloud storage.
+**original_problem_statement**: The user wants to enhance the ScanUp mobile app with a variety of new features and bug fixes to improve its functionality and user experience, bringing it closer to competitors like Adobe Scan. The core requests involved fixing scanning mechanics, improving the UI/UX, implementing a freemium model, ensuring production-readiness with cloud storage, and adding advanced scanning features like Book Mode and automatic perspective correction.
 
 **PRODUCT REQUIREMENTS (Summary from recent user messages):**
 - **Core Functionality:**
-    - Guest users should have the same capabilities as free registered users (local document creation, local folder management, use of free-tier features).
-    - Premium features (like Signing, OCR) when used by free/guest users should display a pop-up prompting them to upgrade.
-    - Scanned documents should be named automatically using the format .
-    - Adding a new page to an existing document must work correctly for both logged-in and guest users.
-    - Sharing a document should generate a PDF with the text Created via ScanUp app.
-- **Bug Fixes:**
-    - The image rotation issue on Android must be permanently fixed. Portrait scans should appear in portrait on the crop screen and in the final saved document.
-    - UI elements (especially bottom buttons and tab bars) must not be hidden behind the Android system navigation bar on any screen.
-    - The interactive signature placement must be fully functional, allowing users to drag, drop, and resize the signature.
-    - The app should not crash or show errors on logout.
+    - **Book Scan Mode:** The app must support scanning open books in a single photo. This requires a landscape UI with a visual guide for left/right pages, automatic splitting of the image into two separate pages, and independent perspective correction for each. The user should be able to adjust a 6-point crop overlay (4 outer corners, 2 inner gutter points).
+    - **Automatic Perspective Correction:** After any scan, the document should be automatically transformed into a front-facing, rectangular shape, removing any keystone distortion from angled captures.
+    - **Real-time Edge Detection:** The app should automatically detect the document's edges when the crop screen is presented, pre-populating the crop handles. A manual Auto-Detect button should be available.
+    - **High-Quality Scans:** The final saved images must be of high quality, avoiding excessive compression. The camera should capture at high resolution.
+    - **Batch Scanning:** Implement a continuous scanning mode where the user can scan multiple pages without interruption, returning to the camera view immediately after each capture.
+    - **Document Templates:** Provide pre-defined crop ratios for common document types (e.g., A4, Letter, ID Card) that can be applied on the crop screen.
+    - **Additional Export Formats:** The app should support exporting documents as PNG, TIFF, and Word (.docx) in addition to PDF and JPEG.
+    - **Onboarding/Tutorial:** A simple walkthrough should be shown to new users on their first launch.
+    - **Settings Screen:** A dedicated page for app settings (e.g., default quality, filters).
+- **UI/UX:**
+    - The scanning animation should be contained within the document detection frame.
+    - An Offline indicator should be visible when the device has no network connection.
 - **Architecture:**
-    - Document images should be stored in a cloud service (like AWS S3) for scalability, not as base64 strings in the database.
-    - To improve performance and user experience, the app should save documents locally first (optimistic update) and then sync them to the cloud in the background.
+    - The application must connect to and use a user-provided MongoDB Atlas database for all data storage.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native) and FastAPI app. It is highly functional but was in the middle of a major architectural change.
-- **Backend ():** The backend has been successfully migrated to use AWS S3 for image storage. When a logged-in user creates a document, the image is uploaded to the user's S3 bucket, and only the S3 URL is stored in the MongoDB  collection. The base64-in-DB approach has been deprecated for new documents. Public, non-authenticated endpoints were created for guests to use features like image filtering and cropping. The database schema is efficient, with separate collections for , , and  linked by .
-- **Frontend:**
-    - **S3 Integration:** The frontend has been partially updated to handle S3. The document display screen () and home screen thumbnails () can now render images from S3 URLs.
-    - **Freemium UI:** The UI for the freemium model is complete. The profile screen shows scan limits and a Start Trial button, and the scanner screen enforces scan limits.
-    - **Guest Functionality:** Guests can now create documents and folders locally, and use free-tier filters. Prompts to upgrade are in place for some premium features.
-    - **Bug Fixes:** Numerous critical bugs have been fixed, including Android  issues on multiple screens, the document sharing format (now PDF), and a complete rewrite of the signature placement UI in  using  for robust drag and pinch-to-zoom gestures.
-    - **Local-First (In-Progress):** The agent began refactoring  to support local-first storage with a background sync queue. The  library was installed, and the store's state and structure were modified to include  and a .
+The application is a full-stack Expo (React Native) and FastAPI app. The backend uses a user-provided MongoDB Atlas cluster for data and AWS S3 for image storage. The frontend is highly functional, featuring:
+- **Local-First Sync:** Completed implementation where documents created by logged-in users are saved instantly to the device and synced to the cloud (S3 + MongoDB) in the background. The UI includes sync status indicators.
+- **Advanced Scanning:** A complex  screen with multiple modes (Document, Business Card, Book). It includes a frontend-based image rotation fix for Android, a crop screen with manual handle manipulation, and stubs for many new features.
+- **Guest & Freemium Model:** Guest users can create local documents. Premium features show an upgrade prompt.
+- **Core UI:** A tab-based navigation system, document/folder list views, a document editor screen, and authentication screens.
 
 **Last working item**:
-- Last item agent was working: Implementing a local-first storage system with background S3 synchronization. The agent was in the middle of a major refactor of . New state variables (, ) and function stubs were added, but the core logic for creating documents locally and queuing them for background upload is incomplete.
-- Status: **IN PROGRESS**
+- Last item agent was working: Starting the implementation of the **Document Annotations** feature. The agent had just created a placeholder component file for the editor.
+- Status: **NOT STARTED** (The placeholder file  was created, but no UI or logic has been added yet.)
 - Agent Testing Done: N
 - Which testing method agent to use? both
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- Issue 1: Fix Initial Document default title (P2)
-- Issue 2: Allow editing of saved signatures (P2)
-- Issue 3: Google Login flow is broken (P3)
-- Issue 4: Android Portrait Rotation needs final verification (P1)
+- Issue 1: Google Login Flow (P2)
+- Issue 2: Verify Android Portrait Rotation Fix (P1)
+- Issue 3: Verify Initial Document bug fix (P3)
 
 Issues Detail:
 - Issue 1:
-     - Description: When a document is saved, its title sometimes defaults to Initial Document instead of the intended  format. The agent investigated but could not locate the source of this string.
-     - Attempted fixes: The agent verified the correct name is being passed from  and that the backend  endpoint uses the provided name. The source of the bug remains elusive.
-     - Next debug checklist:
-         - Trace the  call from  through .
-         - Add logging in  to see what  is being set when a new document is added to the local state.
-         - Check if the  state in  is being loaded with a stale or default name before the new document data arrives.
-     - Why fix this issue and what will be achieved with the fix?: Provides a better user experience with meaningful default document names.
-     - Status: NOT STARTED
+     - Description: The Google Login flow was reported to redirect back to the login screen instead of completing sign-in.
+     - Attempted fixes: The agent analyzed the Emergent Auth flow and added detailed  statements and improved error handling in  and  to help diagnose the exact point of failure. The underlying cause is still unknown.
+     - Next debug checklist: The next agent needs to use the added logging to test the Google Login flow and identify why the redirect or session handling is failing. The user will need to test this flow.
+     - Why fix this issue and what will be achieved with the fix?: Enables a key authentication method for the app.
+     - Status: **USER VERIFICATION PENDING**
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None
+     - Blocked on other issue: None.
 - Issue 2:
-     - Description: The user requested the ability to edit a signature that has already been applied to a document. This functionality was not implemented.
-     - Attempted fixes: None.
-     - Next debug checklist:
-         - In , when a signature is present on a page, add an Edit or Replace button to the signature component.
-         - Tapping this button should re-open the , allowing the user to adjust or replace the signature.
-         - The  function needs to be adapted to handle updating an existing signature's position/image rather than just adding a new one.
-     - Why fix this issue and what will be achieved with the fix?: Improves the flexibility of the signing feature.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None
-- Issue 3:
-     - Description: The user reported that Google Login redirects to the email/password screen instead of completing the sign-in.
-     - Attempted fixes: The agent acknowledged this is likely a configuration issue requiring Google Cloud credentials and setup, and deferred the fix.
-     - Next debug checklist: This requires a full setup of Google OAuth credentials in the Google Cloud Console and configuring them in the Expo project. This is blocked on the user providing the necessary credentials and setup.
-     - Why fix this issue and what will be achieved with the fix?: Enables a key authentication method.
-     - Status: BLOCKED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: User credentials/setup.
-- Issue 4:
-     - Description: The image rotation issue on Android has been a persistent problem. The latest fix involves rotating the image on the frontend in  immediately after capture and before showing the crop screen. The agent last changed the rotation from -90 to +90 degrees to fix an upside-down report.
-     - Attempted fixes: Multiple backend and frontend fixes were attempted. The current fix in  using  is the most promising.
-     - Next debug checklist: This requires user testing on their Android device to confirm if the +90 degree rotation correctly orients the image on the crop screen and in the final saved document.
+     - Description: The image rotation issue on Android has been a persistent problem. A frontend-based fix was implemented in  to rotate the image before showing the crop screen.
+     - Attempted fixes: Multiple backend and frontend fixes were attempted. The current fix is the most promising.
+     - Next debug checklist: This requires user testing on their Android device to confirm if portrait scans are correctly oriented on the crop screen and in the final saved document.
      - Why fix this issue and what will be achieved with the fix?: Solves a critical, recurring usability issue for Android users.
-     - Status: USER VERIFICATION PENDING
+     - Status: **USER VERIFICATION PENDING**
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None
+     - Blocked on other issue: None.
+- Issue 3:
+     - Description: A bug was fixed where saved documents were sometimes titled Initial Document. The fix involved changing  to  in .
+     - Attempted fixes: The specific instance found was fixed.
+     - Next debug checklist: The user mentioned this bug may still exist. The next agent should be aware and verify if the issue reappears during testing. If it does, a broader search for  usage on document objects is needed.
+     - Why fix this issue and what will be achieved with the fix?: Ensures consistent and meaningful document naming.
+     - Status: **USER VERIFICATION PENDING**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None.
 
 **In progress Task List**:
-- Task 1: Complete Local-First Storage with Background Sync (P0)
-     - Where to resume: The refactor of  needs to be completed.
-         - ** function:** Modify this to save the document to  immediately with a  flag. The image should be saved locally as base64 for now.
-         - **:** Add the  of the newly created local document to the .
-         - ** function:** Implement the logic for this function. It should be triggered by  when online. It will iterate through the queue, pick up a 'pending' document, upload its base64 image to S3, call the backend  endpoint with the S3 URL, and then update the local document with  and the new S3 URL, finally removing the local base64 data to save space.
-         - **Update UI:** The home screen list items should show a small syncing icon if  is 'pending'.
-     - What will be achieved with this?: The app will feel significantly faster as document saving will be instantaneous. It will also be more resilient to network interruptions.
-     - Status: IN PROGRESS
+- Task 1: Document Annotations (P1)
+     - Where to resume:
+         - A placeholder file exists at .
+         - Add an Annotate button to the document action bar in .
+         - Implement the  component, likely using a library like  or  to allow drawing/text on top of the document page image.
+         - Save annotation data (e.g., SVG paths, text objects) to the  object in the document schema in MongoDB.
+         - The backend will need to be updated to merge annotations onto the image when exporting.
+     - What will be achieved with this?: Allows users to mark up their scanned documents with drawings, text, and highlights.
+     - Status: **NOT STARTED**
      - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: None
+     - Blocked on something: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - (P2) Full review of all screens to ensure  is used correctly to prevent UI elements from being obscured on Android.
-    - (P2) Implement upgrade prompts for all remaining premium features for guest/free users.
+    - (P2) **Word (.docx) Export:** The UI for Word export was added, but the backend functionality to convert document pages (images + OCR text) into a .docx file is missing. This requires a new backend endpoint and a library like .
+    - (P2) **TIFF Export:** The UI for TIFF export was added, but the backend functionality is missing. This requires updating the export logic to use Pillow to save in TIFF format.
 - **Future Tasks:**
-    - (P2) Advanced Image Enhancements: Implement backend logic for auto brightness/contrast, shadow removal.
-    - (P3) Cloud Backup & Sync for other providers (Google Drive, Dropbox).
+    - (P3) **Multi-language UI:** The user deferred this, but it will require a localization library (e.g., ) and a strategy for managing translation strings, possibly from a backend service.
+    - (P3) **Cloud Backup Options:** Support for Google Drive/Dropbox.
+    - (P3) **Advanced Image Enhancements:** Auto brightness/contrast, shadow removal.
 
 **Completed work in this session**
-- **AWS S3 Integration**: Successfully migrated image storage from MongoDB (base64) to AWS S3 for logged-in users, significantly improving scalability.
-- **Guest User Parity**: Refactored the app to allow guest users to create/manage documents and folders locally, and use free-tier features like filters.
-- **Signature Placement Overhaul**: Completely rewrote the signature placement UI in  to use , fixing all drag/drop and pinch-to-zoom resizing issues.
-- **Freemium UI Completion**: Implemented the full frontend UI for the freemium model on the profile and scanner screens.
-- **Critical Bug Fixes**:
-    - **Android Rotation**: Implemented a robust frontend-side fix in  to orient portrait scans correctly before the crop screen is shown.
-    - **Android Safe Area**: Fixed UI elements being hidden behind the system navigation bar on numerous screens, including the main tab bar, scanner, document, and auth screens.
-    - **Sharing**: Fixed sharing to correctly generate and share a PDF instead of a JPEG.
-    - **Logout Crash**: Resolved a maximum update depth exceeded error that occurred on logout.
-    - **Add Page to Document**: Fixed the logic for adding new pages to existing documents for both guest and logged-in users.
-
-**Earlier issues found/mentioned but not fixed**
-- All issues found have been captured in the Pending/In progress Issue list.
+- **MongoDB Atlas Integration**: Successfully configured the backend to connect to the user-provided MongoDB Atlas database, including adding a startup script to initialize all necessary collections and indexes.
+- **Local-First Storage**: Completed the implementation of an optimistic UI where documents are saved locally first and synced to the cloud in the background. This included UI indicators for sync status.
+- **Book Scan Mode (6-Point Correction)**: Implemented a full-featured book scanning mode, including a landscape UI, a 6-point draggable crop overlay for independent page correction, and a new backend endpoint () to process the two pages separately.
+- **Real-Time Edge Detection**: Created a backend endpoint () that uses OpenCV to find document corners. The frontend now calls this endpoint automatically when the crop screen opens to pre-set the crop handles. A manual Auto Detect button was also added.
+- **Automatic Perspective Correction Fix**: Enhanced the backend perspective correction algorithm () to produce a properly rectified, front-facing rectangular image.
+- **Batch (Continuous) Scanning**: Added a toggleable batch mode that allows users to scan multiple pages in a row without being interrupted by the preview screen.
+- **Onboarding & Settings Screens**: Created a new first-time user onboarding screen () and a dedicated settings page (), accessible from the profile screen.
+- **Offline Mode Indicator**: Implemented a global UI component () that appears when the app loses internet connectivity.
+- **Document Templates**: Added a feature to apply pre-defined aspect ratios (A4, Letter, ID Card) to the crop overlay from a modal on the crop screen.
+- **Expanded Export Options (UI)**: Added PNG and TIFF to the , and implemented the backend logic for PNG export.
+- **Bug Fix**: Fixed the Initial Document bug by correcting a property name from  to  in .
+- **Feature Enhancement**: Added a Re-Sign option to the document screen, allowing a user to edit/replace an existing signature.
+- **Code Refactoring**: Renamed conflicting backend functions for edge detection to improve clarity (, ).
 
 **Code Architecture**
 
@@ -128,71 +111,89 @@ Issues Detail:
 **Key Technical Concepts**
 - **Frontend**: React Native, Expo, Zustand, , , .
 - **Backend**: Python, FastAPI, Motor, OpenCV, Pillow, .
-- **Database**: MongoDB.
+- **Database**: MongoDB Atlas (now the primary DB).
 - **Cloud Storage**: AWS S3.
 - **Architecture Concepts**:
-    - **Cloud Storage Integration**: Storing large files (images) in S3 and metadata in MongoDB.
-    - **Local-First Storage / Optimistic UI**: (In Progress) Saving data to the device first for a responsive feel, then syncing to the cloud.
-    - **Public API Endpoints**: Creating non-authenticated endpoints to provide functionality to guest users.
+    - **Remote DB Integration**: Connecting to MongoDB Atlas with SSL ().
+    - **Local-First Storage / Optimistic UI**: (Completed) Saving data to the device first, then syncing to the cloud.
+    - **Computer Vision (CV)**: Heavy use of OpenCV on the backend for perspective correction, page splitting, and real-time edge detection.
+    - **Complex Gesture Handling**: A 6-point draggable crop overlay for book scanning in .
+    - **Conditional Routing**: Redirecting new users to an onboarding screen.
 
 **key DB schema**
-- **documents** collection: The  array within a document has changed.
-  -  of objects, where each object now contains:
-    -  (The S3 URL for the full-size image)
-    -  (The S3 URL for the thumbnail)
-    -  (Legacy/local-only storage)
-    -  (Legacy/local-only storage)
+No major schema changes were made, but the context for using them was solidified. The , , , and  collections are now being created and used on a remote MongoDB Atlas instance.
 
 **changes in tech stack**
-- **AWS S3**: Added for primary image storage.
-- ****: Python library added to the backend for S3 communication.
-- ****: Frontend library added to detect network status for background sync.
+- **MongoDB Atlas**: The application was successfully migrated from using the local MongoDB instance to a user-provided remote MongoDB Atlas cluster.
+- ****: Python library added to the backend to handle SSL certificate verification for the MongoDB Atlas connection.
 
 **All files of reference**
-- : **Most critical file.** Currently in a half-refactored state for local-first sync.
-- : Contains all the backend logic, including the new S3 integration and public endpoints.
-- : Contains core scanning and capture logic, including the crucial frontend rotation fix.
-- : The document editor screen, updated to handle S3 URLs and guest/premium logic.
-- : The rewritten, fully functional signature placement component.
+- : **Most critical and complex file**. Contains the logic for all scanning modes, crop overlays, and camera controls. It has grown significantly.
+- : Contains all backend logic, including the new MongoDB Atlas integration and all computer vision endpoints.
+- : The document viewer/editor, where new features like Re-Sign and export options were added.
+- : The main home screen, which now includes the network listener and sync banner.
+- : Now contains the production  for MongoDB Atlas.
+
+**Areas that need refactoring**:
+- The  file is now extremely large (over 2000 lines) and manages a huge amount of state and complex logic. It should be broken down into smaller, more manageable custom hooks and components (e.g., , , , ). This will improve maintainability and reduce the risk of introducing new bugs.
+
+**key api endpoints**
+- : **New.** Takes an image and 6 corner points to crop and rectify two separate pages from a book scan.
+- : **New.** Takes an image and returns the auto-detected corners of a document or book.
+- : **New.** Takes an image of an open book and automatically detects the gutter to split it into two pages.
+- : The existing endpoint for handling Google OAuth callbacks from Emergent Auth.
 
 **Critical Info for New Agent**
-- **Your immediate and highest priority (P0) is to complete the refactor of **. The application is in a partially broken state until this local-first storage implementation is finished. You must implement the sync queue and update all document creation/modification functions to be local-first.
-- The Android rotation issue has been a major recurring pain point. The current frontend-based fix in  is the most promising, but it needs to be verified by the user to be 100% correct.
-- The user is very attentive and provides good feedback. Expect to iterate on features based on their reports.
-- Do not be surprised if you find more screens where UI elements are hidden on Android. Be prepared to apply  fixes as needed.
+- **Your immediate priority is to implement the Document Annotations feature**, starting with the placeholder file .
+- The application is now connected to a **live MongoDB Atlas database**. Be careful with data operations.
+- The  file is the heart of the app but is very fragile due to its size and complexity. Consider proposing a refactor to the user after completing the current high-priority tasks.
+- Several features (**Google Login, Android Rotation**) are pending final verification from the user. Be prepared to address feedback on them.
+- The backend now contains significant and complex computer vision logic using OpenCV.
+
+**documents created in this job**
+- 
+- 
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-- **(Msg 588)**: yes beginn with it - User explicitly greenlights the implementation of the local-first storage with background sync. (IN PROGRESS)
-- **(Msg 571)**: Reports that adding a page to an existing document isn't working, and filters don't work for guests. Also re-confirms the desire for local-first storage. (Addressed, led to current task).
-- **(Msg 538)**: Reports that after the S3 migration, the document screen is black (images not loading), logout is crashing, and suggests local-first storage. (Partially Addressed: image loading & logout fixed; local-first started).
-- **(Msg 515)**: Reports failed to save document error after the S3 migration was first implemented. (Addressed: was a Pydantic model mismatch).
-- **(Msg 469, 471)**: Provides AWS S3 bucket name and credentials. (Completed).
-- **(Msg 467)**: Asks what is needed for AWS S3 and how it works. (Answered).
-- **(Msg 465)**: Asks if MongoDB can be used for production. (Answered, led to S3 discussion).
-- **(Msg 456)**: Correctly questions the database structure, asking for an efficient design with linked collections. (Answered: confirmed the structure is already efficient).
-- **(Msg 433)**: Reports the scanned image is upside down, premium features need upgrade prompts for guests, and asks about cloud storage. (Partially Addressed).
-- **(Msg 390)**: Reports issues with signature movement/resizing, editing saved signatures, document titles, and sharing format. (Partially Addressed: signature movement and sharing format fixed).
+- **(Msg 451)**: User confirms the next set of features to implement: Document Templates, more Export Formats, and Document Annotations. (All started, Annotations is IN PROGRESS).
+- **(Msg 448)**: User asks if there are any missing features. (Answered).
+- **(Msg 403)**: User confirms the next set of features to implement: Offline Indicator, Batch Scanning, and Onboarding. (All COMPLETED).
+- **(Msg 341)**: User asks if there are any missing features. (Answered).
+- **(Msg 302)**: User reports low image quality and requests real-time edge detection for books. (COMPLETED).
+- **(Msg 249)**: User provides a key insight for book scanning: it requires 6 crop points, not 4. Also confirms MongoDB Atlas firewall rules are updated. (COMPLETED).
+- **(Msg 198)**: User provides MongoDB Atlas credentials and reports that perspective correction is not automatic. (COMPLETED).
+- **(Msg 139)**: User gives agent autonomy to proceed with the plan for Book Scan mode without further questions.
+- **(Msg 132)**: User provides a large, detailed feature request for Book Scan mode and Automatic Perspective Correction, referencing Adobe Scan's flow. (Partially COMPLETED, then enhanced).
+- **(Msg 58)**: User requests fixes for the Initial Document title bug, signature editing, and Google Login. (All addressed/in progress).
 
 **Project Health Check:**
-- **Broken**: Yes. The application's data layer () is mid-refactor. Document creation and management are likely unstable until the local-first implementation is complete.
+- **Broken**: No. The application is in a runnable state.
 - **Mocked**: No mocked features.
-- **Needs Verification**: The fix for the Android portrait rotation issue needs user confirmation.
+- **Needs Verification**: Yes. Many new, complex features like 6-point book scanning, real-time edge detection, and batch mode have been added and require thorough user testing. The Google Login and Android Rotation fixes also need user confirmation.
 
 **3rd Party Integrations**
-- **AWS S3**: For scalable image storage. Requires User API Key.
+- **AWS S3**: For scalable image storage. (Requires User API Key).
+- **MongoDB Atlas**: Primary database for all application data. (Requires User-provided connection string).
+- **OpenAI GPT-4o**: For OCR, via  library. (Uses Emergent LLM Key).
 - ****: Python SDK for AWS.
+- ****: Python library for SSL certificates.
 - ****: For checking network connectivity on the frontend.
-- **OpenAI GPT-4o**: For OCR, via  library. Uses Emergent LLM Key.
 
 **Testing status**
-- Testing agent used after significant changes: NO (since the last major bug fixes and start of refactor).
+- Testing agent used after significant changes: NO
 - Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: []
-- Known regressions: None explicitly, but the in-progress refactor is a major risk.
+- Known regressions: None known, but the high number of new features introduces significant risk.
+
+**Credentials to test flow:**
+- MongoDB Atlas credentials are in .
+- AWS S3 credentials are in .
 
 **What agent forgot to execute**
-- The ability to **edit a previously placed signature** was requested by the user but not implemented.
-- The bug causing document titles to sometimes default to **Initial Document** was not solved.
-- The **Google Login flow** was acknowledged as broken but deferred, as it's blocked by user-side configuration.
+- The backend implementation for **Word (.docx) and TIFF export** is missing, although the UI options were added.
+- The  feature was only started with a placeholder file; the core implementation is pending.
+- The agent added  but did not implement the logic to save/load settings values (e.g., default quality, default filter) using  and apply them within the app.
 
 </analysis>

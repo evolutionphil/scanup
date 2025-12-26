@@ -13,7 +13,7 @@ import sys
 import os
 
 # Test configuration
-BASE_URL = "https://docs-scanner.preview.emergentagent.com/api"
+BASE_URL = "https://docapp-boost.preview.emergentagent.com/api"
 TEST_USER_EMAIL = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
 TEST_USER_PASSWORD = "TestPassword123!"
 TEST_USER_NAME = "Test User"
