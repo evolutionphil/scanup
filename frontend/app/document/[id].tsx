@@ -516,7 +516,7 @@ export default function DocumentScreen() {
   const hasOriginal = !!currentPage.original_image_base64;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
