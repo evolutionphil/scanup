@@ -509,3 +509,19 @@ agent_communication:
     3. ✅ Perspective Crop with Normalized Coordinates - Working correctly, converts 0-1 range coordinates to pixels and applies transform
     4. ✅ Authentication and Error Handling - Proper 401 for unauthorized, 404 for missing documents
     Minor: Invalid format error handling returns 500 instead of 400, but core functionality working perfectly. All requested export features are operational."
+  - agent: "main"
+    message: "SCANNER COORDINATE SYSTEM OVERHAUL - Major improvements:
+    1. Added normalized coordinate system (0-1 range) for all frame mapping
+    2. Implemented proper sensor visibility calculation for cover mode
+    3. Added camera zoom=0 to prevent digital zoom artifacts
+    4. Enhanced logging with timestamps for device debugging
+    5. Improved validation and fallback handling
+    6. Changed DOCUMENT_TYPES to use frameWidthRatio instead of frameWidth
+    
+    Backend perspective-crop endpoint needs testing with:
+    - Normalized corner coordinates (0-1 range)
+    - EXIF orientation handling
+    - Various aspect ratio inputs
+    - Edge case coordinates (near 0 or near 1)
+    
+    Please run comprehensive tests on /api/images/perspective-crop endpoint."
