@@ -194,10 +194,12 @@ export default function AnnotationEditor({
               setSelectedAnnotationId(found.id);
               selectedAnnotationIdRef.current = found.id;
               dragStartRef.current = { x: locationX, y: locationY };
-              originalPositionRef.current = { x: found.x, y: found.y };
+              // Store a deep copy of the entire original annotation
+              originalAnnotationRef.current = JSON.parse(JSON.stringify(found));
             } else {
               setSelectedAnnotationId(null);
               selectedAnnotationIdRef.current = null;
+              originalAnnotationRef.current = null;
             }
             return;
           }
@@ -226,34 +228,35 @@ export default function AnnotationEditor({
           const tool = selectedToolRef.current;
           
           // Handle moving a selected annotation
-          if (tool === 'select' && selectedAnnotationIdRef.current && dragStartRef.current) {
+          if (tool === 'select' && selectedAnnotationIdRef.current && dragStartRef.current && originalAnnotationRef.current) {
             const deltaX = locationX - dragStartRef.current.x;
             const deltaY = locationY - dragStartRef.current.y;
+            const original = originalAnnotationRef.current;
             
-            // Update the annotation position
+            // Update the annotation position based on original + delta
             setAnnotations(prev => prev.map(ann => {
               if (ann.id !== selectedAnnotationIdRef.current) return ann;
               
-              const orig = annotationsRef.current.find(a => a.id === ann.id);
-              if (!orig) return ann;
+              const updated: Annotation = {
+                ...ann,
+                x: original.x + deltaX,
+                y: original.y + deltaY,
+              };
               
-              const origX = originalPositionRef.current?.x || orig.x;
-              const origY = originalPositionRef.current?.y || orig.y;
+              // Move endX/endY for arrows, rectangles, circles
+              if (original.endX !== undefined) {
+                updated.endX = original.endX + deltaX;
+              }
+              if (original.endY !== undefined) {
+                updated.endY = original.endY + deltaY;
+              }
               
-              const updated = { ...ann, x: origX + deltaX, y: origY + deltaY };
-              
-              // Move all related points
-              if (orig.endX !== undefined) updated.endX = orig.endX + deltaX;
-              if (orig.endY !== undefined) updated.endY = orig.endY + deltaY;
-              
-              if (orig.points) {
-                const origAnn = existingAnnotations.find(a => a.id === ann.id) || annotationsRef.current.find(a => a.id === ann.id);
-                if (origAnn?.points) {
-                  updated.points = origAnn.points.map(p => ({ 
-                    x: p.x + deltaX, 
-                    y: p.y + deltaY 
-                  }));
-                }
+              // Move all points for freehand/highlight paths
+              if (original.points) {
+                updated.points = original.points.map(p => ({
+                  x: p.x + deltaX,
+                  y: p.y + deltaY,
+                }));
               }
               
               return updated;
@@ -289,7 +292,7 @@ export default function AnnotationEditor({
           // Clear drag state for select tool
           if (tool === 'select') {
             dragStartRef.current = null;
-            originalPositionRef.current = null;
+            originalAnnotationRef.current = null;
             return;
           }
           
@@ -303,7 +306,7 @@ export default function AnnotationEditor({
           }
         },
       }),
-    [existingAnnotations]
+    []
   );
 
   const handleAddText = () => {
