@@ -1362,6 +1362,20 @@ const styles = StyleSheet.create({
   typeBtn: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderRadius: 14, minWidth: 78, backgroundColor: 'rgba(0,0,0,0.3)' },
   typeIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   typeLabel: { fontSize: 10, fontWeight: '500' },
+  scanLimitIndicator: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingVertical: 6,
+    gap: 6,
+  },
+  scanLimitText: { 
+    color: '#94A3B8', 
+    fontSize: 11,
+  },
+  scanLimitWarning: { 
+    color: '#F59E0B',
+  },
   captureBar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12 },
   sideBtn: { width: 64, alignItems: 'center' },
   sideBtnInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
