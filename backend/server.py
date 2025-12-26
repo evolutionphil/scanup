@@ -766,8 +766,8 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
             borderValue=(255, 255, 255)
         )
         
-        # Encode back to base64 with good quality
-        _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 92])
+        # Encode back to base64 with maximum quality
+        _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 95])
         return base64.b64encode(buffer).decode()
         
     except Exception as e:
