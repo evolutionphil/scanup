@@ -2004,6 +2004,281 @@ async def manual_perspective_crop(
         }
 
 
+# ==================== BOOK SCAN PAGE SPLITTING ====================
+
+class BookSplitRequest(BaseModel):
+    """Request model for book page splitting"""
+    image_base64: str
+    corners: Optional[List[Dict]] = None  # Optional outer corners for the entire book
+    gutter_position: Optional[float] = None  # Optional manual gutter position (0-1), default is 0.5
+
+
+def detect_book_gutter(img: np.ndarray) -> float:
+    """
+    Automatically detect the book gutter (center fold) position.
+    Uses vertical line detection and intensity analysis.
+    Returns normalized position (0-1) from left edge.
+    """
+    try:
+        height, width = img.shape[:2]
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Focus on the middle portion where the gutter is most likely
+        center_region = gray[:, int(width * 0.3):int(width * 0.7)]
+        
+        # Apply edge detection
+        edges = cv2.Canny(center_region, 50, 150)
+        
+        # Look for vertical lines using Hough transform
+        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=height * 0.3, maxLineGap=20)
+        
+        vertical_lines = []
+        if lines is not None:
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                # Check if line is mostly vertical (angle < 10 degrees)
+                angle = abs(np.arctan2(y2 - y1, x2 - x1) * 180 / np.pi)
+                if angle > 80 or angle < 10:
+                    avg_x = (x1 + x2) / 2 + int(width * 0.3)  # Adjust for region offset
+                    vertical_lines.append(avg_x)
+        
+        if vertical_lines:
+            # Use the median of detected vertical lines near center
+            center_lines = [x for x in vertical_lines if abs(x - width/2) < width * 0.15]
+            if center_lines:
+                gutter_x = np.median(center_lines)
+                return gutter_x / width
+        
+        # Fallback: analyze brightness pattern (gutter often has shadow)
+        # Calculate column-wise mean intensity in center region
+        col_intensity = np.mean(gray[:, int(width*0.35):int(width*0.65)], axis=0)
+        
+        # Find minimum intensity (shadow in gutter)
+        min_idx = np.argmin(col_intensity)
+        gutter_x = min_idx + int(width * 0.35)
+        
+        return gutter_x / width
+        
+    except Exception as e:
+        logger.warning(f"Gutter detection failed: {e}, using center")
+        return 0.5
+
+
+def split_book_pages(img: np.ndarray, gutter_pos: float = 0.5) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Split a book image into left and right pages at the gutter position.
+    
+    Args:
+        img: OpenCV image (BGR)
+        gutter_pos: Normalized position (0-1) of the gutter from left edge
+        
+    Returns:
+        Tuple of (left_page, right_page) as numpy arrays
+    """
+    height, width = img.shape[:2]
+    gutter_x = int(width * gutter_pos)
+    
+    # Add small overlap at gutter to ensure no content is lost
+    overlap = int(width * 0.01)  # 1% overlap
+    
+    left_page = img[:, :min(gutter_x + overlap, width)]
+    right_page = img[:, max(gutter_x - overlap, 0):]
+    
+    return left_page, right_page
+
+
+def perspective_correct_page(img: np.ndarray) -> np.ndarray:
+    """
+    Apply automatic perspective correction to a single page.
+    Detects document edges and corrects keystoning.
+    """
+    try:
+        height, width = img.shape[:2]
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Apply blur to reduce noise
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        # Edge detection
+        edges = cv2.Canny(blurred, 50, 150)
+        
+        # Find contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return img
+        
+        # Find the largest contour
+        largest_contour = max(contours, key=cv2.contourArea)
+        
+        # Get the minimum area rectangle
+        rect = cv2.minAreaRect(largest_contour)
+        box = cv2.boxPoints(rect)
+        box = np.int32(box)
+        
+        # Order points: top-left, top-right, bottom-right, bottom-left
+        def order_points(pts):
+            rect = np.zeros((4, 2), dtype="float32")
+            s = pts.sum(axis=1)
+            rect[0] = pts[np.argmin(s)]  # top-left
+            rect[2] = pts[np.argmax(s)]  # bottom-right
+            diff = np.diff(pts, axis=1)
+            rect[1] = pts[np.argmin(diff)]  # top-right
+            rect[3] = pts[np.argmax(diff)]  # bottom-left
+            return rect
+        
+        ordered = order_points(box.astype("float32"))
+        
+        # Check if the detected area is reasonable (at least 30% of image)
+        contour_area = cv2.contourArea(largest_contour)
+        if contour_area < (height * width * 0.3):
+            # Not enough content detected, return original
+            return img
+        
+        # Calculate output dimensions
+        width_top = np.linalg.norm(ordered[0] - ordered[1])
+        width_bottom = np.linalg.norm(ordered[2] - ordered[3])
+        output_width = max(int(width_top), int(width_bottom))
+        
+        height_left = np.linalg.norm(ordered[0] - ordered[3])
+        height_right = np.linalg.norm(ordered[1] - ordered[2])
+        output_height = max(int(height_left), int(height_right))
+        
+        # Ensure minimum dimensions
+        output_width = max(output_width, 100)
+        output_height = max(output_height, 100)
+        
+        # Destination points
+        dst = np.array([
+            [0, 0],
+            [output_width - 1, 0],
+            [output_width - 1, output_height - 1],
+            [0, output_height - 1]
+        ], dtype="float32")
+        
+        # Apply perspective transform
+        matrix = cv2.getPerspectiveTransform(ordered, dst)
+        corrected = cv2.warpPerspective(img, matrix, (output_width, output_height), 
+                                         flags=cv2.INTER_LINEAR, 
+                                         borderMode=cv2.BORDER_REPLICATE)
+        
+        return corrected
+        
+    except Exception as e:
+        logger.warning(f"Perspective correction failed: {e}")
+        return img
+
+
+@api_router.post("/images/split-book-pages")
+async def split_book_pages_endpoint(request: BookSplitRequest):
+    """
+    Split a book scan into two separate pages with automatic perspective correction.
+    
+    This endpoint:
+    1. Optionally applies perspective correction to the whole book image first
+    2. Detects or uses the provided gutter position
+    3. Splits the image into left and right pages
+    4. Applies independent perspective correction to each page
+    5. Returns both pages as separate base64 images
+    
+    Returns:
+        {
+            "success": bool,
+            "left_page_base64": str,  # Page 1
+            "right_page_base64": str,  # Page 2
+            "gutter_position": float,  # Detected or provided gutter position
+            "message": str
+        }
+    """
+    try:
+        # Decode image
+        img_data = request.image_base64
+        if "," in img_data:
+            img_data = img_data.split(",")[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        
+        # Fix EXIF orientation
+        corrected_bytes, was_rotated, orientation = fix_image_orientation_pil(image_bytes)
+        logger.info(f"[BookSplit] EXIF orientation: {orientation}, was_rotated: {was_rotated}")
+        
+        # Decode with OpenCV
+        nparr = np.frombuffer(corrected_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {
+                "success": False,
+                "message": "Could not decode image"
+            }
+        
+        height, width = img.shape[:2]
+        logger.info(f"[BookSplit] Image dimensions: {width}x{height}")
+        
+        # Apply perspective correction to whole book if corners provided
+        if request.corners and len(request.corners) == 4:
+            logger.info("[BookSplit] Applying perspective correction with provided corners")
+            # Convert normalized corners to pixels
+            pixel_corners = []
+            for corner in request.corners:
+                px = float(corner.get('x', 0)) * width
+                py = float(corner.get('y', 0)) * height
+                pixel_corners.append({'x': px, 'y': py})
+            
+            # Apply perspective transform
+            corrected_base64 = base64.b64encode(corrected_bytes).decode()
+            cropped_base64 = perspective_crop(corrected_base64, pixel_corners)
+            
+            # Decode the cropped result
+            cropped_bytes = base64.b64decode(cropped_base64)
+            nparr = np.frombuffer(cropped_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            height, width = img.shape[:2]
+        
+        # Detect or use provided gutter position
+        if request.gutter_position is not None:
+            gutter_pos = request.gutter_position
+            logger.info(f"[BookSplit] Using provided gutter position: {gutter_pos}")
+        else:
+            gutter_pos = detect_book_gutter(img)
+            logger.info(f"[BookSplit] Detected gutter position: {gutter_pos}")
+        
+        # Split into two pages
+        left_page, right_page = split_book_pages(img, gutter_pos)
+        logger.info(f"[BookSplit] Left page: {left_page.shape}, Right page: {right_page.shape}")
+        
+        # Apply perspective correction to each page independently
+        left_corrected = perspective_correct_page(left_page)
+        right_corrected = perspective_correct_page(right_page)
+        logger.info(f"[BookSplit] After correction - Left: {left_corrected.shape}, Right: {right_corrected.shape}")
+        
+        # Encode both pages to base64
+        _, left_buffer = cv2.imencode('.jpg', left_corrected, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        _, right_buffer = cv2.imencode('.jpg', right_corrected, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        
+        left_base64 = base64.b64encode(left_buffer.tobytes()).decode()
+        right_base64 = base64.b64encode(right_buffer.tobytes()).decode()
+        
+        return {
+            "success": True,
+            "left_page_base64": left_base64,
+            "right_page_base64": right_base64,
+            "gutter_position": gutter_pos,
+            "message": "Book pages split successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"[BookSplit] Error: {e}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
 @api_router.post("/images/perspective-crop-public")
 async def public_perspective_crop(request: ManualCropRequest):
     """
