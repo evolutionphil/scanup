@@ -409,10 +409,12 @@ const DocumentListItem = ({
     });
   };
 
-  // Get thumbnail from document or first page
-  const thumbnailSource = document.thumbnail_base64 
-    || document.pages?.[0]?.processed_image_base64 
-    || document.pages?.[0]?.image_base64;
+  // Get thumbnail from document or first page (handles both S3 URLs and base64)
+  const page = document.pages?.[0];
+  const thumbnailSource = page?.thumbnail_url 
+    || page?.image_url 
+    || (page?.thumbnail_base64 ? `data:image/jpeg;base64,${page.thumbnail_base64}` : null)
+    || (page?.image_base64 ? `data:image/jpeg;base64,${page.image_base64}` : null);
 
   return (
     <TouchableOpacity
@@ -429,7 +431,7 @@ const DocumentListItem = ({
       <View style={[styles.listThumbnail, { backgroundColor: theme.background }]}>
         {thumbnailSource ? (
           <Image
-            source={{ uri: `data:image/jpeg;base64,${thumbnailSource}` }}
+            source={{ uri: thumbnailSource }}
             style={styles.listThumbnailImage}
             resizeMode="cover"
           />
