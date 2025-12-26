@@ -75,6 +75,7 @@ export default function AnnotationEditor({
   const [textInputValue, setTextInputValue] = useState('');
   const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   
   // Use refs to track state inside PanResponder
   const selectedToolRef = useRef(selectedTool);
@@ -82,12 +83,98 @@ export default function AnnotationEditor({
   const strokeWidthRef = useRef(strokeWidth);
   const annotationsRef = useRef(annotations);
   const currentAnnotationRef = useRef<Annotation | null>(null);
+  const selectedAnnotationIdRef = useRef<string | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const originalPositionRef = useRef<{ x: number; y: number } | null>(null);
   
   // Keep refs in sync with state
   selectedToolRef.current = selectedTool;
   selectedColorRef.current = selectedColor;
   strokeWidthRef.current = strokeWidth;
   annotationsRef.current = annotations;
+  selectedAnnotationIdRef.current = selectedAnnotationId;
+
+  // Find annotation at a given point
+  const findAnnotationAtPoint = (x: number, y: number): Annotation | null => {
+    const hitRadius = 30; // Touch tolerance
+    
+    for (let i = annotationsRef.current.length - 1; i >= 0; i--) {
+      const ann = annotationsRef.current[i];
+      
+      if (ann.type === 'text') {
+        // Check if point is near text position
+        if (Math.abs(x - ann.x) < hitRadius * 2 && Math.abs(y - ann.y) < hitRadius) {
+          return ann;
+        }
+      } else if (ann.type === 'rectangle' || ann.type === 'circle') {
+        // Check if inside bounding box
+        const minX = Math.min(ann.x, ann.endX || ann.x);
+        const maxX = Math.max(ann.x, ann.endX || ann.x);
+        const minY = Math.min(ann.y, ann.endY || ann.y);
+        const maxY = Math.max(ann.y, ann.endY || ann.y);
+        
+        if (x >= minX - hitRadius && x <= maxX + hitRadius &&
+            y >= minY - hitRadius && y <= maxY + hitRadius) {
+          return ann;
+        }
+      } else if (ann.type === 'arrow') {
+        // Check if near line
+        if (ann.endX && ann.endY) {
+          const dist = pointToLineDistance(x, y, ann.x, ann.y, ann.endX, ann.endY);
+          if (dist < hitRadius) {
+            return ann;
+          }
+        }
+      } else if (ann.type === 'freehand' || ann.type === 'highlight') {
+        // Check if near any point in the path
+        if (ann.points) {
+          for (const point of ann.points) {
+            if (Math.abs(x - point.x) < hitRadius && Math.abs(y - point.y) < hitRadius) {
+              return ann;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper to calculate distance from point to line segment
+  const pointToLineDistance = (px: number, py: number, x1: number, y1: number, x2: number, y2: number): number => {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    if (lenSq !== 0) param = dot / lenSq;
+    let xx, yy;
+    if (param < 0) { xx = x1; yy = y1; }
+    else if (param > 1) { xx = x2; yy = y2; }
+    else { xx = x1 + param * C; yy = y1 + param * D; }
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Move an annotation by delta
+  const moveAnnotation = (id: string, deltaX: number, deltaY: number) => {
+    setAnnotations(prev => prev.map(ann => {
+      if (ann.id !== id) return ann;
+      
+      const updated = { ...ann, x: ann.x + deltaX, y: ann.y + deltaY };
+      
+      if (ann.endX !== undefined) updated.endX = ann.endX + deltaX;
+      if (ann.endY !== undefined) updated.endY = ann.endY + deltaY;
+      
+      if (ann.points) {
+        updated.points = ann.points.map(p => ({ x: p.x + deltaX, y: p.y + deltaY }));
+      }
+      
+      return updated;
+    }));
+  };
 
   const panResponder = useMemo(
     () =>
