@@ -1697,16 +1697,34 @@ export default function ScannerScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* View pages button - separate row when there are captured images */}
-            {capturedImages.length > 0 && (
+            {/* Batch Mode Toggle + View Pages */}
+            <View style={styles.modeToggleRow}>
               <TouchableOpacity 
-                style={[styles.viewPagesBtn, { backgroundColor: currentType.color }]} 
-                onPress={() => setShowCamera(false)}
+                style={[styles.modeToggleBtn, batchMode && { backgroundColor: '#8B5CF6' + '30', borderColor: '#8B5CF6' }]} 
+                onPress={() => {
+                  setBatchMode(!batchMode);
+                  if (!batchMode) {
+                    setBatchCount(0);
+                  }
+                }}
               >
-                <Ionicons name="layers" size={18} color="#FFF" />
-                <Text style={styles.viewPagesBtnText}>View {capturedImages.length} Page{capturedImages.length > 1 ? 's' : ''}</Text>
+                <Ionicons name="layers-outline" size={18} color={batchMode ? '#8B5CF6' : '#94A3B8'} />
+                <Text style={[styles.modeToggleText, batchMode && { color: '#8B5CF6' }]}>
+                  {batchMode ? `Batch Mode (${batchCount})` : 'Batch Mode'}
+                </Text>
               </TouchableOpacity>
-            )}
+
+              {/* View pages button when there are captured images */}
+              {capturedImages.length > 0 && (
+                <TouchableOpacity 
+                  style={[styles.viewPagesBtn, { backgroundColor: currentType.color }]} 
+                  onPress={() => setShowCamera(false)}
+                >
+                  <Ionicons name="layers" size={18} color="#FFF" />
+                  <Text style={styles.viewPagesBtnText}>{capturedImages.length} Page{capturedImages.length > 1 ? 's' : ''}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </SafeAreaView>
       </CameraView>
