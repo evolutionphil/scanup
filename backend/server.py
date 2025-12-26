@@ -1020,10 +1020,14 @@ async def update_document(
         for i, page in enumerate(doc_update.pages):
             page_dict = page.dict()
             page_dict["order"] = i
-            if not page_dict.get("thumbnail_base64"):
-                page_dict["thumbnail_base64"] = create_thumbnail(page.image_base64)
+            # Always regenerate thumbnail to ensure it matches the current image
+            page_dict["thumbnail_base64"] = create_thumbnail(page.image_base64)
             processed_pages.append(page_dict)
         update_data["pages"] = processed_pages
+        
+        # Update document thumbnail to first page's thumbnail
+        if processed_pages:
+            update_data["thumbnail_base64"] = processed_pages[0].get("thumbnail_base64")
     if doc_update.is_password_protected is not None:
         update_data["is_password_protected"] = doc_update.is_password_protected
     if doc_update.password_hash is not None:
