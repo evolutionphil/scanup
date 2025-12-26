@@ -114,6 +114,7 @@ interface DocumentState {
   getPendingSyncItems: () => Promise<PendingSyncItem[]>;
   clearPendingSyncItem: (documentId: string) => Promise<void>;
   updateDocumentSyncStatus: (documentId: string, status: SyncStatus) => void;
+  migrateGuestDocumentsToAccount: (token: string) => Promise<number>;
 }
 
 // Helper to generate unique IDs
