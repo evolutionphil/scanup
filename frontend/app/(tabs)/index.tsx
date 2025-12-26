@@ -782,4 +782,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 4,
   },
+  // Folder grid styles
+  foldersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  folderGridItem: {
+    width: (SCREEN_WIDTH - 48) / 2,
+    margin: 4,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  folderGridIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  folderLockBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderGridName: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  folderGridCount: {
+    fontSize: 11,
+  },
 });
