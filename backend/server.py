@@ -784,20 +784,32 @@ def detect_document_edges(image_base64: str, document_type: str = "document") ->
         logger.error(f"Error detecting edges: {e}")
         return {"detected": False, "corners": None, "message": str(e)}
 
-def fix_image_orientation(img):
+def fix_image_orientation(img, original_bytes=None):
     """
     Fix image orientation based on EXIF data.
     OpenCV doesn't handle EXIF orientation automatically, so we need to do it manually.
+    
+    Args:
+        img: OpenCV image (numpy array)
+        original_bytes: Original image bytes (to read EXIF from)
     """
     try:
-        # Try to get EXIF from PIL
         from PIL import Image as PILImage
         from PIL import ExifTags
-        import io
+        from io import BytesIO
         
-        # Convert OpenCV image to PIL
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        pil_img = PILImage.fromarray(img_rgb)
+        # Try to get EXIF from original bytes first (more reliable)
+        pil_img = None
+        if original_bytes is not None:
+            try:
+                pil_img = PILImage.open(BytesIO(original_bytes))
+            except:
+                pass
+        
+        # Fallback: Convert OpenCV image to PIL (may lose EXIF)
+        if pil_img is None:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            pil_img = PILImage.fromarray(img_rgb)
         
         # Try to get EXIF orientation
         try:
@@ -805,15 +817,19 @@ def fix_image_orientation(img):
             if exif:
                 for tag, value in exif.items():
                     if ExifTags.TAGS.get(tag) == 'Orientation':
+                        logger.info(f"EXIF Orientation tag found: {value}")
                         if value == 3:
                             img = cv2.rotate(img, cv2.ROTATE_180)
+                            logger.info("Applied 180 degree rotation")
                         elif value == 6:
                             img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                            logger.info("Applied 90 degree clockwise rotation")
                         elif value == 8:
                             img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                            logger.info("Applied 90 degree counter-clockwise rotation")
                         break
-        except (AttributeError, KeyError, IndexError):
-            pass
+        except (AttributeError, KeyError, IndexError) as e:
+            logger.debug(f"No EXIF orientation found: {e}")
     except Exception as e:
         logger.debug(f"Could not process EXIF: {e}")
     
