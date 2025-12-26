@@ -827,14 +827,28 @@ export default function ScannerScreen() {
         } else if (token) {
           await createDocument(token, { name: docName, pages: newPages, document_type: currentType.type });
           await fetchDocuments(token);
+          // Refresh user to update scan counts
+          await refreshUser();
           Alert.alert('Success', 'Document saved!', [
             { text: 'OK', onPress: () => router.back() },
           ]);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save error:', error);
-      Alert.alert('Error', 'Failed to save document');
+      // Handle scan limit error from backend
+      if (error?.message?.includes('scan limit') || error?.message?.includes('403')) {
+        Alert.alert(
+          'Scan Limit Reached',
+          'You\'ve reached your scan limit. Upgrade to Premium for unlimited scanning.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'View Plans', onPress: () => router.push('/(tabs)/profile') },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to save document');
+      }
     } finally {
       setIsSaving(false);
     }
