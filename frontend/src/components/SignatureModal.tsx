@@ -230,69 +230,65 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
   const [position, setPosition] = useState({ x: 0.5, y: 0.7 });
   const [scale, setScale] = useState(0.3);
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
   
-  // For pinch-to-zoom
-  const initialDistance = useRef(0);
-  const initialScale = useRef(scale);
-  const lastPosition = useRef(position);
+  // For gesture handling
+  const startPosition = useRef({ x: 0, y: 0 });
+  const startTouchPosition = useRef({ x: 0, y: 0 });
+  const initialPinchDistance = useRef(0);
+  const initialPinchScale = useRef(0.3);
 
   const signatureWidth = imageLayout.width * scale;
   const signatureHeight = signatureWidth * 0.35;
   const signatureX = position.x * imageLayout.width - signatureWidth / 2;
   const signatureY = position.y * imageLayout.height - signatureHeight / 2;
 
-  // Create PanResponder for drag and pinch
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        const touches = e.nativeEvent.touches;
-        lastPosition.current = position;
-        initialScale.current = scale;
-        
-        if (touches.length === 2) {
-          const dx = touches[1].pageX - touches[0].pageX;
-          const dy = touches[1].pageY - touches[0].pageY;
-          initialDistance.current = Math.sqrt(dx * dx + dy * dy);
-        }
-      },
-      onPanResponderMove: (e, gestureState) => {
-        const touches = e.nativeEvent.touches;
-        
-        if (touches.length === 2 && initialDistance.current > 0) {
-          // Pinch to resize
-          const dx = touches[1].pageX - touches[0].pageX;
-          const dy = touches[1].pageY - touches[0].pageY;
-          const currentDistance = Math.sqrt(dx * dx + dy * dy);
-          const scaleMultiplier = currentDistance / initialDistance.current;
-          const newScale = Math.max(0.1, Math.min(0.8, initialScale.current * scaleMultiplier));
-          setScale(newScale);
-        } else if (touches.length === 1 && imageLayout.width > 0) {
-          // Drag to move
-          const newX = lastPosition.current.x + (gestureState.dx / imageLayout.width);
-          const newY = lastPosition.current.y + (gestureState.dy / imageLayout.height);
-          setPosition({
-            x: Math.max(0.1, Math.min(0.9, newX)),
-            y: Math.max(0.1, Math.min(0.9, newY)),
-          });
-        }
-      },
-      onPanResponderRelease: () => {
-        lastPosition.current = position;
-        initialDistance.current = 0;
-      },
-    })
-  ).current;
+  // Handle touch events directly on the signature view
+  const handleSignatureTouchStart = useCallback((e: GestureResponderEvent) => {
+    const touches = e.nativeEvent.touches;
+    setIsDragging(true);
+    
+    if (touches.length === 1) {
+      startPosition.current = { ...position };
+      startTouchPosition.current = { x: touches[0].pageX, y: touches[0].pageY };
+    } else if (touches.length === 2) {
+      const dx = touches[1].pageX - touches[0].pageX;
+      const dy = touches[1].pageY - touches[0].pageY;
+      initialPinchDistance.current = Math.sqrt(dx * dx + dy * dy);
+      initialPinchScale.current = scale;
+    }
+  }, [position, scale]);
 
-  // Update panResponder refs when state changes
-  useEffect(() => {
-    lastPosition.current = position;
-  }, [position]);
+  const handleSignatureTouchMove = useCallback((e: GestureResponderEvent) => {
+    const touches = e.nativeEvent.touches;
+    
+    if (touches.length === 2 && initialPinchDistance.current > 0) {
+      // Pinch to resize
+      const dx = touches[1].pageX - touches[0].pageX;
+      const dy = touches[1].pageY - touches[0].pageY;
+      const currentDistance = Math.sqrt(dx * dx + dy * dy);
+      const scaleMultiplier = currentDistance / initialPinchDistance.current;
+      const newScale = Math.max(0.1, Math.min(0.8, initialPinchScale.current * scaleMultiplier));
+      setScale(newScale);
+    } else if (touches.length === 1 && imageLayout.width > 0) {
+      // Drag to move
+      const dx = touches[0].pageX - startTouchPosition.current.x;
+      const dy = touches[0].pageY - startTouchPosition.current.y;
+      
+      const newX = startPosition.current.x + (dx / imageLayout.width);
+      const newY = startPosition.current.y + (dy / imageLayout.height);
+      
+      setPosition({
+        x: Math.max(0.05, Math.min(0.95, newX)),
+        y: Math.max(0.05, Math.min(0.95, newY)),
+      });
+    }
+  }, [imageLayout]);
 
-  useEffect(() => {
-    initialScale.current = scale;
-  }, [scale]);
+  const handleSignatureTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    initialPinchDistance.current = 0;
+  }, []);
 
   const handleApply = useCallback(() => {
     onApply(signatureImage, position, scale);
@@ -312,9 +308,9 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.placementHint}>Drag to move • Pinch to resize</Text>
+        <Text style={styles.placementHint}>Hold & drag signature to move • Pinch to resize</Text>
 
-        <View style={styles.documentContainer} {...panResponder.panHandlers}>
+        <View style={styles.documentContainer}>
           <Image
             source={{ uri: `data:image/jpeg;base64,${documentImage}` }}
             style={styles.documentImage}
@@ -328,6 +324,64 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
           
           {imageLayout.width > 0 && (
             <View
+              style={[
+                styles.signatureOverlay,
+                {
+                  left: signatureX + imageLayout.x,
+                  top: signatureY + imageLayout.y,
+                  width: signatureWidth,
+                  height: signatureHeight,
+                  borderColor: isDragging ? theme.primary : 'rgba(59, 130, 246, 0.8)',
+                  borderWidth: isDragging ? 3 : 2,
+                },
+              ]}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleSignatureTouchStart}
+              onResponderMove={handleSignatureTouchMove}
+              onResponderRelease={handleSignatureTouchEnd}
+              onResponderTerminate={handleSignatureTouchEnd}
+            >
+              <Image
+                source={{ uri: `data:image/png;base64,${signatureImage}` }}
+                style={styles.signatureImage}
+                resizeMode="contain"
+              />
+              {/* Resize handle */}
+              <View style={styles.resizeHandle}>
+                <Ionicons name="resize" size={14} color="#FFF" />
+              </View>
+              {/* Move icon in center */}
+              {isDragging && (
+                <View style={styles.moveIndicator}>
+                  <Ionicons name="move" size={20} color={theme.primary} />
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.placementFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.scaleControls}>
+            <TouchableOpacity 
+              style={styles.scaleButton}
+              onPress={() => setScale(s => Math.max(0.1, s - 0.05))}
+            >
+              <Ionicons name="remove" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.scaleText}>{Math.round(scale * 100)}%</Text>
+            <TouchableOpacity 
+              style={styles.scaleButton}
+              onPress={() => setScale(s => Math.min(0.8, s + 0.05))}
+            >
+              <Ionicons name="add" size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
               style={[
                 styles.signatureOverlay,
                 {
