@@ -3338,8 +3338,13 @@ async def export_document(
         if format_type == "pdf":
             # Get images, downloading from S3 if needed
             images = []
-            for p in selected_pages:
+            for idx, p in enumerate(selected_pages):
                 img_data = await get_image_data(p)
+                if not img_data:
+                    raise HTTPException(
+                        status_code=520, 
+                        detail=f"Page {idx + 1} has no image data. Has URL: {bool(p.get('image_url'))}, Has base64: {bool(p.get('image_base64'))}"
+                    )
                 images.append(img_data)
             
             texts = [p.get("ocr_text", "") for p in selected_pages] if export_request.include_ocr else None
