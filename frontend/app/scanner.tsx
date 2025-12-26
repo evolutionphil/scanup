@@ -641,6 +641,22 @@ export default function ScannerScreen() {
           setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
         }
       }
+      
+      // Prompt for back scan if ID card mode
+      if (currentType.scanBack && capturedImages.length === 0) {
+        // This is the first (front) scan of ID card
+        Alert.alert(
+          'Scan Back Side?',
+          'Would you like to scan the back of your ID card?',
+          [
+            { text: 'Skip', style: 'cancel', onPress: () => setShowCamera(false) },
+            { text: 'Scan Back', onPress: () => {
+              setShowCamera(true);
+              // Update guide text
+            }},
+          ]
+        );
+      }
     } catch (e) {
       logDebug('CROP', '❌ Crop error', { error: String(e) });
       setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
