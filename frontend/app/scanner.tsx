@@ -1519,17 +1519,16 @@ const styles = StyleSheet.create({
     color: '#AAA', 
     fontSize: 11, 
   },
-  // Scanning animation overlay
+  // Scanning animation overlay - positioned relative to document frame
   scanningOverlay: {
     position: 'absolute',
-    left: '10%',
-    width: '80%',
-    height: 3,
+    height: 4,
     zIndex: 50,
+    borderRadius: 2,
   },
   scanLine: {
     width: '100%',
-    height: 3,
+    height: 4,
     borderRadius: 2,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 0 },
