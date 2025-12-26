@@ -853,12 +853,12 @@ export default function ScannerScreen() {
         </View>
         <View style={[styles.crosshairH, { backgroundColor: currentType.color }]} />
         <View style={[styles.crosshairV, { backgroundColor: currentType.color }]} />
-        <Text style={styles.magnifierLabel}>{labels[activeDragIndex]}</Text>
+        <Text style={styles.magnifierLabel}>{label}</Text>
       </View>
     );
-  }, [activeDragIndex, cropPoints, cropImage, previewLayout, toScreen, currentType.color]);
+  }, [activeDragIndex, activeEdgeIndex, cropPoints, cropImage, previewLayout, toScreen, currentType.color, getEdgeMidpoints]);
 
-  // Document guide overlay
+  // Document guide overlay - includes book mode center line
   const DocumentGuide = useMemo(() => {
     const { width, height } = frameDimensions;
     return (
@@ -866,6 +866,8 @@ export default function ScannerScreen() {
         <Rect x={3} y={3} width={width - 6} height={height - 6} 
           rx={currentType.type === 'id_card' ? 12 : 6}
           stroke={currentType.color} strokeWidth={3} strokeDasharray="10,5" fill="transparent" />
+        
+        {/* ID Card guide */}
         {currentType.type === 'id_card' && (
           <>
             <Rect x={width * 0.06} y={height * 0.15} width={width * 0.28} height={height * 0.7}
@@ -876,9 +878,18 @@ export default function ScannerScreen() {
             ))}
           </>
         )}
+        
+        {/* Book mode - horizontal center divider for two-page alignment */}
         {currentType.type === 'book' && (
-          <Line x1={width / 2} y1={8} x2={width / 2} y2={height - 8} 
-            stroke={currentType.color} strokeWidth={2} strokeDasharray="8,4" />
+          <>
+            {/* Vertical center line (book spine) */}
+            <Line x1={width / 2} y1={8} x2={width / 2} y2={height - 8} 
+              stroke={currentType.color} strokeWidth={2} strokeDasharray="8,4" />
+            {/* Horizontal center line for page alignment */}
+            <Line x1={8} y1={height / 2} x2={width - 8} y2={height / 2} 
+              stroke={currentType.color + '60'} strokeWidth={1.5} strokeDasharray="6,4" />
+            {/* Page labels */}
+          </>
         )}
       </Svg>
     );
