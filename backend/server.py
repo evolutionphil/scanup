@@ -617,14 +617,6 @@ def detect_document_edges(image_base64: str, document_type: str = "document") ->
         logger.error(f"Error detecting edges: {e}")
         return {"detected": False, "corners": None, "message": str(e)}
 
-def order_corners(corners: List[Dict]) -> List[Dict]:
-    """Order corners as: top-left, top-right, bottom-right, bottom-left"""
-    # Sort by y coordinate (top to bottom)
-    sorted_by_y = sorted(corners, key=lambda c: c["y"])
-    top_two = sorted(sorted_by_y[:2], key=lambda c: c["x"])
-    bottom_two = sorted(sorted_by_y[2:], key=lambda c: c["x"])
-    return [top_two[0], top_two[1], bottom_two[1], bottom_two[0]]
-
 def fix_image_orientation(img):
     """
     Fix image orientation based on EXIF data.
