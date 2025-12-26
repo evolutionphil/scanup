@@ -1130,7 +1130,20 @@ async def update_folder(
     current_user: User = Depends(get_current_user)
 ):
     """Update a folder"""
-    update_data = {k: v for k, v in folder_data.dict().items() if v is not None}
+    update_data = {}
+    
+    if folder_data.name is not None:
+        update_data["name"] = folder_data.name
+    if folder_data.color is not None:
+        update_data["color"] = folder_data.color
+    if folder_data.is_protected is not None:
+        update_data["is_protected"] = folder_data.is_protected
+    if folder_data.password_hash is not None:
+        # Hash the password before storing
+        update_data["password_hash"] = hash_password(folder_data.password_hash)
+    elif folder_data.is_protected == False:
+        # If removing protection, also clear the password
+        update_data["password_hash"] = None
     
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
@@ -1148,6 +1161,37 @@ async def update_folder(
         {"_id": 0}
     )
     return Folder(**folder)
+
+class FolderPasswordVerify(BaseModel):
+    password: str
+
+@api_router.post("/folders/{folder_id}/verify-password")
+async def verify_folder_password(
+    folder_id: str,
+    password_data: FolderPasswordVerify,
+    current_user: User = Depends(get_current_user)
+):
+    """Verify folder password"""
+    folder = await db.folders.find_one(
+        {"folder_id": folder_id, "user_id": current_user.user_id},
+        {"_id": 0}
+    )
+    
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    if not folder.get("is_protected"):
+        return {"success": True, "message": "Folder is not protected"}
+    
+    stored_hash = folder.get("password_hash")
+    if not stored_hash:
+        return {"success": True, "message": "No password set"}
+    
+    # Verify password against stored hash
+    if verify_password(password_data.password, stored_hash):
+        return {"success": True, "message": "Password verified"}
+    else:
+        raise HTTPException(status_code=401, detail="Incorrect password")
 
 @api_router.delete("/folders/{folder_id}")
 async def delete_folder(
