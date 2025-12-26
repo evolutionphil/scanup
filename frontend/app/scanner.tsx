@@ -1459,6 +1459,24 @@ export default function ScannerScreen() {
             : 'Drag corners or edges to adjust crop area'}
         </Text>
 
+        {/* Quick action buttons */}
+        <View style={styles.cropQuickActions}>
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.surface }]} 
+            onPress={() => autoDetectEdges(cropImage!, currentType.type === 'book' ? 'book' : 'document', imageSize.width, imageSize.height)}
+          >
+            <Ionicons name="scan" size={18} color={currentType.color} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Auto Detect</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.surface }]} 
+            onPress={handleResetCrop}
+          >
+            <Ionicons name="refresh" size={18} color={theme.text} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.cropActions}>
           <TouchableOpacity 
             style={[styles.cropBtn, { backgroundColor: currentType.color }]} 
