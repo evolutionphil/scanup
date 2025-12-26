@@ -1455,7 +1455,7 @@ export default function ScannerScreen() {
     );
   }, [activeDragIndex, activeEdgeIndex, cropPoints, cropImage, previewLayout, toScreen, currentType.color, getEdgeMidpoints]);
 
-  // Document guide overlay - includes book mode center line
+  // Document guide overlay - includes grid, book mode center line
   const DocumentGuide = useMemo(() => {
     const { width, height } = frameDimensions;
     return (
@@ -1463,6 +1463,23 @@ export default function ScannerScreen() {
         <Rect x={3} y={3} width={width - 6} height={height - 6} 
           rx={currentType.type === 'id_card' ? 12 : 6}
           stroke={currentType.color} strokeWidth={3} strokeDasharray="10,5" fill="transparent" />
+        
+        {/* Grid lines - 3x3 rule of thirds */}
+        {currentType.type !== 'book' && (
+          <>
+            {/* Vertical grid lines */}
+            <Line x1={width / 3} y1={6} x2={width / 3} y2={height - 6} 
+              stroke={currentType.color + '50'} strokeWidth={1} />
+            <Line x1={(width * 2) / 3} y1={6} x2={(width * 2) / 3} y2={height - 6} 
+              stroke={currentType.color + '50'} strokeWidth={1} />
+            
+            {/* Horizontal grid lines */}
+            <Line x1={6} y1={height / 3} x2={width - 6} y2={height / 3} 
+              stroke={currentType.color + '50'} strokeWidth={1} />
+            <Line x1={6} y1={(height * 2) / 3} x2={width - 6} y2={(height * 2) / 3} 
+              stroke={currentType.color + '50'} strokeWidth={1} />
+          </>
+        )}
         
         {/* ID Card guide */}
         {currentType.type === 'id_card' && (
