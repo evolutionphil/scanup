@@ -67,20 +67,12 @@ export default function ExportModal({
     if (!format) return;
 
     if (format.isPremium && !isPremium) {
-      Alert.alert(
-        'Premium Feature',
-        `${format.name} export is a premium feature. Upgrade to access Word and Excel exports.`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Premium Feature', `${format.name} export requires premium.`);
       return;
     }
 
     if (format.requiresOcr && !hasOcrText) {
-      Alert.alert(
-        'OCR Required',
-        `${format.name} export requires OCR text. Please run OCR on the document first.`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('OCR Required', 'Please run OCR on the document first.');
       return;
     }
 
@@ -90,21 +82,34 @@ export default function ExportModal({
       let fileName: string;
       let mimeType: string;
 
-      // For guests or JPEG export, create locally
-      if (isGuest || selectedFormat === 'jpeg') {
-        if (!pages || pages.length === 0 || !pages[0]?.image_base64) {
-          throw new Error('No image available for export');
+      console.log('Export starting:', { selectedFormat, isGuest, hasPages: !!pages, pagesLength: pages?.length });
+
+      // For JPEG, handle locally
+      if (selectedFormat === 'jpeg') {
+        if (!pages || pages.length === 0) {
+          throw new Error('No pages available');
         }
         
-        // For JPEG, just use the first page
-        fileBase64 = pages[0].image_base64;
+        const firstPage = pages[0];
+        if (!firstPage || !firstPage.image_base64) {
+          throw new Error('First page has no image');
+        }
+        
+        fileBase64 = firstPage.image_base64;
         if (fileBase64.includes(',')) {
           fileBase64 = fileBase64.split(',')[1];
         }
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.jpg`;
         mimeType = 'image/jpeg';
+      } else if (isGuest) {
+        // Guests can only export JPEG
+        Alert.alert('Sign In Required', 'Sign in to export as PDF.');
+        setIsExporting(false);
+        return;
       } else {
         // Use backend for PDF and other formats
+        console.log('Calling backend export for:', documentId);
+        
         const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
           method: 'POST',
           headers: {
@@ -112,19 +117,26 @@ export default function ExportModal({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            document_id: documentId,
             format: selectedFormat,
             include_ocr: includeOcr || format.requiresOcr,
           }),
         });
 
+        console.log('Export response status:', response.status);
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Export response error:', response.status, errorText);
+          console.error('Export error response:', errorText);
           throw new Error(`Export failed: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Export result keys:', Object.keys(result));
+        
+        if (!result.file_base64) {
+          throw new Error('No file data received from server');
+        }
+        
         fileBase64 = result.file_base64;
         fileName = result.filename || `${documentName.replace(/[^a-z0-9]/gi, '_')}.${format.extension}`;
         mimeType = result.mime_type || format.mimeType;
@@ -132,6 +144,7 @@ export default function ExportModal({
 
       // Save to cache and share
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      console.log('Saving to:', fileUri);
       
       await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
         encoding: FileSystem.EncodingType.Base64,
@@ -142,7 +155,6 @@ export default function ExportModal({
         await Sharing.shareAsync(fileUri, {
           mimeType: mimeType,
           dialogTitle: `Share ${documentName}`,
-          UTI: selectedFormat === 'pdf' ? 'com.adobe.pdf' : 'public.jpeg',
         });
         onClose();
       } else {
@@ -151,7 +163,7 @@ export default function ExportModal({
       }
     } catch (error: any) {
       console.error('Export error:', error);
-      Alert.alert('Export Failed', error.message || 'Failed to export document. Please try again.');
+      Alert.alert('Export Failed', error.message || 'Unknown error occurred');
     } finally {
       setIsExporting(false);
     }
