@@ -1472,19 +1472,45 @@ async def create_document(
         if datetime.now(timezone.utc) >= trial_end.replace(tzinfo=timezone.utc):
             is_premium = False
     
-    # Process pages - create thumbnails, add watermark for free users
+    # Process pages - create thumbnails, add watermark for free users, upload to S3
     processed_pages = []
     for i, page in enumerate(doc_data.pages):
         page_dict = page.dict()
+        page_id = f"page_{uuid.uuid4().hex[:8]}"
+        page_dict["page_id"] = page_id
         page_dict["order"] = i
         
         # Add watermark for free users
         image_base64 = page.image_base64
         if not is_premium:
             image_base64 = add_watermark(image_base64, "ScanUp")
-            page_dict["image_base64"] = image_base64
         
-        page_dict["thumbnail_base64"] = create_thumbnail(image_base64)
+        # Create thumbnail
+        thumbnail_base64 = create_thumbnail(image_base64)
+        
+        # Upload to S3 if configured
+        if s3_client:
+            # Upload main image
+            image_url = upload_to_s3(image_base64, current_user.user_id, document_id, page_id, "page")
+            thumbnail_url = upload_to_s3(thumbnail_base64, current_user.user_id, document_id, page_id, "thumbnail")
+            
+            if image_url and thumbnail_url:
+                # Store URLs instead of base64
+                page_dict["image_url"] = image_url
+                page_dict["thumbnail_url"] = thumbnail_url
+                page_dict.pop("image_base64", None)
+                page_dict.pop("thumbnail_base64", None)
+                logger.info(f"✅ Page {page_id} uploaded to S3")
+            else:
+                # Fallback to base64 if S3 upload fails
+                page_dict["image_base64"] = image_base64
+                page_dict["thumbnail_base64"] = thumbnail_base64
+                logger.warning(f"⚠️ S3 upload failed, storing base64 for page {page_id}")
+        else:
+            # No S3, store base64 in MongoDB
+            page_dict["image_base64"] = image_base64
+            page_dict["thumbnail_base64"] = thumbnail_base64
+        
         processed_pages.append(page_dict)
     
     document = {
@@ -1496,7 +1522,8 @@ async def create_document(
         "pages": processed_pages,
         "ocr_full_text": None,
         "is_password_protected": False,
-        "has_watermark": not is_premium,  # Track watermark status
+        "has_watermark": not is_premium,
+        "storage_type": "s3" if s3_client else "mongodb",  # Track storage type
         "created_at": now,
         "updated_at": now
     }
