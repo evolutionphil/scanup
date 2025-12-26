@@ -75,6 +75,7 @@ interface DocTypeConfig {
   frameWidthRatio: number;   // Frame width as ratio of preview width (0-1)
   color: string;
   guide: string;
+  scanBack?: boolean;        // Whether to prompt for back scan (e.g., ID cards)
 }
 
 // Document types with frame configurations
@@ -82,10 +83,10 @@ interface DocTypeConfig {
 // frameWidthRatio: how much of preview width the frame occupies
 const DOCUMENT_TYPES: DocTypeConfig[] = [
   { type: 'document', label: 'Document', icon: 'document-text-outline', aspectRatio: 0.707, frameWidthRatio: 0.85, color: '#3B82F6', guide: 'Align document edges' },
-  { type: 'id_card', label: 'ID Card', icon: 'card-outline', aspectRatio: 1.586, frameWidthRatio: 0.80, color: '#F59E0B', guide: 'Place ID card in frame' },
-  { type: 'book', label: 'Book', icon: 'book-outline', aspectRatio: 0.75, frameWidthRatio: 0.90, color: '#10B981', guide: 'Capture book pages' },
+  { type: 'id_card', label: 'ID Card', icon: 'card-outline', aspectRatio: 1.586, frameWidthRatio: 0.85, color: '#F59E0B', guide: 'Scan front of ID card', scanBack: true },
+  { type: 'book', label: 'Book', icon: 'book-outline', aspectRatio: 1.4, frameWidthRatio: 0.95, color: '#10B981', guide: 'Align open book pages' }, // Landscape for two pages
   { type: 'whiteboard', label: 'Whiteboard', icon: 'easel-outline', aspectRatio: 1.5, frameWidthRatio: 0.95, color: '#8B5CF6', guide: 'Capture entire board' },
-  { type: 'business_card', label: 'Business', icon: 'person-outline', aspectRatio: 1.75, frameWidthRatio: 0.70, color: '#EC4899', guide: 'Center business card' },
+  { type: 'business_card', label: 'Business', icon: 'person-outline', aspectRatio: 1.75, frameWidthRatio: 0.75, color: '#EC4899', guide: 'Center business card' },
 ];
 
 // Normalized coordinate point (0-1 range)
