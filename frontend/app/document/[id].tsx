@@ -747,10 +747,31 @@ export default function DocumentScreen() {
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
           <ActionButton 
             icon="pencil" 
-            label="Sign" 
+            label={hasOriginal ? "Re-Sign" : "Sign"} 
             onPress={() => {
               if (!token) {
                 showUpgradePrompt('Signature');
+              } else if (hasOriginal) {
+                // Page already has signature - confirm replacement
+                Alert.alert(
+                  'Replace Signature',
+                  'This page already has edits. Would you like to add another signature or start fresh?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Add New', 
+                      onPress: () => setShowSignatureDrawing(true) 
+                    },
+                    { 
+                      text: 'Start Fresh', 
+                      onPress: async () => {
+                        // Revert to original first, then open signature
+                        await handleRevertToOriginal();
+                        setTimeout(() => setShowSignatureDrawing(true), 500);
+                      }
+                    },
+                  ]
+                );
               } else {
                 setShowSignatureDrawing(true);
               }
