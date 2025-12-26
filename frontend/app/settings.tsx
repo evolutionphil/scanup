@@ -172,15 +172,26 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     Alert.alert(
       'Clear Cache',
-      'This will clear cached images and temporary files. Your documents will not be affected.',
+      'This will clear ALL local documents and cached data. This cannot be undone!',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Clear All',
           style: 'destructive',
-          onPress: () => {
-            // Clear cache logic here
-            Alert.alert('Done', 'Cache cleared successfully');
+          onPress: async () => {
+            try {
+              // Clear guest documents
+              await AsyncStorage.removeItem('@scanup_guest_documents');
+              await AsyncStorage.removeItem('@scanup_guest_folders');
+              // Clear local cache
+              await AsyncStorage.removeItem('@scanup_local_documents');
+              // Clear pending sync
+              await AsyncStorage.removeItem('@scanup_pending_sync');
+              
+              Alert.alert('Done', 'All local data has been cleared. Please restart the app.');
+            } catch (e) {
+              Alert.alert('Error', 'Failed to clear cache');
+            }
           },
         },
       ]
