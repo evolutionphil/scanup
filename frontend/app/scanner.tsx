@@ -159,6 +159,24 @@ export default function ScannerScreen() {
   const [batchMode, setBatchMode] = useState(false);
   const [batchCount, setBatchCount] = useState(0);
   
+  // Settings from AsyncStorage
+  const [showGridOverlay, setShowGridOverlay] = useState(true);
+  
+  // Load settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const gridSetting = await AsyncStorage.getItem('@scanup_show_grid');
+        if (gridSetting !== null) {
+          setShowGridOverlay(gridSetting === 'true');
+        }
+      } catch (e) {
+        console.log('Could not load scanner settings');
+      }
+    };
+    loadSettings();
+  }, []);
+  
   // Document Template
   const [selectedTemplate, setSelectedTemplate] = useState<string>('auto');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
