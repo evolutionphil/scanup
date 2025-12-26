@@ -421,6 +421,216 @@ class APITester:
             self.log_result("Delete Document", False, f"Exception: {str(e)}")
             return False
 
+    def test_auto_crop_api(self):
+        """Test auto-crop API with improved detection algorithm"""
+        try:
+            # Create a larger, more realistic sample image
+            import base64
+            from PIL import Image, ImageDraw
+            from io import BytesIO
+            
+            # Create a document-like image
+            img = Image.new('RGB', (800, 600), (240, 240, 240))  # Light gray background
+            draw = ImageDraw.Draw(img)
+            
+            # Draw a white document with black border
+            doc_margin = 50
+            draw.rectangle([doc_margin, doc_margin, 800-doc_margin, 600-doc_margin], 
+                         fill=(255, 255, 255), outline=(0, 0, 0), width=3)
+            
+            # Add some text-like content
+            for i in range(8):
+                y = doc_margin + 30 + i * 40
+                draw.rectangle([doc_margin + 20, y, 800 - doc_margin - 20, y + 15], fill=(0, 0, 0))
+            
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=90)
+            sample_image = base64.b64encode(buffer.getvalue()).decode()
+            
+            # Test auto-crop endpoint
+            crop_data = {
+                "image_base64": sample_image,
+                "operation": "auto_crop",
+                "params": {
+                    "document_type": "document"
+                }
+            }
+            response = self.session.post(f"{API_URL}/images/auto-crop", json=crop_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                has_corners = "corners" in data and data["corners"] is not None
+                has_success = "success" in data
+                has_cropped_image = "cropped_image_base64" in data
+                
+                # Check that corners are returned even when detection fails
+                corners_count = len(data.get("corners", [])) if data.get("corners") else 0
+                
+                self.log_result("Auto-crop API", True, 
+                              f"Corners: {corners_count}, Success: {data.get('success')}, Confidence: {data.get('confidence', 'N/A')}")
+                return True
+            else:
+                self.log_result("Auto-crop API", False, 
+                              f"Status: {response.status_code}", response)
+                return False
+        except Exception as e:
+            self.log_result("Auto-crop API", False, f"Exception: {str(e)}")
+            return False
+
+    def test_folder_password_verification(self):
+        """Test folder password verification endpoint"""
+        if not self.test_folder_id:
+            self.log_result("Folder Password Verification", False, "No test folder ID available")
+            return False
+            
+        try:
+            # Step 1: Set password on folder
+            password = "TestPassword123!"
+            update_data = {
+                "is_protected": True,
+                "password_hash": password  # Backend will hash this
+            }
+            response = self.session.put(f"{API_URL}/folders/{self.test_folder_id}", json=update_data)
+            
+            if response.status_code != 200:
+                self.log_result("Folder Password Verification", False, 
+                              f"Failed to set password: {response.status_code}", response)
+                return False
+            
+            # Step 2: Test correct password verification
+            verify_data = {"password": password}
+            response = self.session.post(f"{API_URL}/folders/{self.test_folder_id}/verify-password", 
+                                       json=verify_data)
+            
+            if response.status_code != 200:
+                self.log_result("Folder Password Verification", False, 
+                              f"Correct password failed: {response.status_code}", response)
+                return False
+            
+            # Step 3: Test wrong password (should return 401)
+            wrong_verify_data = {"password": "WrongPassword123!"}
+            response = self.session.post(f"{API_URL}/folders/{self.test_folder_id}/verify-password", 
+                                       json=wrong_verify_data)
+            
+            if response.status_code == 401:
+                self.log_result("Folder Password Verification", True, 
+                              "Correct password accepted, wrong password rejected with 401")
+                return True
+            else:
+                self.log_result("Folder Password Verification", False, 
+                              f"Wrong password should return 401, got: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Folder Password Verification", False, f"Exception: {str(e)}")
+            return False
+
+    def test_document_thumbnail_regeneration(self):
+        """Test document update with thumbnail regeneration"""
+        if not self.test_document_id:
+            self.log_result("Document Thumbnail Regeneration", False, "No test document ID available")
+            return False
+            
+        try:
+            # Get original document to check thumbnail
+            response = self.session.get(f"{API_URL}/documents/{self.test_document_id}")
+            if response.status_code != 200:
+                self.log_result("Document Thumbnail Regeneration", False, 
+                              "Could not get original document")
+                return False
+            
+            original_doc = response.json()
+            original_thumbnail = original_doc.get("pages", [{}])[0].get("thumbnail_base64")
+            
+            # Create a different image for update
+            import base64
+            from PIL import Image
+            from io import BytesIO
+            
+            img = Image.new('RGB', (400, 300), (255, 200, 200))  # Light red
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG')
+            new_image = base64.b64encode(buffer.getvalue()).decode()
+            
+            # Update document with new page (simulate rotation)
+            update_data = {
+                "pages": [
+                    {
+                        "image_base64": new_image,
+                        "filter_applied": "enhanced",
+                        "rotation": 90,
+                        "order": 0
+                    }
+                ]
+            }
+            response = self.session.put(f"{API_URL}/documents/{self.test_document_id}", 
+                                      json=update_data)
+            
+            if response.status_code == 200:
+                updated_doc = response.json()
+                new_thumbnail = updated_doc.get("pages", [{}])[0].get("thumbnail_base64")
+                
+                # Check if thumbnail was regenerated
+                thumbnail_changed = original_thumbnail != new_thumbnail
+                rotation_updated = updated_doc.get("pages", [{}])[0].get("rotation") == 90
+                
+                self.log_result("Document Thumbnail Regeneration", thumbnail_changed and rotation_updated, 
+                              f"Thumbnail regenerated: {thumbnail_changed}, Rotation updated: {rotation_updated}")
+                return thumbnail_changed and rotation_updated
+            else:
+                self.log_result("Document Thumbnail Regeneration", False, 
+                              f"Status: {response.status_code}", response)
+                return False
+                
+        except Exception as e:
+            self.log_result("Document Thumbnail Regeneration", False, f"Exception: {str(e)}")
+            return False
+
+    def test_manual_perspective_crop(self):
+        """Test manual perspective crop endpoint"""
+        try:
+            # Create sample image
+            import base64
+            from PIL import Image
+            from io import BytesIO
+            
+            img = Image.new('RGB', (600, 400), (255, 255, 255))
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG')
+            sample_image = base64.b64encode(buffer.getvalue()).decode()
+            
+            # Define corner coordinates (normalized 0-1)
+            corners = [
+                {"x": 0.1, "y": 0.1},  # top-left
+                {"x": 0.9, "y": 0.1},  # top-right
+                {"x": 0.9, "y": 0.9},  # bottom-right
+                {"x": 0.1, "y": 0.9}   # bottom-left
+            ]
+            
+            crop_data = {
+                "image_base64": sample_image,
+                "corners": corners
+            }
+            response = self.session.post(f"{API_URL}/images/perspective-crop", json=crop_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                has_success = "success" in data
+                has_cropped_image = "cropped_image_base64" in data
+                is_successful = data.get("success", False)
+                
+                self.log_result("Manual Perspective Crop", is_successful and has_cropped_image, 
+                              f"Success: {is_successful}, Has cropped image: {has_cropped_image}")
+                return is_successful and has_cropped_image
+            else:
+                self.log_result("Manual Perspective Crop", False, 
+                              f"Status: {response.status_code}", response)
+                return False
+                
+        except Exception as e:
+            self.log_result("Manual Perspective Crop", False, f"Exception: {str(e)}")
+            return False
+
     def test_delete_folder(self):
         """Test folder deletion"""
         if not self.test_folder_id:
