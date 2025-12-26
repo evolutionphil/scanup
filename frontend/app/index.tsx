@@ -6,14 +6,17 @@ import { useThemeStore } from '../src/store/themeStore';
 import Button from '../src/components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const ONBOARDING_KEY = '@scanup_onboarding_complete';
 
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -26,6 +29,23 @@ export default function Index() {
       hasLoaded.current = true;
       loadTheme();
       loadStoredAuth();
+
+      // Check if user has completed onboarding
+      const checkOnboarding = async () => {
+        try {
+          const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+          if (!completed) {
+            // First time user - show onboarding
+            setTimeout(() => {
+              router.replace('/onboarding');
+            }, 2000);
+            return;
+          }
+          setCheckingOnboarding(false);
+        } catch (error) {
+          setCheckingOnboarding(false);
+        }
+      };
 
       // Start splash animations
       Animated.parallel([
@@ -47,6 +67,9 @@ export default function Index() {
           useNativeDriver: true,
         }),
       ]).start();
+
+      // Check onboarding after splash animation starts
+      checkOnboarding();
 
       // Hide splash after delay
       setTimeout(() => {
