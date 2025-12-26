@@ -88,7 +88,8 @@ export default function ExportModal({
       console.log('Document ID:', documentId);
       console.log('Has Token:', !!token);
       console.log('Pages count:', pages?.length);
-      console.log('Pages sample:', pages?.[0] ? 'has data' : 'no data');
+      console.log('FileSystem.cacheDirectory:', FileSystem.cacheDirectory);
+      console.log('FileSystem.documentDirectory:', FileSystem.documentDirectory);
 
       // For JPEG, handle locally
       if (selectedFormat === 'jpeg') {
@@ -97,8 +98,6 @@ export default function ExportModal({
         }
         
         const firstPage = pages[0];
-        console.log('First page keys:', firstPage ? Object.keys(firstPage) : 'undefined');
-        
         if (!firstPage || !firstPage.image_base64) {
           throw new Error('First page has no image_base64 data');
         }
@@ -110,20 +109,17 @@ export default function ExportModal({
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.jpg`;
         mimeType = 'image/jpeg';
       } else if (isGuest) {
-        // Guests can only export JPEG
         Alert.alert('Sign In Required', 'Sign in to export as PDF.');
         setIsExporting(false);
         return;
       } else {
         // Use backend for PDF and other formats
         console.log('Calling backend export...');
-        console.log('URL:', `${BACKEND_URL}/api/documents/${documentId}/export`);
         
         const requestBody = {
           format: selectedFormat,
           include_ocr: includeOcr || format.requiresOcr,
         };
-        console.log('Request body:', JSON.stringify(requestBody));
         
         const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
           method: 'POST',
@@ -135,7 +131,6 @@ export default function ExportModal({
         });
 
         console.log('Response status:', response.status);
-        console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -146,7 +141,6 @@ export default function ExportModal({
         const result = await response.json();
         console.log('Export result keys:', Object.keys(result));
         console.log('Has file_base64:', !!result.file_base64);
-        console.log('file_base64 length:', result.file_base64?.length || 0);
         
         if (!result.file_base64) {
           throw new Error('No file_base64 data received from server');
@@ -157,8 +151,20 @@ export default function ExportModal({
         mimeType = result.mime_type || format.mimeType;
       }
 
-      // Save to cache and share
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      // Get the cache directory - use documentDirectory as fallback
+      const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      
+      if (!cacheDir) {
+        // If no filesystem access (Expo Go web?), show a message
+        Alert.alert(
+          'Export Ready',
+          'File export is not supported in this environment. Please use a development build or standalone app for full export functionality.',
+          [{ text: 'OK', onPress: onClose }]
+        );
+        return;
+      }
+      
+      const fileUri = `${cacheDir}${fileName}`;
       console.log('Saving to:', fileUri);
       console.log('Base64 length:', fileBase64?.length || 0);
       
@@ -166,12 +172,17 @@ export default function ExportModal({
         throw new Error('File data is empty');
       }
       
+      // Write file with proper encoding - check if EncodingType exists
+      const encoding = FileSystem.EncodingType?.Base64 || 'base64';
+      console.log('Using encoding:', encoding);
+      
       await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: encoding as any,
       });
 
-      console.log('File written, checking sharing...');
+      console.log('File written successfully');
       
+      // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
       console.log('Sharing available:', isAvailable);
       
@@ -182,15 +193,20 @@ export default function ExportModal({
         });
         onClose();
       } else {
-        Alert.alert('Success', `File saved: ${fileName}`);
+        Alert.alert('Success', `File saved to: ${fileUri}`);
         onClose();
       }
     } catch (error: any) {
       console.error('=== EXPORT ERROR ===');
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      Alert.alert('Export Failed', error.message || 'Unknown error occurred');
+      console.error('Error:', error);
+      
+      // Provide more helpful error message
+      let errorMessage = error.message || 'Unknown error occurred';
+      if (errorMessage.includes('Base64') || errorMessage.includes('undefined')) {
+        errorMessage = 'File system not fully available in Expo Go. Try using a development build for PDF export.';
+      }
+      
+      Alert.alert('Export Failed', errorMessage);
     } finally {
       setIsExporting(false);
     }
