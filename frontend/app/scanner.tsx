@@ -1184,6 +1184,29 @@ export default function ScannerScreen() {
             </View>
           </Animated.View>
 
+          {/* Scanning Animation Overlay */}
+          {isScanning && (
+            <Animated.View 
+              style={[
+                styles.scanningOverlay,
+                {
+                  opacity: scanningAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.3, 0.7, 0.3],
+                  }),
+                  transform: [{
+                    translateY: scanningAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, frameDimensions.height],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <View style={[styles.scanLine, { backgroundColor: currentType.color }]} />
+            </Animated.View>
+          )}
+
           <View style={styles.bottomSection}>
             <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.typeSelector} snapToInterval={90} decelerationRate="fast">
@@ -1200,27 +1223,44 @@ export default function ScannerScreen() {
             </ScrollView>
 
             <View style={styles.captureBar}>
+              {/* Gallery Button */}
               <TouchableOpacity style={styles.sideBtn} onPress={pickImage}>
                 <View style={styles.sideBtnInner}><Ionicons name="images" size={22} color="#FFF" /></View>
                 <Text style={styles.sideBtnText}>Gallery</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.captureBtn, { borderColor: currentType.color }]} onPress={takePicture} disabled={isCapturing}>
-                {isCapturing ? <ActivityIndicator color={currentType.color} /> : <View style={[styles.captureInner, { backgroundColor: currentType.color }]} />}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.sideBtn} onPress={() => capturedImages.length > 0 && setShowCamera(false)}>
-                {capturedImages.length > 0 ? (
-                  <View style={[styles.sideBtnInner, { backgroundColor: currentType.color + '40' }]}>
-                    <View style={[styles.badge, { backgroundColor: currentType.color }]}><Text style={styles.badgeText}>{capturedImages.length}</Text></View>
-                    <Ionicons name="layers" size={22} color="#FFF" />
-                  </View>
-                ) : (
-                  <View style={[styles.sideBtnInner, { opacity: 0.3 }]}><Ionicons name="layers" size={22} color="#94A3B8" /></View>
+              {/* Capture Button - shows auto-capture ring when enabled */}
+              <View style={styles.captureContainer}>
+                <TouchableOpacity style={[styles.captureBtn, { borderColor: currentType.color }, autoCapture && styles.autoCaptureActive]} onPress={takePicture} disabled={isCapturing}>
+                  {isCapturing ? <ActivityIndicator color={currentType.color} /> : <View style={[styles.captureInner, { backgroundColor: currentType.color }]} />}
+                </TouchableOpacity>
+                {/* Auto-capture indicator */}
+                {autoCapture && edgesDetected && (
+                  <View style={[styles.autoCaptureRing, { borderColor: '#10B981' }]} />
                 )}
-                <Text style={styles.sideBtnText}>{capturedImages.length > 0 ? 'View' : 'Pages'}</Text>
+              </View>
+
+              {/* Auto-Capture Toggle */}
+              <TouchableOpacity style={styles.sideBtn} onPress={toggleAutoCapture}>
+                <View style={[styles.sideBtnInner, autoCapture && { backgroundColor: '#10B981' + '40' }]}>
+                  <Ionicons name={autoCapture ? 'scan' : 'scan-outline'} size={22} color={autoCapture ? '#10B981' : '#FFF'} />
+                </View>
+                <Text style={[styles.sideBtnText, autoCapture && { color: '#10B981' }]}>
+                  {autoCapture ? 'Auto ON' : 'Auto'}
+                </Text>
               </TouchableOpacity>
             </View>
+
+            {/* View pages button - separate row when there are captured images */}
+            {capturedImages.length > 0 && (
+              <TouchableOpacity 
+                style={[styles.viewPagesBtn, { backgroundColor: currentType.color }]} 
+                onPress={() => setShowCamera(false)}
+              >
+                <Ionicons name="layers" size={18} color="#FFF" />
+                <Text style={styles.viewPagesBtnText}>View {capturedImages.length} Page{capturedImages.length > 1 ? 's' : ''}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </SafeAreaView>
       </CameraView>
