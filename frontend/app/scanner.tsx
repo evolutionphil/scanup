@@ -708,9 +708,15 @@ export default function ScannerScreen() {
               { x: width * pad, y: height * (1 - pad) },     // 5: BL - Bottom Left
             ];
             setCropPoints(bookCropPoints);
+            
+            // Try auto-detect edges for book mode
+            autoDetectEdges(imageBase64, 'book', width, height);
           } else {
             const frameCropPoints = mapFrameToSensorCoordinates(width, height);
             setCropPoints(frameCropPoints);
+            
+            // Try auto-detect edges for document mode
+            autoDetectEdges(imageBase64, 'document', width, height);
           }
           
           setShowCropScreen(true);
