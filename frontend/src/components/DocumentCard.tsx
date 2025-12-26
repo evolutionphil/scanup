@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Document } from '../store/documentStore';
+import { Document, getImageSource } from '../store/documentStore';
 import { useThemeStore } from '../store/themeStore';
 import { format } from 'date-fns';
 
@@ -29,9 +30,12 @@ export default function DocumentCard({
   selected,
 }: DocumentCardProps) {
   const { theme } = useThemeStore();
-  const thumbnail = document.pages[0]?.thumbnail_base64;
+  // Support both base64 and S3 URLs for thumbnails
+  const firstPage = document.pages[0];
+  const thumbnailSource = firstPage ? getImageSource(firstPage, true) : null;
   const pageCount = document.pages.length;
   const hasOCR = !!document.ocr_full_text;
+  const syncStatus = document.sync_status;
 
   return (
     <TouchableOpacity
