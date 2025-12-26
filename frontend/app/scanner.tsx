@@ -24,7 +24,7 @@ import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
-import Svg, { Rect, Line, Path, Defs, Mask, Circle } from 'react-native-svg';
+import Svg, { Rect, Line, Path, Defs, Mask, Circle, Text as SvgText } from 'react-native-svg';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
