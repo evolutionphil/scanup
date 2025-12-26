@@ -710,12 +710,34 @@ export default function DocumentScreen() {
           <ActionButton icon="color-wand" label="Filters" onPress={() => setShowFilterEditor(true)} theme={theme} />
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
-          <ActionButton icon="pencil" label="Sign" onPress={() => setShowSignatureDrawing(true)} theme={theme} />
+          <ActionButton 
+            icon="pencil" 
+            label="Sign" 
+            onPress={() => {
+              if (!token) {
+                showUpgradePrompt('Signature');
+              } else {
+                setShowSignatureDrawing(true);
+              }
+            }} 
+            theme={theme} 
+          />
           {hasOriginal && (
             <ActionButton icon="arrow-undo" label="Revert" onPress={handleRevertToOriginal} theme={theme} />
           )}
           <ActionButton icon="text" label="OCR" onPress={handleOCR} badge={currentPage.ocr_text ? '✓' : undefined} theme={theme} />
-          <ActionButton icon="download-outline" label="Export" onPress={() => setShowExportModal(true)} theme={theme} />
+          <ActionButton 
+            icon="download-outline" 
+            label="Export" 
+            onPress={() => {
+              if (!token) {
+                showUpgradePrompt('Export to PDF/DOCX');
+              } else {
+                setShowExportModal(true);
+              }
+            }} 
+            theme={theme} 
+          />
           <ActionButton icon="share-outline" label="Share" onPress={handleShare} theme={theme} />
           {currentDocument.pages.length > 1 && (
             <>
