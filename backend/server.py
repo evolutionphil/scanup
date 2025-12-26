@@ -3397,8 +3397,12 @@ async def export_document(
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {format_type}")
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Export error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 # ==================== BASIC ENDPOINTS ====================
