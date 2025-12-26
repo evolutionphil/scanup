@@ -1945,8 +1945,10 @@ export default function ScannerScreen() {
                 </TouchableOpacity>
               )}
             </View>
+            {/* Bottom safe area spacer */}
+            <View style={{ height: insets.bottom + 8 }} />
           </View>
-        </SafeAreaView>
+        </View>
       </CameraView>
     </View>
   );
