@@ -158,24 +158,6 @@ export default function AnnotationEditor({
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  // Move an annotation by delta
-  const moveAnnotation = (id: string, deltaX: number, deltaY: number) => {
-    setAnnotations(prev => prev.map(ann => {
-      if (ann.id !== id) return ann;
-      
-      const updated = { ...ann, x: ann.x + deltaX, y: ann.y + deltaY };
-      
-      if (ann.endX !== undefined) updated.endX = ann.endX + deltaX;
-      if (ann.endY !== undefined) updated.endY = ann.endY + deltaY;
-      
-      if (ann.points) {
-        updated.points = ann.points.map(p => ({ x: p.x + deltaX, y: p.y + deltaY }));
-      }
-      
-      return updated;
-    }));
-  };
-
   const panResponder = useMemo(
     () =>
       PanResponder.create({
