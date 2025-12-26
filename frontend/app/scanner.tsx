@@ -800,7 +800,10 @@ export default function ScannerScreen() {
   };
 
   const handleApplyCrop = async () => {
-    if (!cropImage || cropPoints.length !== 4) {
+    const isBookMode = currentType.type === 'book' && cropPoints.length === 6;
+    const expectedPoints = isBookMode ? 6 : 4;
+    
+    if (!cropImage || cropPoints.length !== expectedPoints) {
       logDebug('CROP', 'Skipping crop - no image or invalid points');
       if (cropImage) {
         setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
@@ -813,38 +816,33 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     try {
       // Normalize coordinates to 0-1 range for backend
-      const normalizedCorners = cropPoints.map(p => ({
+      const normalizedPoints = cropPoints.map(p => ({
         x: p.x / imageSize.width,
         y: p.y / imageSize.height,
       }));
 
       logDebug('CROP', 'Sending to backend', {
         imageSize: `${imageSize.width}x${imageSize.height}`,
-        corners: normalizedCorners.map((c, i) => 
-          `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(4)},${c.y.toFixed(4)})`
-        ).join(' '),
+        pointCount: cropPoints.length,
+        isBookMode,
         isGuest,
-        documentType: currentType.type,
       });
 
-      // BOOK MODE: Use split-book-pages endpoint
-      if (currentType.type === 'book') {
-        const response = await fetch(`${BACKEND_URL}/api/images/split-book-pages`, {
+      // BOOK MODE with 6-point perspective correction
+      if (isBookMode) {
+        const response = await fetch(`${BACKEND_URL}/api/images/book-6point-crop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             image_base64: cropImage, 
-            corners: normalizedCorners,
-            gutter_position: null, // Auto-detect
+            points: normalizedPoints, // 6 points: [TL, GT, TR, BR, GB, BL]
           }),
         });
 
         const result = await response.json();
         
         if (result.success && result.left_page_base64 && result.right_page_base64) {
-          logDebug('CROP', '✅ Book pages split successfully', {
-            gutterPosition: result.gutter_position,
-          });
+          logDebug('CROP', '✅ Book 6-point crop successful');
           // Add both pages as separate captures (left = page 1, right = page 2)
           setCapturedImages(prev => [
             ...prev, 
@@ -852,8 +850,27 @@ export default function ScannerScreen() {
             { base64: result.right_page_base64, original: cropImage },
           ]);
         } else {
-          logDebug('CROP', '⚠️ Book split failed, using original', { message: result.message });
-          setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+          logDebug('CROP', '⚠️ Book 6-point crop failed', { message: result.message });
+          // Fallback: Try the simpler split endpoint
+          const fallbackResponse = await fetch(`${BACKEND_URL}/api/images/split-book-pages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              image_base64: cropImage, 
+              corners: normalizedPoints.slice(0, 4), // Use outer 4 corners
+              gutter_position: null,
+            }),
+          });
+          const fallbackResult = await fallbackResponse.json();
+          if (fallbackResult.success) {
+            setCapturedImages(prev => [
+              ...prev, 
+              { base64: fallbackResult.left_page_base64, original: cropImage },
+              { base64: fallbackResult.right_page_base64, original: cropImage },
+            ]);
+          } else {
+            setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+          }
         }
       } else {
         // STANDARD MODE: Use perspective crop endpoint
@@ -876,7 +893,7 @@ export default function ScannerScreen() {
           headers,
           body: JSON.stringify({ 
             image_base64: cropImage, 
-            corners: normalizedCorners,
+            corners: normalizedPoints,
             force_portrait: forcePortrait 
           }),
         });
