@@ -138,36 +138,58 @@ export default function DocumentScreen() {
   };
 
   const handleApplyFilter = async (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => {
-    if (!currentDocument || !token || processing) return;
+    if (!currentDocument || processing) return;
+    
+    const isLocalDoc = currentDocument.document_id.startsWith('local_');
     
     setProcessing(true);
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
       // Use original image as base for non-destructive editing
-      const baseImage = currentPage.original_image_base64 || currentPage.image_base64;
+      // Handle both base64 and S3 URLs
+      let baseImage = currentPage.original_image_base64 || currentPage.image_base64;
+      
+      // If we only have URLs, we need to fetch the image first
+      if (!baseImage && (currentPage.image_url)) {
+        // For S3 images, we'll process on the server side
+        baseImage = currentPage.image_url;
+      }
+      
+      if (!baseImage) {
+        Alert.alert('Error', 'No image found to apply filter');
+        setProcessing(false);
+        return;
+      }
       
       // If filter is "original" and no adjustments, just restore original
       if (filterType === 'original' && adjustments.brightness === 0 && adjustments.contrast === 0 && adjustments.saturation === 0) {
         const updatedPages = [...currentDocument.pages];
         updatedPages[selectedPageIndex] = {
           ...updatedPages[selectedPageIndex],
-          image_base64: baseImage,
+          image_base64: currentPage.original_image_base64 || currentPage.image_base64,
           filter_applied: 'original',
           adjustments: undefined,
         };
-        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
         setShowFilterEditor(false);
         setProcessing(false);
         return;
       }
       
-      const response = await fetch(`${BACKEND_URL}/api/images/process`, {
+      // Use public endpoint for guests/local docs, authenticated for logged-in users
+      const endpoint = (isLocalDoc || !token) 
+        ? `${BACKEND_URL}/api/images/process-public`
+        : `${BACKEND_URL}/api/images/process`;
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && !isLocalDoc) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           image_base64: baseImage,
           operation: 'filter',
@@ -195,7 +217,7 @@ export default function DocumentScreen() {
         adjustments: adjustments,
       };
 
-      await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
       setShowFilterEditor(false);
     } catch (e) {
       console.error('Filter error:', e);
