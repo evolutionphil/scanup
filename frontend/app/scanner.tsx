@@ -1406,7 +1406,7 @@ export default function ScannerScreen() {
 
         <Text style={styles.cropHint}>
           {currentType.type === 'book' 
-            ? 'Drag corners to align book edges. Pages will be split automatically.' 
+            ? 'Drag 6 points: 4 corners + 2 gutter points. Each page gets separate perspective correction.' 
             : 'Drag corners or edges to adjust crop area'}
         </Text>
 
