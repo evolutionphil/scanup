@@ -636,30 +636,55 @@ export default function ScannerScreen() {
       });
       
       if (photo?.base64) {
-        const capturedWidth = photo.width || 0;
-        const capturedHeight = photo.height || 0;
-        const capturedAspect = capturedWidth / capturedHeight;
+        let capturedWidth = photo.width || 0;
+        let capturedHeight = photo.height || 0;
+        let imageBase64 = photo.base64;
         
         logDebug('CAPTURE', 'Photo captured', {
           dimensions: `${capturedWidth}x${capturedHeight}`,
-          aspect: capturedAspect.toFixed(3),
-          expectedAspect: SENSOR_ASPECT_PORTRAIT.toFixed(3),
+          aspect: (capturedWidth / capturedHeight).toFixed(3),
           hasExif: !!photo.exif,
-          base64Length: photo.base64.length,
+          exifOrientation: photo.exif?.Orientation,
         });
         
+        // Fix for Android: If image is landscape but should be portrait, rotate it
+        // This happens when Android cameras don't set EXIF orientation properly
+        if (capturedWidth > capturedHeight) {
+          logDebug('CAPTURE', 'Rotating landscape image to portrait...');
+          try {
+            const manipulated = await ImageManipulator.manipulateAsync(
+              `data:image/jpeg;base64,${photo.base64}`,
+              [{ rotate: -90 }],  // Rotate 90° counter-clockwise
+              { compress: 0.95, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+            );
+            
+            if (manipulated.base64) {
+              imageBase64 = manipulated.base64;
+              // Swap dimensions after rotation
+              const temp = capturedWidth;
+              capturedWidth = capturedHeight;
+              capturedHeight = temp;
+              
+              logDebug('CAPTURE', 'Image rotated to portrait', {
+                newDimensions: `${capturedWidth}x${capturedHeight}`,
+              });
+            }
+          } catch (rotateError) {
+            logDebug('CAPTURE', '⚠️ Rotation failed, using original', { error: String(rotateError) });
+          }
+        }
+        
         // Verify image size (Image.getSize is more reliable)
-        Image.getSize(`data:image/jpeg;base64,${photo.base64}`, (width, height) => {
+        Image.getSize(`data:image/jpeg;base64,${imageBase64}`, (width, height) => {
           const verifiedAspect = width / height;
           
           logDebug('CAPTURE', 'Image size verified', {
             verified: `${width}x${height}`,
             aspect: verifiedAspect.toFixed(3),
-            matchesCapture: width === capturedWidth && height === capturedHeight,
           });
           
           setImageSize({ width, height });
-          setCropImage(photo.base64 || null);
+          setCropImage(imageBase64);
           
           // Map frame overlay to sensor coordinates
           const frameCropPoints = mapFrameToSensorCoordinates(width, height);
@@ -670,12 +695,10 @@ export default function ScannerScreen() {
         }, (error) => {
           logDebug('CAPTURE', '❌ Image.getSize failed', { error: String(error) });
           
-          // Fallback to captured dimensions or defaults
-          const w = capturedWidth || 3024;
-          const h = capturedHeight || 4032;
-          setImageSize({ width: w, height: h });
-          setCropImage(photo.base64 || null);
-          setCropPoints(mapFrameToSensorCoordinates(w, h));
+          // Fallback to captured dimensions
+          setImageSize({ width: capturedWidth, height: capturedHeight });
+          setCropImage(imageBase64);
+          setCropPoints(mapFrameToSensorCoordinates(capturedWidth, capturedHeight));
           setShowCropScreen(true);
           setShowCamera(false);
         });
