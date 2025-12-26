@@ -393,6 +393,54 @@ export default function DocumentScreen() {
     }
   };
 
+  const handleAddSignature = async (signatureBase64: string) => {
+    if (!currentDocument || !token || processing) return;
+    
+    setProcessing(true);
+    try {
+      const currentPage = currentDocument.pages[selectedPageIndex];
+      
+      // Store original before signing if not already stored
+      const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
+      
+      const response = await fetch(`${BACKEND_URL}/api/images/add-signature`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_base64: currentPage.image_base64,
+          signature_base64: signatureBase64,
+          position_x: signaturePosition.x,
+          position_y: signaturePosition.y,
+          scale: 0.35, // 35% of image width
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.signed_image_base64) {
+        const updatedPages = [...currentDocument.pages];
+        updatedPages[selectedPageIndex] = {
+          ...updatedPages[selectedPageIndex],
+          image_base64: result.signed_image_base64,
+          original_image_base64: originalImage, // Preserve original for revert
+        };
+
+        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        Alert.alert('Success', 'Signature added to document');
+      } else {
+        Alert.alert('Error', result.message || 'Failed to add signature');
+      }
+    } catch (e) {
+      console.error('Signature error:', e);
+      Alert.alert('Error', 'Failed to add signature');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleDeletePage = () => {
     if (!currentDocument || currentDocument.pages.length <= 1) {
       Alert.alert('Cannot Delete', 'Document must have at least one page');
