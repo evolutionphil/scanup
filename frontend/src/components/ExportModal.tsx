@@ -31,8 +31,9 @@ interface ExportFormat {
 const EXPORT_FORMATS: ExportFormat[] = [
   { id: 'pdf', name: 'PDF', icon: 'document-text', extension: 'pdf', requiresOcr: false, isPremium: false, mimeType: 'application/pdf' },
   { id: 'jpeg', name: 'Image (JPEG)', icon: 'image', extension: 'jpg', requiresOcr: false, isPremium: false, mimeType: 'image/jpeg' },
+  { id: 'png', name: 'Image (PNG)', icon: 'image-outline', extension: 'png', requiresOcr: false, isPremium: false, mimeType: 'image/png' },
+  { id: 'tiff', name: 'Image (TIFF)', icon: 'images', extension: 'tiff', requiresOcr: false, isPremium: true, mimeType: 'image/tiff' },
   { id: 'docx', name: 'Word (.docx)', icon: 'document', extension: 'docx', requiresOcr: true, isPremium: true, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-  { id: 'xlsx', name: 'Excel (.xlsx)', icon: 'grid', extension: 'xlsx', requiresOcr: true, isPremium: true, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
 ];
 
 interface ExportModalProps {
