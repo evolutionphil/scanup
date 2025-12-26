@@ -5,6 +5,7 @@ import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import OfflineIndicator from '../../src/components/OfflineIndicator';
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -27,6 +28,9 @@ export default function TabsLayout() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Offline Mode Indicator - shows at top when offline */}
+      <OfflineIndicator />
+      
       <Tabs
         screenOptions={{
           headerShown: false,
