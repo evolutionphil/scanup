@@ -12,7 +12,11 @@ export interface User {
   picture?: string;
   subscription_type: string;
   is_premium: boolean;
+  is_trial?: boolean;
+  trial_days_remaining?: number;
   ocr_remaining_today: number;
+  scans_remaining_today: number;
+  scans_remaining_month: number;
 }
 
 interface AuthState {
@@ -29,6 +33,7 @@ interface AuthState {
   updateUser: (user: User) => void;
   refreshUser: () => Promise<void>;
   continueAsGuest: () => void;
+  startTrial: () => Promise<void>;
 }
 
 const getStorage = async (key: string): Promise<string | null> => {
@@ -61,6 +66,8 @@ const guestUser: User = {
   subscription_type: 'free',
   is_premium: false,
   ocr_remaining_today: 3,
+  scans_remaining_today: 10,
+  scans_remaining_month: 100,
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -195,5 +202,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   continueAsGuest: () => {
     set({ user: guestUser, isAuthenticated: true, isGuest: true, isLoading: false });
     setStorage('isGuest', 'true');
+  },
+
+  startTrial: async () => {
+    const token = get().token;
+    if (!token || get().isGuest) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/users/start-trial`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to start trial');
+    }
+
+    const user = await response.json();
+    set({ user });
+    await setStorage('user', JSON.stringify(user));
   },
 }));
