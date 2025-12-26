@@ -3,18 +3,16 @@
 
 [phases.setup]
 # Install system packages required by the application
-nixPkgs = ["python311", "tesseract", "opencv", "libpng", "libjpeg", "zlib"]
+# python311Full includes pip, tesseract5 is the OCR engine
+nixPkgs = ["python311Full", "tesseract5", "zlib", "libjpeg", "libpng"]
 
 [phases.install]
-# Install Python dependencies
-cmds = ["pip install -r requirements.txt"]
-
-[phases.build]
-# No build step needed for FastAPI
+# Use python -m pip to ensure pip is found
+cmds = ["python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
 
 [start]
-cmd = "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"
+cmd = "python -m uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"
 
 [variables]
-# Environment variables 
-TESSDATA_PREFIX = "/usr/share/tesseract-ocr/4.00/tessdata"
+# Environment variables for Tesseract
+TESSDATA_PREFIX = "/nix/store"
