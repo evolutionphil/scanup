@@ -1,154 +1,155 @@
 <analysis>
 
-**original_problem_statement**: The user wants to build a cross-platform mobile Document Scanner App for iOS and Android using Flutter/React Native. The MVP should include free features like scanning, auto-enhancement, OCR, and manual editing, along with premium features like unlimited scans, advanced OCR, and cloud sync, monetized through subscriptions.
+**original_problem_statement**: The user wants to build a ScanUp mobile app, a cross-platform document scanner for iOS and Android, designed to compete with established apps like Adobe Scan.
 
-The user has since provided a very detailed list of requirements (in message #286) that significantly expands the scope, effectively replacing the initial MVP description. Key new requirements include:
-- A complete UI/UX overhaul to mimic modern apps like Adobe Scan, including a persistent dark/light theme system.
-- The app name should be ScanUp.
-- Guest mode access without login.
-- Specific document capture types (ID cards, books, whiteboards).
-- Real-time edge detection during scanning.
-- Advanced, non-destructive filters with sliders for fine-tuning.
-- A Magic Eraser tool.
-- Robust folder management, including moving documents and password protection.
-- Fixes for several bugs: rotation not saving, incorrect document display, and broken file sharing.
-- Advanced export options (Word, Excel).
+The initial MVP has been significantly expanded based on user feedback (messages #11, #231, #269), which now serves as the primary product requirements document.
+
+**PRODUCT REQUIREMENTS (Summary from user messages):**
+- **UI/UX:** A complete UI overhaul to mimic Adobe Scan's modern interface, with a persistent dark/light theme.
+- **Core Flow:** Splash screen -> Login/Guest Mode -> Home/Library.
+- **Scanning:**
+    - Pre-scan document type selection (ID card, Book, Whiteboard, etc.) via a bottom horizontal slider.
+    - Real-time edge detection and auto-capture.
+    - Visual guides/overlays specific to the document type (e.g., an ID card outline).
+    - A manual 4-point crop editor as a fallback when auto-crop fails.
+- **Editing:**
+    - Non-destructive filters (Color, Grayscale, B&W).
+    - Advanced fine-tune adjustments with sliders for brightness, contrast, saturation, and more, similar to Adobe Scan.
+- **Management:**
+    - Robust folder management, including moving documents.
+    - Password protection for folders that prompts for a password upon entry.
+- **Export:**
+    - Standard export to PDF (with OCR) and JPEG.
+    - Advanced/Premium export to Word (.docx), Excel (.xlsx).
+- **Bug Fixes:** Address issues with rotation persistence, auto-crop failures, folder functionality, and various UI glitches.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with an Expo (React Native) frontend and a FastAPI backend with MongoDB.
-- **Backend**: A single  file containing API endpoints for user authentication (JWT), and placeholder CRUD operations for documents, pages, and folders. It also includes partially implemented, but unverified, endpoints for image auto-cropping (using OpenCV) and OCR (using Emergent LLM).
-- **Frontend**: A multi-screen Expo app using file-based routing (). It includes a landing page, login/register screens, a tabbed main layout (Documents, Folders, Scan, Search, Profile), and a document detail view.
-- **State Management**: Zustand is used for managing auth, documents, and theme state.
-- **UI**: The agent initiated a major UI overhaul. The app is now named ScanUp, and a theme store for dark/light mode has been created. A Continue as Guest option was added to the landing page. Many core functionalities are either placeholders or buggy.
+A full-stack application with an Expo (React Native) frontend and a monolithic FastAPI backend using MongoDB.
+- **Frontend:** Most screens have been refactored to support a dark/light theme system managed by Zustand. Placeholders and initial implementations for new features like advanced filters, document type selection, and folder management exist but are buggy. A new folder detail screen () and several new components (, ) have been created.
+- **Backend:** The  file has been updated with new endpoints for advanced image filtering (brightness, contrast, saturation), manual perspective cropping, folder updates (for password), and exporting documents to various formats (PDF, DOCX, XLSX, etc.) using libraries like  and .
 
 **Last working item**:
-- Last item agent was working: The agent was acknowledging a comprehensive list of new features and bug fixes requested by the user (in message #286). The last concrete actions were installing  and beginning a major UI/UX overhaul by creating a theme system, renaming the app to ScanUp, and updating the landing page to include a guest mode. The agent was about to start implementing the fixes and new features from the user's list.
+- Last item agent was working: The agent was in the process of a major overhaul of the scanning functionality based on detailed user feedback (msg #269). This involved:
+    1.  Redesigning the frontend scanner UI () to match the Adobe Scan experience, including a horizontal slider for document types and adding visual frames/guides.
+    2.  Improving the backend auto-crop detection algorithm ( in ) to be less strict and more reliable.
 - Status: IN PROGRESS
 - Agent Testing Done: N
 - Which testing method agent to use? both
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- Issue 1: Document rotation is not persistent (P0)
-- Issue 2: Real-time edge detection and auto-cropping are not working (P1)
-- Issue 3: OCR functionality is not working (P1)
-- Issue 4: Document sharing results in an error (P1)
-- Issue 5: Document thumbnails are not displayed correctly (P2)
-- Issue 6: Folder management is incomplete (P2)
+- Issue 1: Auto-crop is not working reliably and there is no manual crop fallback (P0)
+- Issue 2: Scanner UI/UX does not match user requirements (P0)
+- Issue 3: Folder functionality is broken (P1)
+- Issue 4: Document rotation is slow and not persistent (P1)
+- Issue 5: Add Document to Folder UI is broken (P2)
+- Issue 6: Advanced filter adjustments are not comprehensive enough (P2)
 
 Issues Detail:
 - Issue 1:
-    - Description: When a user rotates a document page in the editor, the change is not reflected in the thumbnail on the main documents list after navigating back.
-    - Attempted fixes: The agent identified that the backend does not regenerate the document's thumbnail after a rotation operation. No code fix has been implemented yet.
+    - Description: User reports that auto-crop often fails with could not detect document edges. When it fails, there is no way for the user to manually define the crop area using 4 points on the document's corners.
+    - Attempted fixes: The agent created a  endpoint on the backend and started redesigning the  UI. The backend logic for  was identified as too strict.
     - Next debug checklist:
-        - Modify the backend endpoint that handles image processing (e.g., rotation) to also regenerate and update the document's  field.
-        - The relevant endpoint is likely .
-        - Ensure the frontend  invalidates and refetches the document list or updates the specific document in the local state after a successful rotation.
-    - Why fix this issue and what will be achieved with the fix?: Provides essential visual feedback to the user, ensuring their edits are correctly saved and displayed.
-    - Status: NOT STARTED
-    - Is recurring issue? N
+        - In , adjust the  function to be more forgiving (e.g., tweak contour filtering, use different image preprocessing steps like adaptive thresholding).
+        - In , implement the UI for the 4-point manual crop editor. This should appear when auto-detection fails or when the user selects a crop option.
+        - Connect the manual crop UI to the  backend endpoint.
+    - Why fix this issue and what will be achieved with the fix?: This is a critical scanner function. A reliable crop (auto or manual) is essential for producing clean documents.
+    - Status: IN PROGRESS
+    - Is recurring issue? Y
     - Should Test frontend/backend/both after fix?: both
     - Blocked on other issue: None
 
 - Issue 2:
-    - Description: The user reported that the live camera view does not show any edge detection, and auto-cropping after the scan does not work.
-    - Attempted fixes: The agent installed  but has not integrated it into the  screen. A backend endpoint for auto-crop () was created but is not verified to be working correctly with frontend captures.
+    - Description: The user is unhappy with the scanner screen. The document type selector should be a horizontal slider at the bottom (like Adobe Scan), not a dropdown at the top. The slider is currently not functional. The user also wants visual overlays/guides for specific document types (e.g., an ID card outline).
+    - Attempted fixes: Agent overwrote  with a new structure intended to implement this, but it's incomplete.
     - Next debug checklist:
-        - Replace the current  implementation in  with  to enable live edge detection. This will require a native build (EAS Build) to test.
-        - Alternatively, for Expo Go compatibility, ensure the frontend  calls the  endpoint after capturing an image and properly displays the cropped result.
-    - Why fix this issue and what will be achieved with the fix?: This is a core feature of a document scanner app, automating the capture and cleaning process for the user.
+        - In , fix the horizontal  or  to act as a functional slider for selecting document types.
+        - Implement the logic to display different overlay SVGs or views based on the selected document type.
+        - Ensure the capture logic can use this type information (e.g., to apply specific crop aspect ratios).
+    - Why fix this issue and what will be achieved with the fix?: Improves usability and meets the user's explicit design requirements for the core scanning experience.
     - Status: IN PROGRESS
     - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: both
+    - Should Test frontend/backend/both after fix?: frontend
     - Blocked on other issue: None
 
 - Issue 3:
-    - Description: The user reported that OCR does not work and only shows a placeholder message.
-    - Attempted fixes: The agent set up a backend endpoint () using  to call GPT-4o for OCR. A test with a sample image failed due to the image being too small or corrupted, so the endpoint is not fully verified. The frontend is not confirmed to be calling this correctly.
+    - Description: User reports two issues with folders: 1) After setting a password, entering the folder does not prompt for the password. 2) The + button inside a folder to add documents does nothing.
+    - Attempted fixes: Agent updated the backend to store a password hash and created a folder detail screen (). The logic for prompting for the password and the add document functionality is broken.
     - Next debug checklist:
-        - In , verify the Extract Text button correctly calls the  endpoint with the page's image data.
-        - Test the backend endpoint with a valid, properly sized base64 image to confirm the  call works.
-        - Display the extracted text in a modal or on the screen.
-    - Why fix this issue and what will be achieved with the fix?: Enables text extraction, a critical feature for search and data usability.
+        - In , on screen load, check if . If so, show a password input modal before rendering the folder content.
+        - In , debug the  handler for the + button. Ensure it correctly opens the document selection modal.
+    - Why fix this issue and what will be achieved with the fix?: Fixes core organizational and security features requested by the user.
     - Status: IN PROGRESS
     - Is recurring issue? N
     - Should Test frontend/backend/both after fix?: both
     - Blocked on other issue: None
 
 - Issue 4:
-    - Description: The share button in the document view throws a typeerror cannot read property....
-    - Attempted fixes: None. The agent created a new  which includes PDF generation logic using , but this has not been tested.
+    - Description: A recurring issue where rotating a document page is slow, and the change is not reflected in the document's thumbnail on the main library screen.
+    - Attempted fixes: None in this session. The previous summary identified the root cause: the backend does not regenerate the thumbnail after a rotation.
     - Next debug checklist:
-        - Debug the  function in .
-        - Ensure the  function is correctly generating a PDF file URI.
-        - Verify the  function is being called with a valid file URI.
-        - Check for permissions issues related to file system access or sharing.
-    - Why fix this issue and what will be achieved with the fix?: Allows users to export and share their scanned documents.
+        - In , modify the  endpoint. After processing the image (rotation), regenerate the document's main thumbnail () using the first page and update the document in the database.
+        - On the frontend, ensure the  invalidates and refetches the document list after an edit.
+    - Why fix this issue and what will be achieved with the fix?: Provides correct visual feedback, confirming to the user that their edits have been saved.
     - Status: NOT STARTED
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: frontend
+    - Is recurring issue? Y
+    - Should Test frontend/backend/both after fix?: both
     - Blocked on other issue: None
 
 - Issue 5:
-    - Description: The user reported that documents are not displayed correctly on the documents page, with parts appearing outside the screen.
-    - Attempted fixes: None.
+    - Description: When the user clicks Add Document from within a folder, the popup appears as a full-screen black overlay instead of a modal.
+    - Attempted fixes: The agent refactored the  screen, but the styling issue persists.
     - Next debug checklist:
-        - Review the styling of the document list/grid in .
-        - Ensure the  components are using  or  appropriately and are constrained within their parent .
-        - Use Flexbox properties to ensure the layout is responsive and items do not overflow the screen width.
-    - Why fix this issue and what will be achieved with the fix?: Improves the core user experience by presenting a clean, correctly formatted view of the user's documents.
-    - Status: NOT STARTED
+        - Review the  implementation and its styles in .
+        - Ensure the modal container does not have  or a black background color covering the whole screen. It should be a centered view with a semi-transparent backdrop.
+    - Why fix this issue and what will be achieved with the fix?: Fixes a significant UI bug, making the feature usable.
+    - Status: IN PROGRESS
     - Is recurring issue? N
     - Should Test frontend/backend/both after fix?: frontend
     - Blocked on other issue: None
 
 - Issue 6:
-    - Description: User wants to create a folder and, when inside it, have an option to add documents to that folder.
-    - Attempted fixes: None. Current implementation allows folder creation, but the workflow for adding documents is missing.
+    - Description: User wants more fine-tune adjustments for filters, similar to Adobe Scan. The current implementation only has brightness, contrast, and saturation.
+    - Attempted fixes: Agent implemented sliders for the three existing adjustments.
     - Next debug checklist:
-        - In the folder detail view ( needs to be adapted for this), add a UI element (e.g., a '+' button) to trigger a document selection mode.
-        - Implement a document picker UI that allows the user to select one or more documents from their main library.
-        - Create or update a backend endpoint to associate the selected documents with the .
-    - Why fix this issue and what will be achieved with the fix?: Implements a fundamental organizational feature requested by the user.
+        - Research common image editing adjustments (e.g., sharpness, shadows, highlights, warmth).
+        - Update the  function in  to handle these new parameters using OpenCV.
+        - Add corresponding sliders to the  component in .
+    - Why fix this issue and what will be achieved with the fix?: Fulfills a specific user request for advanced, pro-level editing features.
     - Status: NOT STARTED
     - Is recurring issue? N
     - Should Test frontend/backend/both after fix?: both
     - Blocked on other issue: None
 
 **In progress Task List**:
-- Task 1: Complete UI/UX Overhaul (P0)
-  - Where to resume: The agent has created a  and updated the app name and landing page. The next step is to apply the theme consistently across all screens (, , , etc.) and refactor the UI to match the requested iOS-native design.
-  - What will be achieved with this?: A modern, professional-looking app with light/dark modes that meets the user's aesthetic requirements.
-  - Status: IN PROGRESS
-  - Should Test frontend/backend/both after fix?: frontend
-  - Blocked on something: None
+- Task 1: Complete Scanner Overhaul & Bug Fixing (P0)
+    - Where to resume: The agent has started modifying  and needs to adjust . The immediate next step is to fix the  function in the backend and complete the UI implementation of the scanner slider and manual crop tool in the frontend.
+    - What will be achieved with this?: A functional and user-friendly scanning experience that meets the user's detailed requirements and fixes the critical auto-crop issue.
+    - Status: IN PROGRESS
+    - Should Test frontend/backend/both after fix?: both
+    - Blocked on something: None
 
 **Upcoming and Future Tasks**
 Upcoming Tasks:
-- **(P0) Implement Guest Mode**: Allow users to use core scanning features without creating an account. The button exists, but the logic to handle a guest session (likely storing documents locally) needs to be built.
-- **(P1) Implement Advanced Filters**: In , replace the simple filter buttons with a more detailed popup/bottom sheet that includes sliders for brightness, contrast, and saturation, as requested.
-- **(P1) Implement Manual Crop**: Add a manual crop editor to the  screen. This will likely require a new library like  or a custom-built interface.
-- **(P2) Add Document Type Selection**: Before opening the scanner, present a screen or modal asking the user to select a document type (Document, ID Card, Book, etc.) to apply specific scanning parameters.
-- **(P2) Folder Password Protection**: Add functionality to set/unset a password on a folder. This will require backend changes to store an encrypted password and frontend UI to prompt for it.
+- **(P1) Fix Rotation Persistence Bug**: Implement the backend thumbnail regeneration logic.
+- **(P1) Implement Comprehensive Fine-Tune Adjustments**: Add more sliders for image editing (shadows, highlights, sharpness).
+- **(P2) Implement Magic Eraser**: Add a cleanup tool in the document editor. This will likely require a specialized image processing library or a custom implementation.
 
 Future Tasks:
-- **(P2) Implement Magic Eraser**: Add a cleanup tool in the document editor.
-- **(P2) Advanced Export**: Add options to export documents as Word (.docx) or Excel (.xlsx).
-- **(P3) AI-Assisted Summaries**: Integrate an LLM call to summarize the content of a scanned document.
-- **(P3) Business Card OCR**: Create a specialized OCR flow to extract contact information from business cards and prompt the user to save it.
+- **(P2) AI-Assisted Document Summaries**: Integrate an LLM call to summarize document content.
+- **(P2) Business Card OCR**: Create a specialized flow to extract contact info from business cards.
+- **(P3) Cloud Sync**: Integrate with a cloud storage provider.
 
 **Completed work in this session**
-- **Full-Stack Scaffolding**: Established the initial Expo frontend and FastAPI backend.
-- **JWT Authentication**: Implemented user registration, login, and session management.
-- **Dependency Conflict Resolution**: Fixed a series of critical build errors related to , , and  version mismatches by removing redundant dependencies and allowing  to manage its own peer dependencies.
-- **Initial UI Implementation**: Created basic screens for landing, auth, home (document list), profile, and a placeholder scanner.
-- **Backend Feature Stubs**: Created non-verified backend endpoints for auto-cropping and OCR.
-- **UI/UX Overhaul (Started)**: Renamed the app to ScanUp, created a  with  for light/dark modes, and updated the landing page with guest mode access.
+- **Phase 1: UI/Theme Foundation**: Successfully implemented a consistent dark/light theme across all existing screens and created theme-aware reusable components.
+- **Phase 2: Core Editing Features (Initial Implementation)**: Added an advanced filter editor with sliders for brightness, contrast, and saturation. Updated the backend to process these adjustments.
+- **Phase 3: Folder Management (Initial Implementation)**: Created a dedicated folder detail screen, added a Move to Folder flow with a selection modal, and implemented backend/frontend infrastructure for password protection.
+- **Phase 4: Advanced Export**: Implemented backend endpoints and frontend UI to export documents as PDF, DOCX, and XLSX files.
 
 **Earlier issues found/mentioned but not fixed**
-All user-reported issues from message #191 and #263 are captured in the **All Pending/In progress Issue list** section above. The agent started working on them but was interrupted by the need to fix the dependency and build issues first.
+- Issue 1: Document rotation is not persistent. This was reported in the initial summary and re-mentioned by the user. It remains unfixed.
 
 **Known issue recurrence from previous fork**
 - Issue recurrence in previous fork: None
@@ -159,171 +160,96 @@ All user-reported issues from message #191 and #263 are captured in the **All Pe
 
 
 **Key Technical Concepts**
-- **Frontend**: React Native, Expo, Expo Router (v6), Zustand, TypeScript
-- **Backend**: Python, FastAPI, Motor (async MongoDB driver)
+- **Frontend**: React Native, Expo, Expo Router, Zustand, TypeScript, 
+- **Backend**: Python, FastAPI, Motor, OpenCV
 - **Database**: MongoDB
-- **Authentication**: JWT (JSON Web Tokens)
-- **Image Processing**: OpenCV (on backend),  (to be implemented)
-- **OCR**:  library calling a GPT-4o model via Emergent LLM Key.
+- **Exporting**:  (PDF),  (Word),  (Excel)
+- **Image Processing**: OpenCV for filtering, edge detection, and perspective transforms.
 
 **key DB schema**
-- **users**: 
-- **sessions**: 
-- **documents**: 
-  - **Page**: 
-- **folders**: 
+- **documents -> pages (sub-document)**: Now includes .
+- **folders**: Now includes , , .
 
 **changes in tech stack**
-- The OCR implementation was changed from a direct usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
-              [-o ORGANIZATION] [-t {openai,azure}]
-              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
-              [--azure-ad-token AZURE_AD_TOKEN] [-V]
-              {api,tools,migrate,grit} ...
-
-positional arguments:
-  {api,tools,migrate,grit}
-    api                 Direct API calls
-    tools               Client side tools for convenience
-
-options:
-  -h, --help            show this help message and exit
-  -v, --verbose         Set verbosity.
-  -b API_BASE, --api-base API_BASE
-                        What API base url to use.
-  -k API_KEY, --api-key API_KEY
-                        What API key to use.
-  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
-                        What proxy to use.
-  -o ORGANIZATION, --organization ORGANIZATION
-                        Which organization to run as (will use your default
-                        organization if not specified)
-  -t {openai,azure}, --api-type {openai,azure}
-                        The backend API to call, must be `openai` or `azure`
-  --api-version API_VERSION
-                        The Azure API version, e.g.
-                        'https://learn.microsoft.com/en-us/azure/ai-
-                        services/openai/reference#rest-api-versioning'
-  --azure-endpoint AZURE_ENDPOINT
-                        The Azure endpoint, e.g.
-                        'https://endpoint.openai.azure.com'
-  --azure-ad-token AZURE_AD_TOKEN
-                        A token from Azure Active Directory,
-                        https://www.microsoft.com/en-
-                        us/security/business/identity-access/microsoft-entra-
-                        id
-  -V, --version         show program's version number and exit SDK call to using the  library to leverage the Emergent LLM Key.
+- **Backend**: Added , , ,  for document export functionalities.
+- **Frontend**: Added  for filter adjustment controls.
 
 **All files of reference**
-- : Contains the entire backend logic. Updated to add stubs for OCR and auto-crop, and to use .
-- : Heavily modified to resolve dependency conflicts. Explicit  packages were removed.
-- : Modified multiple times to fix navigation context errors by restructuring the auth state handling.
-- : Overwritten to become the new ScanUp landing page with a guest mode option.
-- : Overwritten with a new design for the document list screen.
-- : Overwritten with a new design including a theme toggle.
-- : Overwritten with a new UI for document editing, including placeholders for advanced filters and sharing.
-- : Overwritten with a new UI that is intended to support edge detection.
-- : New file created to manage UI theme state.
-- : Updated to support guest mode.
-- : Needs updates to fix the rotation/thumbnail bug.
-- : Updated to rename the app to ScanUp.
-- : Updated to include the .
+- : Heavily modified to add endpoints for advanced filters, manual crop, folder updates (passwords), and file exports.
+- : Overwritten multiple times, currently in a half-finished state for a major UI/UX redesign.
+- : Overwritten to include a new  modal with sliders and an .
+- : Updated with Move to Folder functionality.
+- : Updated to navigate to the new folder detail screen.
+- : **New file.** Screen to display contents of a folder and manage it. Contains broken add document and password logic.
+- : Updated with new functions for folder management (, ).
+- : **New file.**
+- : **New file.**
+- All other frontend screens in  were updated to correctly apply the new theme system.
 
 **Areas that need refactoring**:
-- The  file is over 1000 lines long and acts as a monolith. It should be broken down into a more structured project with separate files/modules for routes, database models, services (image processing, auth), and schemas.
-- The frontend screens have a lot of inline styles and repeated logic. Common UI elements should be extracted into the  directory and styling should be consolidated.
+-  has grown even larger and more complex. It urgently needs to be broken down into modules (e.g., , , ).
+- The new screens (, , ) have a lot of complex state and logic. This could be simplified by extracting logic into custom hooks.
 
 **key api endpoints**
-- 
-- 
-- 
-- 
-- 
-- 
-- 
--  (New, unverified)
--  (New, unverified)
-- 
+-  (New)
+-  (New)
+-  (New, supports pdf, docx, xlsx, etc.)
+-  (Updated, used by )
+-  (Needs update for thumbnail regeneration)
 
 **Critical Info for New Agent**
-- The project scope has been massively expanded by the user in message #286. Refer to that message as the primary source of truth for requirements.
-- A series of critical dependency issues related to , , and  were resolved by removing explicit navigation dependencies from  and letting  manage them. Do not add them back manually.
-- The immediate priority should be to fix the user-reported bugs (rotation, sharing, layout, OCR, cropping) before adding more new features.
-- Testing real-time edge detection will require creating a native development build using EAS, as it won't work in the web preview or the standard Expo Go app.
-- The backend OCR now uses the  library, not the usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
-              [-o ORGANIZATION] [-t {openai,azure}]
-              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
-              [--azure-ad-token AZURE_AD_TOKEN] [-V]
-              {api,tools,migrate,grit} ...
-
-positional arguments:
-  {api,tools,migrate,grit}
-    api                 Direct API calls
-    tools               Client side tools for convenience
-
-options:
-  -h, --help            show this help message and exit
-  -v, --verbose         Set verbosity.
-  -b API_BASE, --api-base API_BASE
-                        What API base url to use.
-  -k API_KEY, --api-key API_KEY
-                        What API key to use.
-  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
-                        What proxy to use.
-  -o ORGANIZATION, --organization ORGANIZATION
-                        Which organization to run as (will use your default
-                        organization if not specified)
-  -t {openai,azure}, --api-type {openai,azure}
-                        The backend API to call, must be `openai` or `azure`
-  --api-version API_VERSION
-                        The Azure API version, e.g.
-                        'https://learn.microsoft.com/en-us/azure/ai-
-                        services/openai/reference#rest-api-versioning'
-  --azure-endpoint AZURE_ENDPOINT
-                        The Azure endpoint, e.g.
-                        'https://endpoint.openai.azure.com'
-  --azure-ad-token AZURE_AD_TOKEN
-                        A token from Azure Active Directory,
-                        https://www.microsoft.com/en-
-                        us/security/business/identity-access/microsoft-entra-
-                        id
-  -V, --version         show program's version number and exit SDK directly.
+- The user is very detail-oriented and has provided clear feedback and a reference app (Adobe Scan). Adhering to this feedback is the highest priority.
+- **Priority 1 is fixing the scanner.** This includes the unreliable auto-crop, missing manual crop, and the non-functional document type slider.
+- **Priority 2 is fixing the folder bugs:** password prompt and adding documents.
+- The agent has already made several attempts to fix TypeScript errors and dependency issues with . Be aware of the legacy API usage ().
+- Restarting the expo server (expo: ERROR (not running)
+expo: ERROR (abnormal termination)) is crucial after making changes to see them reflected in the preview.
 
 **documents created in this job**
-- 
+- None.
 
 **Last 10 User Messages and any pending user messages**
-1.  **User (msg #191)**: Reports multiple critical bugs: real-time edge detection not working, auto-cropping failed, OCR not working, and sharing throws an error. (PENDING)
-2.  **Agent (msg #192)**: Acknowledges the bugs and outlines a plan to fix them.
-3.  **... (msg #193-260)**: Agent attempts to fix the backend (OCR, auto-crop) and frontend, gets sidetracked by more dependency issues, fixes them, and then provides a summary.
-4.  **User (msg #261)**: Asks if the live edge detection will work in production. (ADDRESSED)
-5.  **Agent (msg #262)**: Explains that it requires a native plugin and a proper build, and asks for user's preference.
-6.  **User (msg #263)**: Chooses the native plugin option. Also provides a massive list of new feature requests and UI changes, including renaming the app to ScanUp, adding themes, guest mode, better filters, folder management, and fixing the rotation bug. (PENDING)
-7.  **Agent (msg #264)**: Acknowledges the huge list and begins implementation.
-8.  **... (msg #265-283)**: Agent installs the scanner plugin and starts the UI overhaul (theme store, new landing page).
-9.  **Agent (msg #284-285)**: Provides a summary of the UI changes made so far.
-10. **User (msg #286)**: Provides an even more detailed, structured list of requirements, covering the entire app from splash screen to premium features, effectively defining the new project scope. (PENDING)
-11. **Agent (msg #287)**: Acknowledges the comprehensive list and confirms they will start implementing it.
+- **(msg #143)** User: beginn with pahse 3 plöease - Confirms to start work on folder management. (DONE)
+- **(msg #182)** User: begin with phase 4 - Confirms to start work on OCR & Export. (DONE)
+- **(msg #231)** User: **Critical Feedback.** Reports multiple bugs:
+    - Auto-crop fails (could not detect document edges).
+    - Rotation is slow and not persistent on the documents tab.
+    - Folder password is set but not asked for on entry.
+    - Cannot add documents to a folder (plus but nothing happens).
+    - Add Document popup is a full-screen black overlay.
+    - Document type selector should be a slider.
+    - Wants manual 4-point crop when auto-crop fails.
+    - Wants more fine-tune adjustments.
+    - Provides Adobe Scan documentation link as a reference. (PENDING)
+- **(msg #232 - #235)** Agent: Acknowledges feedback and plans to fix the issues.
+- **(msg #269)** User: **Follow-up Critical Feedback on Scanner.**
+    - Re-iterates auto-crop is not working.
+    - Reports the new scanner slider is not functional (i cant sellect any).
+    - Requests different crop guides/icons for different document types (ID card, book).
+    - Asks for a dedicated crop menu item that offers auto or manual crop. (PENDING)
+- **(msg #270 - #276)** Agent: Acknowledges detailed feedback, analyzes the auto-crop code, and begins a complete redesign of the scanner UI and backend algorithm. (IN PROGRESS)
 
 **Project Health Check:**
-- **Broken**: Document rotation persistence, Real-time edge detection, Auto-cropping, OCR functionality, Document sharing, Document list layout.
-- **Mocked**: The premium subscription system is mocked (a simple boolean flag on the user model).
+- **Broken**: Auto-crop, Manual crop, Scanner document type selection, Folder password prompt, Adding documents to folders, Document rotation persistence.
+- **Mocked**: Premium features are still represented by a simple boolean flag on the user model.
 
 **3rd Party Integrations**
-- **OpenAI GPT-4o**: Used for OCR via the  library. Uses the Emergent LLM Key.
-- **Google ML Kit**: Mentioned by the user as the preferred OCR choice initially, but the agent implemented an LLM-based solution. The agent should clarify if this is acceptable or if ML Kit is still desired.
+- **OpenAI GPT-4o**: For OCR, via  library. Uses Emergent LLM Key.
+- **ReportLab, python-docx, openpyxl**: For backend file exporting.
 
 **Testing status**
 - Testing agent used after significant changes: NO
-- Troubleshoot agent used after agent stuck in loop: YES, to resolve the persistent dependency/navigation context issues.
+- Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: []
-- Known regressions: Several core features (OCR, cropping, sharing) are reported as broken by the user.
+- Known regressions: Multiple core features (auto-crop, folder management) that were partially implemented are now confirmed broken by the user.
 
 **Credentials to test flow:**
-No fixed credentials. The agent registered new users during manual testing (e.g., ). The next agent can register a new user to test the flow.
+Register a new user through the app's registration screen or use the Continue as Guest option.
 
 **What agent forgot to execute**
-- The agent has not yet integrated the newly installed  into the  screen.
-- The agent did not implement the backend fix for the document rotation issue (regenerating the thumbnail).
-- The agent has not addressed the sharing error or the document layout bug reported by the user. The focus shifted to the larger UI overhaul.
+- The agent never fully implemented the folder password prompt logic on the frontend.
+- The agent did not implement the backend thumbnail regeneration for the rotation persistence bug, despite it being a known issue from the start.
+- The agent's implementation of the add document to folder button is not functional.
+- The agent implemented a slider for document types but did not make it functional.
 
 </analysis>
