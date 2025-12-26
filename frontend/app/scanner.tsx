@@ -1038,6 +1038,56 @@ export default function ScannerScreen() {
     }
   };
 
+  // Apply a document template to the crop points
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setShowTemplateModal(false);
+    
+    const template = DOCUMENT_TEMPLATES.find(t => t.id === templateId);
+    if (!template || templateId === 'auto') {
+      // Auto detect - trigger edge detection
+      if (cropImage) {
+        autoDetectEdges(cropImage, currentType.type === 'book' ? 'book' : 'document', imageSize.width, imageSize.height);
+      }
+      return;
+    }
+    
+    const { width, height } = imageSize;
+    const templateAspect = template.aspectRatio;
+    
+    // Calculate crop area that fits the template aspect ratio centered in the image
+    let cropWidth: number, cropHeight: number;
+    
+    if (templateAspect < 1) {
+      // Portrait template (e.g., A4)
+      cropHeight = height * 0.85;
+      cropWidth = cropHeight * templateAspect;
+      if (cropWidth > width * 0.9) {
+        cropWidth = width * 0.9;
+        cropHeight = cropWidth / templateAspect;
+      }
+    } else {
+      // Landscape template
+      cropWidth = width * 0.85;
+      cropHeight = cropWidth / templateAspect;
+      if (cropHeight > height * 0.9) {
+        cropHeight = height * 0.9;
+        cropWidth = cropHeight * templateAspect;
+      }
+    }
+    
+    // Center the crop area
+    const left = (width - cropWidth) / 2;
+    const top = (height - cropHeight) / 2;
+    
+    setCropPoints([
+      { x: left, y: top },                         // TL
+      { x: left + cropWidth, y: top },             // TR
+      { x: left + cropWidth, y: top + cropHeight }, // BR
+      { x: left, y: top + cropHeight },            // BL
+    ]);
+  };
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
