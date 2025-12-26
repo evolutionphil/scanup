@@ -774,41 +774,47 @@ export default function ScannerScreen() {
 
     setIsCapturing(true);
     try {
-      if (isGuest || !token) {
-        logDebug('CROP', 'Guest mode - skipping backend crop');
-        setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+      // Normalize coordinates to 0-1 range for backend
+      const normalizedCorners = cropPoints.map(p => ({
+        x: p.x / imageSize.width,
+        y: p.y / imageSize.height,
+      }));
+
+      logDebug('CROP', 'Sending to backend', {
+        imageSize: `${imageSize.width}x${imageSize.height}`,
+        corners: normalizedCorners.map((c, i) => 
+          `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(4)},${c.y.toFixed(4)})`
+        ).join(' '),
+        isGuest,
+      });
+
+      // Use public endpoint for guests, authenticated endpoint for logged-in users
+      const endpoint = (isGuest || !token) 
+        ? `${BACKEND_URL}/api/images/perspective-crop-public`
+        : `${BACKEND_URL}/api/images/perspective-crop`;
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && !isGuest) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ image_base64: cropImage, corners: normalizedCorners }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.cropped_image_base64) {
+        logDebug('CROP', '✅ Backend crop successful', {
+          originalSize: cropImage.length,
+          croppedSize: result.cropped_image_base64.length,
+        });
+        setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
       } else {
-        // Normalize coordinates to 0-1 range for backend
-        const normalizedCorners = cropPoints.map(p => ({
-          x: p.x / imageSize.width,
-          y: p.y / imageSize.height,
-        }));
-
-        logDebug('CROP', 'Sending to backend', {
-          imageSize: `${imageSize.width}x${imageSize.height}`,
-          corners: normalizedCorners.map((c, i) => 
-            `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(4)},${c.y.toFixed(4)})`
-          ).join(' '),
-        });
-
-        const response = await fetch(`${BACKEND_URL}/api/images/perspective-crop`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ image_base64: cropImage, corners: normalizedCorners }),
-        });
-
-        const result = await response.json();
-        
-        if (result.success && result.cropped_image_base64) {
-          logDebug('CROP', '✅ Backend crop successful', {
-            originalSize: cropImage.length,
-            croppedSize: result.cropped_image_base64.length,
-          });
-          setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
-        } else {
-          logDebug('CROP', '⚠️ Backend crop failed', { message: result.message });
-          setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
-        }
+        logDebug('CROP', '⚠️ Backend crop failed', { message: result.message });
+        setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
       }
       
       // Prompt for back scan if ID card mode
