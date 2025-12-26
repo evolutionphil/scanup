@@ -351,6 +351,82 @@ export default function DocumentsScreen() {
   );
 }
 
+// List view item component
+const DocumentListItem = ({ 
+  document, 
+  onPress, 
+  onLongPress, 
+  selected, 
+  theme 
+}: { 
+  document: Document; 
+  onPress: () => void; 
+  onLongPress: () => void; 
+  selected: boolean; 
+  theme: any;
+}) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.listItem,
+        { backgroundColor: theme.surface },
+        selected && { backgroundColor: theme.primary + '20', borderColor: theme.primary }
+      ]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
+      {/* Thumbnail */}
+      <View style={[styles.listThumbnail, { backgroundColor: theme.background }]}>
+        {document.thumbnail_base64 ? (
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${document.thumbnail_base64}` }}
+            style={styles.listThumbnailImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Ionicons name="document-outline" size={24} color={theme.textMuted} />
+        )}
+      </View>
+      
+      {/* Document Info */}
+      <View style={styles.listItemContent}>
+        <Text style={[styles.listItemTitle, { color: theme.text }]} numberOfLines={1}>
+          {document.title || 'Untitled Document'}
+        </Text>
+        <View style={styles.listItemMeta}>
+          <Text style={[styles.listItemDate, { color: theme.textMuted }]}>
+            {formatDate(document.updated_at || document.created_at)}
+          </Text>
+          <View style={styles.listItemDot} />
+          <Text style={[styles.listItemPages, { color: theme.textMuted }]}>
+            {document.pages?.length || 1} page{(document.pages?.length || 1) !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+      
+      {/* Selection indicator */}
+      {selected && (
+        <View style={[styles.listCheckmark, { backgroundColor: theme.primary }]}>
+          <Ionicons name="checkmark" size={14} color="#FFF" />
+        </View>
+      )}
+      
+      {/* Chevron */}
+      <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
