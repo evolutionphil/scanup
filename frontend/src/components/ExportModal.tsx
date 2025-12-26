@@ -110,12 +110,59 @@ export default function ExportModal({
         const ext = selectedFormat === 'png' ? 'png' : 'jpg';
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.${ext}`;
         mimeType = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
+      } else if (selectedFormat === 'pdf') {
+        // Use public endpoint for PDF - works for both guest and logged-in users
+        if (!pages || pages.length === 0) {
+          throw new Error('No pages available for PDF export');
+        }
+        
+        const imagesBase64 = pages.map(page => {
+          let imgData = page.image_base64 || '';
+          if (imgData.includes(',')) {
+            imgData = imgData.split(',')[1];
+          }
+          return imgData;
+        });
+        
+        if (!imagesBase64[0] || imagesBase64[0].length < 100) {
+          throw new Error('Page images not available. Please try again.');
+        }
+        
+        console.log('Calling public export endpoint...');
+        
+        const response = await fetch(`${BACKEND_URL}/api/export/public`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            format: 'pdf',
+            images_base64: imagesBase64,
+            document_name: documentName,
+          }),
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Export error response:', errorText);
+          throw new Error(`Export failed: ${response.status} - ${errorText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success || !result.file_base64) {
+          throw new Error(result.message || 'Failed to generate PDF');
+        }
+        
+        fileBase64 = result.file_base64;
+        fileName = result.filename || `${documentName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        mimeType = result.mime_type || 'application/pdf';
       } else if (isGuest) {
-        Alert.alert('Sign In Required', 'Sign in to export as PDF.');
+        Alert.alert('Sign In Required', `Sign in to export as ${format.name}.`);
         setIsExporting(false);
         return;
       } else {
-        // Use backend for PDF and other formats
+        // Use backend for TIFF, DOCX and other formats (require authentication)
         console.log('Calling backend export...');
         
         const requestBody = {
