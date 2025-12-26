@@ -651,6 +651,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+  },
+  syncBannerText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 100,
