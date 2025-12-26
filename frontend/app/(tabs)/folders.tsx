@@ -34,12 +34,15 @@ export default function FoldersScreen() {
   const [creating, setCreating] = useState(false);
 
   const loadData = async () => {
-    if (token) {
-      try {
+    try {
+      if (token) {
         await Promise.all([fetchFolders(token), fetchDocuments(token)]);
-      } catch (e) {
-        console.error('Failed to load data:', e);
+      } else {
+        // For guests, load from local storage
+        await Promise.all([fetchFolders(null), fetchDocuments(null)]);
       }
+    } catch (e) {
+      console.error('Failed to load data:', e);
     }
   };
 
