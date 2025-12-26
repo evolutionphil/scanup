@@ -1040,11 +1040,71 @@ export default function ScannerScreen() {
     }
   };
 
-  // Crop overlay SVG - now includes edge handles
+  // Crop overlay SVG - handles both 4-point (regular) and 6-point (book) modes
   const CropOverlay = useMemo(() => {
-    if (cropPoints.length !== 4 || previewLayout.width === 0) return null;
+    const isBookMode = currentType.type === 'book' && cropPoints.length === 6;
+    const expectedPoints = isBookMode ? 6 : 4;
+    
+    if (cropPoints.length !== expectedPoints || previewLayout.width === 0) return null;
     
     const screenPoints = cropPoints.map(p => toScreen(p));
+    
+    if (isBookMode) {
+      // Book mode with 6 points: TL(0), GT(1), TR(2), BR(3), GB(4), BL(5)
+      // Left page: TL -> GT -> GB -> BL
+      // Right page: GT -> TR -> BR -> GB
+      const leftPathD = `M ${screenPoints[0].x} ${screenPoints[0].y} L ${screenPoints[1].x} ${screenPoints[1].y} L ${screenPoints[4].x} ${screenPoints[4].y} L ${screenPoints[5].x} ${screenPoints[5].y} Z`;
+      const rightPathD = `M ${screenPoints[1].x} ${screenPoints[1].y} L ${screenPoints[2].x} ${screenPoints[2].y} L ${screenPoints[3].x} ${screenPoints[3].y} L ${screenPoints[4].x} ${screenPoints[4].y} Z`;
+      const fullPathD = `M ${screenPoints[0].x} ${screenPoints[0].y} L ${screenPoints[1].x} ${screenPoints[1].y} L ${screenPoints[2].x} ${screenPoints[2].y} L ${screenPoints[3].x} ${screenPoints[3].y} L ${screenPoints[4].x} ${screenPoints[4].y} L ${screenPoints[5].x} ${screenPoints[5].y} Z`;
+      
+      // Point labels for book mode
+      const pointLabels = ['TL', 'GT', 'TR', 'BR', 'GB', 'BL'];
+      
+      return (
+        <Svg width={previewLayout.width} height={previewLayout.height} style={StyleSheet.absoluteFill}>
+          <Defs>
+            <Mask id="cropMask">
+              <Rect x="0" y="0" width={previewLayout.width} height={previewLayout.height} fill="white" />
+              <Path d={fullPathD} fill="black" />
+            </Mask>
+          </Defs>
+          <Rect x="0" y="0" width={previewLayout.width} height={previewLayout.height} fill="rgba(0,0,0,0.5)" mask="url(#cropMask)" />
+          
+          {/* Left page outline */}
+          <Path d={leftPathD} stroke="#3B82F6" strokeWidth={2.5} fill="rgba(59,130,246,0.1)" />
+          
+          {/* Right page outline */}
+          <Path d={rightPathD} stroke="#10B981" strokeWidth={2.5} fill="rgba(16,185,129,0.1)" />
+          
+          {/* Gutter line - connecting GT to GB */}
+          <Line x1={screenPoints[1].x} y1={screenPoints[1].y} x2={screenPoints[4].x} y2={screenPoints[4].y}
+            stroke="#F59E0B" strokeWidth={3} strokeDasharray="8,4" />
+          
+          {/* Page labels */}
+          <SvgText x={(screenPoints[0].x + screenPoints[1].x) / 2} y={(screenPoints[0].y + screenPoints[5].y) / 2}
+            fontSize={16} fontWeight="bold" fill="#3B82F6" textAnchor="middle">Page 1</SvgText>
+          <SvgText x={(screenPoints[1].x + screenPoints[2].x) / 2} y={(screenPoints[2].y + screenPoints[1].y) / 2}
+            fontSize={16} fontWeight="bold" fill="#10B981" textAnchor="middle">Page 2</SvgText>
+          
+          {/* All 6 corner handles with labels */}
+          {screenPoints.map((p, i) => {
+            const isGutterPoint = i === 1 || i === 4;
+            const color = isGutterPoint ? '#F59E0B' : (i <= 1 || i === 5 ? '#3B82F6' : '#10B981');
+            return (
+              <React.Fragment key={`point-${i}`}>
+                <Circle cx={p.x} cy={p.y} r={activeDragIndex === i ? 20 : 16} 
+                  fill={color} stroke="#FFF" strokeWidth={3} />
+                <SvgText x={p.x} y={p.y + 4} fontSize={10} fontWeight="bold" fill="#FFF" textAnchor="middle">
+                  {pointLabels[i]}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      );
+    }
+    
+    // Standard 4-point mode
     const edgeMidpoints = getEdgeMidpoints().map(p => toScreen(p));
     const pathD = `M ${screenPoints[0].x} ${screenPoints[0].y} L ${screenPoints[1].x} ${screenPoints[1].y} L ${screenPoints[2].x} ${screenPoints[2].y} L ${screenPoints[3].x} ${screenPoints[3].y} Z`;
 
