@@ -1334,6 +1334,24 @@ export default function ScannerScreen() {
             </Animated.View>
           )}
 
+          {/* Auto-detect status indicator */}
+          {autoCapture && (
+            <View style={styles.autoDetectStatus}>
+              <View style={[styles.autoDetectIndicator, { backgroundColor: edgesDetected ? '#10B981' : '#F59E0B' }]}>
+                <Ionicons 
+                  name={edgesDetected ? 'checkmark-circle' : 'scan-outline'} 
+                  size={16} 
+                  color="#FFF" 
+                />
+                <Text style={styles.autoDetectText}>
+                  {edgesDetected 
+                    ? `Document found (${autoDetectStable}/3)` 
+                    : 'Scanning for document...'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.bottomSection}>
             <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.typeSelector} snapToInterval={90} decelerationRate="fast">
