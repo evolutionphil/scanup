@@ -1,16 +1,22 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const GUEST_DOCUMENTS_KEY = 'guest_documents';
 const GUEST_FOLDERS_KEY = 'guest_folders';
+const PENDING_SYNC_KEY = 'pending_sync_documents';
+const LOCAL_DOCUMENTS_KEY = 'local_documents_cache';
+
+// Sync status for documents
+export type SyncStatus = 'local' | 'syncing' | 'synced' | 'failed';
 
 export interface PageData {
   page_id: string;
-  image_base64?: string;           // Base64 image (MongoDB storage)
+  image_base64?: string;           // Base64 image (local/MongoDB storage)
   image_url?: string;              // S3 URL (cloud storage)
-  original_image_base64?: string;  // Original image before filters (non-destructive editing)
-  thumbnail_base64?: string;       // Base64 thumbnail (MongoDB)
+  original_image_base64?: string;  // Original image before filters
+  thumbnail_base64?: string;       // Base64 thumbnail
   thumbnail_url?: string;          // S3 thumbnail URL
   ocr_text?: string;
   filter_applied: string;
@@ -42,10 +48,11 @@ export interface Document {
   folder_id?: string;
   tags: string[];
   pages: PageData[];
-  document_type?: string;  // document, id_card, passport, book, whiteboard, business_card
+  document_type?: string;
   ocr_full_text?: string;
   is_password_protected: boolean;
-  storage_type?: string;  // 's3' or 'mongodb'
+  storage_type?: string;  // 's3', 'mongodb', or 'local'
+  sync_status?: SyncStatus;  // Sync status for UI
   created_at: string;
   updated_at: string;
 }
@@ -61,43 +68,61 @@ export interface Folder {
   created_at: string;
 }
 
+// Pending sync item
+interface PendingSyncItem {
+  document_id: string;
+  action: 'create' | 'update' | 'delete';
+  data?: any;
+  retries: number;
+  created_at: string;
+}
+
 interface DocumentState {
   documents: Document[];
   folders: Folder[];
   currentDocument: Document | null;
   isLoading: boolean;
+  isSyncing: boolean;
+  pendingSyncCount: number;
   
   // Document actions
   fetchDocuments: (token: string | null, params?: { folder_id?: string; search?: string; tag?: string }) => Promise<void>;
   fetchDocument: (token: string | null, documentId: string) => Promise<Document>;
   createDocument: (token: string | null, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[]; document_type?: string }) => Promise<Document>;
+  createDocumentLocalFirst: (token: string | null, data: { name: string; folder_id?: string; tags?: string[]; pages: Partial<PageData>[]; document_type?: string }) => Promise<Document>;
   updateDocument: (token: string | null, documentId: string, data: Partial<Document>) => Promise<Document>;
   deleteDocument: (token: string | null, documentId: string) => Promise<void>;
   addPageToDocument: (token: string, documentId: string, page: Partial<PageData>) => Promise<Document>;
   setCurrentDocument: (doc: Document | null) => void;
   
   // Folder actions
-  fetchFolders: (token: string) => Promise<void>;
-  createFolder: (token: string, data: { name: string; color?: string }) => Promise<Folder>;
-  updateFolder: (token: string, folderId: string, data: Partial<Folder>) => Promise<Folder>;
-  deleteFolder: (token: string, folderId: string) => Promise<void>;
+  fetchFolders: (token: string | null) => Promise<void>;
+  createFolder: (token: string | null, data: { name: string; color?: string }) => Promise<Folder>;
+  updateFolder: (token: string | null, folderId: string, data: Partial<Folder>) => Promise<Folder>;
+  deleteFolder: (token: string | null, folderId: string) => Promise<void>;
   
   // Image processing
-  processImage: (token: string, imageBase64: string, operation: string, params: Record<string, any>) => Promise<string>;
+  processImage: (token: string | null, imageBase64: string, operation: string, params: Record<string, any>) => Promise<string>;
   
-  // Local storage helpers
+  // Local storage & sync
   loadGuestDocuments: () => Promise<void>;
   saveGuestDocuments: () => Promise<void>;
+  saveLocalCache: () => Promise<void>;
+  loadLocalCache: () => Promise<void>;
+  syncPendingDocuments: (token: string) => Promise<void>;
+  addToPendingSync: (item: PendingSyncItem) => Promise<void>;
+  getPendingSyncItems: () => Promise<PendingSyncItem[]>;
+  clearPendingSyncItem: (documentId: string) => Promise<void>;
+  updateDocumentSyncStatus: (documentId: string, status: SyncStatus) => void;
 }
 
 // Helper to generate unique IDs
 const generateId = () => `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-// Helper to create thumbnail (simple resize for local storage)
+// Helper to create thumbnail
 const createLocalThumbnail = (base64: string): string => {
-  // For local storage, we'll just use a smaller version or the same image
-  // In a real implementation, you'd resize the image
-  return base64;
+  // For local storage, just use the same image (thumbnail creation happens on backend)
+  return base64.substring(0, 5000); // Truncated for storage efficiency
 };
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
@@ -105,6 +130,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   folders: [],
   currentDocument: null,
   isLoading: false,
+  isSyncing: false,
+  pendingSyncCount: 0,
 
   loadGuestDocuments: async () => {
     try {
