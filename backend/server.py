@@ -140,8 +140,11 @@ class AuthResponse(BaseModel):
 # Document Models
 class PageData(BaseModel):
     page_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    image_base64: str
+    image_base64: Optional[str] = None  # Base64 image (MongoDB storage)
+    image_url: Optional[str] = None      # S3 URL (cloud storage)
     thumbnail_base64: Optional[str] = None
+    thumbnail_url: Optional[str] = None  # S3 thumbnail URL
+    original_image_base64: Optional[str] = None  # For non-destructive editing
     ocr_text: Optional[str] = None
     filter_applied: str = "original"  # original, grayscale, bw, enhanced
     rotation: int = 0
