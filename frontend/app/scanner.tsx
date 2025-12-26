@@ -907,7 +907,11 @@ export default function ScannerScreen() {
           ]);
         }
       } else {
-        const docName = `${currentType.label} ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+        // Format: ScanUp_YYYY-MM-DD_HH-MM
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        const timeStr = now.toTimeString().slice(0, 5).replace(':', '-'); // HH-MM
+        const docName = `ScanUp_${dateStr}_${timeStr}`;
 
         if (isGuest) {
           // Guest users can still save documents - they just won't sync to cloud
