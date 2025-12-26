@@ -336,7 +336,7 @@ export default function ScannerScreen() {
       const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: photo.base64 }),
+        body: JSON.stringify({ image_base64: photo.base64, mode: currentType.type }),
       });
       
       if (!response.ok) {
@@ -347,9 +347,11 @@ export default function ScannerScreen() {
       
       const result = await response.json();
       
-      if (result.detected && result.corners) {
+      // Backend returns: { success, points, auto_detected, image_size }
+      if (result.success && result.points && result.auto_detected) {
+        // Only count as "detected" if edges were actually found (not default frame)
         // Convert normalized corners to detection signature for stability check
-        const signature = result.corners.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
+        const signature = result.points.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
         
         if (signature === lastDetectionRef.current) {
           // Same detection as before - increment stability counter
@@ -361,7 +363,7 @@ export default function ScannerScreen() {
         }
         
         // Store detected corners (normalized)
-        setDetectedCorners(result.corners.map((c: any) => ({ x: c.x, y: c.y })));
+        setDetectedCorners(result.points.map((c: any) => ({ x: c.x, y: c.y })));
         setEdgesDetected(true);
         console.log('[AutoCapture] Edges detected, stability:', autoDetectStable + 1);
       } else {
@@ -375,7 +377,7 @@ export default function ScannerScreen() {
       setEdgesDetected(false);
       setAutoDetectStable(0);
     }
-  }, [autoCapture, isCapturing, autoDetectStable]);
+  }, [autoCapture, isCapturing, autoDetectStable, currentType.type]);
 
   // Toggle auto-capture - starts/stops edge detection loop
   const toggleAutoCapture = useCallback(() => {
