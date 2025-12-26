@@ -393,6 +393,124 @@ def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
         logger.error(f"Watermark error: {str(e)}")
         return image_base64  # Return original if watermarking fails
 
+# ==================== AWS S3 FUNCTIONS ====================
+
+def upload_to_s3(image_base64: str, user_id: str, document_id: str, page_id: str, image_type: str = "page") -> Optional[str]:
+    """
+    Upload image to S3 and return the URL.
+    
+    Args:
+        image_base64: Base64 encoded image
+        user_id: User ID
+        document_id: Document ID
+        page_id: Page ID
+        image_type: "page" or "thumbnail"
+    
+    Returns:
+        S3 URL or None if upload fails
+    """
+    if not s3_client:
+        logger.warning("S3 not configured, returning None")
+        return None
+    
+    try:
+        # Clean base64 string
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        # Decode image
+        image_data = base64.b64decode(image_base64)
+        
+        # Generate S3 key
+        s3_key = f"users/{user_id}/documents/{document_id}/{image_type}_{page_id}.jpg"
+        
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=AWS_S3_BUCKET_NAME,
+            Key=s3_key,
+            Body=image_data,
+            ContentType='image/jpeg'
+        )
+        
+        # Generate URL
+        s3_url = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+        logger.info(f"✅ Uploaded to S3: {s3_key}")
+        
+        return s3_url
+    except ClientError as e:
+        logger.error(f"❌ S3 upload error: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"❌ S3 upload error: {e}")
+        return None
+
+
+def delete_from_s3(user_id: str, document_id: str, page_id: Optional[str] = None) -> bool:
+    """
+    Delete image(s) from S3.
+    
+    Args:
+        user_id: User ID
+        document_id: Document ID
+        page_id: Page ID (if None, deletes all pages for document)
+    
+    Returns:
+        True if successful
+    """
+    if not s3_client:
+        return False
+    
+    try:
+        if page_id:
+            # Delete specific page
+            s3_key = f"users/{user_id}/documents/{document_id}/page_{page_id}.jpg"
+            s3_client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=s3_key)
+            # Also delete thumbnail
+            thumb_key = f"users/{user_id}/documents/{document_id}/thumbnail_{page_id}.jpg"
+            s3_client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=thumb_key)
+        else:
+            # Delete all objects for document
+            prefix = f"users/{user_id}/documents/{document_id}/"
+            response = s3_client.list_objects_v2(Bucket=AWS_S3_BUCKET_NAME, Prefix=prefix)
+            
+            if 'Contents' in response:
+                for obj in response['Contents']:
+                    s3_client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=obj['Key'])
+        
+        logger.info(f"✅ Deleted from S3: {user_id}/{document_id}/{page_id or 'all'}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ S3 delete error: {e}")
+        return False
+
+
+def create_thumbnail(image_base64: str, max_size: int = 300) -> str:
+    """Create a thumbnail from image base64"""
+    try:
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+        
+        image_data = base64.b64decode(image_base64)
+        img = Image.open(BytesIO(image_data))
+        
+        # Calculate thumbnail size maintaining aspect ratio
+        ratio = min(max_size / img.width, max_size / img.height)
+        new_size = (int(img.width * ratio), int(img.height * ratio))
+        
+        img = img.resize(new_size, Image.Resampling.LANCZOS)
+        
+        # Convert to RGB if necessary
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        buffer = BytesIO()
+        img.save(buffer, format='JPEG', quality=70)
+        return base64.b64encode(buffer.getvalue()).decode()
+    except Exception as e:
+        logger.error(f"Thumbnail creation error: {e}")
+        return image_base64[:1000]  # Return truncated original as fallback
+
+
 async def check_scan_limits(user: User) -> Tuple[bool, str]:
     """Check if user can scan. Returns (can_scan, message)"""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
