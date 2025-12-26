@@ -174,6 +174,8 @@ class Document(BaseModel):
     pages: List[PageData] = []
     ocr_full_text: Optional[str] = None
     is_password_protected: bool = False
+    storage_type: Optional[str] = None  # 's3' or 'mongodb'
+    has_watermark: Optional[bool] = None
     created_at: datetime
     updated_at: datetime
 
