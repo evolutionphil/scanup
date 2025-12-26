@@ -1585,6 +1585,40 @@ export default function ScannerScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Template Selection Modal */}
+        {showTemplateModal && (
+          <TouchableOpacity 
+            style={styles.templateModalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowTemplateModal(false)}
+          >
+            <View style={[styles.templateModalContent, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.templateModalTitle, { color: theme.text }]}>Select Document Template</Text>
+              <ScrollView style={styles.templateList} showsVerticalScrollIndicator={false}>
+                {DOCUMENT_TEMPLATES.map((template) => (
+                  <TouchableOpacity
+                    key={template.id}
+                    style={[
+                      styles.templateItem,
+                      selectedTemplate === template.id && { backgroundColor: theme.primary + '15', borderColor: theme.primary },
+                    ]}
+                    onPress={() => applyTemplate(template.id)}
+                  >
+                    <Ionicons name={template.icon as any} size={24} color={selectedTemplate === template.id ? theme.primary : theme.text} />
+                    <View style={styles.templateItemText}>
+                      <Text style={[styles.templateName, { color: theme.text }]}>{template.name}</Text>
+                      <Text style={[styles.templateDesc, { color: theme.textMuted }]}>{template.description}</Text>
+                    </View>
+                    {selectedTemplate === template.id && (
+                      <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
     );
   }
