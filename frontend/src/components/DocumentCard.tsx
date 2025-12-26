@@ -49,9 +49,9 @@ export default function DocumentCard({
       activeOpacity={0.7}
     >
       <View style={[styles.thumbnailContainer, { backgroundColor: theme.surfaceVariant }]}>
-        {thumbnail ? (
+        {thumbnailSource && thumbnailSource.uri ? (
           <Image
-            source={{ uri: `data:image/jpeg;base64,${thumbnail}` }}
+            source={thumbnailSource}
             style={styles.thumbnail}
             resizeMode="cover"
           />
@@ -69,6 +69,21 @@ export default function DocumentCard({
         {document.is_password_protected && (
           <View style={styles.lockBadge}>
             <Ionicons name="lock-closed" size={12} color="#FFF" />
+          </View>
+        )}
+        {/* Sync status indicator */}
+        {syncStatus && syncStatus !== 'synced' && (
+          <View style={[styles.syncBadge, { 
+            backgroundColor: syncStatus === 'syncing' ? theme.primary : 
+                            syncStatus === 'failed' ? theme.danger : theme.warning 
+          }]}>
+            {syncStatus === 'syncing' ? (
+              <ActivityIndicator size={10} color="#FFF" />
+            ) : syncStatus === 'failed' ? (
+              <Ionicons name="alert-circle" size={12} color="#FFF" />
+            ) : (
+              <Ionicons name="cloud-upload-outline" size={12} color="#FFF" />
+            )}
           </View>
         )}
         {selected && (
