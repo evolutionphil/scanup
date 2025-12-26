@@ -784,6 +784,65 @@ def detect_document_edges(image_base64: str, document_type: str = "document") ->
         logger.error(f"Error detecting edges: {e}")
         return {"detected": False, "corners": None, "message": str(e)}
 
+def fix_image_orientation_pil(image_bytes):
+    """
+    Fix image orientation based on EXIF data using PIL.
+    Returns corrected image bytes with proper orientation.
+    
+    Args:
+        image_bytes: Original image bytes
+    Returns:
+        Tuple of (corrected_bytes, was_rotated, original_orientation)
+    """
+    try:
+        from PIL import Image as PILImage
+        from PIL import ExifTags
+        from io import BytesIO
+        
+        pil_img = PILImage.open(BytesIO(image_bytes))
+        original_size = pil_img.size
+        orientation = 1  # Default: normal
+        
+        # Try to get EXIF orientation
+        try:
+            exif = pil_img._getexif()
+            if exif:
+                for tag, value in exif.items():
+                    if ExifTags.TAGS.get(tag) == 'Orientation':
+                        orientation = value
+                        logger.info(f"EXIF Orientation found: {value} (size before: {original_size})")
+                        
+                        if value == 3:
+                            pil_img = pil_img.rotate(180, expand=True)
+                            logger.info("Applied 180 degree rotation")
+                        elif value == 6:
+                            pil_img = pil_img.rotate(-90, expand=True)  # 90 CW = -90 in PIL
+                            logger.info("Applied 90 degree clockwise rotation")
+                        elif value == 8:
+                            pil_img = pil_img.rotate(90, expand=True)  # 90 CCW = 90 in PIL
+                            logger.info("Applied 90 degree counter-clockwise rotation")
+                        
+                        logger.info(f"Size after rotation: {pil_img.size}")
+                        break
+        except (AttributeError, KeyError, IndexError) as e:
+            logger.debug(f"No EXIF orientation found: {e}")
+        
+        # Convert back to bytes
+        buffer = BytesIO()
+        # Save as JPEG without EXIF to avoid re-rotation
+        if pil_img.mode == 'RGBA':
+            pil_img = pil_img.convert('RGB')
+        pil_img.save(buffer, format='JPEG', quality=95)
+        corrected_bytes = buffer.getvalue()
+        
+        was_rotated = orientation in [3, 6, 8]
+        return corrected_bytes, was_rotated, orientation
+        
+    except Exception as e:
+        logger.error(f"Error fixing orientation: {e}")
+        return image_bytes, False, 1
+
+
 def fix_image_orientation(img, original_bytes=None):
     """
     Fix image orientation based on EXIF data.
