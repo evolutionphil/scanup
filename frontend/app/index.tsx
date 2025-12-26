@@ -163,23 +163,28 @@ export default function Index() {
             size="large"
             style={styles.button}
           />
-          <Button
-            title="Sign In"
-            onPress={() => router.push('/(auth)/login')}
-            variant="outline"
-            size="large"
-            style={styles.button}
-          />
-          <Button
-            title="Continue as Guest"
+          
+          <View style={styles.signinRow}>
+            <Text style={[styles.signinText, { color: theme.textMuted }]}>
+              Already have an account?
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+              <Text style={[styles.signinLink, { color: theme.primary }]}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.guestButton}
             onPress={() => {
               useAuthStore.getState().continueAsGuest();
               router.replace('/(tabs)');
             }}
-            variant="secondary"
-            size="medium"
-            style={{ ...styles.button, marginTop: 8 }}
-          />
+          >
+            <Ionicons name="scan-outline" size={18} color={theme.textMuted} />
+            <Text style={[styles.guestText, { color: theme.textMuted }]}>
+              Continue without login
+            </Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </SafeAreaView>
