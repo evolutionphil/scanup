@@ -691,4 +691,72 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const result = await response.json();
     return result.processed_image_base64;
   },
+
+  // Migrate guest/local documents to user account after login
+  migrateGuestDocumentsToAccount: async (token: string) => {
+    try {
+      // Load any stored guest documents
+      const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
+      const guestDocuments: Document[] = storedDocs ? JSON.parse(storedDocs) : [];
+      
+      // Also check for local documents in current state that haven't been synced
+      const { documents, createDocument } = get();
+      const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
+      
+      // Combine both sources (avoid duplicates)
+      const allLocalDocs = [...guestDocuments];
+      for (const doc of localDocs) {
+        if (!allLocalDocs.find(d => d.document_id === doc.document_id)) {
+          allLocalDocs.push(doc);
+        }
+      }
+      
+      if (allLocalDocs.length === 0) {
+        console.log('No local documents to migrate');
+        return 0;
+      }
+      
+      console.log(`Migrating ${allLocalDocs.length} local documents to account...`);
+      
+      let migratedCount = 0;
+      
+      for (const localDoc of allLocalDocs) {
+        try {
+          // Create a new document in the user's account
+          const newDoc = await createDocument(token, {
+            name: localDoc.name,
+            folder_id: undefined, // Put in root folder
+            tags: localDoc.tags || [],
+            pages: localDoc.pages.map(page => ({
+              image_base64: page.image_base64,
+              original_image_base64: page.original_image_base64,
+              filter_applied: page.filter_applied || 'original',
+              rotation: page.rotation || 0,
+              ocr_text: page.ocr_text,
+            })),
+            document_type: localDoc.document_type || 'document',
+          });
+          
+          if (newDoc) {
+            migratedCount++;
+            console.log(`Migrated document: ${localDoc.name}`);
+          }
+        } catch (docError) {
+          console.error(`Failed to migrate document ${localDoc.name}:`, docError);
+        }
+      }
+      
+      // Clear guest documents after successful migration
+      if (migratedCount > 0) {
+        await AsyncStorage.removeItem(GUEST_DOCUMENTS_KEY);
+        await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
+        console.log(`Successfully migrated ${migratedCount} documents`);
+      }
+      
+      return migratedCount;
+    } catch (e) {
+      console.error('Error migrating guest documents:', e);
+      return 0;
+    }
+  },
 }));
