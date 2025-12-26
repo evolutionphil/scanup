@@ -678,7 +678,7 @@ export default function ScannerScreen() {
                   <View style={[styles.sideBtnInner, { opacity: 0.3 }]}><Ionicons name="layers" size={22} color="#94A3B8" /></View>
                 )}
                 <Text style={styles.sideBtnText}>{capturedImages.length > 0 ? 'View' : 'Pages'}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </SafeAreaView>
