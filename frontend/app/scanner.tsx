@@ -137,6 +137,10 @@ export default function ScannerScreen() {
   const [autoCapture, setAutoCapture] = useState(false);
   const [edgesDetected, setEdgesDetected] = useState(false);
   const [isScanning, setIsScanning] = useState(false); // For scanning animation
+  const [detectedCorners, setDetectedCorners] = useState<CropPoint[] | null>(null); // Real detected corners
+  const [autoDetectStable, setAutoDetectStable] = useState(0); // Counter for stable detection
+  const autoDetectIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDetectionRef = useRef<string>(''); // To track if detection changed
   
   const addToDocumentId = params.addToDocument as string | undefined;
   
