@@ -809,6 +809,12 @@ export default function DocumentScreen() {
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
           <ActionButton 
+            icon="brush" 
+            label="Annotate" 
+            onPress={() => setShowAnnotationEditor(true)} 
+            theme={theme} 
+          />
+          <ActionButton 
             icon="pencil" 
             label={hasOriginal ? "Re-Sign" : "Sign"} 
             onPress={() => {
