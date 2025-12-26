@@ -530,6 +530,7 @@ export default function DocumentScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll}>
         <View style={[styles.actions, { borderTopColor: theme.border }]}>
+          <ActionButton icon="add-circle" label="Add Page" onPress={() => router.push({ pathname: '/scanner', params: { addToDocument: currentDocument.document_id } })} theme={theme} />
           <ActionButton icon="color-wand" label="Filters" onPress={() => setShowFilterEditor(true)} theme={theme} />
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
