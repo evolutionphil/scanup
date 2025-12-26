@@ -2636,6 +2636,7 @@ async def detect_edges_endpoint(request: EdgeDetectionRequest):
     - id_card mode: 4 points [TL, TR, BR, BL]
     
     All points are normalized to 0-1 range.
+    If no edges detected, returns default frame with 5% margins.
     """
     try:
         # Decode image
@@ -2655,20 +2656,42 @@ async def detect_edges_endpoint(request: EdgeDetectionRequest):
         if request.mode == "book":
             points = detect_book_edges_cv(img)
             point_count = 6
+            # Default book points with gutter in middle
+            default_points = [
+                {"x": 0.05, "y": 0.05},  # TL
+                {"x": 0.5, "y": 0.05},   # GT (Gutter Top)
+                {"x": 0.95, "y": 0.05},  # TR
+                {"x": 0.95, "y": 0.95},  # BR
+                {"x": 0.5, "y": 0.95},   # GB (Gutter Bottom)
+                {"x": 0.05, "y": 0.95},  # BL
+            ]
         else:
             points = detect_document_edges_cv(img)
             point_count = 4
+            # Default document points with 5% margins
+            default_points = [
+                {"x": 0.05, "y": 0.05},  # TL
+                {"x": 0.95, "y": 0.05},  # TR
+                {"x": 0.95, "y": 0.95},  # BR
+                {"x": 0.05, "y": 0.95},  # BL
+            ]
         
         if points and len(points) == point_count:
+            logger.info(f"[EdgeDetect] Successfully detected {point_count} points for {request.mode} mode")
             return {
                 "success": True,
                 "points": points,
-                "image_size": {"width": width, "height": height}
+                "image_size": {"width": width, "height": height},
+                "auto_detected": True
             }
         else:
+            logger.info(f"[EdgeDetect] No edges detected for {request.mode} mode, returning default frame")
             return {
-                "success": False,
-                "message": "Document edges not clearly detected"
+                "success": True,  # Return success with default points so UI can use them
+                "points": default_points,
+                "image_size": {"width": width, "height": height},
+                "auto_detected": False,
+                "message": "Document edges not clearly detected, using default frame"
             }
             
     except Exception as e:
