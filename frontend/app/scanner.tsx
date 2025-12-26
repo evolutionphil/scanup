@@ -181,6 +181,56 @@ export default function ScannerScreen() {
     }
   }, [isCapturing]);
 
+  // Scanning animation for auto-capture
+  useEffect(() => {
+    if (isScanning) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scanningAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scanningAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      scanningAnim.setValue(0);
+    }
+  }, [isScanning]);
+
+  // Auto-capture when edges are detected (simulated - in real app this would use ML)
+  useEffect(() => {
+    if (autoCapture && edgesDetected && !isCapturing && showCamera) {
+      // Small delay before auto-capture
+      const timer = setTimeout(() => {
+        if (edgesDetected) {
+          takePicture();
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoCapture, edgesDetected, isCapturing, showCamera]);
+
+  // Toggle auto-capture
+  const toggleAutoCapture = useCallback(() => {
+    setAutoCapture(prev => !prev);
+    if (!autoCapture) {
+      setIsScanning(true);
+      // Simulate edge detection after a delay (in real app, this would be continuous ML detection)
+      setTimeout(() => {
+        setEdgesDetected(true);
+      }, 2000);
+    } else {
+      setIsScanning(false);
+      setEdgesDetected(false);
+    }
+  }, [autoCapture]);
+
   /**
    * Calculate edge midpoints for edge handles
    */
