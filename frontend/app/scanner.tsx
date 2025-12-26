@@ -809,50 +809,79 @@ export default function ScannerScreen() {
           `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(4)},${c.y.toFixed(4)})`
         ).join(' '),
         isGuest,
+        documentType: currentType.type,
       });
 
-      // Use public endpoint for guests, authenticated endpoint for logged-in users
-      const endpoint = (isGuest || !token) 
-        ? `${BACKEND_URL}/api/images/perspective-crop-public`
-        : `${BACKEND_URL}/api/images/perspective-crop`;
-      
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token && !isGuest) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Check if image appears to be portrait (height > width in crop points)
-      // This helps Android cameras that capture in landscape without EXIF
-      const cropHeight = Math.abs(cropPoints[2].y - cropPoints[0].y);
-      const cropWidth = Math.abs(cropPoints[1].x - cropPoints[0].x);
-      const forcePortrait = cropHeight > cropWidth;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ 
-          image_base64: cropImage, 
-          corners: normalizedCorners,
-          force_portrait: forcePortrait 
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success && result.cropped_image_base64) {
-        logDebug('CROP', '✅ Backend crop successful', {
-          originalSize: cropImage.length,
-          croppedSize: result.cropped_image_base64.length,
+      // BOOK MODE: Use split-book-pages endpoint
+      if (currentType.type === 'book') {
+        const response = await fetch(`${BACKEND_URL}/api/images/split-book-pages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            image_base64: cropImage, 
+            corners: normalizedCorners,
+            gutter_position: null, // Auto-detect
+          }),
         });
-        setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
+
+        const result = await response.json();
+        
+        if (result.success && result.left_page_base64 && result.right_page_base64) {
+          logDebug('CROP', '✅ Book pages split successfully', {
+            gutterPosition: result.gutter_position,
+          });
+          // Add both pages as separate captures (left = page 1, right = page 2)
+          setCapturedImages(prev => [
+            ...prev, 
+            { base64: result.left_page_base64, original: cropImage },
+            { base64: result.right_page_base64, original: cropImage },
+          ]);
+        } else {
+          logDebug('CROP', '⚠️ Book split failed, using original', { message: result.message });
+          setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+        }
       } else {
-        logDebug('CROP', '⚠️ Backend crop failed', { message: result.message });
-        setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+        // STANDARD MODE: Use perspective crop endpoint
+        const endpoint = (isGuest || !token) 
+          ? `${BACKEND_URL}/api/images/perspective-crop-public`
+          : `${BACKEND_URL}/api/images/perspective-crop`;
+        
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token && !isGuest) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Check if image appears to be portrait (height > width in crop points)
+        const cropHeight = Math.abs(cropPoints[2].y - cropPoints[0].y);
+        const cropWidth = Math.abs(cropPoints[1].x - cropPoints[0].x);
+        const forcePortrait = cropHeight > cropWidth;
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ 
+            image_base64: cropImage, 
+            corners: normalizedCorners,
+            force_portrait: forcePortrait 
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (result.success && result.cropped_image_base64) {
+          logDebug('CROP', '✅ Backend crop successful', {
+            originalSize: cropImage.length,
+            croppedSize: result.cropped_image_base64.length,
+          });
+          setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
+        } else {
+          logDebug('CROP', '⚠️ Backend crop failed', { message: result.message });
+          setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
+        }
       }
       
       // Prompt for back scan if ID card mode
       if (currentType.scanBack && capturedImages.length === 0) {
-        // This is the first (front) scan of ID card
         Alert.alert(
           'Scan Back Side?',
           'Would you like to scan the back of your ID card?',
@@ -860,7 +889,6 @@ export default function ScannerScreen() {
             { text: 'Skip', style: 'cancel', onPress: () => setShowCamera(false) },
             { text: 'Scan Back', onPress: () => {
               setShowCamera(true);
-              // Update guide text
             }},
           ]
         );
