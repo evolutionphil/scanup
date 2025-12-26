@@ -121,8 +121,9 @@ const generateId = () => `local_${Date.now()}_${Math.random().toString(36).subst
 
 // Helper to create thumbnail
 const createLocalThumbnail = (base64: string): string => {
-  // For local storage, just use the same image (thumbnail creation happens on backend)
-  return base64.substring(0, 5000); // Truncated for storage efficiency
+  // For local storage, use the full image as thumbnail since we can't resize on frontend
+  // The image is already compressed from the camera, so this should be fine
+  return base64;
 };
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
