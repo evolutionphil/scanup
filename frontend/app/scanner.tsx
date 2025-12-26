@@ -821,8 +821,13 @@ export default function ScannerScreen() {
         const docName = `${currentType.label} ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 
         if (isGuest) {
-          Alert.alert('Guest Mode', 'Sign in to save documents.', [
+          // Guest users can still save documents - they just won't sync to cloud
+          // Save using the document store which handles local storage for guests
+          await createDocument(null, { name: docName, pages: newPages, document_type: currentType.type });
+          await fetchDocuments(null);
+          Alert.alert('Document Saved', 'Your document has been saved locally. Sign in to sync across devices.', [
             { text: 'OK', onPress: () => router.back() },
+            { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
           ]);
         } else if (token) {
           await createDocument(token, { name: docName, pages: newPages, document_type: currentType.type });
