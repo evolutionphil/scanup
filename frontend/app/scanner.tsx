@@ -514,6 +514,25 @@ export default function ScannerScreen() {
 
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
+    
+    // Check scan limits for free users before capturing
+    if (!isGuest && user && !user.is_premium && !user.is_trial) {
+      if ((user.scans_remaining_today ?? 0) <= 0) {
+        Alert.alert(
+          'Daily Scan Limit Reached',
+          `You've used all ${10} scans for today. Upgrade to Premium for unlimited scanning.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Start Free Trial', 
+              onPress: () => router.push('/(tabs)/profile'),
+            },
+          ]
+        );
+        return;
+      }
+    }
+    
     setIsCapturing(true);
     
     try {
