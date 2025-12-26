@@ -201,29 +201,47 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Premium Card */}
+        {/* Premium/Trial Card */}
         {!isGuest && (
-          <View style={[styles.card, { backgroundColor: theme.surface }, user?.is_premium && styles.premiumCardBorder]}>
+          <View style={[styles.card, { backgroundColor: theme.surface }, (user?.is_premium || user?.is_trial) && styles.premiumCardBorder]}>
             <View style={styles.cardHeader}>
-              <View style={[styles.iconBox, { backgroundColor: (user?.is_premium ? theme.warning : theme.primary) + '20' }]}>
+              <View style={[styles.iconBox, { backgroundColor: ((user?.is_premium || user?.is_trial) ? theme.warning : theme.primary) + '20' }]}>
                 <Ionicons
-                  name={user?.is_premium ? 'star' : 'star-outline'}
+                  name={(user?.is_premium || user?.is_trial) ? 'star' : 'star-outline'}
                   size={24}
-                  color={user?.is_premium ? theme.warning : theme.primary}
+                  color={(user?.is_premium || user?.is_trial) ? theme.warning : theme.primary}
                 />
               </View>
               <View style={styles.cardHeaderText}>
                 <Text style={[styles.cardTitle, { color: theme.text }]}>
-                  {user?.is_premium ? 'Premium Member' : 'Free Plan'}
+                  {user?.is_premium ? 'Premium Member' : user?.is_trial ? `Trial (${user.trial_days_remaining || 0} days left)` : 'Free Plan'}
                 </Text>
                 <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-                  {user?.is_premium ? 'All features unlocked' : 'Limited features'}
+                  {user?.is_premium ? 'All features unlocked' : user?.is_trial ? 'Full access during trial' : 'Limited features'}
                 </Text>
               </View>
             </View>
 
+            {/* Show trial banner for free users who haven't used trial */}
+            {!user?.is_premium && !user?.is_trial && (
+              <View style={[styles.trialBanner, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}>
+                <Ionicons name="gift-outline" size={20} color={theme.success} />
+                <View style={styles.trialBannerText}>
+                  <Text style={[styles.trialBannerTitle, { color: theme.success }]}>Try Premium Free</Text>
+                  <Text style={[styles.trialBannerSubtitle, { color: theme.textMuted }]}>7-day trial, no credit card needed</Text>
+                </View>
+                <TouchableOpacity 
+                  style={[styles.trialButton, { backgroundColor: theme.success }]}
+                  onPress={handleStartTrial}
+                  disabled={startingTrial}
+                >
+                  <Text style={styles.trialButtonText}>{startingTrial ? '...' : 'Start'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <Button
-              title={user?.is_premium ? 'Manage Subscription' : 'Upgrade to Pro'}
+              title={user?.is_premium ? 'Manage Subscription' : user?.is_trial ? 'Upgrade to Pro' : 'Upgrade to Pro'}
               onPress={handleUpgrade}
               loading={upgrading}
               variant={user?.is_premium ? 'secondary' : 'primary'}
