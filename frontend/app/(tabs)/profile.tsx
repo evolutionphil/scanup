@@ -487,10 +487,60 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  statSubLabel: {
+    fontSize: 10,
+    marginTop: 2,
+    opacity: 0.7,
+  },
   statDivider: {
     width: 1,
     height: 40,
     marginHorizontal: 16,
+  },
+  monthlyUsage: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  monthlyLabel: {
+    fontSize: 13,
+  },
+  monthlyValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  trialBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  trialBannerText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  trialBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  trialBannerSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  trialButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  trialButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   settingRow: {
     flexDirection: 'row',
