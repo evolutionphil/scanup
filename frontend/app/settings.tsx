@@ -326,20 +326,6 @@ export default function SettingsScreen() {
         />
         
         <SettingRow
-          icon="save-outline"
-          label="Auto Save"
-          subtitle="Save documents immediately after capture"
-          rightElement={
-            <Switch
-              value={settings.autoSave}
-              onValueChange={(v) => updateSetting('autoSave', v)}
-              trackColor={{ false: theme.border, true: theme.primary + '50' }}
-              thumbColor={settings.autoSave ? theme.primary : theme.textMuted}
-            />
-          }
-        />
-        
-        <SettingRow
           icon="grid-outline"
           label="Show Grid Overlay"
           subtitle="Display alignment grid on camera"
