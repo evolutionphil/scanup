@@ -1312,8 +1312,10 @@ export default function ScannerScreen() {
           >
             {isCapturing ? <ActivityIndicator color="#FFF" /> : (
               <>
-                <Ionicons name="checkmark" size={22} color="#FFF" />
-                <Text style={styles.cropBtnText}>Save & Crop</Text>
+                <Ionicons name={currentType.type === 'book' ? 'layers' : 'checkmark'} size={22} color="#FFF" />
+                <Text style={styles.cropBtnText}>
+                  {currentType.type === 'book' ? 'Split & Save Pages' : 'Save & Crop'}
+                </Text>
               </>
             )}
           </TouchableOpacity>
