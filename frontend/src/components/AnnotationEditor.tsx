@@ -293,14 +293,14 @@ export default function AnnotationEditor({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.surface }]}>
-          <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
-            <Ionicons name="close" size={24} color={theme.text} />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Header with proper safe area padding */}
+        <View style={[styles.header, { backgroundColor: theme.surface, paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity onPress={onClose} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={28} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Annotate</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.headerBtn}>
+          <TouchableOpacity onPress={handleSave} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={[styles.saveText, { color: theme.primary }]}>Done</Text>
           </TouchableOpacity>
         </View>
