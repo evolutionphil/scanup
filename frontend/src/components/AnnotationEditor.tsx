@@ -47,6 +47,7 @@ const COLORS = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#000000'
 const STROKE_WIDTHS = [2, 4, 6, 8];
 
 const TOOLS = [
+  { id: 'select', icon: 'move', label: 'Select' },
   { id: 'freehand', icon: 'pencil', label: 'Draw' },
   { id: 'text', icon: 'text', label: 'Text' },
   { id: 'arrow', icon: 'arrow-forward', label: 'Arrow' },
