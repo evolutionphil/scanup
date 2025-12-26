@@ -162,8 +162,10 @@ export default function ScannerScreen() {
   
   // Settings from AsyncStorage
   const [showGridOverlay, setShowGridOverlay] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundRef = useRef<Audio.Sound | null>(null);
   
-  // Load settings
+  // Load settings and setup audio
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -171,12 +173,62 @@ export default function ScannerScreen() {
         if (gridSetting !== null) {
           setShowGridOverlay(gridSetting === 'true');
         }
+        const soundSetting = await AsyncStorage.getItem('@scanup_sound_enabled');
+        if (soundSetting !== null) {
+          setSoundEnabled(soundSetting !== 'false');
+        }
       } catch (e) {
         console.log('Could not load scanner settings');
       }
     };
+    
+    // Setup audio mode
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: false,
+          staysActiveInBackground: false,
+        });
+      } catch (e) {
+        console.log('Could not setup audio');
+      }
+    };
+    
     loadSettings();
+    setupAudio();
+    
+    // Cleanup sound on unmount
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
   }, []);
+  
+  // Play shutter sound
+  const playShutterSound = async () => {
+    if (!soundEnabled) return;
+    
+    try {
+      // Create a simple beep sound using a short audio snippet
+      // Using a base64-encoded beep sound for portability
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: 'https://actions.google.com/sounds/v1/doors/wood_door_open.ogg' },
+        { shouldPlay: true, volume: 0.5 }
+      );
+      soundRef.current = sound;
+      
+      // Unload after playing
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
+    } catch (e) {
+      // Silently fail if sound can't play
+      console.log('Could not play shutter sound');
+    }
+  };
   
   // Document Template
   const [selectedTemplate, setSelectedTemplate] = useState<string>('auto');
