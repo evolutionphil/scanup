@@ -927,8 +927,11 @@ export default function ScannerScreen() {
         created_at: new Date().toISOString(),
       }));
 
-      if (addToDocumentId && token) {
-        await fetchDocument(token, addToDocumentId);
+      if (addToDocumentId) {
+        // Adding pages to existing document
+        const isLocalDoc = addToDocumentId.startsWith('local_');
+        
+        await fetchDocument(isLocalDoc ? null : token, addToDocumentId);
         const existingDoc = useDocumentStore.getState().currentDocument;
         
         if (existingDoc) {
@@ -938,12 +941,14 @@ export default function ScannerScreen() {
             ...newPages.map((p, i) => ({ ...p, order: existingPages.length + i }))
           ];
           
-          await updateDocument(token, addToDocumentId, { pages: updatedPages });
-          await fetchDocuments(token);
+          await updateDocument(isLocalDoc ? null : token, addToDocumentId, { pages: updatedPages });
+          await fetchDocuments(isLocalDoc ? null : token);
           
           Alert.alert('Success', `Added ${capturedImages.length} page(s)`, [
             { text: 'OK', onPress: () => router.back() },
           ]);
+        } else {
+          Alert.alert('Error', 'Could not find document to add pages to');
         }
       } else {
         // Format: ScanUp_YYYY-MM-DD_HH-MM
