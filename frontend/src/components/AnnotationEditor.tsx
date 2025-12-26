@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,9 @@ import {
   PanResponder,
   TextInput,
   ScrollView,
+  GestureResponderEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Rect, Line, Text as SvgText } from 'react-native-svg';
 import { useThemeStore } from '../store/themeStore';
