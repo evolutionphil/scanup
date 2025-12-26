@@ -1734,6 +1734,30 @@ async def auto_crop_image(
         "message": edge_result.get("message", "Could not detect document edges automatically")
     }
 
+
+@api_router.post("/images/auto-crop-public")
+async def auto_crop_image_public(request: ImageProcessRequest):
+    """Public endpoint to auto-crop image (no auth required) - for guest users"""
+    document_type = request.params.get("document_type", "document")
+    
+    edge_result = detect_document_edges(request.image_base64, document_type)
+    
+    if edge_result.get("detected") and edge_result.get("corners"):
+        cropped = perspective_crop(request.image_base64, edge_result["corners"])
+        return {
+            "success": True,
+            "cropped_image_base64": cropped,
+            "corners": edge_result["corners"],
+            "confidence": edge_result.get("confidence", 0)
+        }
+    
+    return {
+        "success": False,
+        "cropped_image_base64": request.image_base64,
+        "corners": edge_result.get("corners"),
+        "message": edge_result.get("message", "Could not detect document edges automatically")
+    }
+
 class ManualCropRequest(BaseModel):
     image_base64: str
     corners: List[Dict[str, float]]  # [{x: 0-1, y: 0-1}, ...]
