@@ -1405,9 +1405,14 @@ async def manual_perspective_crop(
     request: ManualCropRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Apply manual perspective crop with user-defined corners"""
+    """
+    Apply manual perspective crop with user-defined corners.
+    
+    The corners should be normalized (0-1 range) and will be converted to pixel coordinates.
+    The function handles EXIF orientation and ensures corners are in correct order.
+    """
     try:
-        # Convert normalized coordinates to pixel coordinates
+        # Decode image to get dimensions
         if "," in request.image_base64:
             img_data = request.image_base64.split(",")[1]
         else:
@@ -1418,19 +1423,32 @@ async def manual_perspective_crop(
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
-            return {"success": False, "cropped_image_base64": request.image_base64}
+            return {"success": False, "cropped_image_base64": request.image_base64, "message": "Could not decode image"}
         
+        # Fix EXIF orientation FIRST to get correct dimensions
+        img = fix_image_orientation(img)
         height, width = img.shape[:2]
         
-        # Convert normalized corners to pixel coordinates
+        logger.info(f"Image dimensions after EXIF fix: {width}x{height}")
+        logger.info(f"Input corners (normalized): {request.corners}")
+        
+        # Convert normalized corners to pixel coordinates using FLOAT
+        # Do NOT convert to int yet - let perspective_crop handle precision
         pixel_corners = []
         for corner in request.corners:
-            px = int(corner.get('x', 0) * width)
-            py = int(corner.get('y', 0) * height)
+            # Use float multiplication for precision
+            px = float(corner.get('x', 0)) * width
+            py = float(corner.get('y', 0)) * height
             pixel_corners.append({'x': px, 'y': py})
         
-        # Apply perspective transform
-        cropped = perspective_crop(request.image_base64, pixel_corners)
+        logger.info(f"Pixel corners: {pixel_corners}")
+        
+        # Re-encode the EXIF-corrected image for perspective_crop
+        _, corrected_buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        corrected_base64 = base64.b64encode(corrected_buffer).decode()
+        
+        # Apply perspective transform on the EXIF-corrected image
+        cropped = perspective_crop(corrected_base64, pixel_corners)
         
         return {
             "success": True,
@@ -1438,6 +1456,8 @@ async def manual_perspective_crop(
         }
     except Exception as e:
         logger.error(f"Manual crop error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return {
             "success": False,
             "cropped_image_base64": request.image_base64,
