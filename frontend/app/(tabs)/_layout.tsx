@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -19,6 +21,10 @@ export default function TabsLayout() {
     return null;
   }
 
+  // Calculate proper bottom padding for Android navigation bar
+  const bottomPadding = Platform.OS === 'ios' ? 28 : Math.max(insets.bottom, 16);
+  const tabBarHeight = Platform.OS === 'ios' ? 88 : 64 + insets.bottom;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Tabs
@@ -29,6 +35,8 @@ export default function TabsLayout() {
             {
               backgroundColor: theme.surface,
               borderTopColor: theme.border,
+              height: tabBarHeight,
+              paddingBottom: bottomPadding,
             },
           ],
           tabBarActiveTintColor: theme.primary,
