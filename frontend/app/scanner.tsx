@@ -406,23 +406,39 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     
     try {
-      console.log('📸 Capturing image...');
+      logDebug('CAPTURE', 'Starting capture...');
       
+      // Capture with maximum quality settings
       const photo = await cameraRef.current.takePictureAsync({ 
-        quality: 1.0,
-        base64: true,
-        exif: true,
-        skipProcessing: false,
+        quality: 1.0,           // Maximum quality
+        base64: true,           // We need base64 for processing
+        exif: true,             // Include EXIF for orientation
+        skipProcessing: false,  // Let camera handle basic processing
       });
       
       if (photo?.base64) {
         const capturedWidth = photo.width || 0;
         const capturedHeight = photo.height || 0;
+        const capturedAspect = capturedWidth / capturedHeight;
         
-        console.log(`📸 Raw capture: ${capturedWidth}x${capturedHeight}`);
+        logDebug('CAPTURE', 'Photo captured', {
+          dimensions: `${capturedWidth}x${capturedHeight}`,
+          aspect: capturedAspect.toFixed(3),
+          expectedAspect: SENSOR_ASPECT_PORTRAIT.toFixed(3),
+          hasExif: !!photo.exif,
+          base64Length: photo.base64.length,
+        });
         
+        // Verify image size (Image.getSize is more reliable)
         Image.getSize(`data:image/jpeg;base64,${photo.base64}`, (width, height) => {
-          console.log(`📸 Verified size: ${width}x${height}`);
+          const verifiedAspect = width / height;
+          
+          logDebug('CAPTURE', 'Image size verified', {
+            verified: `${width}x${height}`,
+            aspect: verifiedAspect.toFixed(3),
+            matchesCapture: width === capturedWidth && height === capturedHeight,
+          });
+          
           setImageSize({ width, height });
           setCropImage(photo.base64 || null);
           
@@ -433,18 +449,23 @@ export default function ScannerScreen() {
           setShowCropScreen(true);
           setShowCamera(false);
         }, (error) => {
-          console.error('Image size error:', error);
-          // Fallback
-          const w = 3024, h = 4032;
+          logDebug('CAPTURE', '❌ Image.getSize failed', { error: String(error) });
+          
+          // Fallback to captured dimensions or defaults
+          const w = capturedWidth || 3024;
+          const h = capturedHeight || 4032;
           setImageSize({ width: w, height: h });
           setCropImage(photo.base64 || null);
           setCropPoints(mapFrameToSensorCoordinates(w, h));
           setShowCropScreen(true);
           setShowCamera(false);
         });
+      } else {
+        logDebug('CAPTURE', '❌ No base64 in photo response');
+        Alert.alert('Error', 'Failed to capture image - no data returned');
       }
     } catch (error) {
-      console.error('Capture error:', error);
+      logDebug('CAPTURE', '❌ Capture error', { error: String(error) });
       Alert.alert('Error', 'Failed to capture image');
     } finally {
       setIsCapturing(false);
