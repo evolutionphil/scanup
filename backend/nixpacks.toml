@@ -1,18 +1,17 @@
 # Railway/Nixpacks configuration for ScanUp Backend
-# This file configures the build environment for deploying to Railway
+# This tells Nixpacks to use Python provider which auto-installs pip
 
 [phases.setup]
-# Install system packages required by the application
-# python311Full includes pip, tesseract5 is the OCR engine
-nixPkgs = ["python311Full", "tesseract5", "zlib", "libjpeg", "libpng"]
+# Add tesseract for OCR support
+nixPkgs = ["tesseract5", "zlib", "libjpeg", "libpng"]
 
 [phases.install]
-# Use python -m pip to ensure pip is found
-cmds = ["python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
+# These commands run after the default Python setup (which includes pip in virtualenv)
+cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "python -m uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"
+cmd = "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"
 
 [variables]
-# Environment variables for Tesseract
+# Tesseract data path
 TESSDATA_PREFIX = "/nix/store"
