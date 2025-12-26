@@ -1809,6 +1809,17 @@ async def public_perspective_crop(request: ManualCropRequest):
         height, width = img.shape[:2]
         logger.info(f"[Public] Image dimensions after EXIF fix: {width}x{height}")
         
+        # Handle Android cameras that don't set EXIF properly
+        # If image is landscape (width > height) and force_portrait is True, rotate it
+        if request.force_portrait and width > height:
+            logger.info(f"[Public] Force portrait: rotating landscape image 90° CCW")
+            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            height, width = img.shape[:2]
+            # Re-encode the rotated image
+            _, corrected_buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            corrected_bytes = corrected_buffer.tobytes()
+            logger.info(f"[Public] New dimensions after forced portrait: {width}x{height}")
+        
         # Convert normalized corners to pixel coordinates
         pixel_corners = []
         for corner in request.corners:
