@@ -643,3 +643,36 @@ agent_communication:
     - Check home screen for sync indicator
     - Turn off network and save → turn on network → verify sync happens"
 
+
+  - agent: "main"
+    message: "BUG FIXES AND FEATURE ADDITIONS COMPLETE:
+    
+    1. ✅ BUG FIX - 'Initial Document' title:
+       - Fixed in index.tsx: DocumentListItem was using 'document.title' instead of 'document.name'
+       - Grid view (DocumentCard) already used correct 'document.name' field
+       - List view now also uses 'document.name' correctly
+       
+    2. ✅ FEATURE - Signature Editing:
+       - Modified document/[id].tsx: Sign button now shows 'Re-Sign' when page has existing edits
+       - When re-signing, user gets three options:
+         a) Cancel - do nothing
+         b) Add New - add another signature on top
+         c) Start Fresh - revert to original, then add new signature
+       - Revert button remains for undoing all signature edits
+       
+    3. ✅ IMPROVED - Google Login:
+       - Added detailed logging to diagnose auth flow issues
+       - Fixed redirect URL for web (uses window.location.origin instead of BACKEND_URL)
+       - Added better user feedback for cancelled/dismissed logins
+       - Backend implementation was already correct (Emergent Auth integration)
+       
+    Note: Google Login should work on the Expo Go app - you can test by:
+    1. Tap 'Continue with Google' button
+    2. Complete Google sign-in in the browser that opens
+    3. You should be redirected back to the app with session_id
+    4. Console logs will show the auth flow for debugging
+    
+    If it still redirects to email/password screen, check the console logs
+    for the exact point where the flow fails."
+
+
