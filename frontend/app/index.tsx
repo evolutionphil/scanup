@@ -328,4 +328,29 @@ const styles = StyleSheet.create({
   button: {
     marginBottom: 12,
   },
+  signinRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+  },
+  signinText: {
+    fontSize: 14,
+  },
+  signinLink: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  guestButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  guestText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
