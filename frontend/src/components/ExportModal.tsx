@@ -82,17 +82,25 @@ export default function ExportModal({
       let fileName: string;
       let mimeType: string;
 
-      console.log('Export starting:', { selectedFormat, isGuest, hasPages: !!pages, pagesLength: pages?.length });
+      console.log('=== EXPORT DEBUG ===');
+      console.log('Format:', selectedFormat);
+      console.log('Is Guest:', isGuest);
+      console.log('Document ID:', documentId);
+      console.log('Has Token:', !!token);
+      console.log('Pages count:', pages?.length);
+      console.log('Pages sample:', pages?.[0] ? 'has data' : 'no data');
 
       // For JPEG, handle locally
       if (selectedFormat === 'jpeg') {
         if (!pages || pages.length === 0) {
-          throw new Error('No pages available');
+          throw new Error('No pages available for JPEG export');
         }
         
         const firstPage = pages[0];
+        console.log('First page keys:', firstPage ? Object.keys(firstPage) : 'undefined');
+        
         if (!firstPage || !firstPage.image_base64) {
-          throw new Error('First page has no image');
+          throw new Error('First page has no image_base64 data');
         }
         
         fileBase64 = firstPage.image_base64;
@@ -108,7 +116,14 @@ export default function ExportModal({
         return;
       } else {
         // Use backend for PDF and other formats
-        console.log('Calling backend export for:', documentId);
+        console.log('Calling backend export...');
+        console.log('URL:', `${BACKEND_URL}/api/documents/${documentId}/export`);
+        
+        const requestBody = {
+          format: selectedFormat,
+          include_ocr: includeOcr || format.requiresOcr,
+        };
+        console.log('Request body:', JSON.stringify(requestBody));
         
         const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
           method: 'POST',
@@ -116,25 +131,25 @@ export default function ExportModal({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            format: selectedFormat,
-            include_ocr: includeOcr || format.requiresOcr,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
-        console.log('Export response status:', response.status);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Export error response:', errorText);
-          throw new Error(`Export failed: ${response.status}`);
+          throw new Error(`Export failed: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
         console.log('Export result keys:', Object.keys(result));
+        console.log('Has file_base64:', !!result.file_base64);
+        console.log('file_base64 length:', result.file_base64?.length || 0);
         
         if (!result.file_base64) {
-          throw new Error('No file data received from server');
+          throw new Error('No file_base64 data received from server');
         }
         
         fileBase64 = result.file_base64;
@@ -145,12 +160,21 @@ export default function ExportModal({
       // Save to cache and share
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       console.log('Saving to:', fileUri);
+      console.log('Base64 length:', fileBase64?.length || 0);
+      
+      if (!fileBase64 || fileBase64.length === 0) {
+        throw new Error('File data is empty');
+      }
       
       await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
+      console.log('File written, checking sharing...');
+      
       const isAvailable = await Sharing.isAvailableAsync();
+      console.log('Sharing available:', isAvailable);
+      
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
           mimeType: mimeType,
@@ -162,7 +186,10 @@ export default function ExportModal({
         onClose();
       }
     } catch (error: any) {
-      console.error('Export error:', error);
+      console.error('=== EXPORT ERROR ===');
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       Alert.alert('Export Failed', error.message || 'Unknown error occurred');
     } finally {
       setIsExporting(false);
