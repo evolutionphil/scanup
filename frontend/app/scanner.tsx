@@ -90,6 +90,27 @@ const DOCUMENT_TYPES: DocTypeConfig[] = [
   { type: 'business_card', label: 'Business', icon: 'person-outline', aspectRatio: 1.75, frameWidthRatio: 0.75, color: '#EC4899', guide: 'Center business card' },
 ];
 
+// Document Templates - Pre-defined crop areas for common document sizes
+interface DocumentTemplate {
+  id: string;
+  name: string;
+  aspectRatio: number; // width/height
+  description: string;
+  icon: string;
+}
+
+const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
+  { id: 'auto', name: 'Auto Detect', aspectRatio: 0, description: 'Automatic edge detection', icon: 'scan-outline' },
+  { id: 'a4', name: 'A4', aspectRatio: 210/297, description: '210 × 297 mm', icon: 'document-outline' },
+  { id: 'letter', name: 'US Letter', aspectRatio: 8.5/11, description: '8.5 × 11 in', icon: 'document-outline' },
+  { id: 'legal', name: 'US Legal', aspectRatio: 8.5/14, description: '8.5 × 14 in', icon: 'document-outline' },
+  { id: 'a5', name: 'A5', aspectRatio: 148/210, description: '148 × 210 mm', icon: 'document-outline' },
+  { id: 'passport', name: 'Passport', aspectRatio: 88/125, description: '88 × 125 mm', icon: 'card-outline' },
+  { id: 'credit_card', name: 'Credit Card', aspectRatio: 85.6/53.98, description: '85.6 × 54 mm', icon: 'card-outline' },
+  { id: 'photo_4x6', name: 'Photo 4×6', aspectRatio: 4/6, description: '4 × 6 in', icon: 'image-outline' },
+  { id: 'square', name: 'Square', aspectRatio: 1, description: '1:1 ratio', icon: 'square-outline' },
+];
+
 // Normalized coordinate point (0-1 range)
 interface NormalizedPoint { x: number; y: number; }
 
