@@ -3286,9 +3286,43 @@ async def export_document(
     doc_name = document.get("name", "document").replace(" ", "_")
     format_type = export_request.format.lower()
     
+    # Helper function to get image data from page (either base64 or download from S3)
+    async def get_image_data(page: dict) -> str:
+        """Get image data as base64, downloading from S3 if needed"""
+        # First check if we have base64 data
+        if page.get("image_base64"):
+            img_data = page["image_base64"]
+            if "," in img_data:
+                img_data = img_data.split(",")[1]
+            return img_data
+        
+        # Otherwise download from S3 URL
+        if page.get("image_url") and s3_client:
+            try:
+                import urllib.parse
+                url = page["image_url"]
+                # Parse S3 URL to get key
+                # Format: https://bucket.s3.region.amazonaws.com/key
+                parsed = urllib.parse.urlparse(url)
+                key = parsed.path.lstrip('/')
+                
+                # Download from S3
+                response = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                image_data = response['Body'].read()
+                return base64.b64encode(image_data).decode('utf-8')
+            except Exception as e:
+                logger.error(f"Failed to download image from S3: {e}")
+        
+        return ""
+    
     try:
         if format_type == "pdf":
-            images = [p.get("image_base64", "") for p in selected_pages]
+            # Get images, downloading from S3 if needed
+            images = []
+            for p in selected_pages:
+                img_data = await get_image_data(p)
+                images.append(img_data)
+            
             texts = [p.get("ocr_text", "") for p in selected_pages] if export_request.include_ocr else None
             
             pdf_bytes = create_pdf_from_images(images, texts)
