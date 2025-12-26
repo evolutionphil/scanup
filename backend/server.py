@@ -20,6 +20,8 @@ import re
 import cv2
 import numpy as np
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+import boto3
+from botocore.exceptions import ClientError
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +33,25 @@ db = client[os.environ['DB_NAME']]
 
 # Emergent LLM key for OCR
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+AWS_S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME", "scanup-documents")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+
+# Initialize S3 client
+s3_client = None
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION
+    )
+    logger.info(f"✅ AWS S3 initialized: bucket={AWS_S3_BUCKET_NAME}, region={AWS_REGION}")
+else:
+    logger.warning("⚠️ AWS S3 not configured - images will be stored in MongoDB")
 
 # Create the main app without a prefix
 app = FastAPI()
