@@ -224,12 +224,19 @@ export default function DocumentScreen() {
       // Store original before cropping if not already stored
       const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
       
-      const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
+      // Use public endpoint for guest/local documents
+      const endpoint = isLocalDoc
+        ? `${BACKEND_URL}/api/images/auto-crop-public`
+        : `${BACKEND_URL}/api/images/auto-crop`;
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && !isLocalDoc) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           image_base64: currentPage.image_base64,
           operation: 'auto_crop',
@@ -247,7 +254,7 @@ export default function DocumentScreen() {
           original_image_base64: originalImage, // Preserve original for revert
         };
 
-        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
         Alert.alert('Success', 'Document cropped. Use "Revert" to undo if needed.');
       } else {
         Alert.alert('Auto-crop', result.message || 'Could not detect document edges. The image might already be well-cropped or try manual adjustment.');
@@ -261,9 +268,11 @@ export default function DocumentScreen() {
   };
 
   const handleRevertToOriginal = async () => {
-    if (!currentDocument || !token || processing) return;
+    if (!currentDocument || processing) return;
     
     const currentPage = currentDocument.pages[selectedPageIndex];
+    const isLocalDoc = currentDocument.document_id.startsWith('local_');
+    
     if (!currentPage.original_image_base64) {
       Alert.alert('Info', 'No original image saved for this page');
       return;
