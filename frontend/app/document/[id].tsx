@@ -735,13 +735,28 @@ export default function DocumentScreen() {
         pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
       />
 
-      {/* Signature Modal */}
-      <SignatureModal
-        visible={showSignatureModal}
-        onClose={() => setShowSignatureModal(false)}
-        onSave={handleAddSignature}
+      {/* Signature Drawing Modal - Step 1 */}
+      <SignatureDrawingModal
+        visible={showSignatureDrawing}
+        onClose={() => setShowSignatureDrawing(false)}
+        onSignatureCreated={handleSignatureCreated}
         theme={theme}
       />
+
+      {/* Signature Placement Modal - Step 2 */}
+      {pendingSignature && currentDocument && (
+        <SignaturePlacementModal
+          visible={showSignaturePlacement}
+          documentImage={currentDocument.pages[selectedPageIndex].image_base64}
+          signatureImage={pendingSignature}
+          onClose={() => {
+            setShowSignaturePlacement(false);
+            setPendingSignature(null);
+          }}
+          onApply={handleApplySignature}
+          theme={theme}
+        />
+      )}
     </SafeAreaView>
   );
 }
