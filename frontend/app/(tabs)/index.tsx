@@ -477,7 +477,7 @@ const DocumentListItem = ({
       {/* Document Info */}
       <View style={styles.listItemContent}>
         <Text style={[styles.listItemTitle, { color: theme.text }]} numberOfLines={1}>
-          {document.title || 'Untitled Document'}
+          {document.name || 'Untitled Document'}
         </Text>
         <View style={styles.listItemMeta}>
           <Text style={[styles.listItemDate, { color: theme.textMuted }]}>
