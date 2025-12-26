@@ -85,7 +85,7 @@ export default function AnnotationEditor({
   const currentAnnotationRef = useRef<Annotation | null>(null);
   const selectedAnnotationIdRef = useRef<string | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const originalPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const originalAnnotationRef = useRef<Annotation | null>(null); // Store the entire original annotation
   
   // Keep refs in sync with state
   selectedToolRef.current = selectedTool;
