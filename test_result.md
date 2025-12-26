@@ -330,3 +330,13 @@ agent_communication:
     message: "MVP implementation complete with auth, documents, folders, scanner, profile, and subscription features. Backend APIs implemented for all core features. Frontend screens built with proper navigation. Need to test backend APIs thoroughly."
   - agent: "testing"
     message: "Backend API testing completed successfully. All core APIs working: Auth (register/login/profile), Document CRUD, Folder management, Image processing, Subscription management, OCR tracking. Authentication and error handling robust. Minor image processing warnings in logs but functionality works. Google OAuth validates input correctly but needs real session for full test. All high-priority backend tasks verified and working."
+  - agent: "main"
+    message: "Major bug fixes implemented based on user feedback:
+    1. BACKEND - Improved auto-crop detection algorithm with multiple approaches (Canny, adaptive threshold, color-based)
+    2. BACKEND - Added folder password verification endpoint (/api/folders/{id}/verify-password)
+    3. BACKEND - Fixed thumbnail regeneration on document update for rotation persistence
+    4. FRONTEND - Complete scanner overhaul with functional document type slider
+    5. FRONTEND - Added visual guides for each document type (ID card, book, whiteboard, business card)
+    6. FRONTEND - Improved manual crop UI with draggable corners
+    7. FRONTEND - Fixed folder password verification to use proper backend endpoint
+    Please test: Auto-crop detection, scanner document type selection, folder password protection flow"
