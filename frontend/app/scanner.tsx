@@ -1708,7 +1708,7 @@ export default function ScannerScreen() {
 
           <View style={styles.frameContainer}>
             <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-              {DocumentGuide}
+              {showGridOverlay && DocumentGuide}
               <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
               <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
               <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
