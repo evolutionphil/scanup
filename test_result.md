@@ -204,6 +204,102 @@ backend:
         agent: "testing"
         comment: "Subscription management working correctly. Tested upgrade to premium and downgrade to free. Premium status affects OCR limits (unlimited vs 5/day). User profile correctly reflects subscription status."
 
+  - task: "Auto-crop API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Improved auto-crop detection algorithm with multiple approaches (Canny, adaptive threshold, color-based)"
+      - working: true
+        agent: "testing"
+        comment: "Auto-crop API working correctly. Tested with realistic document image. Returns corners even when detection fails (default corners provided). Detection confidence: 0.85 for test image. Algorithm successfully detects document edges and applies perspective transform."
+
+  - task: "Folder Password Verification"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added folder password verification endpoint (/api/folders/{id}/verify-password)"
+      - working: true
+        agent: "testing"
+        comment: "Folder password verification working correctly. Tested complete workflow: set password on folder, verify correct password (200 response), verify wrong password (401 response). Password hashing and verification robust."
+
+  - task: "Document Thumbnail Regeneration"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Fixed thumbnail regeneration on document update for rotation persistence"
+      - working: true
+        agent: "testing"
+        comment: "Document thumbnail regeneration working correctly. Tested document update with page changes - thumbnails are properly regenerated when pages are updated. Rotation changes persist correctly."
+
+  - task: "Manual Perspective Crop"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Manual perspective crop endpoint implemented"
+      - working: true
+        agent: "testing"
+        comment: "Manual perspective crop working correctly. Tested with normalized corner coordinates (0-1 range). Successfully applies perspective transform and returns cropped image. Handles coordinate conversion from normalized to pixel coordinates properly."
+
+  - task: "Document Export API - PDF"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "PDF export working correctly. Fixed critical routing bug where export endpoints were defined after router inclusion. Tested with multi-page document including OCR text. Returns valid PDF with proper mime type (application/pdf). PDF data verified with correct header."
+
+  - task: "Document Export API - JPEG"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "JPEG export working correctly. Exports first page of document as JPEG with proper mime type (image/jpeg). JPEG data verified with correct header. Returns base64 encoded image data."
+
+  - task: "Perspective Crop with Normalized Coordinates"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Perspective crop with normalized coordinates (0-1 range) working correctly. Properly converts normalized coordinates to pixel coordinates and applies perspective transform. Returns cropped image with success flag."
+
 frontend:
   - task: "Landing Page"
     implemented: true
