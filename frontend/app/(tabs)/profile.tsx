@@ -252,22 +252,45 @@ export default function ProfileScreen() {
         {/* Usage Stats */}
         {!isGuest && (
           <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Usage</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Usage</Text>
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
                 <Text style={[styles.statValue, { color: theme.primary }]}>
-                  {user?.is_premium ? '∞' : user?.ocr_remaining_today || 0}
+                  {(user?.is_premium || user?.is_trial) ? '∞' : (user?.scans_remaining_today ?? FREE_SCANS_PER_DAY)}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.textMuted }]}>OCR Left Today</Text>
+                <Text style={[styles.statLabel, { color: theme.textMuted }]}>Scans Left</Text>
+                {!(user?.is_premium || user?.is_trial) && (
+                  <Text style={[styles.statSubLabel, { color: theme.textMuted }]}>/{FREE_SCANS_PER_DAY} daily</Text>
+                )}
+              </View>
+              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.statBox}>
+                <Text style={[styles.statValue, { color: theme.primary }]}>
+                  {(user?.is_premium || user?.is_trial) ? '∞' : (user?.ocr_remaining_today ?? FREE_OCR_PER_DAY)}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.textMuted }]}>OCR Left</Text>
+                {!(user?.is_premium || user?.is_trial) && (
+                  <Text style={[styles.statSubLabel, { color: theme.textMuted }]}>/{FREE_OCR_PER_DAY} daily</Text>
+                )}
               </View>
               <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
               <View style={styles.statBox}>
                 <Text style={[styles.statValue, { color: theme.text }]}>
-                  {user?.is_premium ? 'Pro' : 'Free'}
+                  {user?.is_premium ? 'Pro' : user?.is_trial ? 'Trial' : 'Free'}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.textMuted }]}>Current Plan</Text>
+                <Text style={[styles.statLabel, { color: theme.textMuted }]}>Plan</Text>
               </View>
             </View>
+            
+            {/* Monthly usage for free users */}
+            {!(user?.is_premium || user?.is_trial) && (
+              <View style={[styles.monthlyUsage, { borderTopColor: theme.border }]}>
+                <Text style={[styles.monthlyLabel, { color: theme.textMuted }]}>Monthly scans remaining:</Text>
+                <Text style={[styles.monthlyValue, { color: theme.text }]}>
+                  {user?.scans_remaining_month ?? FREE_SCANS_PER_MONTH}/{FREE_SCANS_PER_MONTH}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
