@@ -443,12 +443,9 @@ const DocumentListItem = ({
     });
   };
 
-  // Get thumbnail from document or first page (handles both S3 URLs and base64)
+  // Get thumbnail using the same logic as DocumentCard
   const page = document.pages?.[0];
-  const thumbnailSource = page?.thumbnail_url 
-    || page?.image_url 
-    || (page?.thumbnail_base64 ? `data:image/jpeg;base64,${page.thumbnail_base64}` : null)
-    || (page?.image_base64 ? `data:image/jpeg;base64,${page.image_base64}` : null);
+  const thumbnailSource = page ? getImageSource(page, true) : null;
 
   return (
     <TouchableOpacity
