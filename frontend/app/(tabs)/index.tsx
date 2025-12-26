@@ -330,19 +330,34 @@ export default function DocumentsScreen() {
         columnWrapperStyle={viewMode === 'grid' ? styles.row : undefined}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={() => (
-          viewMode === 'list' && folders.length > 0 ? (
+          folders.length > 0 ? (
             <View style={styles.foldersSection}>
               <Text style={[styles.foldersSectionTitle, { color: theme.textSecondary }]}>
                 Folders
               </Text>
-              {folders.map((folder) => (
-                <FolderListItem
-                  key={folder.folder_id}
-                  folder={folder}
-                  onPress={() => router.push(`/folder/${folder.folder_id}`)}
-                  theme={theme}
-                />
-              ))}
+              {viewMode === 'grid' ? (
+                // Grid view folders
+                <View style={styles.foldersGrid}>
+                  {folders.map((folder) => (
+                    <FolderGridItem
+                      key={folder.folder_id}
+                      folder={folder}
+                      onPress={() => router.push(`/folder/${folder.folder_id}`)}
+                      theme={theme}
+                    />
+                  ))}
+                </View>
+              ) : (
+                // List view folders
+                folders.map((folder) => (
+                  <FolderListItem
+                    key={folder.folder_id}
+                    folder={folder}
+                    onPress={() => router.push(`/folder/${folder.folder_id}`)}
+                    theme={theme}
+                  />
+                ))
+              )}
             </View>
           ) : null
         )}
