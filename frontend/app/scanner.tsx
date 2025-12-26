@@ -632,7 +632,13 @@ export default function ScannerScreen() {
   // Camera view
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back" flash={flashMode}>
+      <CameraView 
+        ref={cameraRef} 
+        style={styles.camera} 
+        facing="back" 
+        flash={flashMode}
+        pictureSize="highest"
+      >
         <SafeAreaView style={styles.cameraOverlay}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
