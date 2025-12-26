@@ -329,6 +329,14 @@ export default function ProfileScreen() {
             </View>
           )}
 
+          <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/settings')}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="settings-outline" size={22} color={theme.textSecondary} />
+              <Text style={[styles.settingLabel, { color: theme.text }]}>All Settings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.settingRow}>
             <View style={styles.settingLeft}>
               <Ionicons name="help-circle-outline" size={22} color={theme.textSecondary} />
