@@ -19,7 +19,13 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 import re
 import cv2
 import numpy as np
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+# Note: emergentintegrations was removed for Railway deployment compatibility
+# Using pytesseract (Tesseract OCR) as a public alternative
+try:
+    import pytesseract
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
 import boto3
 from botocore.exceptions import ClientError
 import certifi
