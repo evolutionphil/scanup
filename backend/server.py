@@ -104,7 +104,11 @@ class UserResponse(BaseModel):
     picture: Optional[str] = None
     subscription_type: str
     is_premium: bool
+    is_trial: bool = False
+    trial_days_remaining: int = 0
     ocr_remaining_today: int
+    scans_remaining_today: int
+    scans_remaining_month: int
 
 class AuthResponse(BaseModel):
     user: UserResponse
