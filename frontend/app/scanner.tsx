@@ -1555,6 +1555,13 @@ export default function ScannerScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.quickActionBtn, { backgroundColor: theme.surface }]} 
+            onPress={() => setShowTemplateModal(true)}
+          >
+            <Ionicons name="grid-outline" size={18} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Template</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: theme.surface }]} 
             onPress={handleResetCrop}
           >
             <Ionicons name="refresh" size={18} color={theme.text} />
