@@ -296,18 +296,23 @@ export default function DocumentScreen() {
   };
 
   const handleOCR = async () => {
-    if (!currentDocument || !user || !token) return;
+    if (!currentDocument) return;
     
-    if (!user.is_premium && user.ocr_remaining_today <= 0) {
-      Alert.alert(
-        'OCR Limit Reached',
-        'You have used all your free OCR scans today. Upgrade to Premium for unlimited OCR.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => router.push('/(tabs)/profile') },
-        ]
-      );
-      return;
+    // Check OCR limits for non-premium users (guests and free users)
+    const isPremium = user?.is_premium || user?.is_trial;
+    if (!isPremium) {
+      const ocrRemaining = user?.ocr_remaining_today ?? 3;
+      if (ocrRemaining <= 0) {
+        Alert.alert(
+          'OCR Limit Reached',
+          'You have used all your free OCR scans today. Subscribe to Premium for unlimited OCR.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Subscribe', onPress: () => router.push('/(tabs)/profile') },
+          ]
+        );
+        return;
+      }
     }
 
     const currentPage = currentDocument.pages[selectedPageIndex];
@@ -315,6 +320,19 @@ export default function DocumentScreen() {
     if (currentPage.ocr_text) {
       setOcrText(currentPage.ocr_text);
       setShowOcrModal(true);
+      return;
+    }
+
+    // For guests or local documents, show subscribe message
+    if (!token || currentDocument.document_id.startsWith('local_')) {
+      Alert.alert(
+        'Sign In Required',
+        'OCR feature requires an account. Sign in to use OCR.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
       return;
     }
 
