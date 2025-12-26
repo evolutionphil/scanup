@@ -47,6 +47,38 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleStartTrial = async () => {
+    if (isGuest) {
+      Alert.alert('Sign In Required', 'Please sign in to start your free trial.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
+      ]);
+      return;
+    }
+
+    Alert.alert(
+      'Start 7-Day Free Trial',
+      'Unlock all premium features for 7 days:\n\n• Unlimited scans\n• Unlimited OCR\n• No watermarks\n• All premium features',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Start Trial',
+          onPress: async () => {
+            setStartingTrial(true);
+            try {
+              await startTrial();
+              Alert.alert('🎉 Trial Started!', 'Enjoy 7 days of premium features!');
+            } catch (e: any) {
+              Alert.alert('Error', e.message || 'Failed to start trial');
+            } finally {
+              setStartingTrial(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleUpgrade = async () => {
     if (isGuest) {
       Alert.alert('Sign In Required', 'Please sign in to upgrade to premium.', [
