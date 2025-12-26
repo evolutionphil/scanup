@@ -176,13 +176,16 @@ export default function DocumentScreen() {
   };
 
   const handleRotate = async () => {
-    if (!currentDocument || !token || processing) return;
+    if (!currentDocument || processing) return;
     
     setProcessing(true);
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
+      
+      // For local documents (guests), use public endpoint
+      const isLocalDoc = currentDocument.document_id.startsWith('local_');
       const processedImage = await processImage(
-        token,
+        isLocalDoc ? null : token,
         currentPage.image_base64,
         'rotate',
         { degrees: 90 }
@@ -191,7 +194,7 @@ export default function DocumentScreen() {
       // Also rotate the original if it exists
       let rotatedOriginal = currentPage.original_image_base64;
       if (rotatedOriginal) {
-        rotatedOriginal = await processImage(token, rotatedOriginal, 'rotate', { degrees: 90 });
+        rotatedOriginal = await processImage(isLocalDoc ? null : token, rotatedOriginal, 'rotate', { degrees: 90 });
       }
 
       const updatedPages = [...currentDocument.pages];
@@ -202,7 +205,7 @@ export default function DocumentScreen() {
         rotation: ((currentPage.rotation || 0) + 90) % 360,
       };
 
-      await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
     } catch (e) {
       Alert.alert('Error', 'Failed to rotate image');
     } finally {
@@ -211,11 +214,12 @@ export default function DocumentScreen() {
   };
 
   const handleAutoCrop = async () => {
-    if (!currentDocument || !token || processing) return;
+    if (!currentDocument || processing) return;
     
     setProcessing(true);
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
+      const isLocalDoc = currentDocument.document_id.startsWith('local_');
       
       // Store original before cropping if not already stored
       const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
