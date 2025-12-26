@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
-import { useDocumentStore, Document } from '../../src/store/documentStore';
+import { useDocumentStore, Document, getImageSource } from '../../src/store/documentStore';
 import DocumentCard from '../../src/components/DocumentCard';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
