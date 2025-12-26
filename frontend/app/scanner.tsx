@@ -1371,7 +1371,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  bottomSection: { paddingBottom: 8 },
+  bottomSection: { paddingBottom: Platform.OS === 'android' ? 24 : 8 },
   typeSelector: { paddingHorizontal: 12, gap: 8 },
   typeBtn: { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderRadius: 14, minWidth: 78, backgroundColor: 'rgba(0,0,0,0.3)' },
   typeIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
