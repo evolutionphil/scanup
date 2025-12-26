@@ -995,6 +995,17 @@ export default function DocumentScreen() {
           theme={theme}
         />
       )}
+
+      {/* Annotation Editor Modal */}
+      {currentDocument && (
+        <AnnotationEditor
+          visible={showAnnotationEditor}
+          onClose={() => setShowAnnotationEditor(false)}
+          imageBase64={currentDocument.pages[selectedPageIndex].image_base64}
+          onSave={handleSaveAnnotations}
+          existingAnnotations={(currentDocument.pages[selectedPageIndex] as any).annotations || []}
+        />
+      )}
     </SafeAreaView>
   );
 }
