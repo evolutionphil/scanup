@@ -1074,7 +1074,12 @@ def order_corners(corners: List[Dict]) -> List[Dict]:
 
 def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
     """
-    Apply perspective transform to crop document.
+    Apply perspective transform to crop document and make it front-facing.
+    
+    This function:
+    1. Takes the 4 corner points of a document in the image
+    2. Applies a perspective warp to make the document rectangular
+    3. The output looks like it was photographed from directly above (front-facing)
     
     Args:
         image_base64: Base64 encoded image
@@ -1082,7 +1087,7 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
                  Can be in pixel coordinates or will be auto-ordered
     
     Returns:
-        Base64 encoded cropped image
+        Base64 encoded cropped and perspective-corrected image
     """
     try:
         if "," in image_base64:
@@ -1109,51 +1114,67 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
             [ordered_corners[3]["x"], ordered_corners[3]["y"]]   # bottom-left
         ])
         
-        # Calculate output dimensions using float for precision
+        # Calculate the actual document dimensions from the corners
+        # Top edge width
         width_top = np.sqrt(
             (ordered_corners[1]["x"] - ordered_corners[0]["x"])**2 + 
             (ordered_corners[1]["y"] - ordered_corners[0]["y"])**2
         )
+        # Bottom edge width
         width_bottom = np.sqrt(
             (ordered_corners[2]["x"] - ordered_corners[3]["x"])**2 + 
             (ordered_corners[2]["y"] - ordered_corners[3]["y"])**2
         )
-        output_width = max(width_top, width_bottom)
-        
+        # Left edge height
         height_left = np.sqrt(
             (ordered_corners[3]["x"] - ordered_corners[0]["x"])**2 + 
             (ordered_corners[3]["y"] - ordered_corners[0]["y"])**2
         )
+        # Right edge height
         height_right = np.sqrt(
             (ordered_corners[2]["x"] - ordered_corners[1]["x"])**2 + 
             (ordered_corners[2]["y"] - ordered_corners[1]["y"])**2
         )
-        output_height = max(height_left, height_right)
         
-        # Ensure minimum dimensions and convert to int only at the end
-        output_width = max(int(round(output_width)), 100)
-        output_height = max(int(round(output_height)), 100)
+        # Use the maximum dimensions to preserve content
+        output_width = max(int(round(width_top)), int(round(width_bottom)))
+        output_height = max(int(round(height_left)), int(round(height_right)))
         
-        # Destination points - standard rectangle
+        # Ensure minimum dimensions
+        output_width = max(output_width, 100)
+        output_height = max(output_height, 100)
+        
+        # For proper document aspect ratio, adjust dimensions
+        # Standard A4 is ~1:1.414, ID cards are ~1.586:1
+        # We use the natural aspect ratio from the selection
+        
+        # Destination points - perfect rectangle (front-facing view)
         dst_pts = np.float32([
-            [0, 0],
-            [output_width - 1, 0],
-            [output_width - 1, output_height - 1],
-            [0, output_height - 1]
+            [0, 0],                          # top-left
+            [output_width - 1, 0],           # top-right  
+            [output_width - 1, output_height - 1],  # bottom-right
+            [0, output_height - 1]           # bottom-left
         ])
         
         # Get perspective transform matrix
         matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
         
         # Apply perspective transform with high-quality interpolation
+        # This makes the document appear as if photographed from directly above
         warped = cv2.warpPerspective(
             img, 
             matrix, 
             (output_width, output_height),
-            flags=cv2.INTER_CUBIC,
+            flags=cv2.INTER_CUBIC,  # High quality interpolation
             borderMode=cv2.BORDER_CONSTANT,
-            borderValue=(255, 255, 255)
+            borderValue=(255, 255, 255)  # White border for any empty areas
         )
+        
+        # Optional: Apply slight sharpening to improve text clarity after transform
+        # kernel = np.array([[-0.5, -0.5, -0.5], [-0.5, 5, -0.5], [-0.5, -0.5, -0.5]])
+        # warped = cv2.filter2D(warped, -1, kernel)
+        
+        logger.info(f"Perspective crop: {img.shape[:2]} -> {warped.shape[:2]}, output={output_width}x{output_height}")
         
         # Encode back to base64 with maximum quality
         _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 95])
