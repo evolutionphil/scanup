@@ -957,21 +957,46 @@ export default function ScannerScreen() {
               resizeMode="cover"
             />
             {CropOverlay}
+            
+            {/* Corner touch areas */}
             {cropPoints.map((point, index) => {
               const sp = toScreen(point);
               return (
                 <View
-                  key={index}
+                  key={`corner-${index}`}
                   style={{ position: 'absolute', left: sp.x - 30, top: sp.y - 30, width: 60, height: 60, zIndex: 100 }}
                   onTouchStart={handleCornerTouchStart(index)}
                 />
               );
             })}
+            
+            {/* Edge touch areas */}
+            {getEdgeMidpoints().map((point, index) => {
+              const sp = toScreen(point);
+              const isHorizontal = index === 0 || index === 2;
+              const touchW = isHorizontal ? 80 : 40;
+              const touchH = isHorizontal ? 40 : 80;
+              return (
+                <View
+                  key={`edge-${index}`}
+                  style={{ 
+                    position: 'absolute', 
+                    left: sp.x - touchW / 2, 
+                    top: sp.y - touchH / 2, 
+                    width: touchW, 
+                    height: touchH, 
+                    zIndex: 90 
+                  }}
+                  onTouchStart={() => setActiveEdgeIndex(index)}
+                />
+              );
+            })}
+            
             {Magnifier}
           </View>
         </View>
 
-        <Text style={styles.cropHint}>Drag corners to adjust • Frame mapped from camera view</Text>
+        <Text style={styles.cropHint}>Drag corners or edges to adjust crop area</Text>
 
         <View style={styles.cropActions}>
           <TouchableOpacity 
