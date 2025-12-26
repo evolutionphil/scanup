@@ -644,6 +644,7 @@ export default function DocumentScreen() {
         hasOcrText={currentDocument.pages.some((p) => !!p.ocr_text)}
         isPremium={user?.is_premium || false}
         token={token || ''}
+        pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
       />
     </SafeAreaView>
   );
