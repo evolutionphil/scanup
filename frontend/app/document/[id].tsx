@@ -396,10 +396,20 @@ export default function DocumentScreen() {
     }
   };
 
-  const handleAddSignature = async (signatureBase64: string) => {
+  // Step 1: User draws signature
+  const handleSignatureCreated = (signatureBase64: string) => {
+    setPendingSignature(signatureBase64);
+    setShowSignatureDrawing(false);
+    setShowSignaturePlacement(true);
+  };
+
+  // Step 2: User positions and applies signature
+  const handleApplySignature = async (signatureBase64: string, position: { x: number; y: number }, scale: number) => {
     if (!currentDocument || !token || processing) return;
     
+    setShowSignaturePlacement(false);
     setProcessing(true);
+    
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
@@ -415,9 +425,9 @@ export default function DocumentScreen() {
         body: JSON.stringify({
           image_base64: currentPage.image_base64,
           signature_base64: signatureBase64,
-          position_x: signaturePosition.x,
-          position_y: signaturePosition.y,
-          scale: 0.35, // 35% of image width
+          position_x: position.x,
+          position_y: position.y,
+          scale: scale,
         }),
       });
 
@@ -432,7 +442,7 @@ export default function DocumentScreen() {
         };
 
         await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
-        Alert.alert('Success', 'Signature added to document');
+        Alert.alert('Success', 'Signature added to document. Use "Revert" to undo.');
       } else {
         Alert.alert('Error', result.message || 'Failed to add signature');
       }
@@ -440,6 +450,7 @@ export default function DocumentScreen() {
       console.error('Signature error:', e);
       Alert.alert('Error', 'Failed to add signature');
     } finally {
+      setPendingSignature(null);
       setProcessing(false);
     }
   };
