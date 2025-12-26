@@ -420,12 +420,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   processImage: async (token, imageBase64, operation, params) => {
-    const response = await fetch(`${BACKEND_URL}/api/images/process`, {
+    // Use public endpoint if no token (guest mode)
+    const endpoint = token 
+      ? `${BACKEND_URL}/api/images/process`
+      : `${BACKEND_URL}/api/images/process-public`;
+    
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify({ image_base64: imageBase64, operation, params }),
     });
 
