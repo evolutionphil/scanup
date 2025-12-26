@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for Document Scanner App
-Tests all backend endpoints with proper authentication flow
+Backend API Testing for ScanUp Document Scanner App
+Focus: Document Export API and Perspective Crop functionality
 """
 
 import requests
@@ -12,696 +12,372 @@ from datetime import datetime
 import sys
 import os
 
-# Get backend URL from frontend .env file
-def get_backend_url():
-    try:
-        with open('/app/frontend/.env', 'r') as f:
-            for line in f:
-                if line.startswith('EXPO_PUBLIC_BACKEND_URL='):
-                    return line.split('=')[1].strip()
-    except:
-        pass
-    return "http://localhost:8001"
+# Test configuration
+BASE_URL = "https://docscan-app-2.preview.emergentagent.com/api"
+TEST_USER_EMAIL = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
+TEST_USER_PASSWORD = "TestPassword123!"
+TEST_USER_NAME = "Test User"
 
-BASE_URL = get_backend_url()
-API_URL = f"{BASE_URL}/api"
+# Sample base64 image for testing (small 100x100 white square)
+SAMPLE_IMAGE_BASE64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/wA=="
 
-# Test data
-TEST_USER = {
-    "email": "testuser@docscanner.com",
-    "password": "SecurePass123!",
-    "name": "Test User"
-}
-
-# Sample base64 image (1x1 pixel PNG)
-SAMPLE_IMAGE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-
-class APITester:
+class TestResults:
     def __init__(self):
-        self.session = requests.Session()
-        self.auth_token = None
-        self.user_id = None
-        self.test_document_id = None
-        self.test_folder_id = None
-        self.results = {
-            "passed": 0,
-            "failed": 0,
-            "errors": []
-        }
-
-    def log_result(self, test_name, success, message="", response=None):
-        """Log test result"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status}: {test_name}")
-        if message:
-            print(f"   {message}")
-        if response and not success:
-            print(f"   Response: {response.status_code} - {response.text[:200]}")
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
         
-        if success:
-            self.results["passed"] += 1
+    def add_pass(self, test_name):
+        self.passed += 1
+        print(f"✅ {test_name}")
+        
+    def add_fail(self, test_name, error):
+        self.failed += 1
+        self.errors.append(f"{test_name}: {error}")
+        print(f"❌ {test_name}: {error}")
+        
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n=== TEST SUMMARY ===")
+        print(f"Total tests: {total}")
+        print(f"Passed: {self.passed}")
+        print(f"Failed: {self.failed}")
+        if self.errors:
+            print(f"\nErrors:")
+            for error in self.errors:
+                print(f"  - {error}")
+        return self.failed == 0
+
+def create_realistic_document_image():
+    """Create a more realistic document image for testing"""
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+    
+    # Create a white document-like image
+    width, height = 800, 600
+    image = Image.new('RGB', (width, height), 'white')
+    draw = ImageDraw.Draw(image)
+    
+    # Add some text-like content
+    try:
+        # Try to use default font
+        font = ImageFont.load_default()
+    except:
+        font = None
+    
+    # Draw some lines to simulate text
+    for i in range(10):
+        y = 50 + i * 40
+        draw.rectangle([50, y, 700, y + 20], fill='black')
+        draw.rectangle([50, y + 25, 500, y + 35], fill='black')
+    
+    # Add a border
+    draw.rectangle([40, 40, width-40, height-40], outline='black', width=2)
+    
+    # Convert to base64
+    buffer = io.BytesIO()
+    image.save(buffer, format='JPEG', quality=90)
+    return base64.b64encode(buffer.getvalue()).decode()
+
+def test_user_registration(results):
+    """Test user registration"""
+    try:
+        response = requests.post(f"{BASE_URL}/auth/register", json={
+            "email": TEST_USER_EMAIL,
+            "password": TEST_USER_PASSWORD,
+            "name": TEST_USER_NAME
+        })
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "token" in data and "user" in data:
+                results.add_pass("User Registration")
+                return data["token"]
+            else:
+                results.add_fail("User Registration", "Missing token or user in response")
+                return None
         else:
-            self.results["failed"] += 1
-            self.results["errors"].append(f"{test_name}: {message}")
-        print()
+            results.add_fail("User Registration", f"Status {response.status_code}: {response.text}")
+            return None
+    except Exception as e:
+        results.add_fail("User Registration", str(e))
+        return None
 
-    def test_health_check(self):
-        """Test basic health endpoint"""
-        try:
-            response = self.session.get(f"{API_URL}/health")
-            success = response.status_code == 200
-            self.log_result("Health Check", success, 
-                          f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Health Check", False, f"Exception: {str(e)}")
-            return False
-
-    def test_register(self):
-        """Test user registration"""
-        try:
-            response = self.session.post(f"{API_URL}/auth/register", 
-                                       json=TEST_USER)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("token")
-                self.user_id = data.get("user", {}).get("user_id")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                self.log_result("User Registration", True, 
-                              f"User ID: {self.user_id}")
-                return True
-            elif response.status_code == 400 and "already registered" in response.text:
-                # User exists, try login instead
-                return self.test_login()
-            else:
-                self.log_result("User Registration", False, 
-                              f"Unexpected status: {response.status_code}", response)
-                return False
-        except Exception as e:
-            self.log_result("User Registration", False, f"Exception: {str(e)}")
-            return False
-
-    def test_login(self):
-        """Test user login"""
-        try:
-            login_data = {
-                "email": TEST_USER["email"],
-                "password": TEST_USER["password"]
-            }
-            response = self.session.post(f"{API_URL}/auth/login", json=login_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("token")
-                self.user_id = data.get("user", {}).get("user_id")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                self.log_result("User Login", True, 
-                              f"User ID: {self.user_id}")
-                return True
-            else:
-                self.log_result("User Login", False, 
-                              f"Status: {response.status_code}", response)
-                return False
-        except Exception as e:
-            self.log_result("User Login", False, f"Exception: {str(e)}")
-            return False
-
-    def test_get_me(self):
-        """Test get current user profile"""
-        try:
-            response = self.session.get(f"{API_URL}/auth/me")
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                self.log_result("Get User Profile", True, 
-                              f"Email: {data.get('email')}, Premium: {data.get('is_premium')}")
-            else:
-                self.log_result("Get User Profile", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Get User Profile", False, f"Exception: {str(e)}")
-            return False
-
-    def test_create_folder(self):
-        """Test folder creation"""
-        try:
-            folder_data = {
-                "name": "Test Folder",
-                "color": "#FF5722"
-            }
-            response = self.session.post(f"{API_URL}/folders", json=folder_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.test_folder_id = data.get("folder_id")
-                self.log_result("Create Folder", True, 
-                              f"Folder ID: {self.test_folder_id}")
-                return True
-            else:
-                self.log_result("Create Folder", False, 
-                              f"Status: {response.status_code}", response)
-                return False
-        except Exception as e:
-            self.log_result("Create Folder", False, f"Exception: {str(e)}")
-            return False
-
-    def test_get_folders(self):
-        """Test get folders"""
-        try:
-            response = self.session.get(f"{API_URL}/folders")
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                folder_count = len(data)
-                self.log_result("Get Folders", True, 
-                              f"Found {folder_count} folders")
-            else:
-                self.log_result("Get Folders", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Get Folders", False, f"Exception: {str(e)}")
-            return False
-
-    def test_create_document(self):
-        """Test document creation"""
-        try:
-            doc_data = {
-                "name": "Test Document",
-                "folder_id": self.test_folder_id,
-                "tags": ["test", "sample"],
-                "pages": [
-                    {
-                        "image_base64": SAMPLE_IMAGE_B64,
-                        "filter_applied": "original",
-                        "rotation": 0,
-                        "order": 0
-                    }
-                ]
-            }
-            response = self.session.post(f"{API_URL}/documents", json=doc_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.test_document_id = data.get("document_id")
-                page_count = len(data.get("pages", []))
-                self.log_result("Create Document", True, 
-                              f"Document ID: {self.test_document_id}, Pages: {page_count}")
-                return True
-            else:
-                self.log_result("Create Document", False, 
-                              f"Status: {response.status_code}", response)
-                return False
-        except Exception as e:
-            self.log_result("Create Document", False, f"Exception: {str(e)}")
-            return False
-
-    def test_get_documents(self):
-        """Test get documents"""
-        try:
-            response = self.session.get(f"{API_URL}/documents")
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                doc_count = len(data)
-                self.log_result("Get Documents", True, 
-                              f"Found {doc_count} documents")
-            else:
-                self.log_result("Get Documents", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Get Documents", False, f"Exception: {str(e)}")
-            return False
-
-    def test_get_single_document(self):
-        """Test get single document"""
-        if not self.test_document_id:
-            self.log_result("Get Single Document", False, "No test document ID available")
-            return False
-            
-        try:
-            response = self.session.get(f"{API_URL}/documents/{self.test_document_id}")
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                self.log_result("Get Single Document", True, 
-                              f"Document: {data.get('name')}")
-            else:
-                self.log_result("Get Single Document", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Get Single Document", False, f"Exception: {str(e)}")
-            return False
-
-    def test_update_document(self):
-        """Test document update"""
-        if not self.test_document_id:
-            self.log_result("Update Document", False, "No test document ID available")
-            return False
-            
-        try:
-            update_data = {
-                "name": "Updated Test Document",
-                "tags": ["updated", "test"]
-            }
-            response = self.session.put(f"{API_URL}/documents/{self.test_document_id}", 
-                                      json=update_data)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                self.log_result("Update Document", True, 
-                              f"Updated name: {data.get('name')}")
-            else:
-                self.log_result("Update Document", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Update Document", False, f"Exception: {str(e)}")
-            return False
-
-    def test_add_page_to_document(self):
-        """Test adding page to document"""
-        if not self.test_document_id:
-            self.log_result("Add Page to Document", False, "No test document ID available")
-            return False
-            
-        try:
-            page_data = {
-                "image_base64": SAMPLE_IMAGE_B64,
-                "filter_applied": "grayscale",
-                "rotation": 90,
-                "order": 1
-            }
-            response = self.session.post(f"{API_URL}/documents/{self.test_document_id}/pages", 
-                                       json=page_data)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                page_count = len(data.get("pages", []))
-                self.log_result("Add Page to Document", True, 
-                              f"Total pages: {page_count}")
-            else:
-                self.log_result("Add Page to Document", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Add Page to Document", False, f"Exception: {str(e)}")
-            return False
-
-    def test_image_processing(self):
-        """Test image processing operations"""
-        operations = [
-            {"operation": "filter", "params": {"type": "grayscale"}},
-            {"operation": "rotate", "params": {"degrees": 90}},
-            {"operation": "crop", "params": {"x": 0, "y": 0, "width": 50, "height": 50}}
-        ]
+def test_create_document(token, results):
+    """Create a test document with sample pages"""
+    try:
+        # Create a realistic document image
+        document_image = create_realistic_document_image()
         
-        all_passed = True
-        for op in operations:
-            try:
-                process_data = {
-                    "image_base64": SAMPLE_IMAGE_B64,
-                    "operation": op["operation"],
-                    "params": op["params"]
+        headers = {"Authorization": f"Bearer {token}"}
+        document_data = {
+            "name": "Test Document for Export",
+            "tags": ["test", "export"],
+            "pages": [
+                {
+                    "image_base64": document_image,
+                    "ocr_text": "This is sample OCR text from page 1. It contains important information for testing export functionality.",
+                    "filter_applied": "original",
+                    "rotation": 0,
+                    "order": 0
+                },
+                {
+                    "image_base64": document_image,
+                    "ocr_text": "This is sample OCR text from page 2. Second page content for multi-page export testing.",
+                    "filter_applied": "enhanced",
+                    "rotation": 0,
+                    "order": 1
                 }
-                response = self.session.post(f"{API_URL}/images/process", json=process_data)
-                success = response.status_code == 200
-                
-                if success:
-                    data = response.json()
-                    has_result = bool(data.get("processed_image_base64"))
-                    self.log_result(f"Image Processing - {op['operation']}", has_result, 
-                                  f"Processed: {has_result}")
-                    all_passed = all_passed and has_result
+            ]
+        }
+        
+        response = requests.post(f"{BASE_URL}/documents", json=document_data, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "document_id" in data:
+                results.add_pass("Document Creation")
+                return data["document_id"]
+            else:
+                results.add_fail("Document Creation", "Missing document_id in response")
+                return None
+        else:
+            results.add_fail("Document Creation", f"Status {response.status_code}: {response.text}")
+            return None
+    except Exception as e:
+        results.add_fail("Document Creation", str(e))
+        return None
+
+def test_export_pdf(token, document_id, results):
+    """Test PDF export functionality"""
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        export_data = {
+            "document_id": document_id,
+            "format": "pdf",
+            "include_ocr": True
+        }
+        
+        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", json=export_data, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "file_base64" in data and "mime_type" in data:
+                if data["mime_type"] == "application/pdf":
+                    # Verify the base64 data is valid
+                    try:
+                        pdf_data = base64.b64decode(data["file_base64"])
+                        if pdf_data.startswith(b'%PDF'):
+                            results.add_pass("Export PDF")
+                            return True
+                        else:
+                            results.add_fail("Export PDF", "Invalid PDF data - missing PDF header")
+                            return False
+                    except Exception as decode_error:
+                        results.add_fail("Export PDF", f"Invalid base64 data: {decode_error}")
+                        return False
                 else:
-                    self.log_result(f"Image Processing - {op['operation']}", False, 
-                                  f"Status: {response.status_code}", response)
-                    all_passed = False
-            except Exception as e:
-                self.log_result(f"Image Processing - {op['operation']}", False, 
-                              f"Exception: {str(e)}")
-                all_passed = False
+                    results.add_fail("Export PDF", f"Wrong mime type: {data['mime_type']}")
+                    return False
+            else:
+                results.add_fail("Export PDF", "Missing file_base64 or mime_type in response")
+                return False
+        else:
+            results.add_fail("Export PDF", f"Status {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        results.add_fail("Export PDF", str(e))
+        return False
+
+def test_export_jpeg(token, document_id, results):
+    """Test JPEG export functionality"""
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        export_data = {
+            "document_id": document_id,
+            "format": "jpeg"
+        }
         
-        return all_passed
-
-    def test_subscription_management(self):
-        """Test subscription update"""
-        try:
-            subscription_data = {
-                "subscription_type": "premium",
-                "duration_days": 30
-            }
-            response = self.session.put(f"{API_URL}/users/subscription", 
-                                      json=subscription_data)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                is_premium = data.get("is_premium")
-                self.log_result("Update Subscription", True, 
-                              f"Premium status: {is_premium}")
+        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", json=export_data, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "file_base64" in data and "mime_type" in data:
+                if data["mime_type"] == "image/jpeg":
+                    # Verify the base64 data is valid JPEG
+                    try:
+                        jpeg_data = base64.b64decode(data["file_base64"])
+                        if jpeg_data.startswith(b'\xff\xd8\xff'):
+                            results.add_pass("Export JPEG")
+                            return True
+                        else:
+                            results.add_fail("Export JPEG", "Invalid JPEG data - missing JPEG header")
+                            return False
+                    except Exception as decode_error:
+                        results.add_fail("Export JPEG", f"Invalid base64 data: {decode_error}")
+                        return False
+                else:
+                    results.add_fail("Export JPEG", f"Wrong mime type: {data['mime_type']}")
+                    return False
             else:
-                self.log_result("Update Subscription", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Update Subscription", False, f"Exception: {str(e)}")
-            return False
-
-    def test_ocr_endpoint(self):
-        """Test OCR endpoint"""
-        try:
-            ocr_data = {
-                "image_base64": SAMPLE_IMAGE_B64,
-                "language": "en"
-            }
-            response = self.session.post(f"{API_URL}/ocr/extract", json=ocr_data)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                text = data.get("text", "")
-                self.log_result("OCR Extract", True, 
-                              f"Extracted text: {text[:50]}...")
-            else:
-                self.log_result("OCR Extract", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("OCR Extract", False, f"Exception: {str(e)}")
-            return False
-
-    def test_delete_document(self):
-        """Test document deletion"""
-        if not self.test_document_id:
-            self.log_result("Delete Document", False, "No test document ID available")
-            return False
-            
-        try:
-            response = self.session.delete(f"{API_URL}/documents/{self.test_document_id}")
-            success = response.status_code == 200
-            
-            if success:
-                self.log_result("Delete Document", True, "Document deleted successfully")
-            else:
-                self.log_result("Delete Document", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Delete Document", False, f"Exception: {str(e)}")
-            return False
-
-    def test_auto_crop_api(self):
-        """Test auto-crop API with improved detection algorithm"""
-        try:
-            # Create a larger, more realistic sample image
-            import base64
-            from PIL import Image, ImageDraw
-            from io import BytesIO
-            
-            # Create a document-like image
-            img = Image.new('RGB', (800, 600), (240, 240, 240))  # Light gray background
-            draw = ImageDraw.Draw(img)
-            
-            # Draw a white document with black border
-            doc_margin = 50
-            draw.rectangle([doc_margin, doc_margin, 800-doc_margin, 600-doc_margin], 
-                         fill=(255, 255, 255), outline=(0, 0, 0), width=3)
-            
-            # Add some text-like content
-            for i in range(8):
-                y = doc_margin + 30 + i * 40
-                draw.rectangle([doc_margin + 20, y, 800 - doc_margin - 20, y + 15], fill=(0, 0, 0))
-            
-            buffer = BytesIO()
-            img.save(buffer, format='JPEG', quality=90)
-            sample_image = base64.b64encode(buffer.getvalue()).decode()
-            
-            # Test auto-crop endpoint
-            crop_data = {
-                "image_base64": sample_image,
-                "operation": "auto_crop",
-                "params": {
-                    "document_type": "document"
-                }
-            }
-            response = self.session.post(f"{API_URL}/images/auto-crop", json=crop_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                has_corners = "corners" in data and data["corners"] is not None
-                has_success = "success" in data
-                has_cropped_image = "cropped_image_base64" in data
-                
-                # Check that corners are returned even when detection fails
-                corners_count = len(data.get("corners", [])) if data.get("corners") else 0
-                
-                self.log_result("Auto-crop API", True, 
-                              f"Corners: {corners_count}, Success: {data.get('success')}, Confidence: {data.get('confidence', 'N/A')}")
-                return True
-            else:
-                self.log_result("Auto-crop API", False, 
-                              f"Status: {response.status_code}", response)
+                results.add_fail("Export JPEG", "Missing file_base64 or mime_type in response")
                 return False
-        except Exception as e:
-            self.log_result("Auto-crop API", False, f"Exception: {str(e)}")
+        else:
+            results.add_fail("Export JPEG", f"Status {response.status_code}: {response.text}")
             return False
+    except Exception as e:
+        results.add_fail("Export JPEG", str(e))
+        return False
 
-    def test_folder_password_verification(self):
-        """Test folder password verification endpoint"""
-        if not self.test_folder_id:
-            self.log_result("Folder Password Verification", False, "No test folder ID available")
-            return False
-            
-        try:
-            # Step 1: Set password on folder
-            password = "TestPassword123!"
-            update_data = {
-                "is_protected": True,
-                "password_hash": password  # Backend will hash this
-            }
-            response = self.session.put(f"{API_URL}/folders/{self.test_folder_id}", json=update_data)
-            
-            if response.status_code != 200:
-                self.log_result("Folder Password Verification", False, 
-                              f"Failed to set password: {response.status_code}", response)
-                return False
-            
-            # Step 2: Test correct password verification
-            verify_data = {"password": password}
-            response = self.session.post(f"{API_URL}/folders/{self.test_folder_id}/verify-password", 
-                                       json=verify_data)
-            
-            if response.status_code != 200:
-                self.log_result("Folder Password Verification", False, 
-                              f"Correct password failed: {response.status_code}", response)
-                return False
-            
-            # Step 3: Test wrong password (should return 401)
-            wrong_verify_data = {"password": "WrongPassword123!"}
-            response = self.session.post(f"{API_URL}/folders/{self.test_folder_id}/verify-password", 
-                                       json=wrong_verify_data)
-            
-            if response.status_code == 401:
-                self.log_result("Folder Password Verification", True, 
-                              "Correct password accepted, wrong password rejected with 401")
-                return True
-            else:
-                self.log_result("Folder Password Verification", False, 
-                              f"Wrong password should return 401, got: {response.status_code}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Folder Password Verification", False, f"Exception: {str(e)}")
-            return False
-
-    def test_document_thumbnail_regeneration(self):
-        """Test document update with thumbnail regeneration"""
-        if not self.test_document_id:
-            self.log_result("Document Thumbnail Regeneration", False, "No test document ID available")
-            return False
-            
-        try:
-            # Get original document to check thumbnail
-            response = self.session.get(f"{API_URL}/documents/{self.test_document_id}")
-            if response.status_code != 200:
-                self.log_result("Document Thumbnail Regeneration", False, 
-                              "Could not get original document")
-                return False
-            
-            original_doc = response.json()
-            original_thumbnail = original_doc.get("pages", [{}])[0].get("thumbnail_base64")
-            
-            # Create a different image for update
-            import base64
-            from PIL import Image
-            from io import BytesIO
-            
-            img = Image.new('RGB', (400, 300), (255, 200, 200))  # Light red
-            buffer = BytesIO()
-            img.save(buffer, format='JPEG')
-            new_image = base64.b64encode(buffer.getvalue()).decode()
-            
-            # Update document with new page (simulate rotation)
-            update_data = {
-                "pages": [
-                    {
-                        "image_base64": new_image,
-                        "filter_applied": "enhanced",
-                        "rotation": 90,
-                        "order": 0
-                    }
-                ]
-            }
-            response = self.session.put(f"{API_URL}/documents/{self.test_document_id}", 
-                                      json=update_data)
-            
-            if response.status_code == 200:
-                updated_doc = response.json()
-                new_thumbnail = updated_doc.get("pages", [{}])[0].get("thumbnail_base64")
-                
-                # Check if thumbnail was regenerated
-                thumbnail_changed = original_thumbnail != new_thumbnail
-                rotation_updated = updated_doc.get("pages", [{}])[0].get("rotation") == 90
-                
-                self.log_result("Document Thumbnail Regeneration", thumbnail_changed and rotation_updated, 
-                              f"Thumbnail regenerated: {thumbnail_changed}, Rotation updated: {rotation_updated}")
-                return thumbnail_changed and rotation_updated
-            else:
-                self.log_result("Document Thumbnail Regeneration", False, 
-                              f"Status: {response.status_code}", response)
-                return False
-                
-        except Exception as e:
-            self.log_result("Document Thumbnail Regeneration", False, f"Exception: {str(e)}")
-            return False
-
-    def test_manual_perspective_crop(self):
-        """Test manual perspective crop endpoint"""
-        try:
-            # Create sample image
-            import base64
-            from PIL import Image
-            from io import BytesIO
-            
-            img = Image.new('RGB', (600, 400), (255, 255, 255))
-            buffer = BytesIO()
-            img.save(buffer, format='JPEG')
-            sample_image = base64.b64encode(buffer.getvalue()).decode()
-            
-            # Define corner coordinates (normalized 0-1)
-            corners = [
+def test_perspective_crop(token, results):
+    """Test perspective crop with normalized coordinates"""
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create test image
+        test_image = create_realistic_document_image()
+        
+        # Test with normalized corners (0-1 range)
+        crop_data = {
+            "image_base64": test_image,
+            "corners": [
                 {"x": 0.1, "y": 0.1},  # top-left
                 {"x": 0.9, "y": 0.1},  # top-right
                 {"x": 0.9, "y": 0.9},  # bottom-right
                 {"x": 0.1, "y": 0.9}   # bottom-left
             ]
-            
-            crop_data = {
-                "image_base64": sample_image,
-                "corners": corners
-            }
-            response = self.session.post(f"{API_URL}/images/perspective-crop", json=crop_data)
-            
-            if response.status_code == 200:
-                data = response.json()
-                has_success = "success" in data
-                has_cropped_image = "cropped_image_base64" in data
-                is_successful = data.get("success", False)
-                
-                self.log_result("Manual Perspective Crop", is_successful and has_cropped_image, 
-                              f"Success: {is_successful}, Has cropped image: {has_cropped_image}")
-                return is_successful and has_cropped_image
+        }
+        
+        response = requests.post(f"{BASE_URL}/images/perspective-crop", json=crop_data, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "success" in data and data["success"]:
+                if "cropped_image_base64" in data:
+                    # Verify the returned image is valid
+                    try:
+                        cropped_data = base64.b64decode(data["cropped_image_base64"])
+                        if cropped_data.startswith(b'\xff\xd8\xff'):
+                            results.add_pass("Perspective Crop with Normalized Coordinates")
+                            return True
+                        else:
+                            results.add_fail("Perspective Crop", "Invalid cropped image data")
+                            return False
+                    except Exception as decode_error:
+                        results.add_fail("Perspective Crop", f"Invalid base64 data: {decode_error}")
+                        return False
+                else:
+                    results.add_fail("Perspective Crop", "Missing cropped_image_base64 in response")
+                    return False
             else:
-                self.log_result("Manual Perspective Crop", False, 
-                              f"Status: {response.status_code}", response)
+                results.add_fail("Perspective Crop", f"Crop failed: {data.get('message', 'Unknown error')}")
                 return False
-                
-        except Exception as e:
-            self.log_result("Manual Perspective Crop", False, f"Exception: {str(e)}")
+        else:
+            results.add_fail("Perspective Crop", f"Status {response.status_code}: {response.text}")
             return False
+    except Exception as e:
+        results.add_fail("Perspective Crop", str(e))
+        return False
 
-    def test_delete_folder(self):
-        """Test folder deletion"""
-        if not self.test_folder_id:
-            self.log_result("Delete Folder", False, "No test folder ID available")
-            return False
-            
-        try:
-            response = self.session.delete(f"{API_URL}/folders/{self.test_folder_id}")
-            success = response.status_code == 200
-            
-            if success:
-                self.log_result("Delete Folder", True, "Folder deleted successfully")
-            else:
-                self.log_result("Delete Folder", False, 
-                              f"Status: {response.status_code}", response)
-            return success
-        except Exception as e:
-            self.log_result("Delete Folder", False, f"Exception: {str(e)}")
-            return False
+def test_edge_cases(token, document_id, results):
+    """Test edge cases and error handling"""
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Test invalid document ID for export
+    try:
+        response = requests.post(f"{BASE_URL}/documents/invalid_doc_id/export", 
+                               json={"document_id": "invalid", "format": "pdf"}, 
+                               headers=headers)
+        if response.status_code == 404:
+            results.add_pass("Export with Invalid Document ID (404 Error)")
+        else:
+            results.add_fail("Export with Invalid Document ID", f"Expected 404, got {response.status_code}")
+    except Exception as e:
+        results.add_fail("Export with Invalid Document ID", str(e))
+    
+    # Test invalid format
+    try:
+        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", 
+                               json={"document_id": document_id, "format": "invalid_format"}, 
+                               headers=headers)
+        if response.status_code == 400:
+            results.add_pass("Export with Invalid Format (400 Error)")
+        else:
+            results.add_fail("Export with Invalid Format", f"Expected 400, got {response.status_code}")
+    except Exception as e:
+        results.add_fail("Export with Invalid Format", str(e))
+    
+    # Test perspective crop with invalid corners
+    try:
+        response = requests.post(f"{BASE_URL}/images/perspective-crop", 
+                               json={"image_base64": "invalid_base64", "corners": []}, 
+                               headers=headers)
+        # Should handle gracefully
+        if response.status_code in [200, 400]:
+            results.add_pass("Perspective Crop with Invalid Data (Graceful Handling)")
+        else:
+            results.add_fail("Perspective Crop with Invalid Data", f"Unexpected status {response.status_code}")
+    except Exception as e:
+        results.add_fail("Perspective Crop with Invalid Data", str(e))
 
-    def run_all_tests(self):
-        """Run all backend API tests"""
-        print(f"🚀 Starting Document Scanner Backend API Tests")
-        print(f"📍 Backend URL: {BASE_URL}")
-        print(f"🔗 API URL: {API_URL}")
-        print("=" * 60)
-        
-        # Test sequence
-        tests = [
-            ("Health Check", self.test_health_check),
-            ("User Registration/Login", self.test_register),
-            ("Get User Profile", self.test_get_me),
-            ("Create Folder", self.test_create_folder),
-            ("Get Folders", self.test_get_folders),
-            ("Folder Password Verification", self.test_folder_password_verification),
-            ("Create Document", self.test_create_document),
-            ("Get Documents", self.test_get_documents),
-            ("Get Single Document", self.test_get_single_document),
-            ("Update Document", self.test_update_document),
-            ("Document Thumbnail Regeneration", self.test_document_thumbnail_regeneration),
-            ("Add Page to Document", self.test_add_page_to_document),
-            ("Auto-crop API", self.test_auto_crop_api),
-            ("Manual Perspective Crop", self.test_manual_perspective_crop),
-            ("Image Processing", self.test_image_processing),
-            ("Subscription Management", self.test_subscription_management),
-            ("OCR Extract", self.test_ocr_endpoint),
-            ("Delete Document", self.test_delete_document),
-            ("Delete Folder", self.test_delete_folder),
-        ]
-        
-        for test_name, test_func in tests:
-            try:
-                test_func()
-            except Exception as e:
-                self.log_result(test_name, False, f"Unexpected error: {str(e)}")
-        
-        # Summary
-        print("=" * 60)
-        print(f"📊 TEST SUMMARY")
-        print(f"✅ Passed: {self.results['passed']}")
-        print(f"❌ Failed: {self.results['failed']}")
-        print(f"📈 Success Rate: {self.results['passed']/(self.results['passed']+self.results['failed'])*100:.1f}%")
-        
-        if self.results['errors']:
-            print(f"\n🔍 FAILED TESTS:")
-            for error in self.results['errors']:
-                print(f"   • {error}")
-        
-        return self.results['failed'] == 0
+def main():
+    """Main test execution"""
+    print("🚀 Starting ScanUp Document Export API Tests")
+    print(f"Testing against: {BASE_URL}")
+    print("=" * 60)
+    
+    results = TestResults()
+    
+    # Step 1: Register user
+    print("\n📝 Step 1: User Registration")
+    token = test_user_registration(results)
+    if not token:
+        print("❌ Cannot proceed without authentication token")
+        return False
+    
+    # Step 2: Create document
+    print("\n📄 Step 2: Document Creation")
+    document_id = test_create_document(token, results)
+    if not document_id:
+        print("❌ Cannot proceed without document")
+        return False
+    
+    print(f"✅ Created document with ID: {document_id}")
+    
+    # Step 3: Test Export PDF
+    print("\n📋 Step 3: Testing PDF Export")
+    test_export_pdf(token, document_id, results)
+    
+    # Step 4: Test Export JPEG
+    print("\n🖼️ Step 4: Testing JPEG Export")
+    test_export_jpeg(token, document_id, results)
+    
+    # Step 5: Test Perspective Crop
+    print("\n✂️ Step 5: Testing Perspective Crop")
+    test_perspective_crop(token, results)
+    
+    # Step 6: Test Edge Cases
+    print("\n⚠️ Step 6: Testing Edge Cases")
+    test_edge_cases(token, document_id, results)
+    
+    # Final Results
+    print("\n" + "=" * 60)
+    success = results.summary()
+    
+    if success:
+        print("🎉 All tests passed!")
+    else:
+        print("⚠️ Some tests failed. Check the details above.")
+    
+    return success
 
 if __name__ == "__main__":
-    tester = APITester()
-    success = tester.run_all_tests()
-    sys.exit(0 if success else 1)
+    try:
+        success = main()
+        sys.exit(0 if success else 1)
+    except KeyboardInterrupt:
+        print("\n\n⏹️ Tests interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n\n💥 Unexpected error: {e}")
+        sys.exit(1)
