@@ -1709,6 +1709,7 @@ async def auto_crop_image(
 class ManualCropRequest(BaseModel):
     image_base64: str
     corners: List[Dict[str, float]]  # [{x: 0-1, y: 0-1}, ...]
+    force_portrait: Optional[bool] = False  # Force rotation to portrait if image is landscape
 
 @api_router.post("/images/perspective-crop")
 async def manual_perspective_crop(
