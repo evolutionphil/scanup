@@ -92,10 +92,10 @@ export default function ExportModal({
       console.log('FileSystem.cacheDirectory:', FileSystem.cacheDirectory);
       console.log('FileSystem.documentDirectory:', FileSystem.documentDirectory);
 
-      // For JPEG, handle locally
-      if (selectedFormat === 'jpeg') {
+      // For JPEG and PNG, handle locally
+      if (selectedFormat === 'jpeg' || selectedFormat === 'png') {
         if (!pages || pages.length === 0) {
-          throw new Error('No pages available for JPEG export');
+          throw new Error('No pages available for image export');
         }
         
         const firstPage = pages[0];
@@ -107,8 +107,9 @@ export default function ExportModal({
         if (fileBase64.includes(',')) {
           fileBase64 = fileBase64.split(',')[1];
         }
-        fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.jpg`;
-        mimeType = 'image/jpeg';
+        const ext = selectedFormat === 'png' ? 'png' : 'jpg';
+        fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.${ext}`;
+        mimeType = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
       } else if (isGuest) {
         Alert.alert('Sign In Required', 'Sign in to export as PDF.');
         setIsExporting(false);
