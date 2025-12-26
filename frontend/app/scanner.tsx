@@ -155,6 +155,7 @@ export default function ScannerScreen() {
   const [flashMode, setFlashMode] = useState<'off' | 'on'>('off');
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [showCamera, setShowCamera] = useState(true);
+  const insets = useSafeAreaInsets();
   
   // Batch/Continuous scanning mode
   const [batchMode, setBatchMode] = useState(false);
