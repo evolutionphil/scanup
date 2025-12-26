@@ -3897,3 +3897,7 @@ async def get_system_status(admin: dict = Depends(get_admin_user)):
         pass
     
     return status
+
+
+# Include the router in the main app (must be after all routes are defined)
+app.include_router(api_router)
