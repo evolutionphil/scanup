@@ -1217,8 +1217,10 @@ async def auto_crop_image(
     current_user: User = Depends(get_current_user)
 ):
     """Automatically detect and crop document from image"""
-    # First detect edges
-    edge_result = detect_document_edges(request.image_base64)
+    document_type = request.params.get("document_type", "document")
+    
+    # First detect edges with improved algorithm
+    edge_result = detect_document_edges(request.image_base64, document_type)
     
     if edge_result.get("detected") and edge_result.get("corners"):
         # Apply perspective transform
@@ -1226,13 +1228,16 @@ async def auto_crop_image(
         return {
             "success": True,
             "cropped_image_base64": cropped,
-            "corners": edge_result["corners"]
+            "corners": edge_result["corners"],
+            "confidence": edge_result.get("confidence", 0)
         }
     
+    # Even if not detected, return default corners for manual adjustment
     return {
         "success": False,
         "cropped_image_base64": request.image_base64,
-        "message": "Could not detect document edges"
+        "corners": edge_result.get("corners"),  # Default corners provided
+        "message": edge_result.get("message", "Could not detect document edges automatically")
     }
 
 class ManualCropRequest(BaseModel):
