@@ -208,33 +208,117 @@ export default function ScannerScreen() {
     }
   }, [isScanning]);
 
-  // Auto-capture when edges are detected (simulated - in real app this would use ML)
+  // Auto-capture when edges are detected AND stable for a few frames
   useEffect(() => {
-    if (autoCapture && edgesDetected && !isCapturing && showCamera) {
-      // Small delay before auto-capture
-      const timer = setTimeout(() => {
-        if (edgesDetected) {
-          takePicture();
-        }
-      }, 500);
-      return () => clearTimeout(timer);
+    if (autoCapture && edgesDetected && autoDetectStable >= 3 && !isCapturing && showCamera && detectedCorners) {
+      // Edges have been stable for 3 consecutive detections - auto capture!
+      console.log('[AutoCapture] Edges stable, triggering capture...');
+      takePicture();
     }
-  }, [autoCapture, edgesDetected, isCapturing, showCamera]);
+  }, [autoCapture, edgesDetected, autoDetectStable, isCapturing, showCamera, detectedCorners]);
 
-  // Toggle auto-capture
-  const toggleAutoCapture = useCallback(() => {
-    setAutoCapture(prev => !prev);
-    if (!autoCapture) {
-      setIsScanning(true);
-      // Simulate edge detection after a delay (in real app, this would be continuous ML detection)
-      setTimeout(() => {
+  // Function to detect edges from a camera frame
+  const detectEdgesFromFrame = useCallback(async () => {
+    if (!cameraRef.current || isCapturing || !autoCapture) return;
+    
+    try {
+      // Take a quick photo for edge detection
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.3, // Low quality for speed
+        base64: true,
+        skipProcessing: true,
+      });
+      
+      if (!photo?.base64) return;
+      
+      // Call backend edge detection API
+      const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: photo.base64 }),
+      });
+      
+      if (!response.ok) {
+        setEdgesDetected(false);
+        setAutoDetectStable(0);
+        return;
+      }
+      
+      const result = await response.json();
+      
+      if (result.detected && result.corners) {
+        // Convert normalized corners to detection signature for stability check
+        const signature = result.corners.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
+        
+        if (signature === lastDetectionRef.current) {
+          // Same detection as before - increment stability counter
+          setAutoDetectStable(prev => prev + 1);
+        } else {
+          // Detection changed - reset stability
+          setAutoDetectStable(1);
+          lastDetectionRef.current = signature;
+        }
+        
+        // Store detected corners (normalized)
+        setDetectedCorners(result.corners.map((c: any) => ({ x: c.x, y: c.y })));
         setEdgesDetected(true);
-      }, 2000);
-    } else {
-      setIsScanning(false);
+        console.log('[AutoCapture] Edges detected, stability:', autoDetectStable + 1);
+      } else {
+        setEdgesDetected(false);
+        setDetectedCorners(null);
+        setAutoDetectStable(0);
+        lastDetectionRef.current = '';
+      }
+    } catch (error) {
+      console.error('[AutoCapture] Edge detection error:', error);
       setEdgesDetected(false);
+      setAutoDetectStable(0);
     }
-  }, [autoCapture]);
+  }, [autoCapture, isCapturing, autoDetectStable]);
+
+  // Toggle auto-capture - starts/stops edge detection loop
+  const toggleAutoCapture = useCallback(() => {
+    setAutoCapture(prev => {
+      const newState = !prev;
+      
+      if (newState) {
+        // Starting auto-capture - begin edge detection loop
+        setIsScanning(true);
+        setEdgesDetected(false);
+        setAutoDetectStable(0);
+        setDetectedCorners(null);
+        lastDetectionRef.current = '';
+        
+        // Start periodic edge detection (every 1.5 seconds)
+        autoDetectIntervalRef.current = setInterval(() => {
+          detectEdgesFromFrame();
+        }, 1500);
+        
+      } else {
+        // Stopping auto-capture - clear interval
+        setIsScanning(false);
+        setEdgesDetected(false);
+        setAutoDetectStable(0);
+        setDetectedCorners(null);
+        
+        if (autoDetectIntervalRef.current) {
+          clearInterval(autoDetectIntervalRef.current);
+          autoDetectIntervalRef.current = null;
+        }
+      }
+      
+      return newState;
+    });
+  }, [detectEdgesFromFrame]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autoDetectIntervalRef.current) {
+        clearInterval(autoDetectIntervalRef.current);
+      }
+    };
+  }, []);
 
   /**
    * Calculate edge midpoints for edge handles
