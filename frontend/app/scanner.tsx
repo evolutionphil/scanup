@@ -654,7 +654,7 @@ export default function ScannerScreen() {
           try {
             const manipulated = await ImageManipulator.manipulateAsync(
               `data:image/jpeg;base64,${photo.base64}`,
-              [{ rotate: -90 }],  // Rotate 90° counter-clockwise
+              [{ rotate: 90 }],  // Rotate 90° clockwise to correct Android camera orientation
               { compress: 0.95, format: ImageManipulator.SaveFormat.JPEG, base64: true }
             );
             
