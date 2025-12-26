@@ -1176,6 +1176,59 @@ async def update_profile(
     user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
     return user_to_response(user)
 
+@api_router.post("/users/start-trial", response_model=UserResponse)
+async def start_trial(
+    current_user: User = Depends(get_current_user)
+):
+    """Start 7-day free trial"""
+    # Check if trial already used
+    if current_user.trial_used:
+        raise HTTPException(status_code=400, detail="Trial already used. Subscribe to premium for full access.")
+    
+    # Check if already premium
+    if current_user.subscription_type == "premium":
+        raise HTTPException(status_code=400, detail="Already a premium subscriber.")
+    
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {
+            "subscription_type": "trial",
+            "trial_start_date": datetime.now(timezone.utc),
+            "trial_used": True,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
+    user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
+    return user_to_response(user)
+
+@api_router.get("/users/usage-stats")
+async def get_usage_stats(
+    current_user: User = Depends(get_current_user)
+):
+    """Get user's current usage statistics"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    scans_today = current_user.scans_today if current_user.last_scan_date == today else 0
+    scans_month = current_user.scans_this_month if current_user.scan_month == current_month else 0
+    ocr_today = current_user.ocr_usage_today if current_user.ocr_usage_date == today else 0
+    
+    is_premium = current_user.subscription_type in ["premium", "trial"]
+    
+    return {
+        "scans_today": scans_today,
+        "scans_this_month": scans_month,
+        "ocr_today": ocr_today,
+        "limits": {
+            "scans_per_day": FREE_SCANS_PER_DAY if not is_premium else None,
+            "scans_per_month": FREE_SCANS_PER_MONTH if not is_premium else None,
+            "ocr_per_day": FREE_OCR_PER_DAY if not is_premium else None,
+        },
+        "is_premium": is_premium
+    }
+
 # ==================== DOCUMENT ENDPOINTS ====================
 
 @api_router.post("/documents", response_model=Document)
