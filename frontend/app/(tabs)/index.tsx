@@ -499,6 +499,40 @@ const FolderListItem = ({
   );
 };
 
+// Folder grid item component
+const FolderGridItem = ({ 
+  folder, 
+  onPress, 
+  theme 
+}: { 
+  folder: any; 
+  onPress: () => void; 
+  theme: any;
+}) => {
+  return (
+    <TouchableOpacity
+      style={[styles.folderGridItem, { backgroundColor: theme.surface }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.folderGridIcon, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name="folder" size={32} color={theme.primary} />
+        {folder.is_protected && (
+          <View style={[styles.folderLockBadge, { backgroundColor: theme.surface }]}>
+            <Ionicons name="lock-closed" size={10} color={theme.textMuted} />
+          </View>
+        )}
+      </View>
+      <Text style={[styles.folderGridName, { color: theme.text }]} numberOfLines={1}>
+        {folder.name}
+      </Text>
+      <Text style={[styles.folderGridCount, { color: theme.textMuted }]}>
+        {folder.document_count || 0} docs
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
