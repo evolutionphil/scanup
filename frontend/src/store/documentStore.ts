@@ -93,7 +93,7 @@ interface DocumentState {
   updateDocument: (token: string | null, documentId: string, data: Partial<Document>) => Promise<Document>;
   deleteDocument: (token: string | null, documentId: string) => Promise<void>;
   addPageToDocument: (token: string, documentId: string, page: Partial<PageData>) => Promise<Document>;
-  setCurrentDocument: (doc: Document | null) => void;
+  setCurrentDocument: (doc: Document | null) => Promise<void>;
   
   // Folder actions
   fetchFolders: (token: string | null) => Promise<void>;
