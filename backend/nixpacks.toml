@@ -1,0 +1,20 @@
+# Railway/Nixpacks configuration for ScanUp Backend
+# This file configures the build environment for deploying to Railway
+
+[phases.setup]
+# Install system packages required by the application
+nixPkgs = ["python311", "tesseract", "opencv", "libpng", "libjpeg", "zlib"]
+
+[phases.install]
+# Install Python dependencies
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+# No build step needed for FastAPI
+
+[start]
+cmd = "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"
+
+[variables]
+# Environment variables 
+TESSDATA_PREFIX = "/usr/share/tesseract-ocr/4.00/tessdata"
