@@ -25,6 +25,7 @@ import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
 import ExportModal from '../../src/components/ExportModal';
+import SignatureModal from '../../src/components/SignatureModal';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -46,6 +47,8 @@ export default function DocumentScreen() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signaturePosition, setSignaturePosition] = useState({ x: 0.5, y: 0.8 }); // Default bottom center
 
   useEffect(() => {
     loadDocument();
