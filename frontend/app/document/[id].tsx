@@ -66,6 +66,9 @@ export default function DocumentScreen() {
   const [showSignatureDrawing, setShowSignatureDrawing] = useState(false);
   const [showSignaturePlacement, setShowSignaturePlacement] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  
+  // Annotation states
+  const [showAnnotationEditor, setShowAnnotationEditor] = useState(false);
 
   useEffect(() => {
     loadDocument();
