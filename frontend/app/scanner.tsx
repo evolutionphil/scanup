@@ -61,28 +61,51 @@ interface DocTypeConfig {
   type: DocumentType;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  aspectRatio: number;
-  frameWidth: number;
+  aspectRatio: number;       // Width/Height of frame (< 1 = portrait, > 1 = landscape)
+  frameWidthRatio: number;   // Frame width as ratio of preview width (0-1)
   color: string;
   guide: string;
 }
 
+// Document types with frame configurations
+// aspectRatio: width/height of the alignment frame
+// frameWidthRatio: how much of preview width the frame occupies
 const DOCUMENT_TYPES: DocTypeConfig[] = [
-  { type: 'document', label: 'Document', icon: 'document-text-outline', aspectRatio: 0.707, frameWidth: 0.85, color: '#3B82F6', guide: 'Align document edges' },
-  { type: 'id_card', label: 'ID Card', icon: 'card-outline', aspectRatio: 1.586, frameWidth: 0.8, color: '#F59E0B', guide: 'Place ID card in frame' },
-  { type: 'book', label: 'Book', icon: 'book-outline', aspectRatio: 0.75, frameWidth: 0.9, color: '#10B981', guide: 'Capture book pages' },
-  { type: 'whiteboard', label: 'Whiteboard', icon: 'easel-outline', aspectRatio: 1.5, frameWidth: 0.95, color: '#8B5CF6', guide: 'Capture entire board' },
-  { type: 'business_card', label: 'Business', icon: 'person-outline', aspectRatio: 1.75, frameWidth: 0.7, color: '#EC4899', guide: 'Center business card' },
+  { type: 'document', label: 'Document', icon: 'document-text-outline', aspectRatio: 0.707, frameWidthRatio: 0.85, color: '#3B82F6', guide: 'Align document edges' },
+  { type: 'id_card', label: 'ID Card', icon: 'card-outline', aspectRatio: 1.586, frameWidthRatio: 0.80, color: '#F59E0B', guide: 'Place ID card in frame' },
+  { type: 'book', label: 'Book', icon: 'book-outline', aspectRatio: 0.75, frameWidthRatio: 0.90, color: '#10B981', guide: 'Capture book pages' },
+  { type: 'whiteboard', label: 'Whiteboard', icon: 'easel-outline', aspectRatio: 1.5, frameWidthRatio: 0.95, color: '#8B5CF6', guide: 'Capture entire board' },
+  { type: 'business_card', label: 'Business', icon: 'person-outline', aspectRatio: 1.75, frameWidthRatio: 0.70, color: '#EC4899', guide: 'Center business card' },
 ];
 
+// Normalized coordinate point (0-1 range)
+interface NormalizedPoint { x: number; y: number; }
+
+// Pixel coordinate point
 interface CropPoint { x: number; y: number; }
 
-// Camera layout tracking
+// Camera layout tracking with visibility calculations
 interface CameraLayoutInfo {
-  previewWidth: number;
+  previewWidth: number;          // Preview view dimensions in pixels
   previewHeight: number;
-  previewAspect: number;
+  previewAspect: number;         // Width/Height ratio of preview
+  sensorVisibleInPreview: {      // Which portion of sensor is visible
+    offsetX: number;             // Normalized 0-1 offset from sensor left
+    offsetY: number;             // Normalized 0-1 offset from sensor top
+    visibleWidth: number;        // Normalized 0-1 visible width
+    visibleHeight: number;       // Normalized 0-1 visible height
+  };
 }
+
+// Logging helper for debugging
+const logDebug = (tag: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString().substr(11, 12);
+  if (data) {
+    console.log(`[${timestamp}] 📷 ${tag}: ${message}`, JSON.stringify(data, null, 2));
+  } else {
+    console.log(`[${timestamp}] 📷 ${tag}: ${message}`);
+  }
+};
 
 export default function ScannerScreen() {
   const params = useLocalSearchParams();
