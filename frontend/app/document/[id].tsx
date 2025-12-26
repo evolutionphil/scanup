@@ -637,6 +637,65 @@ export default function DocumentScreen() {
     }
   };
 
+  // Handle saving annotations
+  const handleSaveAnnotations = async (annotations: any[], annotatedImageBase64: string) => {
+    if (!currentDocument || processing) return;
+    
+    const isLocalDoc = currentDocument.document_id.startsWith('local_');
+    
+    setProcessing(true);
+    try {
+      const currentPage = currentDocument.pages[selectedPageIndex];
+      
+      // Store original before annotating if not already stored
+      const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
+      
+      // If we have annotations, render them onto the image via backend
+      if (annotations.length > 0) {
+        const endpoint = `${BACKEND_URL}/api/images/apply-annotations`;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token && !isLocalDoc) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            image_base64: currentPage.image_base64,
+            annotations: annotations,
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.annotated_image_base64) {
+            const updatedPages = [...currentDocument.pages];
+            updatedPages[selectedPageIndex] = {
+              ...updatedPages[selectedPageIndex],
+              image_base64: result.annotated_image_base64,
+              original_image_base64: originalImage,
+              annotations: annotations, // Store annotations data for future editing
+            };
+            
+            await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+            Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
+          } else {
+            throw new Error('Failed to apply annotations');
+          }
+        } else {
+          throw new Error('Backend error');
+        }
+      }
+    } catch (e) {
+      console.error('Annotation error:', e);
+      Alert.alert('Error', 'Failed to save annotations. The annotations data will not be saved.');
+    } finally {
+      setProcessing(false);
+      setShowAnnotationEditor(false);
+    }
+  };
+
   if (loading || !currentDocument) {
     return <LoadingScreen message="Loading document..." />;
   }
