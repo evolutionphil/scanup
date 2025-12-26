@@ -1677,7 +1677,8 @@ async def manual_perspective_crop(
             return {"success": False, "cropped_image_base64": request.image_base64, "message": "Could not decode image"}
         
         # Fix EXIF orientation FIRST to get correct dimensions
-        img = fix_image_orientation(img)
+        # Pass original bytes to read EXIF properly
+        img = fix_image_orientation(img, image_bytes)
         height, width = img.shape[:2]
         
         logger.info(f"Image dimensions after EXIF fix: {width}x{height}")
