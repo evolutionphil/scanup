@@ -668,16 +668,16 @@ export default function ScannerScreen() {
                 {isCapturing ? <ActivityIndicator color={currentType.color} /> : <View style={[styles.captureInner, { backgroundColor: currentType.color }]} />}
               </TouchableOpacity>
 
-              <View style={styles.sideBtn}>
+              <TouchableOpacity style={styles.sideBtn} onPress={() => capturedImages.length > 0 && setShowCamera(false)}>
                 {capturedImages.length > 0 ? (
-                  <View style={styles.sideBtnInner}>
+                  <View style={[styles.sideBtnInner, { backgroundColor: currentType.color + '40' }]}>
                     <View style={[styles.badge, { backgroundColor: currentType.color }]}><Text style={styles.badgeText}>{capturedImages.length}</Text></View>
                     <Ionicons name="layers" size={22} color="#FFF" />
                   </View>
                 ) : (
                   <View style={[styles.sideBtnInner, { opacity: 0.3 }]}><Ionicons name="layers" size={22} color="#94A3B8" /></View>
                 )}
-                <Text style={styles.sideBtnText}>Pages</Text>
+                <Text style={styles.sideBtnText}>{capturedImages.length > 0 ? 'View' : 'Pages'}</Text>
               </View>
             </View>
           </View>
