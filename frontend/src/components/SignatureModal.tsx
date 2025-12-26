@@ -384,12 +384,6 @@ export function SignaturePlacementModal({ visible, documentImage, signatureImage
 }
 
 // ============ STYLES ============
-      </View>
-    </Modal>
-  );
-}
-
-// ============ STYLES ============
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
