@@ -1177,7 +1177,7 @@ export default function ScannerScreen() {
         zoom={0}
         onLayout={handleCameraLayout}
       >
-        <SafeAreaView style={styles.cameraOverlay}>
+        <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="close" size={28} color="#FFF" />
