@@ -327,8 +327,8 @@ def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
         watermark = Image.new('RGBA', image.size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(watermark)
         
-        # Calculate font size based on image size
-        font_size = max(20, min(image.width, image.height) // 20)
+        # Calculate font size based on image size (larger for visibility)
+        font_size = max(30, min(image.width, image.height) // 15)
         
         # Try to use a built-in font, fallback to default
         try:
@@ -344,12 +344,16 @@ def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
         text_height = bbox[3] - bbox[1]
         
         # Position: bottom right with padding
-        padding = 20
+        padding = 30
         x = image.width - text_width - padding
         y = image.height - text_height - padding
         
-        # Draw semi-transparent watermark
-        draw.text((x, y), text, font=font, fill=(128, 128, 128, 100))
+        # Draw shadow/outline first for visibility on any background
+        shadow_offset = 2
+        draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0, 120))
+        
+        # Draw main watermark text (more visible: opacity 180/255 ≈ 70%)
+        draw.text((x, y), text, font=font, fill=(100, 100, 100, 180))
         
         # Composite
         watermarked = Image.alpha_composite(image, watermark)
