@@ -123,10 +123,10 @@ export default function ScannerScreen() {
   
   const addToDocumentId = params.addToDocument as string | undefined;
   
-  // Crop state
+  // Crop state - uses PIXEL coordinates for the crop screen
   const [showCropScreen, setShowCropScreen] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
-  const [cropPoints, setCropPoints] = useState<CropPoint[]>([]);
+  const [cropPoints, setCropPoints] = useState<CropPoint[]>([]);  // Pixel coords
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [previewLayout, setPreviewLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
@@ -138,11 +138,14 @@ export default function ScannerScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
 
-  // Frame dimensions in screen coordinates
+  /**
+   * Calculate frame dimensions in SCREEN PIXELS for display
+   * Returns the pixel size of the alignment frame overlay
+   */
   const getFrameDimensions = useCallback(() => {
-    const maxFrameWidth = SCREEN_WIDTH * currentType.frameWidth - 40;
+    const maxFrameWidth = SCREEN_WIDTH * currentType.frameWidthRatio - 40;
     const frameHeight = maxFrameWidth / currentType.aspectRatio;
-    const maxHeight = SCREEN_HEIGHT * 0.40; // Keep frame well within safe area
+    const maxHeight = SCREEN_HEIGHT * 0.40;
     
     if (frameHeight > maxHeight) {
       return { width: maxHeight * currentType.aspectRatio, height: maxHeight };
@@ -152,18 +155,80 @@ export default function ScannerScreen() {
 
   const frameDimensions = getFrameDimensions();
 
-  // Track camera preview layout
+  /**
+   * Calculate the NORMALIZED (0-1) frame position within the preview
+   * This is the key for accurate mapping to sensor coordinates
+   */
+  const getNormalizedFrameInPreview = useCallback((): { 
+    left: number; top: number; right: number; bottom: number 
+  } => {
+    if (!cameraLayout || cameraLayout.previewWidth === 0) {
+      // Default to centered 80% frame
+      return { left: 0.1, top: 0.1, right: 0.9, bottom: 0.9 };
+    }
+
+    const frameWidthNorm = frameDimensions.width / cameraLayout.previewWidth;
+    const frameHeightNorm = frameDimensions.height / cameraLayout.previewHeight;
+    
+    // Center the frame
+    const left = (1 - frameWidthNorm) / 2;
+    const top = (1 - frameHeightNorm) / 2;
+    
+    return {
+      left,
+      top,
+      right: left + frameWidthNorm,
+      bottom: top + frameHeightNorm,
+    };
+  }, [cameraLayout, frameDimensions]);
+
+  /**
+   * Track camera preview layout and calculate sensor visibility
+   * This is called when the CameraView layout changes
+   */
   const handleCameraLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
-    const aspect = width / height;
+    const previewAspect = width / height;
     
-    setCameraLayout({
+    // Calculate which portion of the 4:3 sensor is visible in this preview
+    // Using "cover" mode: preview fills the view, sensor is center-cropped
+    const sensorAspect = SENSOR_ASPECT_PORTRAIT; // 0.75 for portrait
+    
+    let sensorVisible = {
+      offsetX: 0,
+      offsetY: 0,
+      visibleWidth: 1,
+      visibleHeight: 1,
+    };
+    
+    if (sensorAspect > previewAspect) {
+      // Sensor is WIDER than preview (unlikely in portrait)
+      // Left/right edges of sensor are cropped
+      const visibleRatio = previewAspect / sensorAspect;
+      sensorVisible.visibleWidth = visibleRatio;
+      sensorVisible.offsetX = (1 - visibleRatio) / 2;
+    } else if (sensorAspect < previewAspect) {
+      // Sensor is TALLER than preview (common case)
+      // Top/bottom edges of sensor are cropped
+      const visibleRatio = sensorAspect / previewAspect;
+      sensorVisible.visibleHeight = visibleRatio;
+      sensorVisible.offsetY = (1 - visibleRatio) / 2;
+    }
+    
+    const layoutInfo: CameraLayoutInfo = {
       previewWidth: width,
       previewHeight: height,
-      previewAspect: aspect,
-    });
+      previewAspect,
+      sensorVisibleInPreview: sensorVisible,
+    };
     
-    console.log(`📷 Camera preview: ${width.toFixed(0)}x${height.toFixed(0)} (aspect: ${aspect.toFixed(3)})`);
+    setCameraLayout(layoutInfo);
+    
+    logDebug('LAYOUT', 'Camera preview configured', {
+      preview: `${width.toFixed(0)}x${height.toFixed(0)} (${previewAspect.toFixed(3)})`,
+      sensorAspect: sensorAspect.toFixed(3),
+      visibleSensor: sensorVisible,
+    });
   }, []);
 
   // Coordinate conversion for crop screen
