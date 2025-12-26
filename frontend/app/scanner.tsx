@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   ScrollView,
   Dimensions,
   PanResponder,
-  Animated,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -21,6 +22,7 @@ import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
+import Svg, { Rect, Line, Path, Circle, Defs, Mask } from 'react-native-svg';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -31,10 +33,11 @@ interface DocTypeConfig {
   type: DocumentType;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  aspectRatio: number; // width/height
-  frameWidth: number; // percentage of screen width
+  aspectRatio: number;
+  frameWidth: number;
   color: string;
   guide: string;
+  guideType: 'rectangle' | 'id_card' | 'book' | 'whiteboard' | 'business_card';
 }
 
 const DOCUMENT_TYPES: DocTypeConfig[] = [
@@ -42,19 +45,21 @@ const DOCUMENT_TYPES: DocTypeConfig[] = [
     type: 'document', 
     label: 'Document', 
     icon: 'document-text-outline',
-    aspectRatio: 0.707, // A4 ratio
+    aspectRatio: 0.707,
     frameWidth: 0.85,
     color: '#3B82F6',
-    guide: 'Align document edges'
+    guide: 'Align document edges',
+    guideType: 'rectangle'
   },
   { 
     type: 'id_card', 
     label: 'ID Card', 
     icon: 'card-outline',
-    aspectRatio: 1.586, // Standard ID card ratio (85.6mm x 53.98mm)
+    aspectRatio: 1.586,
     frameWidth: 0.8,
     color: '#F59E0B',
-    guide: 'Place ID card in frame'
+    guide: 'Place ID card in frame',
+    guideType: 'id_card'
   },
   { 
     type: 'book', 
@@ -63,25 +68,28 @@ const DOCUMENT_TYPES: DocTypeConfig[] = [
     aspectRatio: 0.75,
     frameWidth: 0.9,
     color: '#10B981',
-    guide: 'Capture book pages'
+    guide: 'Capture book pages',
+    guideType: 'book'
   },
   { 
     type: 'whiteboard', 
     label: 'Whiteboard', 
     icon: 'easel-outline',
-    aspectRatio: 1.5, // Wide format
+    aspectRatio: 1.5,
     frameWidth: 0.95,
     color: '#8B5CF6',
-    guide: 'Capture entire board'
+    guide: 'Capture entire board',
+    guideType: 'whiteboard'
   },
   { 
     type: 'business_card', 
     label: 'Business', 
     icon: 'person-outline',
-    aspectRatio: 1.75, // Business card ratio
+    aspectRatio: 1.75,
     frameWidth: 0.7,
     color: '#EC4899',
-    guide: 'Center business card'
+    guide: 'Center business card',
+    guideType: 'business_card'
   },
 ];
 
@@ -93,7 +101,7 @@ interface CropPoint {
 export default function ScannerScreen() {
   const { token } = useAuthStore();
   const { theme } = useThemeStore();
-  const { createDocument } = useDocumentStore();
+  const { createDocument, fetchDocuments } = useDocumentStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImages, setCapturedImages] = useState<{ base64: string; original: string }[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -101,18 +109,20 @@ export default function ScannerScreen() {
   const [flashMode, setFlashMode] = useState<'off' | 'on'>('off');
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   
-  // Manual crop state
-  const [showManualCrop, setShowManualCrop] = useState(false);
+  // Crop/editing state
+  const [showCropScreen, setShowCropScreen] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [cropPoints, setCropPoints] = useState<CropPoint[]>([]);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [autoCropLoading, setAutoCropLoading] = useState(false);
+  const [detectedCorners, setDetectedCorners] = useState<CropPoint[] | null>(null);
   
   const cameraRef = useRef<CameraView>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
 
-  // Calculate frame dimensions based on document type
+  // Calculate frame dimensions
   const getFrameDimensions = () => {
     const frameWidth = SCREEN_WIDTH * currentType.frameWidth - 40;
     const frameHeight = frameWidth / currentType.aspectRatio;
@@ -129,11 +139,15 @@ export default function ScannerScreen() {
 
   const frameDimensions = getFrameDimensions();
 
-  const handleTypeSelect = (index: number) => {
+  const handleTypeSelect = useCallback((index: number) => {
     setSelectedTypeIndex(index);
-    // Scroll to center the selected item
-    scrollRef.current?.scrollTo({ x: index * 100 - 100, animated: true });
-  };
+    // Center the selected item in scroll view
+    if (scrollRef.current) {
+      const itemWidth = 90;
+      const scrollPosition = Math.max(0, index * itemWidth - (SCREEN_WIDTH / 2 - itemWidth / 2));
+      scrollRef.current.scrollTo({ x: scrollPosition, animated: true });
+    }
+  }, []);
 
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
@@ -141,28 +155,35 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.85,
+        quality: 0.9,
         base64: true,
       });
 
       if (photo?.base64) {
-        // Store the image and show crop options
-        setCropImage(photo.base64);
-        
-        // Get image dimensions for crop interface
+        // Get image size
         Image.getSize(`data:image/jpeg;base64,${photo.base64}`, (width, height) => {
           setImageSize({ width, height });
-          // Initialize crop points to frame area (approximate)
-          const padding = 0.1;
+          setCropImage(photo.base64 || null);
+          setShowCropScreen(true);
+          
+          // Initialize crop points to full frame with padding
+          const padding = 0.05;
           setCropPoints([
             { x: width * padding, y: height * padding },
             { x: width * (1 - padding), y: height * padding },
             { x: width * (1 - padding), y: height * (1 - padding) },
             { x: width * padding, y: height * (1 - padding) },
           ]);
+          
+          // Try auto-detection
+          tryAutoCrop(photo.base64 || '');
+        }, (error) => {
+          console.error('Error getting image size:', error);
+          // Set default size
+          setImageSize({ width: 1080, height: 1920 });
+          setCropImage(photo.base64 || null);
+          setShowCropScreen(true);
         });
-        
-        setShowManualCrop(true);
       }
     } catch (error) {
       console.error('Error taking picture:', error);
@@ -172,13 +193,10 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleAutoCrop = async () => {
-    if (!cropImage || !token) {
-      handleSkipCrop();
-      return;
-    }
-
-    setIsCapturing(true);
+  const tryAutoCrop = async (imageBase64: string) => {
+    if (!token) return;
+    
+    setAutoCropLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
         method: 'POST',
@@ -187,7 +205,7 @@ export default function ScannerScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          image_base64: cropImage,
+          image_base64: imageBase64,
           operation: 'auto_crop',
           params: { document_type: currentType.type }
         }),
@@ -195,27 +213,31 @@ export default function ScannerScreen() {
 
       const result = await response.json();
       
-      if (result.success && result.cropped_image_base64) {
-        setCapturedImages([...capturedImages, { base64: result.cropped_image_base64, original: cropImage }]);
-        setShowManualCrop(false);
-        setCropImage(null);
-        Alert.alert('Success', 'Document cropped automatically');
-      } else {
-        Alert.alert(
-          'Auto-Crop Failed',
-          'Could not detect document edges. Please adjust the corners manually.',
-          [{ text: 'OK' }]
-        );
+      if (result.corners && result.corners.length === 4) {
+        const corners = result.corners.map((c: any) => ({
+          x: c.x,
+          y: c.y
+        }));
+        setDetectedCorners(corners);
+        setCropPoints(corners);
+        
+        if (result.success) {
+          // Auto-detected successfully
+          Alert.alert(
+            'Document Detected!',
+            'Auto-crop is ready. Adjust corners if needed, then tap "Crop" to apply.',
+            [{ text: 'OK' }]
+          );
+        }
       }
     } catch (e) {
-      console.error('Auto-crop error:', e);
-      Alert.alert('Error', 'Auto-crop failed. Please adjust manually.');
+      console.error('Auto-crop detection error:', e);
     } finally {
-      setIsCapturing(false);
+      setAutoCropLoading(false);
     }
   };
 
-  const handleManualCrop = async () => {
+  const handleApplyCrop = async () => {
     if (!cropImage || !token || cropPoints.length !== 4) {
       handleSkipCrop();
       return;
@@ -246,11 +268,12 @@ export default function ScannerScreen() {
         setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
       }
     } catch (e) {
-      console.error('Manual crop error:', e);
+      console.error('Crop error:', e);
       setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
     } finally {
-      setShowManualCrop(false);
+      setShowCropScreen(false);
       setCropImage(null);
+      setDetectedCorners(null);
       setIsCapturing(false);
     }
   };
@@ -259,14 +282,30 @@ export default function ScannerScreen() {
     if (cropImage) {
       setCapturedImages([...capturedImages, { base64: cropImage, original: cropImage }]);
     }
-    setShowManualCrop(false);
+    setShowCropScreen(false);
     setCropImage(null);
+    setDetectedCorners(null);
+  };
+
+  const handleResetCrop = () => {
+    if (detectedCorners) {
+      setCropPoints([...detectedCorners]);
+    } else {
+      // Reset to full image with padding
+      const padding = 0.05;
+      setCropPoints([
+        { x: imageSize.width * padding, y: imageSize.height * padding },
+        { x: imageSize.width * (1 - padding), y: imageSize.height * padding },
+        { x: imageSize.width * (1 - padding), y: imageSize.height * (1 - padding) },
+        { x: imageSize.width * padding, y: imageSize.height * (1 - padding) },
+      ]);
+    }
   };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
+      quality: 0.9,
       base64: true,
       allowsMultipleSelection: true,
     });
@@ -275,7 +314,26 @@ export default function ScannerScreen() {
       const newImages = result.assets
         .filter((asset) => asset.base64)
         .map((asset) => ({ base64: asset.base64 as string, original: asset.base64 as string }));
-      setCapturedImages([...capturedImages, ...newImages]);
+      
+      if (newImages.length > 0) {
+        // For picked images, show crop screen for first one
+        const firstImage = newImages[0];
+        Image.getSize(`data:image/jpeg;base64,${firstImage.base64}`, (width, height) => {
+          setImageSize({ width, height });
+          setCropImage(firstImage.base64);
+          setShowCropScreen(true);
+          
+          const padding = 0.05;
+          setCropPoints([
+            { x: width * padding, y: height * padding },
+            { x: width * (1 - padding), y: height * padding },
+            { x: width * (1 - padding), y: height * (1 - padding) },
+            { x: width * padding, y: height * (1 - padding) },
+          ]);
+          
+          tryAutoCrop(firstImage.base64);
+        });
+      }
     }
   };
 
@@ -309,6 +367,9 @@ export default function ScannerScreen() {
         document_type: currentType.type,
       });
 
+      // Refresh documents list
+      await fetchDocuments(token!);
+
       Alert.alert('Success', 'Document saved successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -320,33 +381,38 @@ export default function ScannerScreen() {
     }
   };
 
-  // Draggable crop corner component
-  const CropCorner = ({ index }: { index: number }) => {
-    const point = cropPoints[index];
-    if (!point) return null;
-
-    // Convert image coordinates to screen coordinates
+  // Draggable crop corner component with improved touch handling
+  const CropCorner = useCallback(({ index, point }: { index: number; point: CropPoint }) => {
     const previewWidth = SCREEN_WIDTH - 40;
-    const previewHeight = previewWidth * (imageSize.height / imageSize.width) || 400;
-    const screenX = (point.x / imageSize.width) * previewWidth;
-    const screenY = (point.y / imageSize.height) * previewHeight;
+    const previewHeight = Math.min(previewWidth * (imageSize.height / imageSize.width), SCREEN_HEIGHT * 0.55);
+    
+    const scaleX = previewWidth / imageSize.width;
+    const scaleY = previewHeight / imageSize.height;
+    
+    const screenX = point.x * scaleX;
+    const screenY = point.y * scaleY;
 
-    const panResponder = useRef(
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderMove: (_, gestureState) => {
-          const newX = Math.max(0, Math.min(imageSize.width, (screenX + gestureState.dx) / previewWidth * imageSize.width));
-          const newY = Math.max(0, Math.min(imageSize.height, (screenY + gestureState.dy) / previewHeight * imageSize.height));
-          
-          setCropPoints(prev => {
-            const newPoints = [...prev];
-            newPoints[index] = { x: newX, y: newY };
-            return newPoints;
-          });
-        },
-      })
-    ).current;
+    const handleMove = (dx: number, dy: number) => {
+      const newX = Math.max(0, Math.min(imageSize.width, point.x + dx / scaleX));
+      const newY = Math.max(0, Math.min(imageSize.height, point.y + dy / scaleY));
+      
+      setCropPoints(prev => {
+        const newPoints = [...prev];
+        newPoints[index] = { x: newX, y: newY };
+        return newPoints;
+      });
+    };
+
+    const panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        handleMove(gestureState.dx, gestureState.dy);
+      },
+      onPanResponderRelease: () => {},
+    });
+
+    const cornerLabels = ['TL', 'TR', 'BR', 'BL'];
 
     return (
       <View
@@ -354,63 +420,258 @@ export default function ScannerScreen() {
         style={[
           styles.cropCorner,
           {
-            left: screenX - 20,
-            top: screenY - 20,
+            left: screenX - 22,
+            top: screenY - 22,
             backgroundColor: currentType.color,
-            borderColor: '#FFF',
           },
         ]}
       >
-        <View style={styles.cropCornerInner} />
+        <Text style={styles.cornerLabel}>{cornerLabels[index]}</Text>
       </View>
     );
-  };
+  }, [imageSize, currentType.color]);
 
-  // Render crop lines
-  const renderCropLines = () => {
+  // Render crop lines between corners
+  const CropLines = useMemo(() => {
     if (cropPoints.length !== 4 || !imageSize.width) return null;
 
     const previewWidth = SCREEN_WIDTH - 40;
-    const previewHeight = previewWidth * (imageSize.height / imageSize.width) || 400;
+    const previewHeight = Math.min(previewWidth * (imageSize.height / imageSize.width), SCREEN_HEIGHT * 0.55);
+    
+    const scaleX = previewWidth / imageSize.width;
+    const scaleY = previewHeight / imageSize.height;
 
     const points = cropPoints.map(p => ({
-      x: (p.x / imageSize.width) * previewWidth,
-      y: (p.y / imageSize.height) * previewHeight,
+      x: p.x * scaleX,
+      y: p.y * scaleY,
     }));
 
+    const pathData = `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y} L ${points[2].x} ${points[2].y} L ${points[3].x} ${points[3].y} Z`;
+
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {/* Draw lines between corners */}
-        {[0, 1, 2, 3].map(i => {
-          const next = (i + 1) % 4;
-          const startX = points[i].x;
-          const startY = points[i].y;
-          const endX = points[next].x;
-          const endY = points[next].y;
-          const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-          const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
-
-          return (
-            <View
-              key={i}
-              style={[
-                styles.cropLine,
-                {
-                  left: startX,
-                  top: startY,
-                  width: length,
-                  backgroundColor: currentType.color,
-                  transform: [{ rotate: `${angle}deg` }],
-                  transformOrigin: 'left center',
-                },
-              ]}
-            />
-          );
-        })}
-      </View>
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* Semi-transparent overlay outside crop area */}
+        <Defs>
+          <Mask id="cropMask">
+            <Rect x="0" y="0" width={previewWidth} height={previewHeight} fill="white" />
+            <Path d={pathData} fill="black" />
+          </Mask>
+        </Defs>
+        <Rect 
+          x="0" 
+          y="0" 
+          width={previewWidth} 
+          height={previewHeight} 
+          fill="rgba(0,0,0,0.4)" 
+          mask="url(#cropMask)" 
+        />
+        
+        {/* Crop outline */}
+        <Path 
+          d={pathData} 
+          stroke={currentType.color} 
+          strokeWidth={3} 
+          fill="transparent" 
+        />
+        
+        {/* Corner circles */}
+        {points.map((p, i) => (
+          <Circle key={i} cx={p.x} cy={p.y} r={6} fill={currentType.color} />
+        ))}
+      </Svg>
     );
-  };
+  }, [cropPoints, imageSize, currentType.color]);
 
+  // Document type visual guide overlays
+  const DocumentGuide = useMemo(() => {
+    const { width, height } = frameDimensions;
+    
+    switch (currentType.guideType) {
+      case 'id_card':
+        return (
+          <Svg width={width} height={height} style={styles.guideSvg}>
+            {/* ID Card outline */}
+            <Rect 
+              x={5} y={5} 
+              width={width - 10} height={height - 10} 
+              rx={12} ry={12}
+              stroke={currentType.color} 
+              strokeWidth={2} 
+              strokeDasharray="8,4"
+              fill="transparent" 
+            />
+            {/* Photo placeholder */}
+            <Rect 
+              x={width * 0.06} y={height * 0.2} 
+              width={width * 0.28} height={height * 0.6}
+              rx={4} ry={4}
+              stroke={currentType.color + '80'} 
+              strokeWidth={1.5}
+              strokeDasharray="4,4"
+              fill={currentType.color + '10'} 
+            />
+            {/* Info lines */}
+            {[0.25, 0.4, 0.55, 0.7].map((y, i) => (
+              <Line 
+                key={i}
+                x1={width * 0.4} y1={height * y}
+                x2={width * 0.9} y2={height * y}
+                stroke={currentType.color + '60'}
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
+            ))}
+            {/* ID icon */}
+            <Ionicons 
+              name="card-outline" 
+              size={30} 
+              color={currentType.color + '40'}
+              style={{ position: 'absolute', right: 20, bottom: 20 }}
+            />
+          </Svg>
+        );
+        
+      case 'book':
+        return (
+          <Svg width={width} height={height} style={styles.guideSvg}>
+            {/* Book outline */}
+            <Rect 
+              x={5} y={5} 
+              width={width - 10} height={height - 10} 
+              rx={4} ry={4}
+              stroke={currentType.color} 
+              strokeWidth={2}
+              strokeDasharray="8,4"
+              fill="transparent" 
+            />
+            {/* Center spine line */}
+            <Line 
+              x1={width / 2} y1={10}
+              x2={width / 2} y2={height - 10}
+              stroke={currentType.color}
+              strokeWidth={2}
+              strokeDasharray="6,6"
+            />
+            {/* Page lines left */}
+            {[0.15, 0.35, 0.55, 0.75].map((y, i) => (
+              <Line 
+                key={`l${i}`}
+                x1={width * 0.08} y1={height * y}
+                x2={width * 0.42} y2={height * y}
+                stroke={currentType.color + '40'}
+                strokeWidth={1.5}
+              />
+            ))}
+            {/* Page lines right */}
+            {[0.15, 0.35, 0.55, 0.75].map((y, i) => (
+              <Line 
+                key={`r${i}`}
+                x1={width * 0.58} y1={height * y}
+                x2={width * 0.92} y2={height * y}
+                stroke={currentType.color + '40'}
+                strokeWidth={1.5}
+              />
+            ))}
+          </Svg>
+        );
+        
+      case 'whiteboard':
+        return (
+          <Svg width={width} height={height} style={styles.guideSvg}>
+            {/* Board outline */}
+            <Rect 
+              x={5} y={5} 
+              width={width - 10} height={height - 10} 
+              rx={8} ry={8}
+              stroke={currentType.color} 
+              strokeWidth={3}
+              strokeDasharray="12,6"
+              fill="transparent" 
+            />
+            {/* Grid lines */}
+            {[0.25, 0.5, 0.75].map((x, i) => (
+              <Line 
+                key={`v${i}`}
+                x1={width * x} y1={20}
+                x2={width * x} y2={height - 20}
+                stroke={currentType.color + '20'}
+                strokeWidth={1}
+              />
+            ))}
+            {[0.33, 0.66].map((y, i) => (
+              <Line 
+                key={`h${i}`}
+                x1={20} y1={height * y}
+                x2={width - 20} y2={height * y}
+                stroke={currentType.color + '20'}
+                strokeWidth={1}
+              />
+            ))}
+          </Svg>
+        );
+        
+      case 'business_card':
+        return (
+          <Svg width={width} height={height} style={styles.guideSvg}>
+            {/* Card outline */}
+            <Rect 
+              x={5} y={5} 
+              width={width - 10} height={height - 10} 
+              rx={8} ry={8}
+              stroke={currentType.color} 
+              strokeWidth={2}
+              strokeDasharray="6,4"
+              fill="transparent" 
+            />
+            {/* Logo placeholder */}
+            <Circle 
+              cx={width * 0.15} cy={height * 0.35}
+              r={height * 0.15}
+              stroke={currentType.color + '60'}
+              strokeWidth={1.5}
+              strokeDasharray="3,3"
+              fill={currentType.color + '10'}
+            />
+            {/* Text lines */}
+            <Line 
+              x1={width * 0.35} y1={height * 0.25}
+              x2={width * 0.85} y2={height * 0.25}
+              stroke={currentType.color + '50'}
+              strokeWidth={2}
+            />
+            <Line 
+              x1={width * 0.35} y1={height * 0.45}
+              x2={width * 0.7} y2={height * 0.45}
+              stroke={currentType.color + '40'}
+              strokeWidth={1.5}
+            />
+            <Line 
+              x1={width * 0.15} y1={height * 0.7}
+              x2={width * 0.85} y2={height * 0.7}
+              stroke={currentType.color + '30'}
+              strokeWidth={1}
+            />
+          </Svg>
+        );
+        
+      default:
+        return (
+          <Svg width={width} height={height} style={styles.guideSvg}>
+            <Rect 
+              x={5} y={5} 
+              width={width - 10} height={height - 10} 
+              rx={8} ry={8}
+              stroke={currentType.color} 
+              strokeWidth={2}
+              strokeDasharray="10,5"
+              fill="transparent" 
+            />
+          </Svg>
+        );
+    }
+  }, [frameDimensions, currentType]);
+
+  // Permission screen
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -423,12 +684,12 @@ export default function ScannerScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.permissionContainer}>
-          <View style={[styles.permissionIconWrapper, { backgroundColor: theme.primary + '15' }]}>
+          <View style={[styles.permissionIconWrapper, { backgroundColor: theme.surface }]}>
             <Ionicons name="camera" size={60} color={theme.primary} />
           </View>
-          <Text style={[styles.permissionTitle, { color: theme.text }]}>Camera Access Required</Text>
+          <Text style={[styles.permissionTitle, { color: theme.text }]}>Camera Permission</Text>
           <Text style={[styles.permissionText, { color: theme.textMuted }]}>
-            Please grant camera access to scan documents
+            We need camera access to scan documents. Your photos are stored locally and never shared.
           </Text>
           <Button title="Grant Permission" onPress={requestPermission} style={styles.permissionButton} />
           <Button title="Go Back" variant="secondary" onPress={() => router.back()} style={styles.permissionButton} />
@@ -437,85 +698,97 @@ export default function ScannerScreen() {
     );
   }
 
-  // Manual Crop Screen
-  if (showManualCrop && cropImage) {
+  // Crop screen
+  if (showCropScreen && cropImage) {
     const previewWidth = SCREEN_WIDTH - 40;
-    const previewHeight = previewWidth * (imageSize.height / imageSize.width) || 400;
+    const previewHeight = Math.min(previewWidth * (imageSize.height / imageSize.width), SCREEN_HEIGHT * 0.55);
 
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#000' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#000' }]} edges={['top']}>
+        {/* Header */}
         <View style={styles.cropHeader}>
-          <TouchableOpacity onPress={handleSkipCrop} style={styles.cropHeaderBtn}>
-            <Text style={styles.cropHeaderText}>Skip</Text>
+          <TouchableOpacity style={styles.cropHeaderBtn} onPress={() => setShowCropScreen(false)}>
+            <Ionicons name="close" size={28} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.cropTitle}>Adjust Edges</Text>
-          <TouchableOpacity onPress={handleManualCrop} style={styles.cropHeaderBtn}>
-            <Text style={[styles.cropHeaderText, { color: currentType.color }]}>Done</Text>
+          <Text style={styles.cropTitle}>Adjust Crop</Text>
+          <TouchableOpacity style={styles.cropHeaderBtn} onPress={handleResetCrop}>
+            <Ionicons name="refresh" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
 
+        {/* Image with crop overlay */}
         <View style={styles.cropImageContainer}>
-          <Image
-            source={{ uri: `data:image/jpeg;base64,${cropImage}` }}
-            style={[styles.cropPreviewImage, { width: previewWidth, height: previewHeight }]}
-            resizeMode="contain"
-          />
-          <View style={[styles.cropOverlay, { width: previewWidth, height: previewHeight }]}>
-            {renderCropLines()}
-            {[0, 1, 2, 3].map(i => (
-              <CropCorner key={i} index={i} />
+          <View style={{ width: previewWidth, height: previewHeight, position: 'relative' }}>
+            <Image
+              source={{ uri: `data:image/jpeg;base64,${cropImage}` }}
+              style={{ width: previewWidth, height: previewHeight, borderRadius: 8 }}
+              resizeMode="contain"
+            />
+            {CropLines}
+            {/* Draggable corners */}
+            {cropPoints.map((point, index) => (
+              <CropCorner key={index} index={index} point={point} />
             ))}
-          </View>
-        </View>
-
-        <View style={styles.cropActions}>
-          <TouchableOpacity
-            style={[styles.cropActionBtn, { backgroundColor: currentType.color }]}
-            onPress={handleAutoCrop}
-            disabled={isCapturing}
-          >
-            {isCapturing ? (
-              <ActivityIndicator size="small" color="#FFF" />
-            ) : (
-              <>
-                <Ionicons name="scan" size={20} color="#FFF" />
-                <Text style={styles.cropActionText}>Auto Detect</Text>
-              </>
+            
+            {autoCropLoading && (
+              <View style={styles.cropLoadingOverlay}>
+                <ActivityIndicator size="large" color={currentType.color} />
+                <Text style={styles.cropLoadingText}>Detecting document...</Text>
+              </View>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.cropActionBtn, { backgroundColor: '#374151' }]}
-            onPress={handleSkipCrop}
-          >
-            <Ionicons name="close" size={20} color="#FFF" />
-            <Text style={styles.cropActionText}>No Crop</Text>
-          </TouchableOpacity>
+          </View>
         </View>
 
         <Text style={styles.cropHint}>
           Drag the corners to adjust the crop area
         </Text>
+
+        {/* Actions */}
+        <View style={styles.cropActions}>
+          <TouchableOpacity 
+            style={[styles.cropActionBtn, { backgroundColor: theme.surface }]}
+            onPress={handleSkipCrop}
+          >
+            <Ionicons name="close-circle-outline" size={22} color="#FFF" />
+            <Text style={styles.cropActionText}>Skip</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.cropActionBtn, { backgroundColor: currentType.color }]}
+            onPress={handleApplyCrop}
+            disabled={isCapturing}
+          >
+            {isCapturing ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name="crop" size={22} color="#FFF" />
+                <Text style={styles.cropActionText}>Crop</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
   // Preview captured images
-  if (capturedImages.length > 0) {
+  if (capturedImages.length > 0 && !showCropScreen) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
         <View style={styles.previewHeader}>
           <TouchableOpacity
             style={[styles.headerIconButton, { backgroundColor: theme.surface }]}
             onPress={() => setCapturedImages([])}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.text} />
+            <Ionicons name="close" size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.previewTitle, { color: theme.text }]}>
             {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
           </Text>
           <TouchableOpacity
             style={[styles.headerIconButton, { backgroundColor: theme.surface }]}
-            onPress={() => {}}
+            onPress={takePicture}
           >
             <Ionicons name="camera" size={22} color={theme.text} />
           </TouchableOpacity>
@@ -546,7 +819,7 @@ export default function ScannerScreen() {
           <Button
             title="Add More"
             variant="secondary"
-            onPress={() => {}}
+            onPress={takePicture}
             style={styles.actionButton}
             icon={<Ionicons name="camera" size={20} color={theme.text} />}
           />
@@ -577,7 +850,10 @@ export default function ScannerScreen() {
             <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
               <Ionicons name="close" size={28} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.topBarTitle}>{currentType.label}</Text>
+            <View style={styles.topBarCenter}>
+              <Ionicons name={currentType.icon} size={18} color={currentType.color} />
+              <Text style={[styles.topBarTitle, { color: currentType.color }]}>{currentType.label}</Text>
+            </View>
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => setFlashMode(flashMode === 'off' ? 'on' : 'off')}
@@ -586,26 +862,26 @@ export default function ScannerScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Document Frame */}
+          {/* Document Frame with Visual Guide */}
           <View style={styles.frameContainer}>
             <View style={[
               styles.documentFrame,
               {
                 width: frameDimensions.width,
                 height: frameDimensions.height,
-                borderColor: currentType.color,
               }
             ]}>
+              {DocumentGuide}
+              
               {/* Corner markers */}
               <View style={[styles.frameCorner, styles.frameCornerTL, { borderColor: currentType.color }]} />
               <View style={[styles.frameCorner, styles.frameCornerTR, { borderColor: currentType.color }]} />
               <View style={[styles.frameCorner, styles.frameCornerBL, { borderColor: currentType.color }]} />
               <View style={[styles.frameCorner, styles.frameCornerBR, { borderColor: currentType.color }]} />
               
-              {/* Document type specific icon/guide */}
-              <View style={styles.frameGuide}>
-                <Ionicons name={currentType.icon} size={48} color={currentType.color + '60'} />
-                <Text style={[styles.frameGuideText, { color: currentType.color + '80' }]}>
+              {/* Guide text */}
+              <View style={styles.frameGuideText}>
+                <Text style={[styles.guideText, { color: currentType.color }]}>
                   {currentType.guide}
                 </Text>
               </View>
@@ -614,42 +890,61 @@ export default function ScannerScreen() {
 
           {/* Bottom Section */}
           <View style={styles.bottomSection}>
-            {/* Document Type Selector */}
-            <ScrollView
-              ref={scrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.typeSelector}
-            >
-              {DOCUMENT_TYPES.map((type, index) => (
-                <TouchableOpacity
-                  key={type.type}
-                  style={[
-                    styles.typeButton,
-                    selectedTypeIndex === index && { backgroundColor: type.color + '30' },
-                  ]}
-                  onPress={() => handleTypeSelect(index)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={type.icon}
-                    size={24}
-                    color={selectedTypeIndex === index ? type.color : '#94A3B8'}
-                  />
-                  <Text style={[
-                    styles.typeLabel,
-                    { color: selectedTypeIndex === index ? type.color : '#94A3B8' },
-                  ]}>
-                    {type.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {/* Document Type Selector - Horizontal Slider */}
+            <View style={styles.typeSelectorContainer}>
+              <ScrollView
+                ref={scrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.typeSelector}
+                snapToInterval={90}
+                decelerationRate="fast"
+              >
+                {DOCUMENT_TYPES.map((type, index) => (
+                  <TouchableOpacity
+                    key={type.type}
+                    style={[
+                      styles.typeButton,
+                      selectedTypeIndex === index && { 
+                        backgroundColor: type.color + '30',
+                        borderColor: type.color,
+                        borderWidth: 2,
+                      },
+                    ]}
+                    onPress={() => handleTypeSelect(index)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.typeIconWrapper,
+                      { backgroundColor: selectedTypeIndex === index ? type.color + '40' : 'rgba(255,255,255,0.1)' }
+                    ]}>
+                      <Ionicons
+                        name={type.icon}
+                        size={24}
+                        color={selectedTypeIndex === index ? type.color : '#94A3B8'}
+                      />
+                    </View>
+                    <Text style={[
+                      styles.typeLabel,
+                      { 
+                        color: selectedTypeIndex === index ? type.color : '#94A3B8',
+                        fontWeight: selectedTypeIndex === index ? '700' : '500',
+                      },
+                    ]}>
+                      {type.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
             {/* Capture Controls */}
             <View style={styles.captureBar}>
               <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
-                <Ionicons name="images" size={26} color="#FFF" />
+                <View style={styles.sideButtonInner}>
+                  <Ionicons name="images" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.sideButtonText}>Gallery</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -670,11 +965,22 @@ export default function ScannerScreen() {
 
               <View style={styles.sideButton}>
                 {capturedImages.length > 0 && (
-                  <View style={[styles.badge, { backgroundColor: currentType.color }]}>
-                    <Text style={styles.badgeText}>{capturedImages.length}</Text>
+                  <TouchableOpacity 
+                    style={styles.sideButtonInner}
+                    onPress={() => {/* Show preview */}}
+                  >
+                    <View style={[styles.badge, { backgroundColor: currentType.color }]}>
+                      <Text style={styles.badgeText}>{capturedImages.length}</Text>
+                    </View>
+                    <Ionicons name="layers" size={24} color="#FFF" />
+                  </TouchableOpacity>
+                )}
+                {capturedImages.length === 0 && (
+                  <View style={[styles.sideButtonInner, { opacity: 0.4 }]}>
+                    <Ionicons name="layers" size={24} color="#94A3B8" />
                   </View>
                 )}
-                <Ionicons name="layers" size={26} color="#94A3B8" />
+                <Text style={styles.sideButtonText}>Pages</Text>
               </View>
             </View>
           </View>
@@ -702,15 +1008,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  topBarCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
   topBarTitle: {
-    color: '#FFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -721,17 +1035,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   documentFrame: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+  },
+  guideSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   frameCorner: {
     position: 'absolute',
-    width: 30,
-    height: 30,
+    width: 35,
+    height: 35,
     borderWidth: 4,
   },
   frameCornerTL: {
@@ -762,68 +1078,95 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderBottomRightRadius: 8,
   },
-  frameGuide: {
-    alignItems: 'center',
-    gap: 12,
-  },
   frameGuideText: {
+    position: 'absolute',
+    bottom: -35,
+    alignItems: 'center',
+  },
+  guideText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   bottomSection: {
-    paddingBottom: 20,
+    paddingBottom: 10,
+  },
+  typeSelectorContainer: {
+    paddingVertical: 8,
   },
   typeSelector: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    gap: 10,
   },
   typeButton: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
     minWidth: 80,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  typeIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   typeLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
+    fontSize: 11,
   },
   captureBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    marginTop: 8,
+    paddingHorizontal: 30,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   sideButton: {
+    width: 70,
+    alignItems: 'center',
+  },
+  sideButtonInner: {
     width: 50,
     height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
+  sideButtonText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 4,
+  },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -5,
+    right: -5,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 4,
+    zIndex: 10,
   },
   badgeText: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   captureButton: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
@@ -832,9 +1175,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   captureInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   // Permission styles
   permissionContainer: {
@@ -876,11 +1219,6 @@ const styles = StyleSheet.create({
   cropHeaderBtn: {
     padding: 8,
   },
-  cropHeaderText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   cropTitle: {
     color: '#FFF',
     fontSize: 18,
@@ -890,57 +1228,60 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  cropPreviewImage: {
-    borderRadius: 8,
-  },
-  cropOverlay: {
-    position: 'absolute',
+    paddingHorizontal: 20,
   },
   cropCorner: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 3,
+    borderColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 100,
   },
-  cropCornerInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFF',
+  cornerLabel: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
-  cropLine: {
-    position: 'absolute',
-    height: 3,
+  cropLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  cropLoadingText: {
+    color: '#FFF',
+    marginTop: 12,
+    fontSize: 14,
   },
   cropActions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 16,
+    gap: 20,
     padding: 20,
   },
   cropActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 28,
-    gap: 8,
+    gap: 10,
   },
   cropActionText: {
     color: '#FFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
   },
   cropHint: {
     color: '#94A3B8',
     fontSize: 13,
     textAlign: 'center',
-    paddingBottom: 20,
+    paddingBottom: 8,
   },
   // Preview styles
   previewHeader: {
