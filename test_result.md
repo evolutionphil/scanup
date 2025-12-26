@@ -487,15 +487,14 @@ agent_communication:
   - agent: "testing"
     message: "Backend API testing completed successfully. All core APIs working: Auth (register/login/profile), Document CRUD, Folder management, Image processing, Subscription management, OCR tracking. Authentication and error handling robust. Minor image processing warnings in logs but functionality works. Google OAuth validates input correctly but needs real session for full test. All high-priority backend tasks verified and working."
   - agent: "main"
-    message: "Major bug fixes implemented based on user feedback:
-    1. BACKEND - Improved auto-crop detection algorithm with multiple approaches (Canny, adaptive threshold, color-based)
-    2. BACKEND - Added folder password verification endpoint (/api/folders/{id}/verify-password)
-    3. BACKEND - Fixed thumbnail regeneration on document update for rotation persistence
-    4. FRONTEND - Complete scanner overhaul with functional document type slider
-    5. FRONTEND - Added visual guides for each document type (ID card, book, whiteboard, business card)
-    6. FRONTEND - Improved manual crop UI with draggable corners
-    7. FRONTEND - Fixed folder password verification to use proper backend endpoint
-    Please test: Auto-crop detection, scanner document type selection, folder password protection flow"
+    message: "Phase 1 Bug Fixes Complete:
+    1. CRITICAL FIX - Export endpoints were defined AFTER router inclusion causing 404. Fixed by moving them before app.include_router()
+    2. Scanner crop accuracy - Fixed coordinate system (image coords vs screen coords) with proper scaling
+    3. Scanner UI - Improved drag precision with magnifier zoom preview
+    4. First screen UX - Redesigned layout: Get Started → Sign In text link → Continue without login
+    5. Guest mode - Core features (scan, edit, export JPEG) work without login
+    6. Export modal - Added pages prop, fixed JPEG export for guests
+    Please test: Export PDF/JPEG, Scanner crop accuracy, Guest mode flow"
   - agent: "testing"
     message: "Comprehensive backend testing completed for ScanUp document scanner app. All 21 tests passed (100% success rate). Specific review request items tested and verified:
     1. ✅ Auto-crop API - Working with improved detection algorithm, returns corners even on detection failure, confidence scoring implemented
