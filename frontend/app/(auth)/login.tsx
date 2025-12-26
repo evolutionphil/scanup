@@ -54,17 +54,21 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       const redirectUrl = Platform.OS === 'web'
-        ? `${BACKEND_URL}/`
+        ? `${window.location.origin}/`
         : Linking.createURL('/');
       
+      console.log('Google login redirect URL:', redirectUrl);
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+      console.log('Opening auth URL:', authUrl);
       
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      console.log('WebBrowser result:', JSON.stringify(result, null, 2));
       
       if (result.type === 'success' && result.url) {
         // Parse session_id from URL
         let sessionId = '';
         const url = result.url;
+        console.log('Return URL:', url);
         
         // Check hash fragment
         if (url.includes('#session_id=')) {
@@ -73,11 +77,20 @@ export default function LoginScreen() {
           sessionId = url.split('?session_id=')[1]?.split('&')[0] || '';
         }
         
+        console.log('Parsed session_id:', sessionId ? 'found' : 'not found');
+        
         if (sessionId) {
           await googleLogin(sessionId);
           router.replace('/(tabs)');
         } else {
-          Alert.alert('Error', 'Failed to get session from Google');
+          Alert.alert('Error', 'Failed to get session from Google. Please try again.');
+        }
+      } else if (result.type === 'dismiss') {
+        console.log('User dismissed the login');
+      } else {
+        console.log('Auth result type:', result.type);
+        Alert.alert('Login Cancelled', 'Please try signing in again');
+      }
         }
       }
     } catch (error: any) {
