@@ -66,12 +66,15 @@ export default function DocumentsScreen() {
   };
 
   const loadDocuments = async () => {
-    if (token && !isGuest) {
-      try {
+    try {
+      if (token && !isGuest) {
         await Promise.all([fetchDocuments(token), fetchFolders(token)]);
-      } catch (e) {
-        console.error('Failed to load data:', e);
+      } else {
+        // For guests, load from local storage
+        await fetchDocuments(null);
       }
+    } catch (e) {
+      console.error('Failed to load data:', e);
     }
   };
 
