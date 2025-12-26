@@ -3294,25 +3294,44 @@ async def export_document(
             img_data = page["image_base64"]
             if "," in img_data:
                 img_data = img_data.split(",")[1]
-            return img_data
+            # Validate it's actual base64
+            if len(img_data) > 100:  # Should be more than 100 chars for a real image
+                return img_data
         
         # Otherwise download from S3 URL
         if page.get("image_url") and s3_client:
             try:
                 import urllib.parse
+                import httpx
+                
                 url = page["image_url"]
-                # Parse S3 URL to get key
-                # Format: https://bucket.s3.region.amazonaws.com/key
+                logger.info(f"Downloading image from S3 URL: {url[:100]}...")
+                
+                # Try direct HTTP download first (simpler and works with pre-signed URLs)
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=30.0)
+                    if response.status_code == 200:
+                        image_data = response.content
+                        logger.info(f"Downloaded {len(image_data)} bytes from S3")
+                        return base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        logger.error(f"HTTP download failed: {response.status_code}")
+                
+                # Fallback to S3 SDK
                 parsed = urllib.parse.urlparse(url)
                 key = parsed.path.lstrip('/')
                 
                 # Download from S3
-                response = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                response = s3_client.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=key)
                 image_data = response['Body'].read()
+                logger.info(f"Downloaded {len(image_data)} bytes from S3 SDK")
                 return base64.b64encode(image_data).decode('utf-8')
             except Exception as e:
                 logger.error(f"Failed to download image from S3: {e}")
+                import traceback
+                traceback.print_exc()
         
+        logger.error(f"No image data found for page. Has base64: {bool(page.get('image_base64'))}, Has URL: {bool(page.get('image_url'))}")
         return ""
     
     try:
