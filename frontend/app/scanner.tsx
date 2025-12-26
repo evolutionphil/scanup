@@ -12,6 +12,7 @@ import {
   GestureResponderEvent,
   LayoutChangeEvent,
   Platform,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -54,6 +55,15 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SENSOR_ASPECT_RATIO = 4 / 3; // Standard camera sensor (landscape)
 const SENSOR_ASPECT_PORTRAIT = 3 / 4; // 0.75 in portrait mode
 const CAMERA_RATIO = '4:3'; // Force 4:3 capture
+
+// Handle types for edge adjustment
+type HandleType = 'corner' | 'edge';
+interface CropHandle {
+  type: HandleType;
+  index: number; // For corners: 0-3 (TL, TR, BR, BL), for edges: 0-3 (top, right, bottom, left)
+  x: number;
+  y: number;
+}
 
 type DocumentType = 'document' | 'id_card' | 'book' | 'whiteboard' | 'business_card';
 
