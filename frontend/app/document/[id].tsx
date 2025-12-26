@@ -619,7 +619,7 @@ export default function DocumentScreen() {
           <ActionButton icon="color-wand" label="Filters" onPress={() => setShowFilterEditor(true)} theme={theme} />
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
-          <ActionButton icon="pencil" label="Sign" onPress={() => setShowSignatureModal(true)} theme={theme} />
+          <ActionButton icon="pencil" label="Sign" onPress={() => setShowSignatureDrawing(true)} theme={theme} />
           {hasOriginal && (
             <ActionButton icon="arrow-undo" label="Revert" onPress={handleRevertToOriginal} theme={theme} />
           )}
