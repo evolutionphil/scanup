@@ -161,6 +161,214 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
+  // Save all documents to local cache (for offline access)
+  saveLocalCache: async () => {
+    try {
+      const { documents } = get();
+      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(documents));
+    } catch (e) {
+      console.error('Error saving local cache:', e);
+    }
+  },
+
+  // Load documents from local cache
+  loadLocalCache: async () => {
+    try {
+      const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
+      if (cached) {
+        const documents = JSON.parse(cached);
+        set({ documents });
+      }
+    } catch (e) {
+      console.error('Error loading local cache:', e);
+    }
+  },
+
+  // Add item to pending sync queue
+  addToPendingSync: async (item: PendingSyncItem) => {
+    try {
+      const existing = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+      const items: PendingSyncItem[] = existing ? JSON.parse(existing) : [];
+      
+      // Remove any existing item for same document
+      const filtered = items.filter(i => i.document_id !== item.document_id);
+      filtered.push(item);
+      
+      await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(filtered));
+      set({ pendingSyncCount: filtered.length });
+    } catch (e) {
+      console.error('Error adding to pending sync:', e);
+    }
+  },
+
+  // Get pending sync items
+  getPendingSyncItems: async () => {
+    try {
+      const existing = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+      return existing ? JSON.parse(existing) : [];
+    } catch (e) {
+      console.error('Error getting pending sync items:', e);
+      return [];
+    }
+  },
+
+  // Clear a pending sync item after successful sync
+  clearPendingSyncItem: async (documentId: string) => {
+    try {
+      const existing = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+      const items: PendingSyncItem[] = existing ? JSON.parse(existing) : [];
+      const filtered = items.filter(i => i.document_id !== documentId);
+      await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(filtered));
+      set({ pendingSyncCount: filtered.length });
+    } catch (e) {
+      console.error('Error clearing pending sync item:', e);
+    }
+  },
+
+  // Update document sync status in state
+  updateDocumentSyncStatus: (documentId: string, status: SyncStatus) => {
+    set((state) => ({
+      documents: state.documents.map((d) =>
+        d.document_id === documentId ? { ...d, sync_status: status } : d
+      ),
+      currentDocument: state.currentDocument?.document_id === documentId 
+        ? { ...state.currentDocument, sync_status: status } 
+        : state.currentDocument,
+    }));
+  },
+
+  // Sync pending documents to server
+  syncPendingDocuments: async (token: string) => {
+    const { isSyncing, getPendingSyncItems, clearPendingSyncItem, updateDocumentSyncStatus } = get();
+    
+    if (isSyncing) return;
+    
+    // Check network connectivity
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      console.log('No network, skipping sync');
+      return;
+    }
+    
+    set({ isSyncing: true });
+    
+    try {
+      const pendingItems = await getPendingSyncItems();
+      console.log(`Syncing ${pendingItems.length} pending items...`);
+      
+      for (const item of pendingItems) {
+        if (item.retries >= 3) {
+          console.log(`Skipping ${item.document_id} after 3 failed retries`);
+          updateDocumentSyncStatus(item.document_id, 'failed');
+          continue;
+        }
+        
+        updateDocumentSyncStatus(item.document_id, 'syncing');
+        
+        try {
+          if (item.action === 'create' && item.data) {
+            // Upload to server
+            const response = await fetch(`${BACKEND_URL}/api/documents`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(item.data),
+            });
+            
+            if (response.ok) {
+              const serverDoc = await response.json();
+              
+              // Update local document with server ID and S3 URLs
+              set((state) => ({
+                documents: state.documents.map((d) =>
+                  d.document_id === item.document_id ? { ...serverDoc, sync_status: 'synced' as SyncStatus } : d
+                ),
+              }));
+              
+              await clearPendingSyncItem(item.document_id);
+              console.log(`✅ Synced: ${item.document_id} → ${serverDoc.document_id}`);
+            } else {
+              throw new Error('Server returned error');
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to sync ${item.document_id}:`, e);
+          // Increment retry count
+          item.retries++;
+          await get().addToPendingSync(item);
+          updateDocumentSyncStatus(item.document_id, 'failed');
+        }
+      }
+    } finally {
+      set({ isSyncing: false });
+    }
+  },
+
+  // LOCAL-FIRST document creation
+  createDocumentLocalFirst: async (token, data) => {
+    const now = new Date().toISOString();
+    const localId = generateId();
+    
+    // Create local document immediately
+    const localDocument: Document = {
+      document_id: localId,
+      user_id: token ? 'pending' : 'guest',
+      name: data.name,
+      folder_id: data.folder_id,
+      tags: data.tags || [],
+      pages: data.pages.map((p, i) => ({
+        page_id: generateId(),
+        image_base64: p.image_base64 || '',
+        thumbnail_base64: p.image_base64 ? createLocalThumbnail(p.image_base64) : '',
+        ocr_text: p.ocr_text,
+        filter_applied: p.filter_applied || 'original',
+        rotation: p.rotation || 0,
+        order: i,
+        created_at: now,
+      })),
+      document_type: data.document_type,
+      ocr_full_text: undefined,
+      is_password_protected: false,
+      storage_type: 'local',
+      sync_status: token ? 'local' : 'synced', // Guests don't need sync
+      created_at: now,
+      updated_at: now,
+    };
+    
+    // Add to state immediately (instant feedback!)
+    set((state) => ({ documents: [localDocument, ...state.documents] }));
+    
+    // Save to local storage
+    await get().saveGuestDocuments();
+    await get().saveLocalCache();
+    
+    // If logged in, queue for background sync
+    if (token) {
+      await get().addToPendingSync({
+        document_id: localId,
+        action: 'create',
+        data: {
+          name: data.name,
+          folder_id: data.folder_id,
+          tags: data.tags || [],
+          pages: data.pages,
+          document_type: data.document_type,
+        },
+        retries: 0,
+        created_at: now,
+      });
+      
+      // Trigger background sync
+      setTimeout(() => {
+        get().syncPendingDocuments(token);
+      }, 1000);
+    }
+    
+    return localDocument;
+  },
+
   fetchDocuments: async (token, params = {}) => {
     set({ isLoading: true });
     try {
