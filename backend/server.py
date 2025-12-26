@@ -1729,15 +1729,18 @@ async def manual_perspective_crop(
             img_data = request.image_base64
             
         image_bytes = base64.b64decode(img_data)
-        nparr = np.frombuffer(image_bytes, np.uint8)
+        
+        # Fix EXIF orientation FIRST using PIL (more reliable)
+        corrected_bytes, was_rotated, orientation = fix_image_orientation_pil(image_bytes)
+        logger.info(f"EXIF orientation: {orientation}, was_rotated: {was_rotated}")
+        
+        # Now decode the corrected image with OpenCV
+        nparr = np.frombuffer(corrected_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
             return {"success": False, "cropped_image_base64": request.image_base64, "message": "Could not decode image"}
         
-        # Fix EXIF orientation FIRST to get correct dimensions
-        # Pass original bytes to read EXIF properly
-        img = fix_image_orientation(img, image_bytes)
         height, width = img.shape[:2]
         
         logger.info(f"Image dimensions after EXIF fix: {width}x{height}")
@@ -1755,8 +1758,7 @@ async def manual_perspective_crop(
         logger.info(f"Pixel corners: {pixel_corners}")
         
         # Re-encode the EXIF-corrected image for perspective_crop
-        _, corrected_buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
-        corrected_base64 = base64.b64encode(corrected_buffer).decode()
+        corrected_base64 = base64.b64encode(corrected_bytes).decode()
         
         # Apply perspective transform on the EXIF-corrected image
         cropped = perspective_crop(corrected_base64, pixel_corners)
