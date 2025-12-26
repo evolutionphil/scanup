@@ -7,9 +7,11 @@ const GUEST_FOLDERS_KEY = 'guest_folders';
 
 export interface PageData {
   page_id: string;
-  image_base64: string;
+  image_base64?: string;           // Base64 image (MongoDB storage)
+  image_url?: string;              // S3 URL (cloud storage)
   original_image_base64?: string;  // Original image before filters (non-destructive editing)
-  thumbnail_base64?: string;
+  thumbnail_base64?: string;       // Base64 thumbnail (MongoDB)
+  thumbnail_url?: string;          // S3 thumbnail URL
   ocr_text?: string;
   filter_applied: string;
   rotation: number;
@@ -22,6 +24,17 @@ export interface PageData {
   };
 }
 
+// Helper to get image source (handles both base64 and S3 URLs)
+export const getImageSource = (page: PageData, useThumbnail: boolean = false) => {
+  if (useThumbnail) {
+    if (page.thumbnail_url) return { uri: page.thumbnail_url };
+    if (page.thumbnail_base64) return { uri: `data:image/jpeg;base64,${page.thumbnail_base64}` };
+  }
+  if (page.image_url) return { uri: page.image_url };
+  if (page.image_base64) return { uri: `data:image/jpeg;base64,${page.image_base64}` };
+  return { uri: '' };
+};
+
 export interface Document {
   document_id: string;
   user_id: string;
@@ -32,6 +45,7 @@ export interface Document {
   document_type?: string;  // document, id_card, passport, book, whiteboard, business_card
   ocr_full_text?: string;
   is_password_protected: boolean;
+  storage_type?: string;  // 's3' or 'mongodb'
   created_at: string;
   updated_at: string;
 }
