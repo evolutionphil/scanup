@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useThemeStore } from '../../src/store/themeStore';
-import { useAuthStore } from '../../src/store/authStore';
+import { useThemeStore } from '../src/store/themeStore';
+import { useAuthStore } from '../src/store/authStore';
 
 // Settings keys
 const SETTINGS_KEYS = {
