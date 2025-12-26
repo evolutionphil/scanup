@@ -1,215 +1,198 @@
 <analysis>
 
-**original_problem_statement**: The user wants to enhance the ScanUp mobile app with a variety of new features and bug fixes to improve its functionality and user experience, bringing it closer to competitors like Adobe Scan. The requests cover core scanning mechanics, UI/UX improvements, and the implementation of a freemium model.
+**original_problem_statement**: The user wants to enhance the ScanUp mobile app with a variety of new features and bug fixes to improve its functionality and user experience, bringing it closer to competitors like Adobe Scan. The core requests involved fixing scanning mechanics, improving the UI/UX, implementing a freemium model with premium features, and ensuring the app is production-ready with scalable cloud storage.
 
 **PRODUCT REQUIREMENTS (Summary from recent user messages):**
-- **Core Scanning:**
-    - Fix aspect ratio mismatches between the camera preview and sensor to eliminate distortion and incorrect cropping.
-    - Implement a Book Scan mode that splits a two-page capture into two separate images.
-    - Add an ID Card flow that prompts the user to scan the back side.
-    - Improve auto-capture to be a user-toggled option with a visible scanning animation, and it should only trigger when document edges are detected correctly.
-- **Editing & Signing:**
-    - The auto-crop feature on the document screen should work correctly, and a Revert to Original button must be available to undo the crop.
-    - Implement a full-featured document signing flow:
-        - Users can draw their signature in a modal.
-        - The signature must be saved as a transparent PNG.
-        - Users can drag, drop, and resize (pinch-to-zoom) the signature on the document page before applying it.
-- **UI/UX:**
-    - Implement a view-mode toggle (Grid/List) on the main document screen.
-    - Display folders in both grid and list views.
-    - Fix missing thumbnails in list view.
-    - Add a Capturing... progress indicator on the camera screen.
-    - The entire app should run in full-screen mode, avoiding system UI element obstruction.
-- **Freemium Model:**
-    - Implement a free tier with a daily scan limit.
-    - Apply a Scan Up watermark to documents created by free users.
-    - Implement a premium tier that removes these limitations.
-    - Add the ability for users to start a free trial for the premium features.
+- **Core Functionality:**
+    - Guest users should have the same capabilities as free registered users (local document creation, local folder management, use of free-tier features).
+    - Premium features (like Signing, OCR) when used by free/guest users should display a pop-up prompting them to upgrade.
+    - Scanned documents should be named automatically using the format .
+    - Adding a new page to an existing document must work correctly for both logged-in and guest users.
+    - Sharing a document should generate a PDF with the text Created via ScanUp app.
+- **Bug Fixes:**
+    - The image rotation issue on Android must be permanently fixed. Portrait scans should appear in portrait on the crop screen and in the final saved document.
+    - UI elements (especially bottom buttons and tab bars) must not be hidden behind the Android system navigation bar on any screen.
+    - The interactive signature placement must be fully functional, allowing users to drag, drop, and resize the signature.
+    - The app should not crash or show errors on logout.
+- **Architecture:**
+    - Document images should be stored in a cloud service (like AWS S3) for scalability, not as base64 strings in the database.
+    - To improve performance and user experience, the app should save documents locally first (optimistic update) and then sync them to the cloud in the background.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native) and FastAPI app. The agent has implemented a vast number of features and fixes in this session.
-- **Backend ():** The backend now includes logic for applying transparent signatures to images, checking daily scan limits, applying watermarks to images for free users, and managing a premium trial period for users. The user model has been updated with fields like , , and .
-- **Frontend ():** This file has been heavily modified. It now includes:
-    - Correct 4:3 camera ratio enforcement and zoom controls.
-    - Coordinate mapping using normalized coordinates.
-    - A Book Mode that can split a capture into two pages.
-    - A prompt for scanning the back of an ID card.
-    - A toggleable auto-capture feature with a scanning animation.
-    - Mid-point handles for more precise manual cropping.
-- **Frontend ():** This screen now integrates a highly interactive signature feature. Users can add a signature, which is captured as a transparent PNG, and then place it on the document using drag-and-drop and pinch-to-zoom gestures.
-- **Frontend ():** The main screen now features a view-mode toggle (grid/list) with persistent state via AsyncStorage. Both documents and folders are now rendered correctly in both views.
-- **Frontend Components:** A new  was created and refined multiple times to support transparent PNG capture, touch drawing, and gesture-based resizing.  and  were created to support the new view modes.
+The application is a full-stack Expo (React Native) and FastAPI app. It is highly functional but was in the middle of a major architectural change.
+- **Backend ():** The backend has been successfully migrated to use AWS S3 for image storage. When a logged-in user creates a document, the image is uploaded to the user's S3 bucket, and only the S3 URL is stored in the MongoDB  collection. The base64-in-DB approach has been deprecated for new documents. Public, non-authenticated endpoints were created for guests to use features like image filtering and cropping. The database schema is efficient, with separate collections for , , and  linked by .
+- **Frontend:**
+    - **S3 Integration:** The frontend has been partially updated to handle S3. The document display screen () and home screen thumbnails () can now render images from S3 URLs.
+    - **Freemium UI:** The UI for the freemium model is complete. The profile screen shows scan limits and a Start Trial button, and the scanner screen enforces scan limits.
+    - **Guest Functionality:** Guests can now create documents and folders locally, and use free-tier filters. Prompts to upgrade are in place for some premium features.
+    - **Bug Fixes:** Numerous critical bugs have been fixed, including Android  issues on multiple screens, the document sharing format (now PDF), and a complete rewrite of the signature placement UI in  using  for robust drag and pinch-to-zoom gestures.
+    - **Local-First (In-Progress):** The agent began refactoring  to support local-first storage with a background sync queue. The  library was installed, and the store's state and structure were modified to include  and a .
 
 **Last working item**:
-- Last item agent was working: Implementing the freemium model (scan limits, watermarks, trial period). The agent successfully implemented the backend logic in  and updated the frontend state management in . However, the session ended before the frontend UI could be created to display this information to the user (e.g., showing remaining scans, providing a Start Trial button, or showing an upgrade prompt when the limit is hit).
-- Status: IN PROGRESS
+- Last item agent was working: Implementing a local-first storage system with background S3 synchronization. The agent was in the middle of a major refactor of . New state variables (, ) and function stubs were added, but the core logic for creating documents locally and queuing them for background upload is incomplete.
+- Status: **IN PROGRESS**
 - Agent Testing Done: N
 - Which testing method agent to use? both
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- Issue 1: Missing Revert button after auto-crop (P1)
-- Issue 2: Auto-capture functionality needs user verification (P2)
-- Issue 3: PDF export functionality on Expo Go needs user verification (P2)
+- Issue 1: Fix Initial Document default title (P2)
+- Issue 2: Allow editing of saved signatures (P2)
+- Issue 3: Google Login flow is broken (P3)
+- Issue 4: Android Portrait Rotation needs final verification (P1)
 
 Issues Detail:
 - Issue 1:
-    - Description: The user reported (in message #184) that after performing an auto-crop on a saved document, the Revert to Original button does not appear, preventing them from undoing the action.
-    - Attempted fixes: The agent had previously implemented logic to store the original image and a conditional  flag to show the button in . The agent even modified the condition to be more inclusive (msg #174). However, the user's latest feedback suggests it's still not working as expected.
-    - Next debug checklist:
-        - In , trace the  function.
-        - Verify that  is correctly saved to the document's page state after the first auto-crop.
-        - Add  statements to check the value of  and the  flag every time the page is rendered.
-        - Ensure the state update triggers a re-render that shows the button.
-    - Why fix this issue and what will be achieved with the fix?: This provides a crucial non-destructive editing capability, which is a standard UX expectation.
-    - Status: IN PROGRESS
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: frontend
-    - Blocked on other issue: None
-
+     - Description: When a document is saved, its title sometimes defaults to Initial Document instead of the intended  format. The agent investigated but could not locate the source of this string.
+     - Attempted fixes: The agent verified the correct name is being passed from  and that the backend  endpoint uses the provided name. The source of the bug remains elusive.
+     - Next debug checklist:
+         - Trace the  call from  through .
+         - Add logging in  to see what  is being set when a new document is added to the local state.
+         - Check if the  state in  is being loaded with a stale or default name before the new document data arrives.
+     - Why fix this issue and what will be achieved with the fix?: Provides a better user experience with meaningful default document names.
+     - Status: NOT STARTED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None
 - Issue 2:
-    - Description: The user reported (in message #184) that the auto-capture feature was getting stuck on Capturing... please wait.
-    - Attempted fixes: The agent implemented a significant refactor in  to make auto-capture a toggleable button and added a scanning line animation.
-    - Next debug checklist:
-        - The user needs to test the new implementation to confirm if the stuck issue is resolved and if the new toggle button UX is satisfactory.
-        - Test edge cases: What happens if the user toggles it on/off quickly? Does the animation behave correctly?
-    - Why fix this issue and what will be achieved with the fix?: A working auto-capture improves scanning efficiency and user experience.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: frontend
-    - Blocked on other issue: None
-
+     - Description: The user requested the ability to edit a signature that has already been applied to a document. This functionality was not implemented.
+     - Attempted fixes: None.
+     - Next debug checklist:
+         - In , when a signature is present on a page, add an Edit or Replace button to the signature component.
+         - Tapping this button should re-open the , allowing the user to adjust or replace the signature.
+         - The  function needs to be adapted to handle updating an existing signature's position/image rather than just adding a new one.
+     - Why fix this issue and what will be achieved with the fix?: Improves the flexibility of the signing feature.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None
 - Issue 3:
-    - Description: The user initially reported that PDF export was failing on Expo Go (message #44).
-    - Attempted fixes: The agent identified that  behaves differently in Expo Go and implemented fallbacks for  and  in .
-    - Next debug checklist:
-        - The user needs to test the PDF export functionality again on their Expo Go app to confirm if the implemented fallbacks have resolved the issue.
-    - Why fix this issue and what will be achieved with the fix?: Exporting is a critical feature; ensuring it works on the user's primary testing platform is essential.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: frontend
-    - Blocked on other issue: None
+     - Description: The user reported that Google Login redirects to the email/password screen instead of completing the sign-in.
+     - Attempted fixes: The agent acknowledged this is likely a configuration issue requiring Google Cloud credentials and setup, and deferred the fix.
+     - Next debug checklist: This requires a full setup of Google OAuth credentials in the Google Cloud Console and configuring them in the Expo project. This is blocked on the user providing the necessary credentials and setup.
+     - Why fix this issue and what will be achieved with the fix?: Enables a key authentication method.
+     - Status: BLOCKED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: User credentials/setup.
+- Issue 4:
+     - Description: The image rotation issue on Android has been a persistent problem. The latest fix involves rotating the image on the frontend in  immediately after capture and before showing the crop screen. The agent last changed the rotation from -90 to +90 degrees to fix an upside-down report.
+     - Attempted fixes: Multiple backend and frontend fixes were attempted. The current fix in  using  is the most promising.
+     - Next debug checklist: This requires user testing on their Android device to confirm if the +90 degree rotation correctly orients the image on the crop screen and in the final saved document.
+     - Why fix this issue and what will be achieved with the fix?: Solves a critical, recurring usability issue for Android users.
+     - Status: USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None
 
 **In progress Task List**:
-- Task 1: Complete Frontend for Freemium Model (P0)
-    - Where to resume: The backend logic and frontend state are ready. The next step is to modify the frontend UI files.
-        - In , add UI to display the user's trial status and a button to Start Free Trial.
-        - In , add logic to check  from the . If the limit is reached, disable the capture button and show a modal or message prompting the user to upgrade.
-        - After a document is created and returned from the backend, verify that the image displayed in  contains the watermark if the user is on the free plan.
-    - What will be achieved with this?: This will complete the freemium feature set, which is a major business requirement for the app.
-    - Status: IN PROGRESS
-    - Should Test frontend/backend/both after fix?: both
-    - Blocked on something: None
+- Task 1: Complete Local-First Storage with Background Sync (P0)
+     - Where to resume: The refactor of  needs to be completed.
+         - ** function:** Modify this to save the document to  immediately with a  flag. The image should be saved locally as base64 for now.
+         - **:** Add the  of the newly created local document to the .
+         - ** function:** Implement the logic for this function. It should be triggered by  when online. It will iterate through the queue, pick up a 'pending' document, upload its base64 image to S3, call the backend  endpoint with the S3 URL, and then update the local document with  and the new S3 URL, finally removing the local base64 data to save space.
+         - **Update UI:** The home screen list items should show a small syncing icon if  is 'pending'.
+     - What will be achieved with this?: The app will feel significantly faster as document saving will be instantaneous. It will also be more resilient to network interruptions.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
-Upcoming Tasks:
-- **(P2) Advanced Image Enhancements**: Implement backend logic for auto brightness/contrast, shadow removal.
-- **(P2) PDF Editing & Annotation**: Add features like highlighting and text notes to the document view.
-- **(P3) Cloud Backup & Sync**: Integrate with a cloud storage provider like Google Drive or Dropbox.
-- **(P3) Ad-Free Experience**: Integrate an ad service for free users and disable it for premium users.
-
-Future Tasks:
-- **(P3) Priority Customer Support**: This is a business process, but the app could have a Contact Support button that uses a different channel for premium users.
+- **Upcoming Tasks:**
+    - (P2) Full review of all screens to ensure  is used correctly to prevent UI elements from being obscured on Android.
+    - (P2) Implement upgrade prompts for all remaining premium features for guest/free users.
+- **Future Tasks:**
+    - (P2) Advanced Image Enhancements: Implement backend logic for auto brightness/contrast, shadow removal.
+    - (P3) Cloud Backup & Sync for other providers (Google Drive, Dropbox).
 
 **Completed work in this session**
-- **Signature Feature (V1, V2, V3)**: Implemented a complete signature workflow, including drawing, saving as a transparent PNG, and interactive placement on the document with drag-and-drop and pinch-to-zoom resizing.
-- **Scanner Core Overhaul**: Fixed critical aspect ratio and coordinate mapping issues in  to improve crop accuracy.
-- **New Scanner Features**:
-    - Book Scan mode with page splitting.
-    - ID Card scan flow with a prompt for the back side.
-    - Toggleable auto-capture with a scanning animation.
-    - Mid-point edge handles for manual cropping.
-- **Home Screen UI/UX**:
-    - Implemented a persistent Grid/List view toggle.
-    - Ensured folders are visible in both view modes.
-    - Fixed missing thumbnails in list view.
-- **PDF Export Fix**: Addressed a critical bug preventing PDF export from working in Expo Go.
-- **Backend Freemium Logic**: Implemented backend support for daily scan limits, watermarking, and premium trials in .
-- **Full-Screen Layout Fixes**: Used  to fix UI elements being obstructed by system UI (notches, home bar).
+- **AWS S3 Integration**: Successfully migrated image storage from MongoDB (base64) to AWS S3 for logged-in users, significantly improving scalability.
+- **Guest User Parity**: Refactored the app to allow guest users to create/manage documents and folders locally, and use free-tier features like filters.
+- **Signature Placement Overhaul**: Completely rewrote the signature placement UI in  to use , fixing all drag/drop and pinch-to-zoom resizing issues.
+- **Freemium UI Completion**: Implemented the full frontend UI for the freemium model on the profile and scanner screens.
+- **Critical Bug Fixes**:
+    - **Android Rotation**: Implemented a robust frontend-side fix in  to orient portrait scans correctly before the crop screen is shown.
+    - **Android Safe Area**: Fixed UI elements being hidden behind the system navigation bar on numerous screens, including the main tab bar, scanner, document, and auth screens.
+    - **Sharing**: Fixed sharing to correctly generate and share a PDF instead of a JPEG.
+    - **Logout Crash**: Resolved a maximum update depth exceeded error that occurred on logout.
+    - **Add Page to Document**: Fixed the logic for adding new pages to existing documents for both guest and logged-in users.
 
 **Earlier issues found/mentioned but not fixed**
-- All major issues mentioned by the user during this extensive session were addressed or are listed as pending. The agent has been diligent in tracking user feedback.
-
-**Known issue recurrence from previous fork**
-- The initial summary mentioned several recurring issues like crop accuracy, PDF export, and filter previews. The agent has performed major refactors specifically to address the root causes of these (e.g., the  rewrite for crop accuracy), but they are worth keeping an eye on for regressions.
+- All issues found have been captured in the Pending/In progress Issue list.
 
 **Code Architecture**
-react-native-view-shot
+
 
 **Key Technical Concepts**
-- **Frontend**: React Native, Expo, Expo Router, Zustand, TypeScript, , ,  (for pinch/pan gestures), .
-- **Backend**: Python, FastAPI, Motor, OpenCV, Pillow.
+- **Frontend**: React Native, Expo, Zustand, , , .
+- **Backend**: Python, FastAPI, Motor, OpenCV, Pillow, .
 - **Database**: MongoDB.
-- **Core Concepts Implemented**: Coordinate Space Transformation, Gesture Handling (, ), State Management with Persistence (Zustand + AsyncStorage), Full-stack feature implementation.
+- **Cloud Storage**: AWS S3.
+- **Architecture Concepts**:
+    - **Cloud Storage Integration**: Storing large files (images) in S3 and metadata in MongoDB.
+    - **Local-First Storage / Optimistic UI**: (In Progress) Saving data to the device first for a responsive feel, then syncing to the cloud.
+    - **Public API Endpoints**: Creating non-authenticated endpoints to provide functionality to guest users.
 
 **key DB schema**
-- **users** collection in MongoDB: The  model in  was updated to include:
-  - 
-  - 
-  - 
+- **documents** collection: The  array within a document has changed.
+  -  of objects, where each object now contains:
+    -  (The S3 URL for the full-size image)
+    -  (The S3 URL for the thumbnail)
+    -  (Legacy/local-only storage)
+    -  (Legacy/local-only storage)
 
 **changes in tech stack**
-- ****: Added to the frontend to capture the signature canvas as an image.
-- ****: Usage was deepened for complex pinch-to-zoom and pan gestures in the signature placement feature.
+- **AWS S3**: Added for primary image storage.
+- ****: Python library added to the backend for S3 communication.
+- ****: Frontend library added to detect network status for background sync.
 
 **All files of reference**
-- : Contains the core scanning logic, heavily modified for new features and fixes.
-- : Contains the document viewing/editing logic, now with the advanced signature placement feature.
-- : A new, complex component for capturing user signatures.
-- : Contains new backend logic for signatures, watermarks, and scan limits.
-- : The main screen, updated with new UI/UX features.
-
-**Areas that need refactoring**:
--  and  have become very large and complex. Logic for gestures (signature placement, crop handles) and state management could be extracted into custom hooks to improve readability.
--  is a large monolith. Splitting it into modules for different concerns (users, documents, image processing) would improve maintainability.
-
-**key api endpoints**
-- : New endpoint to overlay a signature PNG onto a document page image.
-- : New endpoint to activate a premium trial for a user.
-- : Modified to check for daily scan limits and apply watermarks for free users.
+- : **Most critical file.** Currently in a half-refactored state for local-first sync.
+- : Contains all the backend logic, including the new S3 integration and public endpoints.
+- : Contains core scanning and capture logic, including the crucial frontend rotation fix.
+- : The document editor screen, updated to handle S3 URLs and guest/premium logic.
+- : The rewritten, fully functional signature placement component.
 
 **Critical Info for New Agent**
-- **Priority #1 is completing the Freemium feature.** The backend work is done, but the frontend UI is missing. You need to add UI elements in  and  to reflect the scan limits and trial status to the user.
-- The user is very responsive and provides detailed feedback, often with visual aids. Pay close attention to their requests for refinement (e.g., the evolution of the signature feature).
-- There are several completed but unverified fixes (Revert button, Auto-capture, PDF export). You should prompt the user to test these after you complete the current task.
-- The codebase has undergone massive changes. Be prepared for high complexity in  and .
-
-**documents created in this job**
-- 
-- 
-- 
+- **Your immediate and highest priority (P0) is to complete the refactor of **. The application is in a partially broken state until this local-first storage implementation is finished. You must implement the sync queue and update all document creation/modification functions to be local-first.
+- The Android rotation issue has been a major recurring pain point. The current frontend-based fix in  is the most promising, but it needs to be verified by the user to be 100% correct.
+- The user is very attentive and provides good feedback. Expect to iterate on features based on their reports.
+- Do not be surprised if you find more screens where UI elements are hidden on Android. Be prepared to apply  fixes as needed.
 
 **Last 10 User Messages and any pending HUMAN messages**
-- **(Msg 278)**: Reports signature resize is not working via pinch-to-zoom and background is not transparent. Provides a detailed list of Free vs. Premium features to be implemented/verified. (Partially addressed: agent fixed signature, started on premium features).
-- **(Msg 287)**: User says yes please to implementing the missing premium features. (In Progress).
-- **(Msg 320)**: User asks did you add all neeeded features?. (Pending - agent was about to answer).
-- **(Msg 323)**: User says i already forked it?!, indicating the session is over and they are moving to a new one. (Acknowledged).
-- **All other recent messages** were acknowledgements or feature requests that have since been implemented or are part of the larger tasks described above.
+- **(Msg 588)**: yes beginn with it - User explicitly greenlights the implementation of the local-first storage with background sync. (IN PROGRESS)
+- **(Msg 571)**: Reports that adding a page to an existing document isn't working, and filters don't work for guests. Also re-confirms the desire for local-first storage. (Addressed, led to current task).
+- **(Msg 538)**: Reports that after the S3 migration, the document screen is black (images not loading), logout is crashing, and suggests local-first storage. (Partially Addressed: image loading & logout fixed; local-first started).
+- **(Msg 515)**: Reports failed to save document error after the S3 migration was first implemented. (Addressed: was a Pydantic model mismatch).
+- **(Msg 469, 471)**: Provides AWS S3 bucket name and credentials. (Completed).
+- **(Msg 467)**: Asks what is needed for AWS S3 and how it works. (Answered).
+- **(Msg 465)**: Asks if MongoDB can be used for production. (Answered, led to S3 discussion).
+- **(Msg 456)**: Correctly questions the database structure, asking for an efficient design with linked collections. (Answered: confirmed the structure is already efficient).
+- **(Msg 433)**: Reports the scanned image is upside down, premium features need upgrade prompts for guests, and asks about cloud storage. (Partially Addressed).
+- **(Msg 390)**: Reports issues with signature movement/resizing, editing saved signatures, document titles, and sharing format. (Partially Addressed: signature movement and sharing format fixed).
 
 **Project Health Check:**
-- **Broken**: The freemium model is incomplete as the frontend UI is missing. The Revert button is reportedly not working correctly.
-- **Mocked**: No major mocked features, but the premium unlock flow itself (e.g., an in-app purchase screen) is not yet implemented.
-- **Needs Verification**: Auto-capture stability, PDF export on Expo Go, and the newly implemented signature resizing.
+- **Broken**: Yes. The application's data layer () is mid-refactor. Document creation and management are likely unstable until the local-first implementation is complete.
+- **Mocked**: No mocked features.
+- **Needs Verification**: The fix for the Android portrait rotation issue needs user confirmation.
 
 **3rd Party Integrations**
+- **AWS S3**: For scalable image storage. Requires User API Key.
+- ****: Python SDK for AWS.
+- ****: For checking network connectivity on the frontend.
 - **OpenAI GPT-4o**: For OCR, via  library. Uses Emergent LLM Key.
-- **ReportLab, python-docx, openpyxl**: For backend file exporting.
-- **Pillow, OpenCV**: Used in the backend for image manipulation.
-- ****: (New) Used on the frontend to capture React Native views as images.
 
 **Testing status**
-- Testing agent used after significant changes: YES, the backend testing agent was used early in the session to verify the perspective crop endpoint.
+- Testing agent used after significant changes: NO (since the last major bug fixes and start of refactor).
 - Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: []
-- Known regressions: The Revert button functionality appears to have regressed or was never fully functional, despite agent attempts to fix it.
-
-**Credentials to test flow:**
-Register a new user through the app's registration screen or use the Continue as Guest option. The freemium logic applies to registered, non-premium users.
+- Known regressions: None explicitly, but the in-progress refactor is a major risk.
 
 **What agent forgot to execute**
-- The agent started implementing the freemium features but did not complete the frontend UI portion.
-- The user's report about the Revert button not appearing (Msg 184) was investigated but seemingly not resolved, as it wasn't mentioned as fixed in subsequent summaries. The agent's fix in msg #174 may have been insufficient.
+- The ability to **edit a previously placed signature** was requested by the user but not implemented.
+- The bug causing document titles to sometimes default to **Initial Document** was not solved.
+- The **Google Login flow** was acknowledged as broken but deferred, as it's blocked by user-side configuration.
 
 </analysis>
