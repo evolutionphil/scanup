@@ -56,14 +56,6 @@ export default function FoldersScreen() {
   };
 
   const handleCreateFolder = async () => {
-    if (!token) {
-      Alert.alert('Sign In Required', 'Please sign in to create folders.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
-      ]);
-      return;
-    }
-
     if (!newFolderName.trim()) {
       Alert.alert('Error', 'Please enter a folder name');
       return;
@@ -71,7 +63,8 @@ export default function FoldersScreen() {
 
     setCreating(true);
     try {
-      await createFolder(token, { name: newFolderName.trim(), color: selectedColor });
+      // Pass token if available, null for guests (will create locally)
+      await createFolder(token || null, { name: newFolderName.trim(), color: selectedColor });
       setShowCreateModal(false);
       setNewFolderName('');
       setSelectedColor(FOLDER_COLORS[0]);
