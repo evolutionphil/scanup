@@ -39,11 +39,16 @@ export default function ProfileScreen() {
           text: isGuest ? 'Exit' : 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            // Use setTimeout to avoid navigation during render
-            setTimeout(() => {
+            try {
+              await logout();
+              // Use longer timeout to ensure state is fully cleared before navigation
+              setTimeout(() => {
+                router.replace('/');
+              }, 300);
+            } catch (e) {
+              console.error('Logout error:', e);
               router.replace('/');
-            }, 100);
+            }
           },
         },
       ]
