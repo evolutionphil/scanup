@@ -705,7 +705,7 @@ export default function DocumentScreen() {
               onPress={() => setSelectedPageIndex(index)}
             >
               <Image
-                source={{ uri: `data:image/jpeg;base64,${page.thumbnail_base64 || page.image_base64}` }}
+                source={{ uri: getPageThumbnail(page) }}
                 style={styles.thumbnail}
                 resizeMode="cover"
               />
