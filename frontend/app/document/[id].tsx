@@ -458,85 +458,59 @@ export default function DocumentScreen() {
     
     setShareLoading(true);
     try {
-      const isLocalDoc = currentDocument.document_id.startsWith('local_');
       const docName = currentDocument.name.replace(/[^a-z0-9]/gi, '_');
       
-      // For both local docs AND logged-in users, use PDF export
-      // Local docs use public endpoint, logged-in users use authenticated endpoint
-      if (isLocalDoc || !token) {
-        // Use public PDF export endpoint for guest/local documents
-        const imagesBase64 = currentDocument.pages.map(page => page.image_base64);
-        
-        const response = await fetch(`${BACKEND_URL}/api/export/public`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            format: 'pdf',
-            images_base64: imagesBase64,
-            document_name: currentDocument.name,
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Public export error:', errorText);
-          throw new Error('Failed to generate PDF');
+      // Always use public PDF export - send image data directly from memory
+      // This works for both guest and logged-in users
+      const imagesBase64 = currentDocument.pages.map(page => {
+        // The page should have image_base64 from local cache or from fetch
+        let imgData = page.image_base64 || '';
+        if (imgData.includes(',')) {
+          imgData = imgData.split(',')[1];
         }
-        
-        const result = await response.json();
-        if (!result.success) {
-          throw new Error(result.message || 'Failed to generate PDF');
-        }
-        
-        const fileName = `ScanUp_${docName}.pdf`;
-        const fileUri = `${cacheDirectory}${fileName}`;
-        
-        await writeAsStringAsync(fileUri, result.file_base64, {
-          encoding: EncodingType.Base64,
-        });
+        return imgData;
+      });
+      
+      if (!imagesBase64[0] || imagesBase64[0].length < 100) {
+        // If no local base64, try to fetch from image_url
+        Alert.alert('Share Error', 'Document image not available locally. Please try opening the document again.');
+        return;
+      }
+      
+      const response = await fetch(`${BACKEND_URL}/api/export/public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: 'pdf',
+          images_base64: imagesBase64,
+          document_name: currentDocument.name,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Export error:', errorText);
+        throw new Error('Failed to generate PDF');
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to generate PDF');
+      }
+      
+      const fileName = `ScanUp_${docName}.pdf`;
+      const fileUri = `${cacheDirectory}${fileName}`;
+      
+      await writeAsStringAsync(fileUri, result.file_base64, {
+        encoding: EncodingType.Base64,
+      });
 
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Share via ScanUp',
-          });
-        }
-      } else {
-        // Export as PDF for logged-in users with cloud documents
-        const response = await fetch(`${BACKEND_URL}/api/documents/${currentDocument.document_id}/export`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            format: 'pdf',
-            include_metadata: true,
-          }),
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share via ScanUp',
         });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Export error:', errorText);
-          throw new Error('Failed to generate PDF');
-        }
-
-        const result = await response.json();
-        const fileName = `ScanUp_${docName}.pdf`;
-        const fileUri = `${cacheDirectory}${fileName}`;
-        
-        await writeAsStringAsync(fileUri, result.file_base64, {
-          encoding: EncodingType.Base64,
-        });
-
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Created via ScanUp App',
-          });
-        }
       }
     } catch (e: any) {
       console.error('Share error:', e);
