@@ -460,9 +460,9 @@ const DocumentListItem = ({
     >
       {/* Thumbnail */}
       <View style={[styles.listThumbnail, { backgroundColor: theme.background }]}>
-        {thumbnailSource ? (
+        {thumbnailSource && thumbnailSource.uri ? (
           <Image
-            source={{ uri: thumbnailSource }}
+            source={thumbnailSource}
             style={styles.listThumbnailImage}
             resizeMode="cover"
           />
