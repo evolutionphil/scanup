@@ -1241,6 +1241,16 @@ export default function ScannerScreen() {
               ))}
             </ScrollView>
 
+            {/* Scan limit indicator for free users */}
+            {!isGuest && user && !user.is_premium && !user.is_trial && (
+              <View style={styles.scanLimitIndicator}>
+                <Ionicons name="scan-outline" size={14} color={(user.scans_remaining_today ?? 10) <= 2 ? '#F59E0B' : '#94A3B8'} />
+                <Text style={[styles.scanLimitText, (user.scans_remaining_today ?? 10) <= 2 && styles.scanLimitWarning]}>
+                  {user.scans_remaining_today ?? 10} scans left today
+                </Text>
+              </View>
+            )}
+
             <View style={styles.captureBar}>
               {/* Gallery Button */}
               <TouchableOpacity style={styles.sideBtn} onPress={pickImage}>
