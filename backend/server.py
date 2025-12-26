@@ -2471,67 +2471,85 @@ def detect_document_edges_cv(img: np.ndarray) -> Optional[List[Dict]]:
     """
     Detect document edges using contour detection (OpenCV based).
     Returns 4 corner points normalized to 0-1 range, or None if not found.
+    Uses multiple detection passes with different parameters for better detection.
     """
     height, width = img.shape[:2]
     
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # Apply Gaussian blur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Try multiple detection strategies
+    detection_params = [
+        # Strategy 1: Standard Canny
+        {'blur': (5, 5), 'canny_low': 50, 'canny_high': 150, 'dilate_iter': 1},
+        # Strategy 2: Lower thresholds for faded documents
+        {'blur': (5, 5), 'canny_low': 30, 'canny_high': 100, 'dilate_iter': 2},
+        # Strategy 3: Higher thresholds for noisy backgrounds
+        {'blur': (7, 7), 'canny_low': 75, 'canny_high': 200, 'dilate_iter': 1},
+        # Strategy 4: Adaptive threshold approach
+        {'blur': (5, 5), 'canny_low': 20, 'canny_high': 80, 'dilate_iter': 3},
+    ]
     
-    # Edge detection using Canny
-    edges = cv2.Canny(blurred, 50, 150)
-    
-    # Dilate edges to close gaps
-    kernel = np.ones((3, 3), np.uint8)
-    edges = cv2.dilate(edges, kernel, iterations=1)
-    
-    # Find contours
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    if not contours:
-        return None
-    
-    # Sort by area and get largest contours
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
-    
-    for contour in contours:
-        # Approximate contour
-        peri = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+    for params in detection_params:
+        # Apply Gaussian blur to reduce noise
+        blurred = cv2.GaussianBlur(gray, params['blur'], 0)
         
-        # If we found a quadrilateral
-        if len(approx) == 4:
-            # Check if area is significant (at least 10% of image)
-            area = cv2.contourArea(approx)
-            if area < (height * width * 0.1):
-                continue
+        # Edge detection using Canny
+        edges = cv2.Canny(blurred, params['canny_low'], params['canny_high'])
+        
+        # Dilate edges to close gaps
+        kernel = np.ones((3, 3), np.uint8)
+        edges = cv2.dilate(edges, kernel, iterations=params['dilate_iter'])
+        
+        # Find contours
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            continue
+        
+        # Sort by area and get largest contours
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+        
+        for contour in contours:
+            # Approximate contour with varying precision
+            peri = cv2.arcLength(contour, True)
             
-            # Extract points and order them
-            points = approx.reshape(4, 2)
-            
-            # Order points: TL, TR, BR, BL
-            # Sort by y first to get top and bottom pairs
-            sorted_by_y = points[np.argsort(points[:, 1])]
-            top_points = sorted_by_y[:2]
-            bottom_points = sorted_by_y[2:]
-            
-            # Sort top points by x (left to right)
-            top_points = top_points[np.argsort(top_points[:, 0])]
-            # Sort bottom points by x (left to right)  
-            bottom_points = bottom_points[np.argsort(bottom_points[:, 0])]
-            
-            # TL, TR, BR, BL
-            ordered = [
-                {'x': float(top_points[0][0]) / width, 'y': float(top_points[0][1]) / height},
-                {'x': float(top_points[1][0]) / width, 'y': float(top_points[1][1]) / height},
-                {'x': float(bottom_points[1][0]) / width, 'y': float(bottom_points[1][1]) / height},
-                {'x': float(bottom_points[0][0]) / width, 'y': float(bottom_points[0][1]) / height},
-            ]
-            
-            return ordered
+            for epsilon_factor in [0.02, 0.03, 0.04, 0.05]:
+                approx = cv2.approxPolyDP(contour, epsilon_factor * peri, True)
+                
+                # If we found a quadrilateral
+                if len(approx) == 4:
+                    # Check if area is significant (at least 5% of image)
+                    area = cv2.contourArea(approx)
+                    if area < (height * width * 0.05):
+                        continue
+                    
+                    # Extract points and order them
+                    points = approx.reshape(4, 2)
+                    
+                    # Order points: TL, TR, BR, BL
+                    # Sort by y first to get top and bottom pairs
+                    sorted_by_y = points[np.argsort(points[:, 1])]
+                    top_points = sorted_by_y[:2]
+                    bottom_points = sorted_by_y[2:]
+                    
+                    # Sort top points by x (left to right)
+                    top_points = top_points[np.argsort(top_points[:, 0])]
+                    # Sort bottom points by x (left to right)  
+                    bottom_points = bottom_points[np.argsort(bottom_points[:, 0])]
+                    
+                    # TL, TR, BR, BL
+                    ordered = [
+                        {'x': float(top_points[0][0]) / width, 'y': float(top_points[0][1]) / height},
+                        {'x': float(top_points[1][0]) / width, 'y': float(top_points[1][1]) / height},
+                        {'x': float(bottom_points[1][0]) / width, 'y': float(bottom_points[1][1]) / height},
+                        {'x': float(bottom_points[0][0]) / width, 'y': float(bottom_points[0][1]) / height},
+                    ]
+                    
+                    logger.info(f"[EdgeDetect] Found document edges with params: {params}")
+                    return ordered
     
+    logger.info("[EdgeDetect] No quadrilateral found, using default margins")
     return None
 
 
