@@ -1535,7 +1535,6 @@ async def run_document_ocr(
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
-    document_id: str
     format: str  # pdf, jpeg, docx, xlsx
     page_indices: Optional[List[int]] = None  # None means all pages
     include_ocr: bool = False
