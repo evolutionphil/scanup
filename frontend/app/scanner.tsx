@@ -501,6 +501,7 @@ export default function ScannerScreen() {
 
   const handleApplyCrop = async () => {
     if (!cropImage || cropPoints.length !== 4) {
+      logDebug('CROP', 'Skipping crop - no image or invalid points');
       if (cropImage) {
         setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
       }
@@ -512,15 +513,21 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     try {
       if (isGuest || !token) {
+        logDebug('CROP', 'Guest mode - skipping backend crop');
         setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
       } else {
-        // Normalize to 0-1 range
+        // Normalize coordinates to 0-1 range for backend
         const normalizedCorners = cropPoints.map(p => ({
           x: p.x / imageSize.width,
           y: p.y / imageSize.height,
         }));
 
-        console.log('🔲 Sending crop:', normalizedCorners.map(c => `(${c.x.toFixed(3)},${c.y.toFixed(3)})`).join(' → '));
+        logDebug('CROP', 'Sending to backend', {
+          imageSize: `${imageSize.width}x${imageSize.height}`,
+          corners: normalizedCorners.map((c, i) => 
+            `${['TL', 'TR', 'BR', 'BL'][i]}:(${c.x.toFixed(4)},${c.y.toFixed(4)})`
+          ).join(' '),
+        });
 
         const response = await fetch(`${BACKEND_URL}/api/images/perspective-crop`, {
           method: 'POST',
@@ -531,15 +538,18 @@ export default function ScannerScreen() {
         const result = await response.json();
         
         if (result.success && result.cropped_image_base64) {
-          console.log('✅ Crop successful');
+          logDebug('CROP', '✅ Backend crop successful', {
+            originalSize: cropImage.length,
+            croppedSize: result.cropped_image_base64.length,
+          });
           setCapturedImages(prev => [...prev, { base64: result.cropped_image_base64, original: cropImage }]);
         } else {
-          console.log('⚠️ Crop failed:', result.message);
+          logDebug('CROP', '⚠️ Backend crop failed', { message: result.message });
           setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
         }
       }
     } catch (e) {
-      console.error('Crop error:', e);
+      logDebug('CROP', '❌ Crop error', { error: String(e) });
       setCapturedImages(prev => [...prev, { base64: cropImage, original: cropImage }]);
     } finally {
       setShowCropScreen(false);
