@@ -205,8 +205,69 @@ export default function DocumentsScreen() {
               <Text style={[styles.premiumText, { color: theme.warning }]}>Pro</Text>
             </TouchableOpacity>
           )}
+          {/* View Mode Menu Button */}
+          <TouchableOpacity
+            style={[styles.menuButton, { backgroundColor: theme.surface }]}
+            onPress={() => setShowViewMenu(true)}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* View Mode Menu Modal */}
+      <Modal
+        visible={showViewMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowViewMenu(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setShowViewMenu(false)}>
+          <View style={[styles.menuContainer, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.menuTitle, { color: theme.textSecondary }]}>View Mode</Text>
+            
+            <TouchableOpacity
+              style={[styles.menuOption, viewMode === 'grid' && { backgroundColor: theme.primary + '15' }]}
+              onPress={() => changeViewMode('grid')}
+            >
+              <Ionicons 
+                name="grid-outline" 
+                size={22} 
+                color={viewMode === 'grid' ? theme.primary : theme.text} 
+              />
+              <Text style={[
+                styles.menuOptionText, 
+                { color: viewMode === 'grid' ? theme.primary : theme.text }
+              ]}>
+                Grid View
+              </Text>
+              {viewMode === 'grid' && (
+                <Ionicons name="checkmark" size={20} color={theme.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.menuOption, viewMode === 'list' && { backgroundColor: theme.primary + '15' }]}
+              onPress={() => changeViewMode('list')}
+            >
+              <Ionicons 
+                name="list-outline" 
+                size={22} 
+                color={viewMode === 'list' ? theme.primary : theme.text} 
+              />
+              <Text style={[
+                styles.menuOptionText, 
+                { color: viewMode === 'list' ? theme.primary : theme.text }
+              ]}>
+                List View
+              </Text>
+              {viewMode === 'list' && (
+                <Ionicons name="checkmark" size={20} color={theme.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Selection Mode Header */}
       {selectionMode && (
