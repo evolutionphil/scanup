@@ -901,7 +901,7 @@ export default function ScannerScreen() {
         style={styles.camera} 
         facing="back" 
         flash={flashMode}
-        pictureSize="highest"
+        zoom={0}
         onLayout={handleCameraLayout}
       >
         <SafeAreaView style={styles.cameraOverlay}>
