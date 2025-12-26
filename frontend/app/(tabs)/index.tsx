@@ -302,21 +302,32 @@ export default function DocumentsScreen() {
         </View>
       )}
 
-      {/* Documents Grid */}
+      {/* Documents Grid/List */}
       <FlatList
         data={documents}
         keyExtractor={(item) => item.document_id}
         renderItem={({ item }) => (
-          <DocumentCard
-            document={item}
-            onPress={() => handleDocumentPress(item)}
-            onLongPress={() => handleDocumentLongPress(item)}
-            selected={selectedDocs.includes(item.document_id)}
-          />
+          viewMode === 'grid' ? (
+            <DocumentCard
+              document={item}
+              onPress={() => handleDocumentPress(item)}
+              onLongPress={() => handleDocumentLongPress(item)}
+              selected={selectedDocs.includes(item.document_id)}
+            />
+          ) : (
+            <DocumentListItem
+              document={item}
+              onPress={() => handleDocumentPress(item)}
+              onLongPress={() => handleDocumentLongPress(item)}
+              selected={selectedDocs.includes(item.document_id)}
+              theme={theme}
+            />
+          )
         )}
         contentContainerStyle={styles.listContent}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        numColumns={viewMode === 'grid' ? 2 : 1}
+        key={viewMode} // Force re-render when view mode changes
+        columnWrapperStyle={viewMode === 'grid' ? styles.row : undefined}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
