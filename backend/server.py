@@ -1891,15 +1891,6 @@ async def process_image_public(request: ImageProcessRequest):
     
     return ImageProcessResponse(processed_image_base64=result)
 
-@api_router.post("/images/detect-edges")
-async def detect_edges(
-    request: ImageProcessRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Detect document edges in an image"""
-    result = detect_document_edges(request.image_base64)
-    return result
-
 @api_router.post("/images/auto-crop")
 async def auto_crop_image(
     request: ImageProcessRequest,
