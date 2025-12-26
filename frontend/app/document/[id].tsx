@@ -644,7 +644,7 @@ export default function DocumentScreen() {
 
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: `data:image/jpeg;base64,${currentPage.image_base64}` }}
+          source={{ uri: getPageImage(currentPage) }}
           style={styles.mainImage}
           resizeMode="contain"
         />
