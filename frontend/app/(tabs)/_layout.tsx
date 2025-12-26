@@ -109,8 +109,6 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     borderTopWidth: 1,
-    height: Platform.OS === 'ios' ? 88 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
     paddingTop: 8,
   },
   tabBarLabel: {
@@ -123,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 20 : 16,
+    marginBottom: Platform.OS === 'ios' ? 20 : 8,
     shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
