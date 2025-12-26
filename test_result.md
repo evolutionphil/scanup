@@ -503,3 +503,10 @@ agent_communication:
     3. ✅ Document Thumbnail Regeneration - Thumbnails properly regenerated on document updates, rotation changes persist
     4. ✅ Manual Perspective Crop - Working correctly with normalized coordinates, proper perspective transform applied
     All backend APIs are functioning correctly with robust error handling and authentication."
+  - agent: "testing"
+    message: "Document Export API testing completed successfully. Fixed critical routing bug where export endpoints were defined after router inclusion. Test results:
+    1. ✅ PDF Export - Working correctly, returns valid PDF with proper mime type and base64 encoding
+    2. ✅ JPEG Export - Working correctly, exports first page as JPEG with proper mime type
+    3. ✅ Perspective Crop with Normalized Coordinates - Working correctly, converts 0-1 range coordinates to pixels and applies transform
+    4. ✅ Authentication and Error Handling - Proper 401 for unauthorized, 404 for missing documents
+    Minor: Invalid format error handling returns 500 instead of 400, but core functionality working perfectly. All requested export features are operational."
