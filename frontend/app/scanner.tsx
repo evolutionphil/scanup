@@ -29,26 +29,31 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /*
  * =============================================================================
- * ASPECT RATIO ANALYSIS
+ * COORDINATE SYSTEM & ASPECT RATIO HANDLING
  * =============================================================================
  * 
- * Problem: Wide-screen preview vs standard sensor capture
+ * KEY CONCEPT: All coordinates use NORMALIZED (0-1) space for consistency
  * 
- * Phone screens are typically 19.5:9, 20:9, or 21:9 (wide)
- * Camera sensors are typically 4:3 (standard) or 16:9
+ * CAMERA CONFIGURATION:
+ * - Sensor: Always 4:3 (0.75 portrait aspect ratio)
+ * - Preview: Uses "cover" mode - fills view, center-crops overflow
+ * - Zoom: Locked at 0 to prevent digital zoom artifacts
  * 
- * When CameraView fills a wide screen with a 4:3 sensor:
- * - The preview uses "cover" mode (fills the view, crops overflow)
- * - The sensor image is CENTER-CROPPED to fit the wide preview
- * - Top/bottom of the sensor image are hidden in preview
+ * COORDINATE SPACES:
+ * 1. PREVIEW SPACE: What the user sees on screen (may be cropped from sensor)
+ * 2. SENSOR SPACE: Full captured image (always 4:3)
+ * 3. NORMALIZED SPACE: 0-1 range relative to each space
  * 
- * This means:
- * - Frame overlay coordinates are in PREVIEW space (wide)
- * - Captured image is in SENSOR space (4:3)
- * - We must map from preview to sensor, accounting for the crop
+ * MAPPING FLOW:
+ * User draws frame → Preview normalized → Sensor normalized → Pixel coords → Crop
  * 
  * =============================================================================
  */
+
+// Constants for camera configuration
+const SENSOR_ASPECT_RATIO = 4 / 3; // Standard camera sensor (landscape)
+const SENSOR_ASPECT_PORTRAIT = 3 / 4; // 0.75 in portrait mode
+const CAMERA_RATIO = '4:3'; // Force 4:3 capture
 
 type DocumentType = 'document' | 'id_card' | 'book' | 'whiteboard' | 'business_card';
 
