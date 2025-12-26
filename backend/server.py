@@ -1668,6 +1668,34 @@ async def process_image(
     
     return ImageProcessResponse(processed_image_base64=result)
 
+
+@api_router.post("/images/process-public", response_model=ImageProcessResponse)
+async def process_image_public(request: ImageProcessRequest):
+    """Public endpoint to process an image (no auth required) - for guest users"""
+    result = request.image_base64
+    
+    if request.operation == "filter":
+        filter_type = request.params.get("type", "original")
+        brightness = request.params.get("brightness", 0)
+        contrast = request.params.get("contrast", 0)
+        saturation = request.params.get("saturation", 0)
+        result = apply_image_filter(result, filter_type, brightness, contrast, saturation)
+    elif request.operation == "rotate":
+        degrees = request.params.get("degrees", 90)
+        result = rotate_image(result, degrees)
+    elif request.operation == "crop":
+        x = request.params.get("x", 0)
+        y = request.params.get("y", 0)
+        width = request.params.get("width", 100)
+        height = request.params.get("height", 100)
+        result = crop_image(result, x, y, width, height)
+    elif request.operation == "perspective_crop":
+        corners = request.params.get("corners", [])
+        if corners:
+            result = perspective_crop(result, corners)
+    
+    return ImageProcessResponse(processed_image_base64=result)
+
 @api_router.post("/images/detect-edges")
 async def detect_edges(
     request: ImageProcessRequest,
