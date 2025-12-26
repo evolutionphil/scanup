@@ -447,7 +447,8 @@ export default function DocumentScreen() {
   }
 
   const currentPage = currentDocument.pages[selectedPageIndex];
-  const hasOriginal = !!currentPage.original_image_base64 && currentPage.filter_applied !== 'original';
+  // Show revert button if we have an original saved (regardless of current filter)
+  const hasOriginal = !!currentPage.original_image_base64;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
