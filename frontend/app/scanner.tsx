@@ -743,11 +743,12 @@ export default function ScannerScreen() {
     }
   };
 
-  // Crop overlay SVG
+  // Crop overlay SVG - now includes edge handles
   const CropOverlay = useMemo(() => {
     if (cropPoints.length !== 4 || previewLayout.width === 0) return null;
     
     const screenPoints = cropPoints.map(p => toScreen(p));
+    const edgeMidpoints = getEdgeMidpoints().map(p => toScreen(p));
     const pathD = `M ${screenPoints[0].x} ${screenPoints[0].y} L ${screenPoints[1].x} ${screenPoints[1].y} L ${screenPoints[2].x} ${screenPoints[2].y} L ${screenPoints[3].x} ${screenPoints[3].y} Z`;
 
     return (
@@ -761,6 +762,7 @@ export default function ScannerScreen() {
         <Rect x="0" y="0" width={previewLayout.width} height={previewLayout.height} fill="rgba(0,0,0,0.6)" mask="url(#cropMask)" />
         <Path d={pathD} stroke={currentType.color} strokeWidth={2} fill="transparent" />
         
+        {/* Grid lines */}
         {[0.33, 0.66].map((r, i) => (
           <React.Fragment key={i}>
             <Line 
@@ -780,27 +782,59 @@ export default function ScannerScreen() {
           </React.Fragment>
         ))}
         
+        {/* Corner handles */}
         {screenPoints.map((p, i) => (
-          <Circle key={i} cx={p.x} cy={p.y} r={activeDragIndex === i ? 18 : 14} 
+          <Circle key={`corner-${i}`} cx={p.x} cy={p.y} r={activeDragIndex === i ? 18 : 14} 
             fill={currentType.color} stroke="#FFF" strokeWidth={3} />
         ))}
+        
+        {/* Edge handles (rectangles for horizontal/vertical indication) */}
+        {edgeMidpoints.map((p, i) => {
+          const isHorizontal = i === 0 || i === 2; // Top and bottom are horizontal
+          const width = isHorizontal ? 30 : 10;
+          const height = isHorizontal ? 10 : 30;
+          return (
+            <Rect 
+              key={`edge-${i}`} 
+              x={p.x - width/2} 
+              y={p.y - height/2} 
+              width={width} 
+              height={height}
+              rx={5}
+              fill={activeEdgeIndex === i ? currentType.color : '#FFF'}
+              stroke={currentType.color}
+              strokeWidth={2}
+            />
+          );
+        })}
       </Svg>
     );
-  }, [cropPoints, previewLayout, currentType.color, activeDragIndex, toScreen]);
+  }, [cropPoints, previewLayout, currentType.color, activeDragIndex, activeEdgeIndex, toScreen, getEdgeMidpoints]);
 
-  // Magnifier
+  // Magnifier - shows for both corner and edge dragging
   const Magnifier = useMemo(() => {
-    if (activeDragIndex === null || !cropImage || previewLayout.width === 0) return null;
+    const dragActive = activeDragIndex !== null || activeEdgeIndex !== null;
+    if (!dragActive || !cropImage || previewLayout.width === 0) return null;
     
-    const point = cropPoints[activeDragIndex];
+    // Get the point being dragged
+    let point: CropPoint;
+    let label: string;
+    
+    if (activeDragIndex !== null) {
+      point = cropPoints[activeDragIndex];
+      label = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'][activeDragIndex];
+    } else {
+      const edgeMidpoints = getEdgeMidpoints();
+      point = edgeMidpoints[activeEdgeIndex!];
+      label = ['Top Edge', 'Right Edge', 'Bottom Edge', 'Left Edge'][activeEdgeIndex!];
+    }
+    
     const screenPoint = toScreen(point);
     const size = 110;
     const zoom = 2.5;
     
     const left = screenPoint.x > previewLayout.width / 2 ? 10 : previewLayout.width - size - 10;
     const top = screenPoint.y > previewLayout.height / 2 ? 10 : previewLayout.height - size - 10;
-    
-    const labels = ['Top-Left', 'Top-Right', 'Bottom-Right', 'Bottom-Left'];
 
     return (
       <View style={[styles.magnifier, { width: size, height: size, left, top, borderColor: currentType.color }]}>
