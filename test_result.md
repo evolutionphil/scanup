@@ -676,3 +676,61 @@ agent_communication:
     for the exact point where the flow fails."
 
 
+
+  - agent: "main"
+    message: "BOOK SCAN MODE & SCANNING ANIMATION IMPROVEMENTS COMPLETE:
+    
+    ## Phase 1: Scanning Animation Fix ✅
+    - Animation now stays INSIDE the document alignment frame
+    - Positioned relative to frame bounds, not screen bounds
+    - Smooth scan line animation from top to bottom of frame only
+    
+    ## Phase 2: Book Scan Mode Enhancements ✅
+    
+    ### Frontend Changes (scanner.tsx):
+    - Updated Book mode frame to landscape aspect ratio (1.6)
+    - Enhanced DocumentGuide with clear two-page layout:
+      - Prominent center gutter line (dashed vertical)
+      - Separate boxes for Left Page and Right Page
+      - Page number labels (1 and 2)
+      - Top labels showing 'Left Page' and 'Right Page'
+    - Modified crop hint for book mode: 'Pages will be split automatically'
+    - Modified crop button: 'Split & Save Pages' with layers icon
+    - Updated handleApplyCrop to use new split-book-pages endpoint
+    - Book captures now automatically create 2 separate pages in preview
+    
+    ### Backend Changes (server.py):
+    New endpoint: POST /api/images/split-book-pages
+    
+    Features:
+    1. **Automatic Gutter Detection**:
+       - Uses vertical line detection (Hough transform)
+       - Falls back to brightness analysis (shadows in gutter)
+       - Returns detected gutter position for transparency
+       
+    2. **Automatic Page Splitting**:
+       - Splits at detected/provided gutter position
+       - Adds 1% overlap to prevent content loss
+       
+    3. **Independent Perspective Correction**:
+       - Each page gets its own correction
+       - Detects document edges with contour analysis
+       - Applies 4-point perspective transform
+       - Handles keystoning automatically
+    
+    ## How to Test Book Scan:
+    1. Open scanner
+    2. Select 'Book' mode
+    3. Align open book within the frame (notice the split UI)
+    4. Capture photo
+    5. Adjust crop points on crop screen
+    6. Tap 'Split & Save Pages'
+    7. Two separate pages appear in preview (Page 1, Page 2)
+    8. Continue scanning more pages or save document
+    
+    ## Technical Notes:
+    - Perspective correction uses OpenCV contour detection + warpPerspective
+    - Works without requiring manual gutter adjustment
+    - Each page is independently corrected for best results"
+
+
