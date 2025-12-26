@@ -3109,6 +3109,51 @@ class ExportResponse(BaseModel):
     filename: str
     mime_type: str
 
+class PublicExportRequest(BaseModel):
+    """Export request for guest/local documents - includes image data directly"""
+    format: str = "pdf"
+    images_base64: List[str]
+    document_name: str = "Document"
+
+@api_router.post("/export/public")
+async def export_public_pdf(request: PublicExportRequest):
+    """
+    Public endpoint for PDF export - no authentication required.
+    Used for guest/local documents where we send image data directly.
+    """
+    try:
+        if not request.images_base64:
+            return {"success": False, "message": "No images provided"}
+        
+        if request.format.lower() == "pdf":
+            pdf_bytes = create_pdf_from_images(request.images_base64, None)
+            
+            return {
+                "success": True,
+                "file_base64": base64.b64encode(pdf_bytes).decode(),
+                "filename": f"{request.document_name.replace(' ', '_')}.pdf",
+                "mime_type": "application/pdf"
+            }
+        else:
+            # For single image export
+            img_base64 = request.images_base64[0]
+            if "," in img_base64:
+                img_base64 = img_base64.split(",")[1]
+            
+            return {
+                "success": True,
+                "file_base64": img_base64,
+                "filename": f"{request.document_name.replace(' ', '_')}.jpg",
+                "mime_type": "image/jpeg"
+            }
+            
+    except Exception as e:
+        logger.error(f"Public export error: {e}")
+        return {
+            "success": False,
+            "message": f"Export failed: {str(e)}"
+        }
+
 def create_pdf_from_images(images_base64: List[str], include_text: List[str] = None) -> bytes:
     """Create a PDF from base64 images"""
     from reportlab.lib.pagesizes import A4
