@@ -760,6 +760,9 @@ export default function ScannerScreen() {
     
     setIsCapturing(true);
     
+    // Play shutter sound
+    playShutterSound();
+    
     try {
       logDebug('CAPTURE', 'Starting HIGH QUALITY capture...');
       
