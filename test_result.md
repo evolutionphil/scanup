@@ -733,4 +733,36 @@ agent_communication:
     - Works without requiring manual gutter adjustment
     - Each page is independently corrected for best results"
 
+  - agent: "main"
+    message: "DOCUMENT ANNOTATIONS FEATURE IMPLEMENTED:
+    
+    ## Frontend Changes:
+    1. ✅ AnnotationEditor component already existed with full functionality:
+       - Drawing tools: freehand, text, arrow, rectangle, circle, highlight
+       - Color picker with 7 preset colors
+       - Stroke width controls (2, 4, 6, 8px)
+       - Undo and clear functionality
+       - SVG-based rendering on canvas
+       
+    2. ✅ Document screen (document/[id].tsx) updated:
+       - Added 'Annotate' button with brush icon to action bar
+       - Integrated AnnotationEditor modal
+       - Handler to save annotations via backend API
+       - Stores original image before annotating for revert capability
+       
+    ## Backend Changes:
+    1. ✅ New endpoint: POST /api/images/apply-annotations
+       - Accepts image and array of annotation objects
+       - Uses Pillow to render annotations onto image
+       - Supports: freehand paths, text, arrows, rectangles, circles, highlights
+       - Returns annotated image as base64
+       
+    ## How to Test:
+    1. Open any scanned document
+    2. Tap 'Annotate' button in action bar
+    3. Select a tool (Draw, Text, Arrow, Rectangle, Circle, Highlight)
+    4. Draw on the document
+    5. Tap 'Done' to save annotations
+    6. Use 'Revert' button to undo all annotations if needed"
+
 
