@@ -3336,9 +3336,7 @@ async def export_document(
         elif format_type == "jpeg":
             # Export single page or first page as JPEG
             page = selected_pages[0]
-            img_base64 = page.get("image_base64", "")
-            if "," in img_base64:
-                img_base64 = img_base64.split(",")[1]
+            img_base64 = await get_image_data(page)
             
             return ExportResponse(
                 file_base64=img_base64,
