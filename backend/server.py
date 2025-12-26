@@ -1777,6 +1777,60 @@ async def manual_perspective_crop(
             "message": str(e)
         }
 
+
+@api_router.post("/images/perspective-crop-public")
+async def public_perspective_crop(request: ManualCropRequest):
+    """
+    Public endpoint for perspective crop - no authentication required.
+    Used for guest mode scanning.
+    Handles EXIF orientation and applies perspective transform.
+    """
+    try:
+        # Decode image
+        if "," in request.image_base64:
+            img_data = request.image_base64.split(",")[1]
+        else:
+            img_data = request.image_base64
+            
+        image_bytes = base64.b64decode(img_data)
+        
+        # Fix EXIF orientation FIRST using PIL
+        corrected_bytes, was_rotated, orientation = fix_image_orientation_pil(image_bytes)
+        logger.info(f"[Public] EXIF orientation: {orientation}, was_rotated: {was_rotated}")
+        
+        # Decode the corrected image with OpenCV
+        nparr = np.frombuffer(corrected_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {"success": False, "cropped_image_base64": request.image_base64, "message": "Could not decode image"}
+        
+        height, width = img.shape[:2]
+        logger.info(f"[Public] Image dimensions after EXIF fix: {width}x{height}")
+        
+        # Convert normalized corners to pixel coordinates
+        pixel_corners = []
+        for corner in request.corners:
+            px = float(corner.get('x', 0)) * width
+            py = float(corner.get('y', 0)) * height
+            pixel_corners.append({'x': px, 'y': py})
+        
+        # Re-encode and apply perspective crop
+        corrected_base64 = base64.b64encode(corrected_bytes).decode()
+        cropped = perspective_crop(corrected_base64, pixel_corners)
+        
+        return {
+            "success": True,
+            "cropped_image_base64": cropped
+        }
+    except Exception as e:
+        logger.error(f"[Public] Manual crop error: {e}")
+        return {
+            "success": False,
+            "cropped_image_base64": request.image_base64,
+            "message": str(e)
+        }
+
 # ==================== OCR ENDPOINTS ====================
 
 @api_router.post("/ocr/extract", response_model=OCRResponse)
