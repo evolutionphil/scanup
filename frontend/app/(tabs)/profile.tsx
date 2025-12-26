@@ -359,14 +359,24 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
-        <Button
-          title={isGuest ? 'Exit Guest Mode' : 'Logout'}
-          onPress={handleLogout}
-          variant="danger"
-          style={styles.logoutButton}
-          icon={<Ionicons name="log-out-outline" size={20} color="#FFF" />}
-        />
+        {/* Sign In / Logout Button */}
+        {isGuest ? (
+          <Button
+            title="Sign In"
+            onPress={() => router.push('/(auth)/login')}
+            variant="primary"
+            style={styles.logoutButton}
+            icon={<Ionicons name="log-in-outline" size={20} color="#FFF" />}
+          />
+        ) : (
+          <Button
+            title="Logout"
+            onPress={handleLogout}
+            variant="danger"
+            style={styles.logoutButton}
+            icon={<Ionicons name="log-out-outline" size={20} color="#FFF" />}
+          />
+        )}
 
         <Text style={[styles.version, { color: theme.textMuted }]}>ScanUp v1.0.0</Text>
       </ScrollView>
