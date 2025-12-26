@@ -1145,7 +1145,7 @@ async def update_folder(
     if folder_data.password_hash is not None:
         # Hash the password before storing
         update_data["password_hash"] = hash_password(folder_data.password_hash)
-    elif folder_data.is_protected == False:
+    elif not folder_data.is_protected:
         # If removing protection, also clear the password
         update_data["password_hash"] = None
     
