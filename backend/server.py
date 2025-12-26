@@ -625,8 +625,84 @@ def order_corners(corners: List[Dict]) -> List[Dict]:
     bottom_two = sorted(sorted_by_y[2:], key=lambda c: c["x"])
     return [top_two[0], top_two[1], bottom_two[1], bottom_two[0]]
 
+def fix_image_orientation(img):
+    """
+    Fix image orientation based on EXIF data.
+    OpenCV doesn't handle EXIF orientation automatically, so we need to do it manually.
+    """
+    try:
+        # Try to get EXIF from PIL
+        from PIL import Image as PILImage
+        from PIL import ExifTags
+        import io
+        
+        # Convert OpenCV image to PIL
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pil_img = PILImage.fromarray(img_rgb)
+        
+        # Try to get EXIF orientation
+        try:
+            exif = pil_img._getexif()
+            if exif:
+                for tag, value in exif.items():
+                    if ExifTags.TAGS.get(tag) == 'Orientation':
+                        if value == 3:
+                            img = cv2.rotate(img, cv2.ROTATE_180)
+                        elif value == 6:
+                            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                        elif value == 8:
+                            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        break
+        except (AttributeError, KeyError, IndexError):
+            pass
+    except Exception as e:
+        logger.debug(f"Could not process EXIF: {e}")
+    
+    return img
+
+def order_corners(corners: List[Dict]) -> List[Dict]:
+    """
+    Order corners in consistent order: TL, TR, BR, BL
+    This ensures perspective transform works correctly regardless of input order.
+    """
+    if len(corners) != 4:
+        return corners
+    
+    # Convert to numpy for easier manipulation
+    pts = np.array([[c['x'], c['y']] for c in corners], dtype=np.float32)
+    
+    # Sort by y-coordinate to get top and bottom pairs
+    sorted_by_y = pts[np.argsort(pts[:, 1])]
+    top_pts = sorted_by_y[:2]
+    bottom_pts = sorted_by_y[2:]
+    
+    # Sort top points by x to get TL, TR
+    top_sorted = top_pts[np.argsort(top_pts[:, 0])]
+    tl, tr = top_sorted[0], top_sorted[1]
+    
+    # Sort bottom points by x to get BL, BR
+    bottom_sorted = bottom_pts[np.argsort(bottom_pts[:, 0])]
+    bl, br = bottom_sorted[0], bottom_sorted[1]
+    
+    return [
+        {'x': float(tl[0]), 'y': float(tl[1])},  # Top-Left
+        {'x': float(tr[0]), 'y': float(tr[1])},  # Top-Right
+        {'x': float(br[0]), 'y': float(br[1])},  # Bottom-Right
+        {'x': float(bl[0]), 'y': float(bl[1])}   # Bottom-Left
+    ]
+
 def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
-    """Apply perspective transform to crop document"""
+    """
+    Apply perspective transform to crop document.
+    
+    Args:
+        image_base64: Base64 encoded image
+        corners: List of 4 corner points in order [TL, TR, BR, BL]
+                 Can be in pixel coordinates or will be auto-ordered
+    
+    Returns:
+        Base64 encoded cropped image
+    """
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
@@ -638,42 +714,74 @@ def perspective_crop(image_base64: str, corners: List[Dict]) -> str:
         if img is None or len(corners) != 4:
             return image_base64
         
-        # Source points
+        # Fix EXIF orientation BEFORE processing
+        img = fix_image_orientation(img)
+        
+        # Ensure corners are in correct order: TL, TR, BR, BL
+        ordered_corners = order_corners(corners)
+        
+        # Source points - use float32 for precision
         src_pts = np.float32([
-            [corners[0]["x"], corners[0]["y"]],  # top-left
-            [corners[1]["x"], corners[1]["y"]],  # top-right
-            [corners[2]["x"], corners[2]["y"]],  # bottom-right
-            [corners[3]["x"], corners[3]["y"]]   # bottom-left
+            [ordered_corners[0]["x"], ordered_corners[0]["y"]],  # top-left
+            [ordered_corners[1]["x"], ordered_corners[1]["y"]],  # top-right
+            [ordered_corners[2]["x"], ordered_corners[2]["y"]],  # bottom-right
+            [ordered_corners[3]["x"], ordered_corners[3]["y"]]   # bottom-left
         ])
         
-        # Calculate output dimensions
-        width_top = np.sqrt((corners[1]["x"] - corners[0]["x"])**2 + (corners[1]["y"] - corners[0]["y"])**2)
-        width_bottom = np.sqrt((corners[2]["x"] - corners[3]["x"])**2 + (corners[2]["y"] - corners[3]["y"])**2)
-        width = int(max(width_top, width_bottom))
+        # Calculate output dimensions using float for precision
+        width_top = np.sqrt(
+            (ordered_corners[1]["x"] - ordered_corners[0]["x"])**2 + 
+            (ordered_corners[1]["y"] - ordered_corners[0]["y"])**2
+        )
+        width_bottom = np.sqrt(
+            (ordered_corners[2]["x"] - ordered_corners[3]["x"])**2 + 
+            (ordered_corners[2]["y"] - ordered_corners[3]["y"])**2
+        )
+        output_width = max(width_top, width_bottom)
         
-        height_left = np.sqrt((corners[3]["x"] - corners[0]["x"])**2 + (corners[3]["y"] - corners[0]["y"])**2)
-        height_right = np.sqrt((corners[2]["x"] - corners[1]["x"])**2 + (corners[2]["y"] - corners[1]["y"])**2)
-        height = int(max(height_left, height_right))
+        height_left = np.sqrt(
+            (ordered_corners[3]["x"] - ordered_corners[0]["x"])**2 + 
+            (ordered_corners[3]["y"] - ordered_corners[0]["y"])**2
+        )
+        height_right = np.sqrt(
+            (ordered_corners[2]["x"] - ordered_corners[1]["x"])**2 + 
+            (ordered_corners[2]["y"] - ordered_corners[1]["y"])**2
+        )
+        output_height = max(height_left, height_right)
         
-        # Destination points
+        # Ensure minimum dimensions and convert to int only at the end
+        output_width = max(int(round(output_width)), 100)
+        output_height = max(int(round(output_height)), 100)
+        
+        # Destination points - standard rectangle
         dst_pts = np.float32([
             [0, 0],
-            [width - 1, 0],
-            [width - 1, height - 1],
-            [0, height - 1]
+            [output_width - 1, 0],
+            [output_width - 1, output_height - 1],
+            [0, output_height - 1]
         ])
         
         # Get perspective transform matrix
         matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
         
-        # Apply perspective transform
-        warped = cv2.warpPerspective(img, matrix, (width, height))
+        # Apply perspective transform with high-quality interpolation
+        warped = cv2.warpPerspective(
+            img, 
+            matrix, 
+            (output_width, output_height),
+            flags=cv2.INTER_CUBIC,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=(255, 255, 255)
+        )
         
-        # Encode back to base64
-        _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        # Encode back to base64 with good quality
+        _, buffer = cv2.imencode('.jpg', warped, [cv2.IMWRITE_JPEG_QUALITY, 92])
         return base64.b64encode(buffer).decode()
+        
     except Exception as e:
         logger.error(f"Error in perspective crop: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return image_base64
 
 async def perform_ocr_with_openai(image_base64: str) -> str:
