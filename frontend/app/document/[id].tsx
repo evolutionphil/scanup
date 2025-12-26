@@ -20,7 +20,7 @@ import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-syst
 import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
-import { useDocumentStore, Document, PageData } from '../../src/store/documentStore';
+import { useDocumentStore, Document, PageData, getImageSource } from '../../src/store/documentStore';
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
@@ -29,6 +29,19 @@ import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/compon
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Helper to get page image (handles both S3 URLs and base64)
+const getPageImage = (page: PageData): string => {
+  if (page.image_url) return page.image_url;
+  if (page.image_base64) return `data:image/jpeg;base64,${page.image_base64}`;
+  return '';
+};
+
+const getPageThumbnail = (page: PageData): string => {
+  if (page.thumbnail_url) return page.thumbnail_url;
+  if (page.thumbnail_base64) return `data:image/jpeg;base64,${page.thumbnail_base64}`;
+  return getPageImage(page); // Fallback to main image
+};
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
