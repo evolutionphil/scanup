@@ -132,6 +132,11 @@ export default function ScannerScreen() {
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [showCamera, setShowCamera] = useState(true);
   
+  // Auto-capture state
+  const [autoCapture, setAutoCapture] = useState(false);
+  const [edgesDetected, setEdgesDetected] = useState(false);
+  const [isScanning, setIsScanning] = useState(false); // For scanning animation
+  
   const addToDocumentId = params.addToDocument as string | undefined;
   
   // Crop state - uses PIXEL coordinates for the crop screen
@@ -143,11 +148,17 @@ export default function ScannerScreen() {
   const [activeEdgeIndex, setActiveEdgeIndex] = useState<number | null>(null); // For edge handles
   const [previewLayout, setPreviewLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
   
+  // Book mode: separate crop points for left and right pages
+  const [bookLeftCropPoints, setBookLeftCropPoints] = useState<CropPoint[]>([]);
+  const [bookRightCropPoints, setBookRightCropPoints] = useState<CropPoint[]>([]);
+  const [activeBookPage, setActiveBookPage] = useState<'left' | 'right'>('left');
+  
   // Camera layout for aspect ratio mapping
   const [cameraLayout, setCameraLayout] = useState<CameraLayoutInfo | null>(null);
   
   // Animation for capturing indicator
   const capturingOpacity = useRef(new Animated.Value(0)).current;
+  const scanningAnim = useRef(new Animated.Value(0)).current;
   
   const cameraRef = useRef<CameraView>(null);
   const scrollRef = useRef<ScrollView>(null);
