@@ -2644,10 +2644,10 @@ async def detect_edges_endpoint(request: EdgeDetectionRequest):
         height, width = img.shape[:2]
         
         if request.mode == "book":
-            points = detect_book_edges(img)
+            points = detect_book_edges_cv(img)
             point_count = 6
         else:
-            points = detect_document_edges(img)
+            points = detect_document_edges_cv(img)
             point_count = 4
         
         if points and len(points) == point_count:
