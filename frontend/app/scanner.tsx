@@ -1143,7 +1143,7 @@ export default function ScannerScreen() {
     }
 
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#000' }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#000' }]} edges={['top', 'bottom']}>
         <View style={styles.cropHeader}>
           <TouchableOpacity onPress={() => { setShowCropScreen(false); setCropImage(null); }}>
             <Ionicons name="close" size={28} color="#FFF" />
