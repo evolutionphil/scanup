@@ -123,9 +123,22 @@ export default function ScannerScreen() {
     setIsCapturing(true);
     
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.9, base64: true });
+      // Use maximum quality (1.0) for document scanning
+      // This ensures we capture at full resolution
+      const photo = await cameraRef.current.takePictureAsync({ 
+        quality: 1.0,  // Maximum quality - no compression on capture
+        base64: true,
+        exif: true,    // Preserve EXIF data for orientation handling
+        skipProcessing: false,  // Allow camera processing for better quality
+      });
+      
       if (photo?.base64) {
+        // Get actual image dimensions from the captured photo
+        const actualWidth = photo.width || 0;
+        const actualHeight = photo.height || 0;
+        
         Image.getSize(`data:image/jpeg;base64,${photo.base64}`, (width, height) => {
+          console.log(`Captured image resolution: ${width}x${height}`);
           setImageSize({ width, height });
           setCropImage(photo.base64 || null);
           
@@ -140,7 +153,9 @@ export default function ScannerScreen() {
           setShowCropScreen(true);
           setShowCamera(false);
         }, () => {
-          setImageSize({ width: 1080, height: 1920 });
+          // Fallback to common high-resolution dimensions
+          console.log('Using fallback resolution');
+          setImageSize({ width: 3024, height: 4032 }); // Common 12MP resolution
           setCropImage(photo.base64 || null);
           setShowCropScreen(true);
           setShowCamera(false);
