@@ -2544,7 +2544,7 @@ def detect_document_edges_cv(img: np.ndarray) -> Optional[List[Dict]]:
     return None
 
 
-def detect_book_edges(img: np.ndarray) -> Optional[List[Dict]]:
+def detect_book_edges_cv(img: np.ndarray) -> Optional[List[Dict]]:
     """
     Detect book edges - returns 6 points for two-page layout.
     Points: [TL, GT, TR, BR, GB, BL]
@@ -2552,7 +2552,7 @@ def detect_book_edges(img: np.ndarray) -> Optional[List[Dict]]:
     height, width = img.shape[:2]
     
     # First detect outer edges
-    outer_corners = detect_document_edges(img)
+    outer_corners = detect_document_edges_cv(img)
     
     if not outer_corners:
         return None
