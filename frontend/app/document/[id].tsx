@@ -209,6 +209,9 @@ export default function DocumentScreen() {
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
+      // Store original before cropping if not already stored
+      const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
+      
       const response = await fetch(`${BACKEND_URL}/api/images/auto-crop`, {
         method: 'POST',
         headers: {
@@ -224,17 +227,18 @@ export default function DocumentScreen() {
 
       const result = await response.json();
 
-      if (result.success) {
+      if (result.success && result.cropped_image_base64) {
         const updatedPages = [...currentDocument.pages];
         updatedPages[selectedPageIndex] = {
           ...updatedPages[selectedPageIndex],
           image_base64: result.cropped_image_base64,
+          original_image_base64: originalImage, // Preserve original for revert
         };
 
         await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
-        Alert.alert('Success', 'Document cropped automatically');
+        Alert.alert('Success', 'Document cropped. Use "Revert" to undo if needed.');
       } else {
-        Alert.alert('Auto-crop', result.message || 'Could not detect document edges. Try manual crop.');
+        Alert.alert('Auto-crop', result.message || 'Could not detect document edges. The image might already be well-cropped or try manual adjustment.');
       }
     } catch (e) {
       console.error('Auto-crop error:', e);
