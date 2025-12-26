@@ -3434,8 +3434,7 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# Include the router in the main app
-app.include_router(api_router)
+# Note: app.include_router is called at the end of the file after all routes are defined
 
 app.add_middleware(
     CORSMiddleware,
