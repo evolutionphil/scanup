@@ -1,0 +1,19 @@
+# Docker ignore file for Railway deployment
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.env.local
+.git
+.gitignore
+.dockerignore
+Dockerfile
+*.md
+.pytest_cache
+.mypy_cache
+*.log
+.DS_Store
