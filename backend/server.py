@@ -2888,6 +2888,183 @@ async def add_signature_to_image(
             "message": f"Failed to add signature: {str(e)}"
         }
 
+
+# ==================== ANNOTATION ENDPOINT ====================
+
+class AnnotationItem(BaseModel):
+    id: str
+    type: str  # freehand, text, arrow, rectangle, circle, highlight
+    color: str
+    strokeWidth: float
+    x: float
+    y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
+    endX: Optional[float] = None
+    endY: Optional[float] = None
+    text: Optional[str] = None
+    points: Optional[List[Dict[str, float]]] = None
+
+class ApplyAnnotationsRequest(BaseModel):
+    image_base64: str
+    annotations: List[AnnotationItem]
+
+@api_router.post("/images/apply-annotations")
+async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
+    """Apply SVG-like annotations to an image"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import io
+        import math
+        
+        # Decode base image
+        img_data = request.image_base64
+        if ',' in img_data:
+            img_data = img_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        base_image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+        
+        # Create a transparent overlay for annotations
+        overlay = Image.new('RGBA', base_image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        
+        # Parse color from hex/rgba
+        def parse_color(color_str, alpha=255):
+            """Parse color string to RGBA tuple"""
+            color_str = color_str.strip()
+            if color_str.startswith('#'):
+                hex_color = color_str.lstrip('#')
+                if len(hex_color) == 8:  # Has alpha
+                    r = int(hex_color[0:2], 16)
+                    g = int(hex_color[2:4], 16)
+                    b = int(hex_color[4:6], 16)
+                    a = int(hex_color[6:8], 16)
+                    return (r, g, b, a)
+                elif len(hex_color) == 6:
+                    r = int(hex_color[0:2], 16)
+                    g = int(hex_color[2:4], 16)
+                    b = int(hex_color[4:6], 16)
+                    return (r, g, b, alpha)
+                elif len(hex_color) == 3:
+                    r = int(hex_color[0], 16) * 17
+                    g = int(hex_color[1], 16) * 17
+                    b = int(hex_color[2], 16) * 17
+                    return (r, g, b, alpha)
+            elif color_str.startswith('rgba'):
+                # Parse rgba(r,g,b,a)
+                import re
+                match = re.match(r'rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)', color_str)
+                if match:
+                    r = int(match.group(1))
+                    g = int(match.group(2))
+                    b = int(match.group(3))
+                    a = int(float(match.group(4) or 1) * 255)
+                    return (r, g, b, a)
+            return (0, 0, 0, alpha)  # Default to black
+        
+        # The annotations are in screen coordinates, we need to scale to image coordinates
+        # The frontend displays the image in a container, so we need to figure out the scale
+        # For simplicity, we'll assume the coordinates are relative to the display size
+        # and the image might be displayed at a different size than its actual pixels
+        
+        # Process each annotation
+        for annotation in request.annotations:
+            color = parse_color(annotation.color)
+            stroke_width = max(1, int(annotation.strokeWidth))
+            
+            if annotation.type in ['freehand', 'highlight']:
+                if annotation.points and len(annotation.points) >= 2:
+                    points = [(p['x'], p['y']) for p in annotation.points]
+                    draw.line(points, fill=color, width=stroke_width, joint='curve')
+                    
+            elif annotation.type == 'arrow':
+                if annotation.endX is not None and annotation.endY is not None:
+                    start = (annotation.x, annotation.y)
+                    end = (annotation.endX, annotation.endY)
+                    
+                    # Draw the main line
+                    draw.line([start, end], fill=color, width=stroke_width)
+                    
+                    # Draw arrowhead
+                    angle = math.atan2(end[1] - start[1], end[0] - start[0])
+                    arrow_length = 15
+                    arrow_angle = math.pi / 6
+                    
+                    point1 = (
+                        end[0] - arrow_length * math.cos(angle - arrow_angle),
+                        end[1] - arrow_length * math.sin(angle - arrow_angle)
+                    )
+                    point2 = (
+                        end[0] - arrow_length * math.cos(angle + arrow_angle),
+                        end[1] - arrow_length * math.sin(angle + arrow_angle)
+                    )
+                    
+                    draw.line([end, point1], fill=color, width=stroke_width)
+                    draw.line([end, point2], fill=color, width=stroke_width)
+                    
+            elif annotation.type == 'rectangle':
+                if annotation.width and annotation.height:
+                    x1 = min(annotation.x, annotation.endX or annotation.x)
+                    y1 = min(annotation.y, annotation.endY or annotation.y)
+                    x2 = x1 + annotation.width
+                    y2 = y1 + annotation.height
+                    draw.rectangle([x1, y1, x2, y2], outline=color, width=stroke_width)
+                    
+            elif annotation.type == 'circle':
+                if annotation.width and annotation.height:
+                    x1 = min(annotation.x, annotation.endX or annotation.x)
+                    y1 = min(annotation.y, annotation.endY or annotation.y)
+                    x2 = x1 + annotation.width
+                    y2 = y1 + annotation.height
+                    # Draw ellipse that fits the bounding box
+                    draw.ellipse([x1, y1, x2, y2], outline=color, width=stroke_width)
+                    
+            elif annotation.type == 'text':
+                if annotation.text:
+                    try:
+                        # Try to load a font; fallback to default
+                        font_size = max(12, int(annotation.strokeWidth))
+                        try:
+                            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+                        except:
+                            font = ImageFont.load_default()
+                        draw.text((annotation.x, annotation.y), annotation.text, fill=color, font=font)
+                    except Exception as text_error:
+                        logger.warning(f"Failed to draw text: {text_error}")
+        
+        # Composite the overlay onto the base image
+        result = Image.alpha_composite(base_image, overlay)
+        
+        # Convert back to RGB for JPEG
+        if result.mode == 'RGBA':
+            background = Image.new('RGB', result.size, (255, 255, 255))
+            background.paste(result, mask=result.split()[3])
+            result = background
+        
+        # Encode result
+        buffer = io.BytesIO()
+        result.save(buffer, format='JPEG', quality=95)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        logger.info(f"Applied {len(request.annotations)} annotations to image")
+        
+        return {
+            "success": True,
+            "annotated_image_base64": result_base64,
+            "message": f"Applied {len(request.annotations)} annotations successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Annotation error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Failed to apply annotations: {str(e)}"
+        }
+
+
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
