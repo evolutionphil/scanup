@@ -2726,7 +2726,7 @@ app.add_middleware(
 async def startup_db_client():
     """Initialize MongoDB collections on startup"""
     try:
-        # Test connection
+        # Test connection with shorter timeout
         await client.admin.command('ping')
         logger.info(f"✅ Connected to MongoDB Atlas: {os.environ.get('DB_NAME', 'scanup')}")
         
@@ -2772,8 +2772,8 @@ async def startup_db_client():
         logger.info("✅ MongoDB collections initialized successfully")
         
     except Exception as e:
-        logger.error(f"❌ MongoDB initialization error: {e}")
-        raise
+        logger.warning(f"⚠️ MongoDB Atlas connection issue (will retry on demand): {e}")
+        # Don't raise - let app start and handle DB errors at request time
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
