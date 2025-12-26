@@ -161,6 +161,17 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
   },
+  syncBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    padding: 6,
+    borderRadius: 8,
+    minWidth: 24,
+    minHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   selectedBadge: {
     position: 'absolute',
     top: 8,
