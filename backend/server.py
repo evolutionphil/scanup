@@ -1184,15 +1184,34 @@ async def create_document(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new document"""
+    # Check scan limits for free users
+    can_scan, limit_message = await check_scan_limits(current_user)
+    if not can_scan:
+        raise HTTPException(status_code=403, detail=limit_message)
+    
     document_id = f"doc_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
     
-    # Process pages - create thumbnails
+    # Check if user needs watermark (free users)
+    is_premium = current_user.subscription_type in ["premium", "trial"]
+    if current_user.subscription_type == "trial" and current_user.trial_start_date:
+        trial_end = current_user.trial_start_date + timedelta(days=TRIAL_DURATION_DAYS)
+        if datetime.now(timezone.utc) >= trial_end.replace(tzinfo=timezone.utc):
+            is_premium = False
+    
+    # Process pages - create thumbnails, add watermark for free users
     processed_pages = []
     for i, page in enumerate(doc_data.pages):
         page_dict = page.dict()
         page_dict["order"] = i
-        page_dict["thumbnail_base64"] = create_thumbnail(page.image_base64)
+        
+        # Add watermark for free users
+        image_base64 = page.image_base64
+        if not is_premium:
+            image_base64 = add_watermark(image_base64, "ScanUp")
+            page_dict["image_base64"] = image_base64
+        
+        page_dict["thumbnail_base64"] = create_thumbnail(image_base64)
         processed_pages.append(page_dict)
     
     document = {
@@ -1204,11 +1223,15 @@ async def create_document(
         "pages": processed_pages,
         "ocr_full_text": None,
         "is_password_protected": False,
+        "has_watermark": not is_premium,  # Track watermark status
         "created_at": now,
         "updated_at": now
     }
     
     await db.documents.insert_one(document)
+    
+    # Increment scan count for this user
+    await increment_scan_count(current_user.user_id)
     
     # Remove _id before returning
     document.pop("_id", None)
