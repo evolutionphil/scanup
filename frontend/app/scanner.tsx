@@ -601,6 +601,41 @@ export default function ScannerScreen() {
     ];
   };
 
+  // Auto-detect document edges using backend API
+  const autoDetectEdges = async (imageBase64: string, mode: string, width: number, height: number) => {
+    try {
+      logDebug('EDGE_DETECT', `Auto-detecting edges for ${mode} mode...`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          mode: mode,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.points) {
+        logDebug('EDGE_DETECT', '✅ Edges detected!', { pointCount: result.points.length });
+        
+        // Convert normalized points to pixel coordinates
+        const detectedPoints = result.points.map((p: { x: number; y: number }) => ({
+          x: p.x * width,
+          y: p.y * height,
+        }));
+        
+        setCropPoints(detectedPoints);
+      } else {
+        logDebug('EDGE_DETECT', '⚠️ No edges detected, using default frame', { message: result.message });
+      }
+    } catch (error) {
+      logDebug('EDGE_DETECT', '❌ Edge detection failed', { error: String(error) });
+      // Keep default crop points on error
+    }
+  };
+
   const takePicture = async () => {
     if (!cameraRef.current || isCapturing) return;
     
@@ -612,7 +647,7 @@ export default function ScannerScreen() {
           `You've used all ${10} scans for today. Upgrade to Premium for unlimited scanning.`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
+            {
               text: 'Start Free Trial', 
               onPress: () => router.push('/(tabs)/profile'),
             },
