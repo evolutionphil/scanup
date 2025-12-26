@@ -311,6 +311,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setCurrentDocument: (doc) => set({ currentDocument: doc }),
 
   fetchFolders: async (token) => {
+    // If no token (guest mode), load from local storage
+    if (!token) {
+      await get().loadGuestDocuments();
+      return;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/folders`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -321,6 +327,22 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   createFolder: async (token, data) => {
+    // If no token (guest mode), create locally
+    if (!token) {
+      const now = new Date().toISOString();
+      const folder: Folder = {
+        folder_id: generateId(),
+        user_id: 'guest',
+        name: data.name,
+        color: data.color || '#3B82F6',
+        created_at: now,
+      };
+      
+      set((state) => ({ folders: [...state.folders, folder] }));
+      await get().saveGuestDocuments();
+      return folder;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/folders`, {
       method: 'POST',
       headers: {
@@ -337,6 +359,26 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   updateFolder: async (token, folderId, data) => {
+    // If no token or local folder, update locally
+    if (!token || folderId.startsWith('local_')) {
+      const { folders } = get();
+      const existingFolder = folders.find(f => f.folder_id === folderId);
+      if (!existingFolder) throw new Error('Folder not found');
+      
+      const updatedFolder: Folder = {
+        ...existingFolder,
+        ...data,
+      };
+      
+      set((state) => ({
+        folders: state.folders.map((f) =>
+          f.folder_id === folderId ? updatedFolder : f
+        ),
+      }));
+      await get().saveGuestDocuments();
+      return updatedFolder;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/folders/${folderId}`, {
       method: 'PUT',
       headers: {
@@ -357,6 +399,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   deleteFolder: async (token, folderId) => {
+    // If no token or local folder, delete locally
+    if (!token || folderId.startsWith('local_')) {
+      set((state) => ({
+        folders: state.folders.filter((f) => f.folder_id !== folderId),
+      }));
+      await get().saveGuestDocuments();
+      return;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/folders/${folderId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
