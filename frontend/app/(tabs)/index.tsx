@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document } from '../../src/store/documentStore';
@@ -31,13 +32,30 @@ type ViewMode = 'grid' | 'list';
 export default function DocumentsScreen() {
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
-  const { documents, folders, isLoading, fetchDocuments, fetchFolders, deleteDocument, updateDocument } = useDocumentStore();
+  const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, syncPendingDocuments, loadLocalCache } = useDocumentStore();
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showViewMenu, setShowViewMenu] = useState(false);
+
+  // Network listener for background sync
+  useEffect(() => {
+    // Load local cache first for instant display
+    loadLocalCache();
+    
+    // Set up network listener
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected && token && !isGuest) {
+        // Network came online, trigger sync
+        console.log('Network online - syncing pending documents...');
+        syncPendingDocuments(token);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [token, isGuest]);
 
   // Load saved view mode preference
   useEffect(() => {
