@@ -40,7 +40,10 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/');
+            // Use setTimeout to avoid navigation during render
+            setTimeout(() => {
+              router.replace('/');
+            }, 100);
           },
         },
       ]
