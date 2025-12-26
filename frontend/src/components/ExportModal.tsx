@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
-import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { useThemeStore } from '../store/themeStore';
+import { useAuthStore } from '../store/authStore';
 import Button from './Button';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -23,13 +25,14 @@ interface ExportFormat {
   extension: string;
   requiresOcr: boolean;
   isPremium: boolean;
+  mimeType: string;
 }
 
 const EXPORT_FORMATS: ExportFormat[] = [
-  { id: 'pdf', name: 'PDF', icon: 'document-text', extension: 'pdf', requiresOcr: false, isPremium: false },
-  { id: 'jpeg', name: 'Image (JPEG)', icon: 'image', extension: 'jpg', requiresOcr: false, isPremium: false },
-  { id: 'docx', name: 'Word (.docx)', icon: 'document', extension: 'docx', requiresOcr: true, isPremium: true },
-  { id: 'xlsx', name: 'Excel (.xlsx)', icon: 'grid', extension: 'xlsx', requiresOcr: true, isPremium: true },
+  { id: 'pdf', name: 'PDF', icon: 'document-text', extension: 'pdf', requiresOcr: false, isPremium: false, mimeType: 'application/pdf' },
+  { id: 'jpeg', name: 'Image (JPEG)', icon: 'image', extension: 'jpg', requiresOcr: false, isPremium: false, mimeType: 'image/jpeg' },
+  { id: 'docx', name: 'Word (.docx)', icon: 'document', extension: 'docx', requiresOcr: true, isPremium: true, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  { id: 'xlsx', name: 'Excel (.xlsx)', icon: 'grid', extension: 'xlsx', requiresOcr: true, isPremium: true, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
 ];
 
 interface ExportModalProps {
@@ -40,6 +43,7 @@ interface ExportModalProps {
   hasOcrText: boolean;
   isPremium: boolean;
   token: string;
+  pages?: Array<{ image_base64: string; ocr_text?: string }>;
 }
 
 export default function ExportModal({
@@ -50,8 +54,10 @@ export default function ExportModal({
   hasOcrText,
   isPremium,
   token,
+  pages = [],
 }: ExportModalProps) {
   const { theme } = useThemeStore();
+  const { isGuest } = useAuthStore();
   const [selectedFormat, setSelectedFormat] = useState<string>('pdf');
   const [includeOcr, setIncludeOcr] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -80,54 +86,83 @@ export default function ExportModal({
 
     setIsExporting(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          document_id: documentId,
-          format: selectedFormat,
-          include_ocr: includeOcr || format.requiresOcr,
-        }),
-      });
+      let fileBase64: string;
+      let fileName: string;
+      let mimeType: string;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Export failed');
+      // For guests or JPEG export, create locally
+      if (isGuest || selectedFormat === 'jpeg') {
+        if (pages.length === 0) {
+          throw new Error('No pages available for export');
+        }
+        
+        // For JPEG, just use the first page
+        fileBase64 = pages[0].image_base64;
+        if (fileBase64.includes(',')) {
+          fileBase64 = fileBase64.split(',')[1];
+        }
+        fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.jpg`;
+        mimeType = 'image/jpeg';
+      } else {
+        // Use backend for PDF and other formats
+        const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            document_id: documentId,
+            format: selectedFormat,
+            include_ocr: includeOcr || format.requiresOcr,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Export response error:', response.status, errorText);
+          throw new Error(`Export failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        fileBase64 = result.file_base64;
+        fileName = result.filename || `${documentName.replace(/[^a-z0-9]/gi, '_')}.${format.extension}`;
+        mimeType = result.mime_type || format.mimeType;
       }
 
-      const result = await response.json();
+      // Save to cache and share
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
-      // Save file and share
-      const fileName = result.filename || `${documentName}.${format.extension}`;
-      const fileUri = `${cacheDirectory}${fileName}`;
-      
-      await writeAsStringAsync(fileUri, result.file_base64, {
-        encoding: EncodingType.Base64,
+      await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
 
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
-          mimeType: result.mime_type,
-          dialogTitle: `Export ${documentName}`,
+          mimeType: mimeType,
+          dialogTitle: `Share ${documentName}`,
+          UTI: selectedFormat === 'pdf' ? 'com.adobe.pdf' : 'public.jpeg',
         });
         onClose();
       } else {
-        Alert.alert('Success', 'File exported successfully');
+        Alert.alert('Success', `File saved: ${fileName}`);
         onClose();
       }
     } catch (error: any) {
       console.error('Export error:', error);
-      Alert.alert('Export Failed', error.message || 'Failed to export document');
+      Alert.alert('Export Failed', error.message || 'Failed to export document. Please try again.');
     } finally {
       setIsExporting(false);
     }
   };
 
   const selectedFormatInfo = EXPORT_FORMATS.find((f) => f.id === selectedFormat);
+  
+  // Filter formats for guests (only JPEG available without backend)
+  const availableFormats = isGuest 
+    ? EXPORT_FORMATS.filter(f => f.id === 'jpeg')
+    : EXPORT_FORMATS;
 
   return (
     <Modal
@@ -145,12 +180,21 @@ export default function ExportModal({
             </TouchableOpacity>
           </View>
 
+          {isGuest && (
+            <View style={[styles.guestNotice, { backgroundColor: theme.warning + '20' }]}>
+              <Ionicons name="information-circle" size={20} color={theme.warning} />
+              <Text style={[styles.guestNoticeText, { color: theme.warning }]}>
+                Sign in to unlock PDF and advanced exports
+              </Text>
+            </View>
+          )}
+
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
             Select Format
           </Text>
 
           <View style={styles.formatGrid}>
-            {EXPORT_FORMATS.map((format) => {
+            {availableFormats.map((format) => {
               const isDisabled = format.isPremium && !isPremium;
               const needsOcr = format.requiresOcr && !hasOcrText;
               
@@ -168,7 +212,7 @@ export default function ExportModal({
                 >
                   <View style={[
                     styles.formatIcon,
-                    { backgroundColor: selectedFormat === format.id ? theme.primary + '20' : theme.surfaceVariant },
+                    { backgroundColor: selectedFormat === format.id ? theme.primary + '20' : theme.surfaceVariant || theme.surface },
                   ]}>
                     <Ionicons
                       name={format.icon}
@@ -199,7 +243,7 @@ export default function ExportModal({
           </View>
 
           {/* Include OCR option for PDF */}
-          {selectedFormat === 'pdf' && hasOcrText && (
+          {selectedFormat === 'pdf' && hasOcrText && !isGuest && (
             <TouchableOpacity
               style={[styles.ocrToggle, { backgroundColor: theme.background }]}
               onPress={() => setIncludeOcr(!includeOcr)}
@@ -253,11 +297,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
+  },
+  guestNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  guestNoticeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 13,
