@@ -798,10 +798,20 @@ export default function ScannerScreen() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      // Check if image appears to be portrait (height > width in crop points)
+      // This helps Android cameras that capture in landscape without EXIF
+      const cropHeight = Math.abs(cropPoints[2].y - cropPoints[0].y);
+      const cropWidth = Math.abs(cropPoints[1].x - cropPoints[0].x);
+      const forcePortrait = cropHeight > cropWidth;
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ image_base64: cropImage, corners: normalizedCorners }),
+        body: JSON.stringify({ 
+          image_base64: cropImage, 
+          corners: normalizedCorners,
+          force_portrait: forcePortrait 
+        }),
       });
 
       const result = await response.json();
