@@ -118,6 +118,7 @@ interface NormalizedPoint { x: number; y: number; }
 
 // Pixel coordinate point
 interface CropPoint { x: number; y: number; }
+interface NormalizedPoint { x: number; y: number; } // 0-1 range coordinates
 
 // Camera layout tracking with visibility calculations
 interface CameraLayoutInfo {
