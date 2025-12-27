@@ -3860,6 +3860,353 @@ async def get_admin_analytics(
             "retention_rate": "0%",
         }
 
+# ============== LOCALIZATION/TRANSLATIONS ==============
+
+# Default English translations - all app strings
+DEFAULT_TRANSLATIONS = {
+    "en": {
+        # General
+        "app_name": "ScanUp",
+        "loading": "Loading...",
+        "please_wait": "Please wait",
+        "cancel": "Cancel",
+        "save": "Save",
+        "done": "Done",
+        "apply": "Apply",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "search": "Search",
+        "close": "Close",
+        "back": "Back",
+        "next": "Next",
+        "skip": "Skip",
+        "retry": "Retry",
+        "yes": "Yes",
+        "no": "No",
+        "ok": "OK",
+        "error": "Error",
+        "success": "Success",
+        "warning": "Warning",
+        
+        # Auth
+        "sign_in": "Sign In",
+        "sign_up": "Sign Up",
+        "sign_out": "Sign Out",
+        "logout": "Logout",
+        "create_account": "Create Account",
+        "welcome_back": "Welcome Back",
+        "sign_in_to_continue": "Sign in to continue",
+        "sign_up_to_get_started": "Sign up to get started",
+        "already_have_account": "Already have an account?",
+        "dont_have_account": "Don't have an account?",
+        "continue_with_google": "Continue with Google",
+        "email": "Email",
+        "password": "Password",
+        "full_name": "Full Name",
+        "confirm_password": "Confirm Password",
+        "enter_email": "Enter your email",
+        "enter_password": "Enter your password",
+        "enter_name": "Enter your name",
+        "create_password": "Create a password",
+        "confirm_your_password": "Confirm your password",
+        "forgot_password": "Forgot Password?",
+        "reset_password": "Reset Password",
+        "set_password": "Set Password",
+        "sign_in_to_sync": "Sign In to Sync",
+        "guest_mode": "Guest Mode",
+        "continue_as_guest": "Continue as Guest",
+        
+        # Onboarding
+        "get_started": "Get Started",
+        "smart_scanning": "Smart Scanning",
+        "auto_detect_boundaries": "Auto-detect document boundaries",
+        "smart_enhancement": "Smart Enhancement",
+        "auto_correct_beautify": "Auto-correct & beautify scans",
+        "instant_ocr": "Instant OCR",
+        "extract_text_instantly": "Extract text instantly",
+        "cloud_sync": "Cloud Sync",
+        "access_from_anywhere": "Access from anywhere",
+        
+        # Home / Documents
+        "documents": "Documents",
+        "my_documents": "My Documents",
+        "no_documents": "No Documents",
+        "no_documents_yet": "No Documents Yet",
+        "add_documents": "Add Documents",
+        "search_documents": "Search documents, tags, or text...",
+        "loading_documents": "Loading documents...",
+        "loading_document": "Loading document...",
+        "document_name": "Document name",
+        "rename_document": "Rename Document",
+        "delete_document": "Delete Document",
+        "export_document": "Export Document",
+        "share_document": "Share Document",
+        "view_mode": "View Mode",
+        
+        # Folders
+        "folders": "Folders",
+        "no_folders_yet": "No Folders Yet",
+        "new_folder": "New Folder",
+        "folder_name": "Folder name",
+        "delete_folder": "Delete Folder",
+        "move_to_folder": "Move to Folder",
+        "remove_from_folder": "Remove from folder",
+        "folder_protected": "Folder Protected",
+        "set_folder_password": "Set Folder Password",
+        "remove_password": "Remove Password",
+        "enter_folder_password": "Enter folder password",
+        "unlock": "Unlock",
+        
+        # Scanner
+        "scan": "Scan",
+        "camera": "Camera",
+        "gallery": "Gallery",
+        "auto_detect": "Auto Detect",
+        "capturing": "Capturing...",
+        "camera_permission_required": "Camera Permission Required",
+        "grant_permission": "Grant Permission",
+        "live_preview": "Live Preview",
+        "live_edge_detection": "Live Edge Detection",
+        "show_grid_overlay": "Show Grid Overlay",
+        "display_grid_on_camera": "Display alignment grid on camera",
+        "flash": "Flash",
+        "flash_on": "Flash On",
+        "flash_off": "Flash Off",
+        "flash_auto": "Flash Auto",
+        
+        # Document Modes
+        "single_page": "Single Page",
+        "multi_page": "Multi Page",
+        "book_mode": "Book Mode",
+        "id_card": "ID Card",
+        "batch_scan": "Batch Scan",
+        "left_page": "Left Page",
+        "right_page": "Right Page",
+        
+        # Document Types/Templates
+        "select_document_type": "Select Document Type",
+        "select_document_template": "Select Document Template",
+        "template": "Template",
+        "general_document": "General Document",
+        "receipt": "Receipt",
+        "business_card": "Business Card",
+        "whiteboard": "Whiteboard",
+        "passport": "Passport",
+        "form": "Form",
+        
+        # Edit / Crop
+        "edit": "Edit",
+        "crop": "Crop",
+        "adjust_crop": "Adjust Crop",
+        "auto_crop": "Auto Crop",
+        "rotate": "Rotate",
+        "adjust_filter": "Adjust & Filter",
+        "revert": "Revert",
+        "revert_to_original": "Revert to Original",
+        "reset": "Reset",
+        
+        # Filters
+        "filters": "Filters",
+        "original": "Original",
+        "enhanced": "Enhanced",
+        "grayscale": "Grayscale",
+        "black_white": "Black & White",
+        "color": "Color",
+        "magic": "Magic",
+        "default_filter": "Default Filter",
+        "select_default_filter": "Select Default Filter",
+        
+        # Adjustments
+        "brightness": "Brightness",
+        "contrast": "Contrast",
+        "saturation": "Saturation",
+        "auto_enhance": "Auto Enhance",
+        "automatically_enhance": "Automatically enhance scanned images",
+        
+        # Pages
+        "pages": "Pages",
+        "page": "Page",
+        "add_page": "Add Page",
+        "add_more": "Add More",
+        "del_page": "Del Page",
+        "delete_page": "Delete Page",
+        "move_up": "Move Up",
+        "move_down": "Move Down",
+        "add_to_document": "Add to Document",
+        "edit_page_screen": "Edit Page Screen",
+        
+        # Annotations
+        "annotate": "Annotate",
+        "annotations": "Annotations",
+        "draw": "Draw",
+        "text": "Text",
+        "shapes": "Shapes",
+        "arrow": "Arrow",
+        "rectangle": "Rectangle",
+        "circle": "Circle",
+        "line": "Line",
+        "highlight": "Highlight",
+        "thickness": "Thickness",
+        "enter_text": "Enter text...",
+        "clear": "Clear",
+        "undo": "Undo",
+        
+        # Signature
+        "sign": "Sign",
+        "signature": "Signature",
+        "draw_signature": "Draw Signature",
+        "sign_here": "Sign here",
+        "position_signature": "Position Signature",
+        "signature_hint": "Hold & drag signature to move • Pinch to resize",
+        "re_sign": "Re-Sign",
+        "saved_signatures": "Saved Signatures",
+        
+        # OCR
+        "ocr": "OCR",
+        "extract_text": "Extract Text",
+        "extracted_text": "Extracted Text",
+        "copy_text": "Copy Text",
+        "text_copied": "Text copied to clipboard",
+        "no_text_found": "No text found",
+        "ocr_processing": "Processing OCR...",
+        "ocr_left": "OCR Left",
+        
+        # Export
+        "export": "Export",
+        "share": "Share",
+        "export_as_pdf": "Export as PDF",
+        "export_as_image": "Export as Image",
+        "export_as_jpeg": "Export as JPEG",
+        "export_as_png": "Export as PNG",
+        "pdf": "PDF",
+        "jpeg": "JPEG",
+        "png": "PNG",
+        "high_quality": "High Quality",
+        "medium_quality": "Medium Quality",
+        "low_quality": "Low Quality",
+        
+        # Settings
+        "settings": "Settings",
+        "all_settings": "All Settings",
+        "preferences": "Preferences",
+        "general": "General",
+        "appearance": "Appearance",
+        "dark_mode": "Dark Mode",
+        "language": "Language",
+        "select_language": "Select Language",
+        "default_scan_quality": "Default Scan Quality",
+        "select_scan_quality": "Select Scan Quality",
+        "sound_effects": "Sound Effects",
+        "haptic_feedback": "Haptic Feedback",
+        "auto_backup": "Auto Backup",
+        "clear_cache": "Clear Cache",
+        "free_up_storage": "Free up storage space",
+        "reset_settings": "Reset Settings",
+        "restore_defaults": "Restore default settings",
+        "advanced_features_coming": "Advanced editing features coming soon",
+        
+        # Profile
+        "profile": "Profile",
+        "account": "Account",
+        "plan": "Plan",
+        "pro": "Pro",
+        "free": "Free",
+        "try_premium_free": "Try Premium Free",
+        "scans_left": "Scans Left",
+        "monthly_scans_remaining": "Monthly scans remaining:",
+        "daily_usage": "Daily Usage",
+        "help_support": "Help & Support",
+        "privacy_policy": "Privacy Policy",
+        "terms_of_service": "Terms of Service",
+        "version": "Version",
+        "go_back": "Go Back",
+        
+        # Errors & Messages
+        "something_went_wrong": "Something went wrong",
+        "network_error": "Network error. Please try again.",
+        "invalid_credentials": "Invalid email or password",
+        "email_already_exists": "Email already exists",
+        "password_too_short": "Password must be at least 6 characters",
+        "passwords_dont_match": "Passwords don't match",
+        "document_saved": "Document saved successfully",
+        "document_deleted": "Document deleted",
+        "changes_saved": "Changes saved",
+        "cache_cleared": "Cache cleared",
+        "settings_reset": "Settings reset to defaults",
+        
+        # Misc
+        "add": "Add",
+        "remove": "Remove",
+        "select": "Select",
+        "selected": "Selected",
+        "all": "All",
+        "none": "None",
+        "recent": "Recent",
+        "favorites": "Favorites",
+        "tags": "Tags",
+        "date": "Date",
+        "size": "Size",
+        "name": "Name",
+        "type": "Type",
+        "sort_by": "Sort by",
+        "filter_by": "Filter by",
+    }
+}
+
+@api_router.get("/translations/{lang}")
+async def get_translations(lang: str):
+    """Get translations for a specific language (public endpoint)"""
+    try:
+        # First check if we have custom translations in the database
+        data = await db.settings.find_one({"key": "localization"}, {"_id": 0})
+        
+        if data and "value" in data:
+            translations = data["value"].get("translations", {})
+            if lang in translations:
+                # Merge with defaults (custom overrides defaults)
+                merged = {**DEFAULT_TRANSLATIONS.get("en", {}), **DEFAULT_TRANSLATIONS.get(lang, {}), **translations.get(lang, {})}
+                return {"lang": lang, "translations": merged}
+        
+        # Return default translations
+        if lang in DEFAULT_TRANSLATIONS:
+            return {"lang": lang, "translations": DEFAULT_TRANSLATIONS[lang]}
+        
+        # Fallback to English
+        return {"lang": "en", "translations": DEFAULT_TRANSLATIONS["en"]}
+    except Exception as e:
+        logger.error(f"Get translations error: {e}")
+        return {"lang": "en", "translations": DEFAULT_TRANSLATIONS["en"]}
+
+@api_router.get("/translations")
+async def get_all_translations():
+    """Get all available translations (public endpoint)"""
+    try:
+        data = await db.settings.find_one({"key": "localization"}, {"_id": 0})
+        
+        if data and "value" in data:
+            # Merge custom translations with defaults
+            custom = data["value"].get("translations", {})
+            languages = list(set(list(DEFAULT_TRANSLATIONS.keys()) + list(custom.keys())))
+            return {
+                "languages": languages,
+                "default_language": "en",
+                "translations": {**DEFAULT_TRANSLATIONS, **custom}
+            }
+        
+        return {
+            "languages": list(DEFAULT_TRANSLATIONS.keys()),
+            "default_language": "en",
+            "translations": DEFAULT_TRANSLATIONS
+        }
+    except Exception as e:
+        logger.error(f"Get all translations error: {e}")
+        return {
+            "languages": ["en"],
+            "default_language": "en",
+            "translations": DEFAULT_TRANSLATIONS
+        }
+
 @api_router.get("/admin/localization")
 async def get_localization(admin: dict = Depends(get_admin_user)):
     """Get localization data"""
