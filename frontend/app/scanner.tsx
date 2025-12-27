@@ -316,6 +316,122 @@ export default function ScannerScreen() {
     }
   }, [isScanning]);
 
+  // ============================================================================
+  // REAL-TIME EDGE DETECTION SYSTEM
+  // ============================================================================
+  
+  // Real-time edge detection - runs continuously when camera is visible
+  const performLiveEdgeDetection = useCallback(async () => {
+    // Skip if already detecting, not showing camera, or capturing
+    if (isDetectingRef.current || !showCamera || isCapturing || !cameraRef.current) {
+      return;
+    }
+    
+    isDetectingRef.current = true;
+    
+    try {
+      // Take a very low quality photo for fast edge detection
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.1, // Very low quality for speed
+        base64: true,
+        skipProcessing: true,
+        exif: false,
+      });
+      
+      if (!photo?.base64) {
+        isDetectingRef.current = false;
+        return;
+      }
+      
+      // Call backend edge detection API
+      const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          image_base64: photo.base64, 
+          mode: currentType.type,
+          fast_mode: true // Tell backend to use fast detection
+        }),
+      });
+      
+      if (!response.ok) {
+        setLiveDetectedEdges(null);
+        setEdgesDetected(false);
+        isDetectingRef.current = false;
+        return;
+      }
+      
+      const result = await response.json();
+      
+      // Backend returns: { success, points, auto_detected, image_size }
+      if (result.success && result.points && result.auto_detected) {
+        // Document edges detected! Update the live overlay
+        const newEdges = result.points.map((c: any) => ({ x: c.x, y: c.y }));
+        setLiveDetectedEdges(newEdges);
+        setEdgesDetected(true);
+        
+        // For auto-capture: check stability
+        if (autoCapture) {
+          const signature = result.points.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
+          
+          if (signature === lastDetectionRef.current) {
+            setAutoDetectStable(prev => prev + 1);
+          } else {
+            setAutoDetectStable(1);
+            lastDetectionRef.current = signature;
+          }
+          setDetectedCorners(newEdges);
+        }
+      } else {
+        // No document detected
+        setLiveDetectedEdges(null);
+        setEdgesDetected(false);
+        if (autoCapture) {
+          setAutoDetectStable(0);
+          setDetectedCorners(null);
+          lastDetectionRef.current = '';
+        }
+      }
+    } catch (error) {
+      console.log('[LiveEdge] Detection error:', error);
+      setLiveDetectedEdges(null);
+      setEdgesDetected(false);
+    } finally {
+      isDetectingRef.current = false;
+    }
+  }, [showCamera, isCapturing, currentType.type, autoCapture]);
+
+  // Start/stop real-time edge detection based on camera visibility
+  useEffect(() => {
+    if (showCamera && liveEdgeDetection && !showCropScreen) {
+      // Start real-time detection loop - every 400ms for smooth updates
+      console.log('[LiveEdge] Starting real-time edge detection...');
+      
+      // Initial detection
+      setTimeout(() => performLiveEdgeDetection(), 500);
+      
+      // Continuous detection
+      liveDetectionRef.current = setInterval(() => {
+        performLiveEdgeDetection();
+      }, 400); // 400ms = 2.5 fps - good balance between speed and performance
+      
+    } else {
+      // Stop detection
+      if (liveDetectionRef.current) {
+        clearInterval(liveDetectionRef.current);
+        liveDetectionRef.current = null;
+      }
+      setLiveDetectedEdges(null);
+    }
+    
+    return () => {
+      if (liveDetectionRef.current) {
+        clearInterval(liveDetectionRef.current);
+        liveDetectionRef.current = null;
+      }
+    };
+  }, [showCamera, liveEdgeDetection, showCropScreen, performLiveEdgeDetection]);
+
   // Auto-capture when edges are detected AND stable for a few frames
   useEffect(() => {
     if (autoCapture && edgesDetected && autoDetectStable >= 3 && !isCapturing && showCamera && detectedCorners) {
@@ -325,107 +441,40 @@ export default function ScannerScreen() {
     }
   }, [autoCapture, edgesDetected, autoDetectStable, isCapturing, showCamera, detectedCorners]);
 
-  // Function to detect edges from a camera frame
-  const detectEdgesFromFrame = useCallback(async () => {
-    if (!cameraRef.current || isCapturing || !autoCapture) return;
-    
-    try {
-      // Take a quick photo for edge detection
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.3, // Low quality for speed
-        base64: true,
-        skipProcessing: true,
-      });
-      
-      if (!photo?.base64) return;
-      
-      // Call backend edge detection API
-      const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: photo.base64, mode: currentType.type }),
-      });
-      
-      if (!response.ok) {
-        setEdgesDetected(false);
-        setAutoDetectStable(0);
-        return;
-      }
-      
-      const result = await response.json();
-      
-      // Backend returns: { success, points, auto_detected, image_size }
-      if (result.success && result.points && result.auto_detected) {
-        // Only count as "detected" if edges were actually found (not default frame)
-        // Convert normalized corners to detection signature for stability check
-        const signature = result.points.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
-        
-        if (signature === lastDetectionRef.current) {
-          // Same detection as before - increment stability counter
-          setAutoDetectStable(prev => prev + 1);
-        } else {
-          // Detection changed - reset stability
-          setAutoDetectStable(1);
-          lastDetectionRef.current = signature;
-        }
-        
-        // Store detected corners (normalized)
-        setDetectedCorners(result.points.map((c: any) => ({ x: c.x, y: c.y })));
-        setEdgesDetected(true);
-        console.log('[AutoCapture] Edges detected, stability:', autoDetectStable + 1);
-      } else {
-        setEdgesDetected(false);
-        setDetectedCorners(null);
-        setAutoDetectStable(0);
-        lastDetectionRef.current = '';
-      }
-    } catch (error) {
-      console.error('[AutoCapture] Edge detection error:', error);
-      setEdgesDetected(false);
-      setAutoDetectStable(0);
-    }
-  }, [autoCapture, isCapturing, autoDetectStable, currentType.type]);
-
-  // Toggle auto-capture - starts/stops edge detection loop
+  // Toggle auto-capture mode (uses the live edge detection)
   const toggleAutoCapture = useCallback(() => {
     setAutoCapture(prev => {
       const newState = !prev;
       
       if (newState) {
-        // Starting auto-capture - begin edge detection loop
+        // Starting auto-capture
         setIsScanning(true);
-        setEdgesDetected(false);
         setAutoDetectStable(0);
-        setDetectedCorners(null);
         lastDetectionRef.current = '';
-        
-        // Start periodic edge detection (every 1.5 seconds)
-        autoDetectIntervalRef.current = setInterval(() => {
-          detectEdgesFromFrame();
-        }, 1500);
-        
       } else {
-        // Stopping auto-capture - clear interval
+        // Stopping auto-capture
         setIsScanning(false);
-        setEdgesDetected(false);
         setAutoDetectStable(0);
         setDetectedCorners(null);
-        
-        if (autoDetectIntervalRef.current) {
-          clearInterval(autoDetectIntervalRef.current);
-          autoDetectIntervalRef.current = null;
-        }
       }
       
       return newState;
     });
-  }, [detectEdgesFromFrame]);
+  }, []);
 
-  // Cleanup interval on unmount
+  // Toggle live edge detection on/off
+  const toggleLiveEdgeDetection = useCallback(() => {
+    setLiveEdgeDetection(prev => !prev);
+  }, []);
+
+  // Cleanup intervals on unmount
   useEffect(() => {
     return () => {
       if (autoDetectIntervalRef.current) {
         clearInterval(autoDetectIntervalRef.current);
+      }
+      if (liveDetectionRef.current) {
+        clearInterval(liveDetectionRef.current);
       }
     };
   }, []);
