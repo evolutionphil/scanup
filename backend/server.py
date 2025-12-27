@@ -46,8 +46,9 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
-AWS_S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME", "scanup-documents")
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+AWS_S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME", os.environ.get("AWS_BUCKET_NAME", "scanup-documents"))
+# Support both AWS_REGION and AWS_S3_REGION for flexibility
+AWS_REGION = os.environ.get("AWS_REGION", os.environ.get("AWS_S3_REGION", "us-east-1"))
 
 # S3 client will be initialized after logger
 s3_client = None
