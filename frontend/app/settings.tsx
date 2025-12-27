@@ -483,10 +483,14 @@ export default function SettingsScreen() {
       <PickerModal
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
-        title="Select Language"
+        title={t('select_language', 'Select Language')}
         options={LANGUAGE_OPTIONS}
         selectedValue={settings.language}
-        onSelect={(v) => updateSetting('language', v)}
+        onSelect={(v) => {
+          updateSetting('language', v);
+          // Update the global i18n language and fetch new translations
+          setLanguage(v);
+        }}
       />
     </SafeAreaView>
   );
