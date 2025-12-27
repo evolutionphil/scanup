@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_BASE from '../config';
 import {
   Globe,
   Plus,
@@ -13,7 +14,7 @@ import {
   Upload
 } from 'lucide-react';
 
-const API_URL = '/api';
+const API_URL = `${API_BASE}/api`;
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
