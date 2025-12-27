@@ -81,6 +81,7 @@ const LANGUAGE_OPTIONS = [
 export default function SettingsScreen() {
   const { theme, isDark, toggleTheme } = useThemeStore();
   const { user, isGuest, logout } = useAuthStore();
+  const { currentLanguage, setLanguage, t, availableLanguages } = useI18n();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [showQualityPicker, setShowQualityPicker] = useState(false);
   const [showFilterPicker, setShowFilterPicker] = useState(false);
@@ -90,6 +91,13 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Sync language setting with i18n store
+  useEffect(() => {
+    if (currentLanguage && settings.language !== currentLanguage) {
+      setSettings(prev => ({ ...prev, language: currentLanguage }));
+    }
+  }, [currentLanguage]);
 
   const loadSettings = async () => {
     try {
