@@ -239,10 +239,16 @@ export default function ScannerScreen() {
   const [autoCapture, setAutoCapture] = useState(false);
   const [edgesDetected, setEdgesDetected] = useState(false);
   const [isScanning, setIsScanning] = useState(false); // For scanning animation
-  const [detectedCorners, setDetectedCorners] = useState<CropPoint[] | null>(null); // Real detected corners
+  const [detectedCorners, setDetectedCorners] = useState<NormalizedPoint[] | null>(null); // Real detected corners (normalized 0-1)
   const [autoDetectStable, setAutoDetectStable] = useState(0); // Counter for stable detection
   const autoDetectIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastDetectionRef = useRef<string>(''); // To track if detection changed
+  
+  // REAL-TIME edge detection state
+  const [liveEdgeDetection, setLiveEdgeDetection] = useState(true); // Always on by default
+  const [liveDetectedEdges, setLiveDetectedEdges] = useState<NormalizedPoint[] | null>(null);
+  const liveDetectionRef = useRef<NodeJS.Timeout | null>(null);
+  const isDetectingRef = useRef(false); // Prevent overlapping detection calls
   
   const addToDocumentId = params.addToDocument as string | undefined;
   
