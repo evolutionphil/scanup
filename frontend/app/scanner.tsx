@@ -1847,14 +1847,102 @@ export default function ScannerScreen() {
           </View>
 
           <View style={styles.frameContainer}>
-            <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-              {showGridOverlay && DocumentGuide}
-              <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
-            </View>
-            <Text style={[styles.guideText, { color: currentType.color }]}>{currentType.guide}</Text>
+            {/* REAL-TIME EDGE DETECTION OVERLAY */}
+            {liveDetectedEdges && liveDetectedEdges.length === 4 && (
+              <Svg
+                style={StyleSheet.absoluteFill}
+                width={SCREEN_WIDTH}
+                height={SCREEN_HEIGHT}
+              >
+                {/* Semi-transparent overlay outside detected area */}
+                <Defs>
+                  <Mask id="edgeMask">
+                    <Rect x="0" y="0" width={SCREEN_WIDTH} height={SCREEN_HEIGHT} fill="white" />
+                    <Path
+                      d={`M ${liveDetectedEdges[0].x * SCREEN_WIDTH} ${liveDetectedEdges[0].y * SCREEN_HEIGHT}
+                          L ${liveDetectedEdges[1].x * SCREEN_WIDTH} ${liveDetectedEdges[1].y * SCREEN_HEIGHT}
+                          L ${liveDetectedEdges[2].x * SCREEN_WIDTH} ${liveDetectedEdges[2].y * SCREEN_HEIGHT}
+                          L ${liveDetectedEdges[3].x * SCREEN_WIDTH} ${liveDetectedEdges[3].y * SCREEN_HEIGHT}
+                          Z`}
+                      fill="black"
+                    />
+                  </Mask>
+                </Defs>
+                
+                {/* Dark overlay outside document */}
+                <Rect
+                  x="0"
+                  y="0"
+                  width={SCREEN_WIDTH}
+                  height={SCREEN_HEIGHT}
+                  fill="rgba(0,0,0,0.4)"
+                  mask="url(#edgeMask)"
+                />
+                
+                {/* Edge lines - animated glowing effect */}
+                <Path
+                  d={`M ${liveDetectedEdges[0].x * SCREEN_WIDTH} ${liveDetectedEdges[0].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[1].x * SCREEN_WIDTH} ${liveDetectedEdges[1].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[2].x * SCREEN_WIDTH} ${liveDetectedEdges[2].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[3].x * SCREEN_WIDTH} ${liveDetectedEdges[3].y * SCREEN_HEIGHT}
+                      Z`}
+                  stroke={edgesDetected ? "#10B981" : "#3B82F6"}
+                  strokeWidth={3}
+                  fill="transparent"
+                  strokeLinejoin="round"
+                />
+                
+                {/* Glow effect */}
+                <Path
+                  d={`M ${liveDetectedEdges[0].x * SCREEN_WIDTH} ${liveDetectedEdges[0].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[1].x * SCREEN_WIDTH} ${liveDetectedEdges[1].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[2].x * SCREEN_WIDTH} ${liveDetectedEdges[2].y * SCREEN_HEIGHT}
+                      L ${liveDetectedEdges[3].x * SCREEN_WIDTH} ${liveDetectedEdges[3].y * SCREEN_HEIGHT}
+                      Z`}
+                  stroke={edgesDetected ? "rgba(16,185,129,0.5)" : "rgba(59,130,246,0.5)"}
+                  strokeWidth={8}
+                  fill="transparent"
+                  strokeLinejoin="round"
+                />
+                
+                {/* Corner circles */}
+                {liveDetectedEdges.map((corner, index) => (
+                  <React.Fragment key={index}>
+                    {/* Outer glow */}
+                    <Circle
+                      cx={corner.x * SCREEN_WIDTH}
+                      cy={corner.y * SCREEN_HEIGHT}
+                      r={16}
+                      fill={edgesDetected ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.3)"}
+                    />
+                    {/* Inner circle */}
+                    <Circle
+                      cx={corner.x * SCREEN_WIDTH}
+                      cy={corner.y * SCREEN_HEIGHT}
+                      r={8}
+                      fill={edgesDetected ? "#10B981" : "#3B82F6"}
+                      stroke="#FFF"
+                      strokeWidth={2}
+                    />
+                  </React.Fragment>
+                ))}
+              </Svg>
+            )}
+            
+            {/* Original document frame - only shown when no edges detected */}
+            {!liveDetectedEdges && (
+              <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
+                {showGridOverlay && DocumentGuide}
+                <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
+                <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
+                <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
+                <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
+              </View>
+            )}
+            
+            <Text style={[styles.guideText, { color: liveDetectedEdges ? '#10B981' : currentType.color }]}>
+              {liveDetectedEdges ? 'Document detected! Tap to capture' : currentType.guide}
+            </Text>
           </View>
 
           {/* Capturing Progress Indicator */}
