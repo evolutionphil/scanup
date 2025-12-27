@@ -34,9 +34,11 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection with SSL certificate for Atlas
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise ValueError("MONGO_URL environment variable is required")
 client = AsyncIOMotorClient(mongo_url, tlsCAFile=certifi.where() if 'mongodb+srv' in mongo_url else None)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'scanup')]  # Default to 'scanup' if not set
 
 # Emergent LLM key for OCR
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
