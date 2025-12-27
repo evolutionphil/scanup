@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_BASE from '../config';
 import {
   Users,
   FileText,
@@ -22,7 +23,7 @@ import {
   Bar
 } from 'recharts';
 
-const API_URL = '/api';
+const API_URL = `${API_BASE}/api`;
 
 export default function Dashboard() {
   const { token } = useAuth();
