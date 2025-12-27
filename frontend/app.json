@@ -8,19 +8,39 @@
     "scheme": "scanup",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "visiongo",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.visiongo.scanupp",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "ScanUp needs camera access to scan documents"
+        "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
+        "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
+        "NSPhotoLibraryAddUsageDescription": "ScanUp needs permission to save scanned documents to your photo library",
+        "NSMicrophoneUsageDescription": "ScanUp may use the microphone for video capture",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.visiongo.scanupp",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#3B82F6"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.VIBRATE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -39,6 +59,7 @@
         }
       ],
       "expo-font",
+      "expo-localization",
       [
         "expo-camera",
         {
@@ -46,14 +67,49 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ScanUp to access your photos to import documents",
+          "cameraPermission": "Allow ScanUp to access your camera to scan documents"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow ScanUp to save scanned documents to your photo library",
+          "savePhotosPermission": "Allow ScanUp to save scanned documents to your photo library"
+        }
+      ],
+      [
         "react-native-document-scanner-plugin",
         {
           "cameraPermission": "Allow ScanUp to access your camera to scan documents"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow ScanUp to access your microphone for video capture"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id-from-expo-dev"
+      },
+      "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/your-project-id-from-expo-dev"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
