@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_BASE from '../config';
 import {
   Save,
   Shield,
@@ -12,7 +13,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 
-const API_URL = '/api';
+const API_URL = `${API_BASE}/api`;
 
 export default function Settings() {
   const { token } = useAuth();
