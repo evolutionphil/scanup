@@ -3947,3 +3947,24 @@ async def get_system_status(admin: dict = Depends(get_admin_user)):
 
 # Include the router in the main app (must be after all routes are defined)
 app.include_router(api_router)
+
+# ============== ADMIN DASHBOARD STATIC FILES ==============
+# Serve the admin dashboard from /admin path
+import os as os_module
+
+admin_static_path = os_module.path.join(os_module.path.dirname(__file__), "admin-static")
+if os_module.path.exists(admin_static_path):
+    # Mount static assets (JS, CSS)
+    app.mount("/admin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
+    
+    # Serve admin dashboard index.html for all /admin routes (SPA support)
+    @app.get("/admin")
+    @app.get("/admin/")
+    @app.get("/admin/{full_path:path}")
+    async def serve_admin_dashboard(full_path: str = ""):
+        index_path = os_module.path.join(admin_static_path, "index.html")
+        if os_module.path.exists(index_path):
+            return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="Admin dashboard not found")
+    
+    logger.info("✅ Admin dashboard mounted at /admin")
