@@ -11,7 +11,8 @@ import {
   Check,
   AlertCircle,
   Download,
-  Upload
+  Upload,
+  Search
 } from 'lucide-react';
 
 const API_URL = `${API_BASE}/api`;
@@ -31,35 +32,37 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ko', name: 'Korean', flag: '🇰🇷' },
   { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
   { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
 ];
 
-const DEFAULT_TRANSLATIONS = {
-  'app.name': 'ScanUp',
-  'app.tagline': 'Scan documents like a pro',
-  'nav.home': 'Home',
-  'nav.scan': 'Scan',
-  'nav.documents': 'Documents',
-  'nav.profile': 'Profile',
-  'scan.document': 'Document',
-  'scan.book': 'Book',
-  'scan.id_card': 'ID Card',
-  'scan.receipt': 'Receipt',
-  'button.capture': 'Capture',
-  'button.save': 'Save',
-  'button.cancel': 'Cancel',
-  'button.share': 'Share',
-  'button.export': 'Export',
-  'button.delete': 'Delete',
-  'auth.login': 'Sign In',
-  'auth.register': 'Sign Up',
-  'auth.logout': 'Logout',
-  'auth.guest': 'Continue as Guest',
+// Translation key categories for better organization
+const KEY_CATEGORIES = {
+  'General': ['app_name', 'loading', 'please_wait', 'cancel', 'save', 'done', 'apply', 'delete', 'edit', 'create', 'search', 'close', 'back', 'next', 'skip', 'retry', 'yes', 'no', 'ok', 'error', 'success', 'warning', 'add', 'remove', 'select', 'selected', 'all', 'none', 'recent', 'favorites', 'tags', 'date', 'size', 'name', 'type', 'sort_by', 'filter_by'],
+  'Authentication': ['sign_in', 'sign_up', 'sign_out', 'logout', 'create_account', 'welcome_back', 'sign_in_to_continue', 'sign_up_to_get_started', 'already_have_account', 'dont_have_account', 'continue_with_google', 'email', 'password', 'full_name', 'confirm_password', 'enter_email', 'enter_password', 'enter_name', 'create_password', 'confirm_your_password', 'forgot_password', 'reset_password', 'set_password', 'sign_in_to_sync', 'guest_mode', 'continue_as_guest'],
+  'Onboarding': ['get_started', 'smart_scanning', 'auto_detect_boundaries', 'smart_enhancement', 'auto_correct_beautify', 'instant_ocr', 'extract_text_instantly', 'cloud_sync', 'access_from_anywhere'],
+  'Documents': ['documents', 'my_documents', 'no_documents', 'no_documents_yet', 'add_documents', 'search_documents', 'loading_documents', 'loading_document', 'document_name', 'rename_document', 'delete_document', 'export_document', 'share_document', 'view_mode'],
+  'Folders': ['folders', 'no_folders_yet', 'new_folder', 'folder_name', 'delete_folder', 'move_to_folder', 'remove_from_folder', 'folder_protected', 'set_folder_password', 'remove_password', 'enter_folder_password', 'unlock'],
+  'Scanner': ['scan', 'camera', 'gallery', 'auto_detect', 'capturing', 'camera_permission_required', 'grant_permission', 'live_preview', 'live_edge_detection', 'show_grid_overlay', 'display_grid_on_camera', 'flash', 'flash_on', 'flash_off', 'flash_auto'],
+  'Document Modes': ['single_page', 'multi_page', 'book_mode', 'id_card', 'batch_scan', 'left_page', 'right_page'],
+  'Templates': ['select_document_type', 'select_document_template', 'template', 'general_document', 'receipt', 'business_card', 'whiteboard', 'passport', 'form'],
+  'Editing': ['crop', 'adjust_crop', 'auto_crop', 'rotate', 'adjust_filter', 'revert', 'revert_to_original', 'reset'],
+  'Filters': ['filters', 'original', 'enhanced', 'grayscale', 'black_white', 'color', 'magic', 'default_filter', 'select_default_filter'],
+  'Adjustments': ['brightness', 'contrast', 'saturation', 'auto_enhance', 'automatically_enhance'],
+  'Pages': ['pages', 'page', 'add_page', 'add_more', 'del_page', 'delete_page', 'move_up', 'move_down', 'add_to_document', 'edit_page_screen'],
+  'Annotations': ['annotate', 'annotations', 'draw', 'text', 'shapes', 'arrow', 'rectangle', 'circle', 'line', 'highlight', 'thickness', 'enter_text', 'clear', 'undo'],
+  'Signature': ['sign', 'signature', 'draw_signature', 'sign_here', 'position_signature', 'signature_hint', 're_sign', 'saved_signatures'],
+  'OCR': ['ocr', 'extract_text', 'extracted_text', 'copy_text', 'text_copied', 'no_text_found', 'ocr_processing', 'ocr_left'],
+  'Export': ['export', 'share', 'export_as_pdf', 'export_as_image', 'export_as_jpeg', 'export_as_png', 'pdf', 'jpeg', 'png', 'high_quality', 'medium_quality', 'low_quality'],
+  'Settings': ['settings', 'all_settings', 'preferences', 'general', 'appearance', 'dark_mode', 'language', 'select_language', 'default_scan_quality', 'select_scan_quality', 'sound_effects', 'haptic_feedback', 'auto_backup', 'clear_cache', 'free_up_storage', 'reset_settings', 'restore_defaults', 'advanced_features_coming'],
+  'Profile': ['profile', 'account', 'plan', 'pro', 'free', 'try_premium_free', 'scans_left', 'monthly_scans_remaining', 'daily_usage', 'help_support', 'privacy_policy', 'terms_of_service', 'version', 'go_back'],
+  'Errors': ['something_went_wrong', 'network_error', 'invalid_credentials', 'email_already_exists', 'password_too_short', 'passwords_dont_match', 'document_saved', 'document_deleted', 'changes_saved', 'cache_cleared', 'settings_reset'],
 };
 
 export default function Localization() {
   const { token } = useAuth();
-  const [languages, setLanguages] = useState([]);
+  const [languages, setLanguages] = useState(['en']);
   const [translations, setTranslations] = useState({});
+  const [defaultTranslations, setDefaultTranslations] = useState({});
   const [selectedLang, setSelectedLang] = useState('en');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,6 +72,8 @@ export default function Localization() {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [showAddKey, setShowAddKey] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
     fetchLocalization();
@@ -76,23 +81,46 @@ export default function Localization() {
 
   const fetchLocalization = async () => {
     try {
+      // First, fetch the default translations from the public endpoint
+      const defaultRes = await fetch(`${API_URL}/translations`);
+      let defaultData = {};
+      
+      if (defaultRes.ok) {
+        const data = await defaultRes.json();
+        defaultData = data.translations || {};
+        setDefaultTranslations(defaultData);
+      }
+
+      // Then fetch any custom translations from admin endpoint
       const res = await fetch(`${API_URL}/admin/localization`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
         const data = await res.json();
-        setLanguages(data.languages || ['en']);
-        setTranslations(data.translations || { en: DEFAULT_TRANSLATIONS });
+        const customLangs = data.languages || ['en'];
+        const customTranslations = data.translations || {};
+        
+        // Merge default with custom (custom overrides defaults)
+        const mergedTranslations = { ...defaultData };
+        Object.keys(customTranslations).forEach(lang => {
+          mergedTranslations[lang] = {
+            ...(defaultData[lang] || defaultData.en || {}),
+            ...customTranslations[lang]
+          };
+        });
+        
+        setLanguages(customLangs.length > 0 ? customLangs : ['en']);
+        setTranslations(mergedTranslations);
       } else {
-        // Initialize with defaults
+        // Use defaults
         setLanguages(['en']);
-        setTranslations({ en: DEFAULT_TRANSLATIONS });
+        setTranslations(defaultData);
       }
     } catch (e) {
       console.error('Failed to fetch localization:', e);
       setLanguages(['en']);
-      setTranslations({ en: DEFAULT_TRANSLATIONS });
+      setTranslations({});
     } finally {
       setLoading(false);
     }
@@ -127,14 +155,14 @@ export default function Localization() {
       // Copy English translations as base
       setTranslations({
         ...translations,
-        [langCode]: { ...translations.en },
+        [langCode]: { ...(translations.en || defaultTranslations.en || {}) },
       });
     }
     setShowAddLang(false);
   };
 
   const removeLanguage = (langCode) => {
-    if (langCode === 'en') return; // Can't remove English
+    if (langCode === 'en') return;
     setLanguages(languages.filter(l => l !== langCode));
     const newTranslations = { ...translations };
     delete newTranslations[langCode];
@@ -155,7 +183,6 @@ export default function Localization() {
 
   const addTranslationKey = () => {
     if (!newKey.trim()) return;
-    // Add to all languages
     const updated = { ...translations };
     languages.forEach(lang => {
       updated[lang] = {
@@ -195,8 +222,23 @@ export default function Localization() {
     );
   }
 
-  const currentTranslations = translations[selectedLang] || {};
-  const englishTranslations = translations.en || {};
+  const currentTranslations = translations[selectedLang] || translations.en || defaultTranslations.en || {};
+  const englishTranslations = translations.en || defaultTranslations.en || {};
+  
+  // Get all keys and filter
+  const allKeys = Object.keys(englishTranslations).sort();
+  const filteredKeys = allKeys.filter(key => {
+    const matchesSearch = searchQuery === '' || 
+      key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (englishTranslations[key] || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (selectedCategory === 'All') return matchesSearch;
+    
+    const categoryKeys = KEY_CATEGORIES[selectedCategory] || [];
+    return matchesSearch && categoryKeys.includes(key);
+  });
+
+  const categories = ['All', ...Object.keys(KEY_CATEGORIES)];
 
   return (
     <div className="space-y-6">
@@ -204,7 +246,7 @@ export default function Localization() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Localization</h1>
-          <p className="text-gray-500 mt-1">Manage app translations</p>
+          <p className="text-gray-500 mt-1">Manage app translations ({allKeys.length} keys)</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -227,11 +269,13 @@ export default function Localization() {
 
       {/* Languages */}
       <div className="stat-card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Languages</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Languages ({languages.length})</h3>
         <div className="flex flex-wrap gap-2">
           {languages.map((langCode) => {
             const lang = SUPPORTED_LANGUAGES.find(l => l.code === langCode) || { code: langCode, name: langCode, flag: '🌐' };
-            const isComplete = Object.keys(englishTranslations).every(key => currentTranslations[key]);
+            const translatedCount = Object.keys(currentTranslations).filter(k => currentTranslations[k]).length;
+            const totalCount = Object.keys(englishTranslations).length;
+            const percentage = totalCount > 0 ? Math.round((translatedCount / totalCount) * 100) : 0;
             
             return (
               <div
@@ -244,7 +288,10 @@ export default function Localization() {
                 onClick={() => setSelectedLang(langCode)}
               >
                 <span className="text-xl">{lang.flag}</span>
-                <span className="font-medium">{lang.name}</span>
+                <div>
+                  <span className="font-medium">{lang.name}</span>
+                  <span className="text-xs text-gray-500 ml-2">({percentage}%)</span>
+                </div>
                 {langCode !== 'en' && (
                   <button
                     onClick={(e) => { e.stopPropagation(); removeLanguage(langCode); }}
@@ -266,11 +313,39 @@ export default function Localization() {
         </div>
       </div>
 
+      {/* Search and Filter */}
+      <div className="stat-card">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search keys or values..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Translations Editor */}
       <div className="stat-card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
             Translations - {SUPPORTED_LANGUAGES.find(l => l.code === selectedLang)?.name || selectedLang}
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              (Showing {filteredKeys.length} of {allKeys.length} keys)
+            </span>
           </h3>
           <button
             onClick={() => setShowAddKey(true)}
@@ -281,21 +356,21 @@ export default function Localization() {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 bg-white">
               <tr className="border-b border-gray-200">
-                <th className="table-header py-3 px-4 w-1/3">Key</th>
-                <th className="table-header py-3 px-4 w-1/3">English (Reference)</th>
-                <th className="table-header py-3 px-4 w-1/3">Translation</th>
-                <th className="table-header py-3 px-4 w-20">Actions</th>
+                <th className="table-header py-3 px-4 w-1/4 text-left">Key</th>
+                <th className="table-header py-3 px-4 w-1/3 text-left">English (Reference)</th>
+                <th className="table-header py-3 px-4 w-1/3 text-left">Translation</th>
+                <th className="table-header py-3 px-4 w-16 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {Object.keys(englishTranslations).sort().map((key) => (
+              {filteredKeys.map((key) => (
                 <tr key={key} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-3 px-4 font-mono text-sm text-gray-600">{key}</td>
-                  <td className="py-3 px-4 text-gray-500">{englishTranslations[key]}</td>
+                  <td className="py-3 px-4 text-gray-500 text-sm">{englishTranslations[key]}</td>
                   <td className="py-3 px-4">
                     {editingKey === key ? (
                       <div className="flex gap-2">
@@ -303,7 +378,7 @@ export default function Localization() {
                           type="text"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
                           autoFocus
                         />
                         <button
@@ -321,7 +396,7 @@ export default function Localization() {
                       </div>
                     ) : (
                       <div
-                        className={`cursor-pointer hover:bg-gray-100 px-2 py-1 rounded ${
+                        className={`cursor-pointer hover:bg-gray-100 px-2 py-1 rounded text-sm ${
                           !currentTranslations[key] ? 'text-red-400 italic' : ''
                         }`}
                         onClick={() => {
@@ -333,7 +408,7 @@ export default function Localization() {
                       </div>
                     )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     <button
                       onClick={() => deleteTranslationKey(key)}
                       className="text-gray-400 hover:text-red-500"
@@ -387,7 +462,7 @@ export default function Localization() {
                   type="text"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="e.g., button.submit"
+                  placeholder="e.g., button_submit"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 />
               </div>
