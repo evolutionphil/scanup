@@ -1988,21 +1988,41 @@ export default function ScannerScreen() {
             </Animated.View>
           )}
 
-          {/* Auto-detect status indicator */}
-          {autoCapture && (
+          {/* Live Edge Detection Status Indicator */}
+          {liveEdgeDetection && (
             <View style={styles.autoDetectStatus}>
-              <View style={[styles.autoDetectIndicator, { backgroundColor: edgesDetected ? '#10B981' : '#F59E0B' }]}>
+              <View style={[styles.autoDetectIndicator, { backgroundColor: liveDetectedEdges ? '#10B981' : '#6366F1' }]}>
                 <Ionicons 
-                  name={edgesDetected ? 'checkmark-circle' : 'scan-outline'} 
+                  name={liveDetectedEdges ? 'scan' : 'scan-outline'} 
                   size={16} 
                   color="#FFF" 
                 />
                 <Text style={styles.autoDetectText}>
-                  {edgesDetected 
-                    ? `Document found (${autoDetectStable}/3)` 
-                    : 'Scanning for document...'}
+                  {liveDetectedEdges 
+                    ? (autoCapture ? `Auto-capture ${autoDetectStable}/3` : 'Document detected!')
+                    : 'Detecting edges...'}
                 </Text>
               </View>
+              {/* Toggle live detection */}
+              <TouchableOpacity 
+                style={[styles.liveToggleBtn, { backgroundColor: liveEdgeDetection ? '#10B981' : '#64748B' }]}
+                onPress={toggleLiveEdgeDetection}
+              >
+                <Ionicons name={liveEdgeDetection ? 'eye' : 'eye-off'} size={14} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {/* Show toggle if live detection is OFF */}
+          {!liveEdgeDetection && (
+            <View style={styles.autoDetectStatus}>
+              <TouchableOpacity 
+                style={[styles.autoDetectIndicator, { backgroundColor: '#64748B' }]}
+                onPress={toggleLiveEdgeDetection}
+              >
+                <Ionicons name="eye-off" size={16} color="#FFF" />
+                <Text style={styles.autoDetectText}>Tap to enable edge detection</Text>
+              </TouchableOpacity>
             </View>
           )}
 
