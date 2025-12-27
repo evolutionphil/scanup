@@ -2211,7 +2211,10 @@ const styles = StyleSheet.create({
     bottom: 180,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
     zIndex: 20,
   },
   autoDetectIndicator: {
@@ -2226,6 +2229,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  liveToggleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   viewPagesBtn: { 
     flexDirection: 'row', 
