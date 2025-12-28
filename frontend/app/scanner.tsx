@@ -23,69 +23,6 @@ import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
-// =============================================================================
-// CONDITIONAL IMPORTS FOR NATIVE MODULES
-// =============================================================================
-
-// VisionCamera imports
-let Camera: any = null;
-let useCameraDevice: any = null;
-let useCameraPermission: any = null;
-let useSkiaFrameProcessor: any = null;
-
-// Skia imports  
-let Skia: any = null;
-let PaintStyle: any = null;
-
-// OpenCV imports
-let OpenCV: any = null;
-
-// Resize plugin
-let useResizePlugin: any = null;
-
-// Audio
-let Audio: any = null;
-
-// Only import native modules on native platforms
-if (Platform.OS !== 'web') {
-  try {
-    const VisionCamera = require('react-native-vision-camera');
-    Camera = VisionCamera.Camera;
-    useCameraDevice = VisionCamera.useCameraDevice;
-    useCameraPermission = VisionCamera.useCameraPermission;
-    useSkiaFrameProcessor = VisionCamera.useSkiaFrameProcessor;
-  } catch (e) {
-    console.log('[Scanner] VisionCamera not available:', e);
-  }
-
-  try {
-    const SkiaModule = require('@shopify/react-native-skia');
-    Skia = SkiaModule.Skia;
-    PaintStyle = SkiaModule.PaintStyle;
-  } catch (e) {
-    console.log('[Scanner] Skia not available:', e);
-  }
-
-  try {
-    OpenCV = require('react-native-fast-opencv');
-  } catch (e) {
-    console.log('[Scanner] OpenCV not available:', e);
-  }
-
-  try {
-    const ResizePlugin = require('vision-camera-resize-plugin');
-    useResizePlugin = ResizePlugin.useResizePlugin;
-  } catch (e) {
-    console.log('[Scanner] Resize plugin not available:', e);
-  }
-
-  try {
-    Audio = require('expo-av').Audio;
-  } catch (e) {
-    console.log('[Scanner] expo-av not available:', e);
-  }
-}
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // =============================================================================
@@ -113,12 +50,6 @@ interface Point {
   y: number;
 }
 
-interface DetectionResult {
-  corners: Point[];
-  confidence: number;
-  isStable: boolean;
-}
-
 // =============================================================================
 // DOCUMENT TYPES CONFIGURATION
 // =============================================================================
@@ -133,90 +64,15 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 // =============================================================================
-// CORNER STABILIZATION - Smooths detected corners over multiple frames
-// =============================================================================
-
-const STABILIZATION_FRAMES = 5;
-const STABILITY_THRESHOLD = 0.02;
-
-class CornerStabilizer {
-  private history: Point[][] = [];
-  private stableCorners: Point[] | null = null;
-  private stableCount = 0;
-  
-  addFrame(corners: Point[]): Point[] | null {
-    if (corners.length !== 4) return this.stableCorners;
-    
-    this.history.push([...corners]);
-    if (this.history.length > STABILIZATION_FRAMES) {
-      this.history.shift();
-    }
-    
-    if (this.history.length < 3) return null;
-    
-    // Average corners over history
-    const avgCorners: Point[] = [];
-    for (let i = 0; i < 4; i++) {
-      let sumX = 0, sumY = 0;
-      for (const frame of this.history) {
-        sumX += frame[i].x;
-        sumY += frame[i].y;
-      }
-      avgCorners.push({
-        x: sumX / this.history.length,
-        y: sumY / this.history.length,
-      });
-    }
-    
-    // Check if stable
-    if (this.stableCorners) {
-      let maxMove = 0;
-      for (let i = 0; i < 4; i++) {
-        const dx = Math.abs(avgCorners[i].x - this.stableCorners[i].x);
-        const dy = Math.abs(avgCorners[i].y - this.stableCorners[i].y);
-        maxMove = Math.max(maxMove, dx, dy);
-      }
-      
-      if (maxMove < STABILITY_THRESHOLD) {
-        this.stableCount++;
-      } else {
-        this.stableCount = 0;
-      }
-    }
-    
-    this.stableCorners = avgCorners;
-    return avgCorners;
-  }
-  
-  isStable(): boolean {
-    return this.stableCount >= STABILIZATION_FRAMES;
-  }
-  
-  reset() {
-    this.history = [];
-    this.stableCorners = null;
-    this.stableCount = 0;
-  }
-}
-
-// Global stabilizer instance for worklet access
-const globalStabilizer = new CornerStabilizer();
-
-// =============================================================================
 // MAIN SCANNER COMPONENT
 // =============================================================================
 
 export default function ScannerScreen() {
   const params = useLocalSearchParams();
   const { theme } = useThemeStore();
-  const { user, isGuest, token } = useAuthStore();
+  const { token } = useAuthStore();
   const { createDocumentLocalFirst, updateDocument, documents } = useDocumentStore();
   const insets = useSafeAreaInsets();
-  
-  // VisionCamera hooks (only available on native)
-  const device = useCameraDevice ? useCameraDevice('back') : null;
-  const cameraPermission = useCameraPermission ? useCameraPermission() : { hasPermission: false, requestPermission: async () => ({ hasPermission: false }) };
-  const resizePlugin = useResizePlugin ? useResizePlugin() : null;
   
   // Scanner state
   const [isCapturing, setIsCapturing] = useState(false);
@@ -226,22 +82,18 @@ export default function ScannerScreen() {
   const [showPreview, setShowPreview] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   
-  // Edge detection state
-  const [detectedCorners, setDetectedCorners] = useState<Point[] | null>(null);
-  const [isDocumentStable, setIsDocumentStable] = useState(false);
-  const stabilizer = useRef(new CornerStabilizer()).current;
+  // Native module availability
+  const [Camera, setCamera] = useState<any>(null);
+  const [device, setDevice] = useState<any>(null);
+  const [hasPermission, setHasPermission] = useState(false);
   
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showGridOverlay, setShowGridOverlay] = useState(false);
-  const [autoCapture, setAutoCapture] = useState(false);
-  const shutterSoundRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
-  const autoCaptureTriggeredRef = useRef(false);
-  
-  // Check if all native features are available
-  const isNativeAvailable = Platform.OS !== 'web' && Camera && device && OpenCV && useSkiaFrameProcessor;
+  const soundRef = useRef<any>(null);
   
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
@@ -268,6 +120,50 @@ export default function ScannerScreen() {
   
   const frameDimensions = getFrameDimensions();
   
+  // =============================================================================
+  // INITIALIZE CAMERA - Safe loading of native modules
+  // =============================================================================
+  
+  useEffect(() => {
+    const initCamera = async () => {
+      if (Platform.OS === 'web') {
+        setCameraError('Camera not available on web');
+        return;
+      }
+      
+      try {
+        // Dynamically import VisionCamera
+        const VisionCamera = require('react-native-vision-camera');
+        
+        // Request permission
+        const permission = await VisionCamera.Camera.requestCameraPermission();
+        if (permission !== 'granted') {
+          setCameraError('Camera permission denied');
+          return;
+        }
+        setHasPermission(true);
+        
+        // Get device
+        const devices = await VisionCamera.Camera.getAvailableCameraDevices();
+        const backCamera = devices.find((d: any) => d.position === 'back');
+        
+        if (!backCamera) {
+          setCameraError('No back camera found');
+          return;
+        }
+        
+        setDevice(backCamera);
+        setCamera(() => VisionCamera.Camera);
+        
+      } catch (error: any) {
+        console.error('[Scanner] Camera init error:', error);
+        setCameraError(`Camera error: ${error.message}`);
+      }
+    };
+    
+    initCamera();
+  }, []);
+  
   // Load settings
   useEffect(() => {
     const loadSettings = async () => {
@@ -277,7 +173,6 @@ export default function ScannerScreen() {
           const settings = JSON.parse(savedSettings);
           setSoundEnabled(settings.soundEffects ?? true);
           setShowGridOverlay(settings.showGrid ?? false);
-          setAutoCapture(settings.autoCapture ?? false);
         }
       } catch (e) {
         console.log('Failed to load settings');
@@ -285,8 +180,8 @@ export default function ScannerScreen() {
     };
     
     const setupAudio = async () => {
-      if (!Audio) return;
       try {
+        const { Audio } = require('expo-av');
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
           staysActiveInBackground: false,
@@ -294,7 +189,7 @@ export default function ScannerScreen() {
         const { sound } = await Audio.Sound.createAsync(
           require('../assets/sounds/shutter.mp3')
         );
-        shutterSoundRef.current = sound;
+        soundRef.current = sound;
       } catch (e) {
         console.log('Could not load shutter sound');
       }
@@ -304,220 +199,40 @@ export default function ScannerScreen() {
     setupAudio();
     
     return () => {
-      if (shutterSoundRef.current) {
-        shutterSoundRef.current.unloadAsync();
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
       }
     };
   }, []);
   
-  // Request camera permission
-  useEffect(() => {
-    if (cameraPermission && !cameraPermission.hasPermission) {
-      cameraPermission.requestPermission();
-    }
-  }, []);
-  
-  // Auto-capture when document is stable
-  useEffect(() => {
-    if (autoCapture && isDocumentStable && cameraReady && !isCapturing && !autoCaptureTriggeredRef.current) {
-      autoCaptureTriggeredRef.current = true;
-      captureImage();
-    }
-  }, [autoCapture, isDocumentStable, cameraReady, isCapturing]);
-  
-  // Reset auto-capture trigger when corners change significantly
-  useEffect(() => {
-    if (!isDocumentStable) {
-      autoCaptureTriggeredRef.current = false;
-    }
-  }, [isDocumentStable]);
-  
-  // Callback to update detection state from frame processor
-  const onDocumentDetected = useCallback((detection: DetectionResult | null) => {
-    if (detection && detection.corners.length === 4) {
-      const stabilizedCorners = stabilizer.addFrame(detection.corners);
-      if (stabilizedCorners) {
-        setDetectedCorners(stabilizedCorners);
-        setIsDocumentStable(stabilizer.isStable());
-      }
-    } else {
-      setDetectedCorners(null);
-      setIsDocumentStable(false);
-    }
-  }, [stabilizer]);
-  
   // Play shutter sound
   const playShutterSound = async () => {
-    if (soundEnabled && shutterSoundRef.current) {
+    if (soundEnabled && soundRef.current) {
       try {
-        await shutterSoundRef.current.replayAsync();
+        await soundRef.current.replayAsync();
       } catch (e) {
-        console.log('Could not play shutter sound');
+        // Ignore sound errors
       }
     }
   };
   
   // =============================================================================
-  // FRAME PROCESSOR - Real-time on-device edge detection
-  // =============================================================================
-  
-  // Create Skia paint for overlay
-  const paint = Skia ? (() => {
-    const p = Skia.Paint();
-    p.setStyle(PaintStyle?.Stroke || 1);
-    p.setStrokeWidth(4);
-    p.setColor(Skia.Color('#3B82F6'));
-    return p;
-  })() : null;
-
-  const stablePaint = Skia ? (() => {
-    const p = Skia.Paint();
-    p.setStyle(PaintStyle?.Stroke || 1);
-    p.setStrokeWidth(4);
-    p.setColor(Skia.Color('#10B981'));
-    return p;
-  })() : null;
-
-  const fillPaint = Skia ? (() => {
-    const p = Skia.Paint();
-    p.setStyle(PaintStyle?.Fill || 0);
-    p.setColor(Skia.Color('rgba(59, 130, 246, 0.2)'));
-    return p;
-  })() : null;
-
-  // Frame processor with Skia for on-device edge detection
-  const frameProcessor = (useSkiaFrameProcessor && OpenCV && resizePlugin && Skia) 
-    ? useSkiaFrameProcessor((frame: any) => {
-        'worklet';
-        
-        try {
-          // Resize frame for faster processing
-          const resized = resizePlugin.resize(frame, {
-            scale: { width: 640, height: 480 },
-            pixelFormat: 'bgr',
-            dataType: 'uint8',
-          });
-          
-          if (!resized) return;
-          
-          const width = resized.width;
-          const height = resized.height;
-          
-          // Convert to grayscale
-          const gray = OpenCV.cvtColor(resized, OpenCV.COLOR_BGR2GRAY);
-          
-          // Apply Gaussian blur
-          const blurred = OpenCV.GaussianBlur(gray, [5, 5], 0);
-          
-          // Edge detection with Canny
-          const edges = OpenCV.Canny(blurred, 50, 150);
-          
-          // Dilate to connect broken edges
-          const dilated = OpenCV.dilate(edges, [3, 3]);
-          
-          // Find contours
-          const contours = OpenCV.findContours(
-            dilated, 
-            OpenCV.RETR_EXTERNAL, 
-            OpenCV.CHAIN_APPROX_SIMPLE
-          );
-          
-          // Find largest quadrilateral
-          let bestCorners: Point[] | null = null;
-          let maxArea = width * height * 0.1; // Minimum 10% of frame
-          
-          const numContours = contours.size ? contours.size() : 0;
-          
-          for (let i = 0; i < numContours; i++) {
-            const contour = contours.get(i);
-            const area = OpenCV.contourArea(contour);
-            
-            if (area > maxArea) {
-              const peri = OpenCV.arcLength(contour, true);
-              const approx = OpenCV.approxPolyDP(contour, 0.02 * peri, true);
-              
-              const numPoints = approx.size ? approx.size() : (approx.length || 0);
-              
-              if (numPoints === 4) {
-                const isConvex = OpenCV.isContourConvex(approx);
-                if (isConvex) {
-                  maxArea = area;
-                  
-                  // Extract corners and normalize to screen coordinates
-                  const corners: Point[] = [];
-                  for (let j = 0; j < 4; j++) {
-                    const pt = approx.get ? approx.get(j) : approx[j];
-                    corners.push({
-                      x: (pt.x / width) * frame.width,
-                      y: (pt.y / height) * frame.height,
-                    });
-                  }
-                  
-                  // Sort corners: top-left, top-right, bottom-right, bottom-left
-                  corners.sort((a, b) => a.y - b.y);
-                  const top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
-                  const bottom = corners.slice(2, 4).sort((a, b) => b.x - a.x);
-                  bestCorners = [top[0], top[1], bottom[0], bottom[1]];
-                }
-              }
-            }
-          }
-          
-          // Draw overlay on Skia canvas
-          if (bestCorners && bestCorners.length === 4) {
-            const canvas = frame.render();
-            
-            // Create path for document outline
-            const path = Skia.Path.Make();
-            path.moveTo(bestCorners[0].x, bestCorners[0].y);
-            path.lineTo(bestCorners[1].x, bestCorners[1].y);
-            path.lineTo(bestCorners[2].x, bestCorners[2].y);
-            path.lineTo(bestCorners[3].x, bestCorners[3].y);
-            path.close();
-            
-            // Draw fill
-            if (fillPaint) {
-              canvas.drawPath(path, fillPaint);
-            }
-            
-            // Draw stroke
-            const strokePaint = isDocumentStable ? stablePaint : paint;
-            if (strokePaint) {
-              canvas.drawPath(path, strokePaint);
-            }
-            
-            // Draw corner circles
-            const circlePaint = Skia.Paint();
-            circlePaint.setStyle(PaintStyle?.Fill || 0);
-            circlePaint.setColor(isDocumentStable ? Skia.Color('#10B981') : Skia.Color('#3B82F6'));
-            
-            for (const corner of bestCorners) {
-              canvas.drawCircle(corner.x, corner.y, 12, circlePaint);
-            }
-          }
-          
-          // Update detection state (via runOnJS)
-          // Note: In actual implementation, use runOnJS from worklets-core
-          
-        } catch (e) {
-          // Silent error handling in worklet
-        }
-      }, [paint, stablePaint, fillPaint, isDocumentStable])
-    : null;
-  
-  // =============================================================================
-  // CAPTURE IMAGE
+  // CAPTURE IMAGE - VisionCamera
   // =============================================================================
   
   const captureImage = async () => {
-    if (isCapturing || !cameraRef.current) return;
+    if (isCapturing) return;
+    
+    if (!cameraRef.current) {
+      Alert.alert('Error', 'Camera not ready');
+      return;
+    }
     
     setIsCapturing(true);
     
     try {
       await playShutterSound();
       
-      // Take photo with VisionCamera
       const photo = await cameraRef.current.takePhoto({
         flash: flashOn ? 'on' : 'off',
         qualityPrioritization: 'quality',
@@ -542,36 +257,27 @@ export default function ScannerScreen() {
         
         setCapturedImages(prev => [...prev, newImage]);
         setShowPreview(true);
-        stabilizer.reset();
-        setDetectedCorners(null);
-        setIsDocumentStable(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Scanner] Capture error:', error);
-      Alert.alert('Error', 'Failed to capture image. Please try again.');
+      Alert.alert('Capture Error', error.message || 'Failed to capture image');
     } finally {
       setIsCapturing(false);
     }
   };
   
   // =============================================================================
-  // FALLBACK: Use document scanner plugin
+  // CAPTURE WITH DOCUMENT SCANNER PLUGIN
   // =============================================================================
   
   const captureWithPlugin = async () => {
+    if (isCapturing) return;
     setIsCapturing(true);
     
     try {
       await playShutterSound();
       
-      let DocumentScanner: any;
-      try {
-        DocumentScanner = require('react-native-document-scanner-plugin').default;
-      } catch (e) {
-        Alert.alert('Error', 'Scanner not available. Please build the app to use native scanner.');
-        setIsCapturing(false);
-        return;
-      }
+      const DocumentScanner = require('react-native-document-scanner-plugin').default;
       
       const result = await DocumentScanner.scanDocument({
         maxNumDocuments: 10,
@@ -599,6 +305,7 @@ export default function ScannerScreen() {
     } catch (error: any) {
       if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
         console.error('[Scanner] Plugin error:', error);
+        Alert.alert('Scanner Error', error.message || 'Failed to scan');
       }
     } finally {
       setIsCapturing(false);
@@ -629,9 +336,9 @@ export default function ScannerScreen() {
         setCapturedImages(prev => [...prev, ...newImages]);
         setShowPreview(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Scanner] Gallery error:', error);
-      Alert.alert('Error', 'Failed to select images.');
+      Alert.alert('Error', 'Failed to select images');
     }
   };
   
@@ -707,165 +414,30 @@ export default function ScannerScreen() {
       }
     } catch (error: any) {
       console.error('[Scanner] Save error:', error);
-      Alert.alert('Save Error', `Failed to save: ${error.message}`);
+      Alert.alert('Save Error', error.message || 'Failed to save document');
     } finally {
       setIsSaving(false);
     }
   };
   
   // =============================================================================
-  // RENDER REACT NATIVE SVG OVERLAY (Fallback when Skia frame processor not available)
+  // GO BACK HANDLER
   // =============================================================================
   
-  const renderEdgeOverlay = () => {
-    if (!detectedCorners || detectedCorners.length !== 4) return null;
-    
-    const points = detectedCorners.map(c => 
-      `${c.x},${c.y}`
-    ).join(' ');
-    
-    const color = isDocumentStable ? '#10B981' : '#3B82F6';
-    
-    return (
-      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Polygon
-          points={points}
-          fill={`${color}20`}
-          stroke={color}
-          strokeWidth={3}
-        />
-        {detectedCorners.map((corner, index) => (
-          <Circle
-            key={index}
-            cx={corner.x}
-            cy={corner.y}
-            r={12}
-            fill={color}
-            stroke="#FFF"
-            strokeWidth={2}
-          />
-        ))}
-        {detectedCorners.map((corner, index) => {
-          const nextIndex = (index + 1) % 4;
-          return (
-            <Line
-              key={`line-${index}`}
-              x1={corner.x}
-              y1={corner.y}
-              x2={detectedCorners[nextIndex].x}
-              y2={detectedCorners[nextIndex].y}
-              stroke={color}
-              strokeWidth={3}
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </Svg>
-    );
+  const handleGoBack = () => {
+    if (showPreview && capturedImages.length > 0) {
+      Alert.alert(
+        'Discard Scan?',
+        'You have unsaved images. Are you sure you want to go back?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+        ]
+      );
+    } else {
+      router.back();
+    }
   };
-  
-  // =============================================================================
-  // FALLBACK UI - When native features aren't available
-  // =============================================================================
-  
-  if (!isNativeAvailable) {
-    return (
-      <View style={[styles.container, { backgroundColor: '#000' }]}>
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
-            <Ionicons name={currentType.icon} size={16} color={currentType.color} />
-            <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
-          </View>
-          <View style={{ width: 44 }} />
-        </View>
-        
-        <View style={styles.frameContainer}>
-          <View style={styles.nativeUnavailable}>
-            <Ionicons name="scan" size={64} color="#3B82F6" />
-            <Text style={styles.nativeTitle}>Document Scanner</Text>
-            <Text style={styles.nativeSubtitle}>
-              Tap the button below to start scanning{'\n'}with real-time edge detection
-            </Text>
-            <Text style={styles.nativeNote}>
-              📱 Build the app to enable on-device{'\n'}real-time document detection
-            </Text>
-          </View>
-        </View>
-        
-        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.typeSelector}
-          >
-            {DOCUMENT_TYPES.map((type, index) => (
-              <TouchableOpacity
-                key={type.type}
-                style={[
-                  styles.typeBtn,
-                  selectedTypeIndex === index && {
-                    backgroundColor: type.color + '30',
-                    borderColor: type.color,
-                    borderWidth: 2,
-                  }
-                ]}
-                onPress={() => setSelectedTypeIndex(index)}
-              >
-                <Ionicons 
-                  name={type.icon} 
-                  size={22} 
-                  color={selectedTypeIndex === index ? type.color : '#94A3B8'} 
-                />
-                <Text style={[styles.typeLabel, { color: selectedTypeIndex === index ? type.color : '#94A3B8' }]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          <View style={styles.mainButtons}>
-            <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
-              <View style={styles.sideBtnInner}>
-                <Ionicons name="images" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.sideBtnText}>Gallery</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
-              onPress={captureWithPlugin}
-              disabled={isCapturing}
-            >
-              {isCapturing ? (
-                <ActivityIndicator size="large" color="#3B82F6" />
-              ) : (
-                <View style={styles.captureBtnInner} />
-              )}
-            </TouchableOpacity>
-            
-            {capturedImages.length > 0 ? (
-              <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
-                <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
-                  <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
-                </View>
-                <Text style={styles.sideBtnText}>Review</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.sideBtn}>
-                <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
-                  <Ionicons name="documents-outline" size={24} color="#FFF" />
-                </View>
-                <Text style={styles.sideBtnText}>Pages</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-    );
-  }
   
   // =============================================================================
   // PREVIEW SCREEN
@@ -931,33 +503,53 @@ export default function ScannerScreen() {
   }
   
   // =============================================================================
-  // NATIVE CAMERA VIEW WITH ON-DEVICE EDGE DETECTION
+  // CAMERA VIEW
   // =============================================================================
   
-  return (
-    <View style={[styles.container, { backgroundColor: '#000' }]}>
-      {device && Camera && (
+  const renderCameraView = () => {
+    // If camera is available, use VisionCamera
+    if (Camera && device && hasPermission && !cameraError) {
+      return (
         <Camera
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           device={device}
-          isActive={!showPreview}
+          isActive={true}
           photo={true}
           torch={flashOn ? 'on' : 'off'}
-          pixelFormat="yuv"
-          frameProcessor={frameProcessor}
-          frameProcessorFps={5}
           onInitialized={() => setCameraReady(true)}
-          onError={(error: any) => console.log('[Camera] Error:', error)}
+          onError={(error: any) => {
+            console.error('[Camera] Error:', error);
+            setCameraError(error.message || 'Camera error');
+          }}
         />
-      )}
-      
-      {/* Edge Detection Overlay (React Native SVG fallback) */}
-      {!frameProcessor && renderEdgeOverlay()}
+      );
+    }
+    
+    // Fallback: Show placeholder with scan button
+    return (
+      <View style={styles.cameraPlaceholder}>
+        <Ionicons name="camera" size={80} color="#3B82F6" />
+        <Text style={styles.placeholderTitle}>Document Scanner</Text>
+        <Text style={styles.placeholderText}>
+          {cameraError || 'Tap the button below to scan'}
+        </Text>
+      </View>
+    );
+  };
+  
+  // =============================================================================
+  // MAIN RENDER
+  // =============================================================================
+  
+  return (
+    <View style={[styles.container, { backgroundColor: '#000' }]}>
+      {/* Camera View */}
+      {renderCameraView()}
       
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleGoBack}>
           <Ionicons name="close" size={28} color="#FFF" />
         </TouchableOpacity>
         
@@ -966,49 +558,44 @@ export default function ScannerScreen() {
           <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
         </View>
         
-        <TouchableOpacity style={styles.iconBtn} onPress={() => setFlashOn(!flashOn)}>
-          <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={24} color="#FFF" />
+        <TouchableOpacity 
+          style={styles.iconBtn} 
+          onPress={() => setFlashOn(!flashOn)}
+          disabled={!Camera || !device}
+        >
+          <Ionicons 
+            name={flashOn ? 'flash' : 'flash-off'} 
+            size={24} 
+            color={Camera && device ? '#FFF' : '#666'} 
+          />
         </TouchableOpacity>
       </View>
       
       {/* Document Frame Guide */}
-      {!detectedCorners && (
-        <View style={styles.frameContainer}>
-          <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-            {showGridOverlay && (
-              <View style={styles.gridOverlay}>
-                <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
-                <View style={[styles.gridLine, styles.gridHorizontal, { top: '66%' }]} />
-                <View style={[styles.gridLine, styles.gridVertical, { left: '33%' }]} />
-                <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
-              </View>
-            )}
-            <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
-            <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
-            <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
-            <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
-          </View>
-          
-          <Text style={[styles.guideText, { color: currentType.color }]}>
-            {currentType.guide}
-          </Text>
+      <View style={styles.frameContainer}>
+        <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
+          {showGridOverlay && (
+            <View style={styles.gridOverlay}>
+              <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
+              <View style={[styles.gridLine, styles.gridHorizontal, { top: '66%' }]} />
+              <View style={[styles.gridLine, styles.gridVertical, { left: '33%' }]} />
+              <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
+            </View>
+          )}
+          <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
+          <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
+          <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
+          <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
         </View>
-      )}
-      
-      {/* Detection Status */}
-      {detectedCorners && (
-        <View style={styles.detectionStatus}>
-          <View style={[styles.statusBadge, { backgroundColor: isDocumentStable ? '#10B981' : '#3B82F6' }]}>
-            <Ionicons name={isDocumentStable ? 'checkmark-circle' : 'scan-outline'} size={16} color="#FFF" />
-            <Text style={styles.statusText}>
-              {isDocumentStable ? (autoCapture ? 'Capturing...' : 'Ready to capture!') : 'Hold steady...'}
-            </Text>
-          </View>
-        </View>
-      )}
+        
+        <Text style={[styles.guideText, { color: currentType.color }]}>
+          {currentType.guide}
+        </Text>
+      </View>
       
       {/* Bottom Controls */}
       <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
+        {/* Document Type Selector */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -1039,7 +626,9 @@ export default function ScannerScreen() {
           ))}
         </ScrollView>
         
+        {/* Main Buttons */}
         <View style={styles.mainButtons}>
+          {/* Gallery Button */}
           <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
             <View style={styles.sideBtnInner}>
               <Ionicons name="images" size={24} color="#FFF" />
@@ -1047,25 +636,20 @@ export default function ScannerScreen() {
             <Text style={styles.sideBtnText}>Gallery</Text>
           </TouchableOpacity>
           
+          {/* Capture Button */}
           <TouchableOpacity 
-            style={[
-              styles.captureBtn, 
-              isCapturing && styles.captureBtnDisabled,
-              isDocumentStable && styles.captureBtnReady
-            ]} 
-            onPress={captureImage}
+            style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
+            onPress={Camera && device && cameraReady ? captureImage : captureWithPlugin}
             disabled={isCapturing}
           >
             {isCapturing ? (
               <ActivityIndicator size="large" color="#3B82F6" />
             ) : (
-              <View style={[
-                styles.captureBtnInner,
-                isDocumentStable && { backgroundColor: '#10B981', borderColor: '#10B981' }
-              ]} />
+              <View style={styles.captureBtnInner} />
             )}
           </TouchableOpacity>
           
+          {/* Pages/Review Button */}
           {capturedImages.length > 0 ? (
             <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
               <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
@@ -1094,6 +678,27 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  
+  // Camera placeholder
+  cameraPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111',
+  },
+  placeholderTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+    marginTop: 16,
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   
   // Top Bar
@@ -1167,57 +772,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  // Native unavailable
-  nativeUnavailable: {
-    alignItems: 'center',
-    padding: 32,
-  },
-  nativeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFF',
-    marginTop: 16,
-  },
-  nativeSubtitle: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 22,
-  },
-  nativeNote: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 18,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 12,
-    borderRadius: 8,
-  },
-  
-  // Detection status
-  detectionStatus: {
-    position: 'absolute',
-    top: 120,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 8,
-  },
-  statusText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  
   // Bottom Controls
   bottomControls: {
     position: 'absolute',
@@ -1278,9 +832,6 @@ const styles = StyleSheet.create({
   },
   captureBtnDisabled: {
     opacity: 0.5,
-  },
-  captureBtnReady: {
-    borderColor: '#10B981',
   },
   captureBtnInner: {
     width: 60,
