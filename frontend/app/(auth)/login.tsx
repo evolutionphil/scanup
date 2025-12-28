@@ -53,9 +53,10 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
+      // Create the redirect URL based on platform
       const redirectUrl = Platform.OS === 'web'
         ? `${window.location.origin}/`
-        : Linking.createURL('/');
+        : Linking.createURL('auth-callback');
       
       console.log('Google login redirect URL:', redirectUrl);
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
@@ -65,16 +66,37 @@ export default function LoginScreen() {
       console.log('WebBrowser result:', JSON.stringify(result, null, 2));
       
       if (result.type === 'success' && result.url) {
-        // Parse session_id from URL
+        // Parse session_id from URL - check multiple possible formats
         let sessionId = '';
         const url = result.url;
         console.log('Return URL:', url);
         
-        // Check hash fragment
-        if (url.includes('#session_id=')) {
-          sessionId = url.split('#session_id=')[1]?.split('&')[0] || '';
-        } else if (url.includes('?session_id=')) {
-          sessionId = url.split('?session_id=')[1]?.split('&')[0] || '';
+        // Try different URL patterns for session_id
+        const patterns = [
+          /[#?&]session_id=([^&]+)/,
+          /session_id=([^&\s]+)/,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match && match[1]) {
+            sessionId = match[1];
+            break;
+          }
+        }
+        
+        // Also try URL parsing
+        if (!sessionId) {
+          try {
+            const parsedUrl = new URL(url);
+            sessionId = parsedUrl.searchParams.get('session_id') || '';
+            if (!sessionId && parsedUrl.hash) {
+              const hashParams = new URLSearchParams(parsedUrl.hash.slice(1));
+              sessionId = hashParams.get('session_id') || '';
+            }
+          } catch (e) {
+            console.log('URL parsing error:', e);
+          }
         }
         
         console.log('Parsed session_id:', sessionId ? 'found' : 'not found');
@@ -83,17 +105,19 @@ export default function LoginScreen() {
           await googleLogin(sessionId);
           router.replace('/(tabs)');
         } else {
+          console.error('Session ID not found in URL:', url);
           Alert.alert('Error', 'Failed to get session from Google. Please try again.');
         }
       } else if (result.type === 'dismiss') {
         console.log('User dismissed the login');
+      } else if (result.type === 'cancel') {
+        console.log('User cancelled the login');
       } else {
         console.log('Auth result type:', result.type);
-        Alert.alert('Login Cancelled', 'Please try signing in again');
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      Alert.alert('Error', 'Google sign-in failed');
+      Alert.alert('Error', error.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
