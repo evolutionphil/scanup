@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,16 +17,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Polygon, Circle, Line } from 'react-native-svg';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // =============================================================================
-// TYPES & INTERFACES
+// TYPES
 // =============================================================================
 
 interface CapturedImage {
@@ -34,6 +33,7 @@ interface CapturedImage {
   base64: string;
   width: number;
   height: number;
+  filter: string;
 }
 
 interface DocumentType {
@@ -41,26 +41,24 @@ interface DocumentType {
   label: string;
   icon: any;
   color: string;
-  aspectRatio: number;
-  guide: string;
-}
-
-interface Point {
-  x: number;
-  y: number;
 }
 
 // =============================================================================
-// DOCUMENT TYPES CONFIGURATION
+// FILTERS
 // =============================================================================
+
+const FILTERS = [
+  { id: 'original', label: 'Original', icon: 'image-outline' },
+  { id: 'grayscale', label: 'B&W', icon: 'contrast-outline' },
+  { id: 'enhanced', label: 'Enhanced', icon: 'sunny-outline' },
+  { id: 'document', label: 'Document', icon: 'document-outline' },
+];
 
 const DOCUMENT_TYPES: DocumentType[] = [
-  { type: 'auto', label: 'Auto', icon: 'scan-outline', color: '#3B82F6', aspectRatio: 0, guide: 'Auto-detect document' },
-  { type: 'a4', label: 'A4', icon: 'document-outline', color: '#8B5CF6', aspectRatio: 1.414, guide: 'A4 Document (210×297mm)' },
-  { type: 'letter', label: 'Letter', icon: 'document-text-outline', color: '#10B981', aspectRatio: 1.294, guide: 'US Letter (8.5×11")' },
-  { type: 'id', label: 'ID Card', icon: 'card-outline', color: '#F59E0B', aspectRatio: 0.631, guide: 'ID Card / Credit Card' },
-  { type: 'receipt', label: 'Receipt', icon: 'receipt-outline', color: '#EC4899', aspectRatio: 2.5, guide: 'Receipt / Ticket' },
-  { type: 'book', label: 'Book', icon: 'book-outline', color: '#6366F1', aspectRatio: 0.75, guide: 'Book Pages' },
+  { type: 'auto', label: 'Auto', icon: 'scan-outline', color: '#3B82F6' },
+  { type: 'a4', label: 'A4', icon: 'document-outline', color: '#8B5CF6' },
+  { type: 'id', label: 'ID Card', icon: 'card-outline', color: '#F59E0B' },
+  { type: 'receipt', label: 'Receipt', icon: 'receipt-outline', color: '#EC4899' },
 ];
 
 // =============================================================================
@@ -74,97 +72,23 @@ export default function ScannerScreen() {
   const { createDocumentLocalFirst, updateDocument, documents } = useDocumentStore();
   const insets = useSafeAreaInsets();
   
-  // Scanner state
-  const [isCapturing, setIsCapturing] = useState(false);
+  // State
   const [capturedImages, setCapturedImages] = useState<CapturedImage[]>([]);
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [flashOn, setFlashOn] = useState(false);
-  const [cameraReady, setCameraReady] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  
-  // Native module availability
-  const [Camera, setCamera] = useState<any>(null);
-  const [device, setDevice] = useState<any>(null);
-  const [hasPermission, setHasPermission] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedFilter, setSelectedFilter] = useState('original');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showGridOverlay, setShowGridOverlay] = useState(false);
-  const cameraRef = useRef<any>(null);
   const soundRef = useRef<any>(null);
   
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
   
-  // Calculate frame dimensions
-  const getFrameDimensions = () => {
-    const maxWidth = SCREEN_WIDTH * 0.85;
-    const maxHeight = SCREEN_HEIGHT * 0.5;
-    
-    if (currentType.aspectRatio === 0) {
-      return { width: maxWidth, height: maxWidth * 1.3 };
-    }
-    
-    let width = maxWidth;
-    let height = width * currentType.aspectRatio;
-    
-    if (height > maxHeight) {
-      height = maxHeight;
-      width = height / currentType.aspectRatio;
-    }
-    
-    return { width, height };
-  };
-  
-  const frameDimensions = getFrameDimensions();
-  
-  // =============================================================================
-  // INITIALIZE CAMERA - Safe loading of native modules
-  // =============================================================================
-  
-  useEffect(() => {
-    const initCamera = async () => {
-      if (Platform.OS === 'web') {
-        setCameraError('Camera not available on web');
-        return;
-      }
-      
-      try {
-        // Dynamically import VisionCamera
-        const VisionCamera = require('react-native-vision-camera');
-        
-        // Request permission
-        const permission = await VisionCamera.Camera.requestCameraPermission();
-        if (permission !== 'granted') {
-          setCameraError('Camera permission denied');
-          return;
-        }
-        setHasPermission(true);
-        
-        // Get device
-        const devices = await VisionCamera.Camera.getAvailableCameraDevices();
-        const backCamera = devices.find((d: any) => d.position === 'back');
-        
-        if (!backCamera) {
-          setCameraError('No back camera found');
-          return;
-        }
-        
-        setDevice(backCamera);
-        setCamera(() => VisionCamera.Camera);
-        
-      } catch (error: any) {
-        console.error('[Scanner] Camera init error:', error);
-        setCameraError(`Camera error: ${error.message}`);
-      }
-    };
-    
-    initCamera();
-  }, []);
-  
-  // Load settings
+  // Load settings and audio
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -172,7 +96,6 @@ export default function ScannerScreen() {
         if (savedSettings) {
           const settings = JSON.parse(savedSettings);
           setSoundEnabled(settings.soundEffects ?? true);
-          setShowGridOverlay(settings.showGrid ?? false);
         }
       } catch (e) {
         console.log('Failed to load settings');
@@ -191,7 +114,7 @@ export default function ScannerScreen() {
         );
         soundRef.current = sound;
       } catch (e) {
-        console.log('Could not load shutter sound');
+        // Ignore audio errors
       }
     };
     
@@ -205,83 +128,40 @@ export default function ScannerScreen() {
     };
   }, []);
   
-  // Play shutter sound
-  const playShutterSound = async () => {
-    if (soundEnabled && soundRef.current) {
-      try {
-        await soundRef.current.replayAsync();
-      } catch (e) {
-        // Ignore sound errors
-      }
+  // Auto-open scanner on mount if no images
+  useEffect(() => {
+    if (capturedImages.length === 0) {
+      // Small delay to let the screen render first
+      const timer = setTimeout(() => {
+        openDocumentScanner();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  };
+  }, []);
   
   // =============================================================================
-  // CAPTURE IMAGE - VisionCamera
+  // DOCUMENT SCANNER - Uses react-native-document-scanner-plugin
   // =============================================================================
   
-  const captureImage = async () => {
-    if (isCapturing) return;
-    
-    if (!cameraRef.current) {
-      Alert.alert('Error', 'Camera not ready');
-      return;
-    }
-    
-    setIsCapturing(true);
+  const openDocumentScanner = async () => {
+    if (isScanning) return;
+    setIsScanning(true);
     
     try {
-      await playShutterSound();
-      
-      const photo = await cameraRef.current.takePhoto({
-        flash: flashOn ? 'on' : 'off',
-        qualityPrioritization: 'quality',
-      });
-      
-      if (photo) {
-        const uri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
-        
-        // Get base64
-        const manipResult = await ImageManipulator.manipulateAsync(
-          uri,
-          [],
-          { base64: true, compress: 0.9 }
-        );
-        
-        const newImage: CapturedImage = {
-          uri: uri,
-          base64: manipResult.base64 || '',
-          width: photo.width,
-          height: photo.height,
-        };
-        
-        setCapturedImages(prev => [...prev, newImage]);
-        setShowPreview(true);
+      // Play sound
+      if (soundEnabled && soundRef.current) {
+        try {
+          await soundRef.current.replayAsync();
+        } catch (e) {}
       }
-    } catch (error: any) {
-      console.error('[Scanner] Capture error:', error);
-      Alert.alert('Capture Error', error.message || 'Failed to capture image');
-    } finally {
-      setIsCapturing(false);
-    }
-  };
-  
-  // =============================================================================
-  // CAPTURE WITH DOCUMENT SCANNER PLUGIN
-  // =============================================================================
-  
-  const captureWithPlugin = async () => {
-    if (isCapturing) return;
-    setIsCapturing(true);
-    
-    try {
-      await playShutterSound();
       
+      // Import the document scanner
       const DocumentScanner = require('react-native-document-scanner-plugin').default;
       
+      // Open the scanner with real-time edge detection
       const result = await DocumentScanner.scanDocument({
-        maxNumDocuments: 10,
-        croppedImageQuality: 90,
+        maxNumDocuments: 20,
+        croppedImageQuality: 100,
         responseType: 'base64',
       });
       
@@ -296,19 +176,28 @@ export default function ScannerScreen() {
             base64: base64Data,
             width: 0,
             height: 0,
+            filter: 'original',
           };
         });
         
         setCapturedImages(prev => [...prev, ...newImages]);
-        setShowPreview(true);
+        setSelectedImageIndex(capturedImages.length); // Select first new image
+      } else if (result?.status === 'cancel') {
+        // User cancelled - if no images, go back
+        if (capturedImages.length === 0) {
+          router.back();
+        }
       }
     } catch (error: any) {
       if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
-        console.error('[Scanner] Plugin error:', error);
-        Alert.alert('Scanner Error', error.message || 'Failed to scan');
+        console.error('[Scanner] Error:', error);
+        Alert.alert('Scanner Error', error.message || 'Failed to open scanner');
+      } else if (capturedImages.length === 0) {
+        // User cancelled and no images - go back
+        router.back();
       }
     } finally {
-      setIsCapturing(false);
+      setIsScanning(false);
     }
   };
   
@@ -331,14 +220,54 @@ export default function ScannerScreen() {
           base64: asset.base64 || '',
           width: asset.width || 0,
           height: asset.height || 0,
+          filter: 'original',
         }));
         
         setCapturedImages(prev => [...prev, ...newImages]);
-        setShowPreview(true);
       }
     } catch (error: any) {
       console.error('[Scanner] Gallery error:', error);
       Alert.alert('Error', 'Failed to select images');
+    }
+  };
+  
+  // =============================================================================
+  // APPLY FILTER
+  // =============================================================================
+  
+  const applyFilter = async (filterId: string) => {
+    if (capturedImages.length === 0 || isProcessing) return;
+    
+    setIsProcessing(true);
+    setSelectedFilter(filterId);
+    
+    try {
+      const currentImage = capturedImages[selectedImageIndex];
+      let manipulations: ImageManipulator.Action[] = [];
+      
+      // Note: ImageManipulator has limited filter options
+      // For real filters, you'd need a more advanced library
+      // This is a simplified version
+      
+      if (filterId === 'grayscale') {
+        // Convert to grayscale by desaturating
+        // ImageManipulator doesn't support grayscale directly,
+        // but we can mark it for backend processing
+      }
+      
+      // For now, just update the filter tag
+      // Real filtering would require backend processing or a native module
+      const updatedImages = [...capturedImages];
+      updatedImages[selectedImageIndex] = {
+        ...currentImage,
+        filter: filterId,
+      };
+      setCapturedImages(updatedImages);
+      
+    } catch (error) {
+      console.error('[Scanner] Filter error:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -349,8 +278,8 @@ export default function ScannerScreen() {
   const removeImage = (index: number) => {
     setCapturedImages(prev => {
       const newImages = prev.filter((_, i) => i !== index);
-      if (newImages.length === 0) {
-        setShowPreview(false);
+      if (selectedImageIndex >= newImages.length) {
+        setSelectedImageIndex(Math.max(0, newImages.length - 1));
       }
       return newImages;
     });
@@ -383,6 +312,7 @@ export default function ScannerScreen() {
           original_image_base64: img.base64,
           width: img.width || 0,
           height: img.height || 0,
+          filter: img.filter,
         })),
         document_type: currentType.type,
         tags: [],
@@ -421,253 +351,244 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // GO BACK HANDLER
+  // RENDER - No images yet (scanning mode)
   // =============================================================================
   
-  const handleGoBack = () => {
-    if (showPreview && capturedImages.length > 0) {
-      Alert.alert(
-        'Discard Scan?',
-        'You have unsaved images. Are you sure you want to go back?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-        ]
-      );
-    } else {
-      router.back();
-    }
-  };
-  
-  // =============================================================================
-  // PREVIEW SCREEN
-  // =============================================================================
-  
-  if (showPreview && capturedImages.length > 0) {
+  if (capturedImages.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={[styles.previewHeader, { borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.headerBtn}>
-            <Ionicons name="arrow-back" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.previewTitle, { color: theme.text }]}>
-            {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
-          </Text>
-          <TouchableOpacity onPress={() => {
-            setCapturedImages([]);
-            setShowPreview(false);
-          }} style={styles.headerBtn}>
-            <Ionicons name="trash-outline" size={24} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-        
-        <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewGrid}>
-          {capturedImages.map((img, index) => (
-            <View key={index} style={styles.previewImageContainer}>
-              <Image 
-                source={{ uri: img.uri }} 
-                style={styles.previewImage} 
-                resizeMode="cover" 
-              />
-              <TouchableOpacity 
-                style={styles.removeImageBtn} 
-                onPress={() => removeImage(index)}
-              >
-                <Ionicons name="close-circle" size={28} color="#EF4444" />
-              </TouchableOpacity>
-              <View style={styles.pageNumber}>
-                <Text style={styles.pageNumberText}>{index + 1}</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-        
-        <View style={[styles.previewActions, { borderTopColor: theme.border }]}>
-          <Button 
-            title="Add More" 
-            variant="outline" 
-            onPress={() => setShowPreview(false)}
-            style={{ flex: 1, marginRight: 8 }}
-            icon={<Ionicons name="add" size={20} color={theme.primary} />}
-          />
-          <Button 
-            title={addToDocumentId ? "Add Pages" : "Save Document"}
-            onPress={saveDocument}
-            loading={isSaving}
-            style={{ flex: 1.5 }}
-            icon={<Ionicons name="checkmark" size={20} color="#FFF" />}
-          />
-        </View>
-      </SafeAreaView>
+      <View style={[styles.container, { backgroundColor: '#000' }]}>
+        <SafeAreaView style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            {isScanning ? (
+              <>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={styles.loadingText}>Opening Scanner...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="scan" size={64} color="#3B82F6" />
+                <Text style={styles.loadingTitle}>ScanUp</Text>
+                <Text style={styles.loadingText}>Preparing document scanner...</Text>
+              </>
+            )}
+          </View>
+          
+          {/* Bottom buttons */}
+          <View style={[styles.emptyBottomBar, { paddingBottom: insets.bottom + 16 }]}>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => router.back()}>
+              <Ionicons name="close" size={24} color="#FFF" />
+              <Text style={styles.emptyBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.emptyBtn, styles.emptyBtnPrimary]} 
+              onPress={openDocumentScanner}
+              disabled={isScanning}
+            >
+              <Ionicons name="scan" size={24} color="#FFF" />
+              <Text style={styles.emptyBtnText}>Scan</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.emptyBtn} onPress={pickFromGallery}>
+              <Ionicons name="images" size={24} color="#FFF" />
+              <Text style={styles.emptyBtnText}>Gallery</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
   
   // =============================================================================
-  // CAMERA VIEW
+  // RENDER - Review & Edit Screen (YOUR CUSTOM UI)
   // =============================================================================
   
-  const renderCameraView = () => {
-    // If camera is available, use VisionCamera
-    if (Camera && device && hasPermission && !cameraError) {
-      return (
-        <Camera
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={true}
-          photo={true}
-          torch={flashOn ? 'on' : 'off'}
-          onInitialized={() => setCameraReady(true)}
-          onError={(error: any) => {
-            console.error('[Camera] Error:', error);
-            setCameraError(error.message || 'Camera error');
-          }}
-        />
-      );
-    }
-    
-    // Fallback: Show placeholder with scan button
-    return (
-      <View style={styles.cameraPlaceholder}>
-        <Ionicons name="camera" size={80} color="#3B82F6" />
-        <Text style={styles.placeholderTitle}>Document Scanner</Text>
-        <Text style={styles.placeholderText}>
-          {cameraError || 'Tap the button below to scan'}
-        </Text>
-      </View>
-    );
-  };
-  
-  // =============================================================================
-  // MAIN RENDER
-  // =============================================================================
+  const currentImage = capturedImages[selectedImageIndex];
   
   return (
-    <View style={[styles.container, { backgroundColor: '#000' }]}>
-      {/* Camera View */}
-      {renderCameraView()}
-      
-      {/* Top Bar */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={handleGoBack}>
-          <Ionicons name="close" size={28} color="#FFF" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <TouchableOpacity 
+          style={styles.headerBtn} 
+          onPress={() => {
+            Alert.alert(
+              'Discard Scan?',
+              'Are you sure you want to discard all scanned pages?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+              ]
+            );
+          }}
+        >
+          <Ionicons name="close" size={24} color={theme.text} />
         </TouchableOpacity>
         
-        <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
-          <Ionicons name={currentType.icon} size={16} color={currentType.color} />
-          <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
-        </View>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {capturedImages.length} {capturedImages.length === 1 ? 'Page' : 'Pages'}
+        </Text>
         
         <TouchableOpacity 
-          style={styles.iconBtn} 
-          onPress={() => setFlashOn(!flashOn)}
-          disabled={!Camera || !device}
+          style={styles.headerBtn}
+          onPress={() => removeImage(selectedImageIndex)}
         >
-          <Ionicons 
-            name={flashOn ? 'flash' : 'flash-off'} 
-            size={24} 
-            color={Camera && device ? '#FFF' : '#666'} 
-          />
+          <Ionicons name="trash-outline" size={24} color="#EF4444" />
         </TouchableOpacity>
       </View>
       
-      {/* Document Frame Guide */}
-      <View style={styles.frameContainer}>
-        <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-          {showGridOverlay && (
-            <View style={styles.gridOverlay}>
-              <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
-              <View style={[styles.gridLine, styles.gridHorizontal, { top: '66%' }]} />
-              <View style={[styles.gridLine, styles.gridVertical, { left: '33%' }]} />
-              <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
-            </View>
-          )}
-          <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
-          <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
-          <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
-          <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
-        </View>
+      {/* Main Image Preview */}
+      <View style={styles.previewContainer}>
+        <Image
+          source={{ uri: currentImage.uri }}
+          style={styles.mainPreview}
+          resizeMode="contain"
+        />
         
-        <Text style={[styles.guideText, { color: currentType.color }]}>
-          {currentType.guide}
-        </Text>
+        {/* Filter badge */}
+        {currentImage.filter !== 'original' && (
+          <View style={styles.filterBadge}>
+            <Text style={styles.filterBadgeText}>
+              {FILTERS.find(f => f.id === currentImage.filter)?.label || currentImage.filter}
+            </Text>
+          </View>
+        )}
+        
+        {/* Page indicator */}
+        <View style={styles.pageIndicator}>
+          <Text style={styles.pageIndicatorText}>
+            {selectedImageIndex + 1} / {capturedImages.length}
+          </Text>
+        </View>
       </View>
       
-      {/* Bottom Controls */}
-      <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
-        {/* Document Type Selector */}
+      {/* Thumbnails */}
+      <View style={styles.thumbnailSection}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.typeSelector}
+          contentContainerStyle={styles.thumbnailScroll}
+        >
+          {capturedImages.map((img, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.thumbnail,
+                selectedImageIndex === index && styles.thumbnailSelected,
+              ]}
+              onPress={() => setSelectedImageIndex(index)}
+            >
+              <Image 
+                source={{ uri: img.uri }} 
+                style={styles.thumbnailImage} 
+                resizeMode="cover"
+              />
+              <View style={styles.thumbnailNumber}>
+                <Text style={styles.thumbnailNumberText}>{index + 1}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+          
+          {/* Add more button */}
+          <TouchableOpacity 
+            style={styles.addMoreBtn}
+            onPress={openDocumentScanner}
+            disabled={isScanning}
+          >
+            <Ionicons name="add" size={32} color="#3B82F6" />
+            <Text style={styles.addMoreText}>Add</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+      
+      {/* Filter Options */}
+      <View style={[styles.filterSection, { borderTopColor: theme.border }]}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Filter</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {FILTERS.map(filter => (
+            <TouchableOpacity
+              key={filter.id}
+              style={[
+                styles.filterBtn,
+                selectedFilter === filter.id && styles.filterBtnActive,
+              ]}
+              onPress={() => applyFilter(filter.id)}
+              disabled={isProcessing}
+            >
+              <Ionicons 
+                name={filter.icon} 
+                size={20} 
+                color={selectedFilter === filter.id ? '#FFF' : theme.text} 
+              />
+              <Text style={[
+                styles.filterLabel,
+                { color: selectedFilter === filter.id ? '#FFF' : theme.text }
+              ]}>
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      
+      {/* Document Type */}
+      <View style={styles.typeSection}>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Document Type</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.typeScroll}
         >
           {DOCUMENT_TYPES.map((type, index) => (
             <TouchableOpacity
               key={type.type}
               style={[
                 styles.typeBtn,
-                selectedTypeIndex === index && {
-                  backgroundColor: type.color + '30',
+                selectedTypeIndex === index && { 
+                  backgroundColor: type.color + '20',
                   borderColor: type.color,
-                  borderWidth: 2,
                 }
               ]}
               onPress={() => setSelectedTypeIndex(index)}
             >
               <Ionicons 
                 name={type.icon} 
-                size={22} 
-                color={selectedTypeIndex === index ? type.color : '#94A3B8'} 
+                size={18} 
+                color={selectedTypeIndex === index ? type.color : theme.textSecondary} 
               />
-              <Text style={[styles.typeLabel, { color: selectedTypeIndex === index ? type.color : '#94A3B8' }]}>
+              <Text style={[
+                styles.typeLabel,
+                { color: selectedTypeIndex === index ? type.color : theme.textSecondary }
+              ]}>
                 {type.label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-        
-        {/* Main Buttons */}
-        <View style={styles.mainButtons}>
-          {/* Gallery Button */}
-          <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
-            <View style={styles.sideBtnInner}>
-              <Ionicons name="images" size={24} color="#FFF" />
-            </View>
-            <Text style={styles.sideBtnText}>Gallery</Text>
-          </TouchableOpacity>
-          
-          {/* Capture Button */}
-          <TouchableOpacity 
-            style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
-            onPress={Camera && device && cameraReady ? captureImage : captureWithPlugin}
-            disabled={isCapturing}
-          >
-            {isCapturing ? (
-              <ActivityIndicator size="large" color="#3B82F6" />
-            ) : (
-              <View style={styles.captureBtnInner} />
-            )}
-          </TouchableOpacity>
-          
-          {/* Pages/Review Button */}
-          {capturedImages.length > 0 ? (
-            <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
-              <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
-                <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
-              </View>
-              <Text style={styles.sideBtnText}>Review</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.sideBtn}>
-              <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
-                <Ionicons name="documents-outline" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.sideBtnText}>Pages</Text>
-            </View>
-          )}
-        </View>
       </View>
-    </View>
+      
+      {/* Save Button */}
+      <View style={[styles.bottomActions, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity 
+          style={styles.galleryBtn}
+          onPress={pickFromGallery}
+        >
+          <Ionicons name="images-outline" size={24} color={theme.primary} />
+        </TouchableOpacity>
+        
+        <Button 
+          title={addToDocumentId ? "Add to Document" : "Save Document"}
+          onPress={saveDocument}
+          loading={isSaving}
+          style={styles.saveBtn}
+          icon={<Ionicons name="checkmark-circle" size={20} color="#FFF" />}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -680,175 +601,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Camera placeholder
-  cameraPlaceholder: {
+  // Loading / Empty state
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  loadingContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#111',
   },
-  placeholderTitle: {
-    fontSize: 24,
+  loadingTitle: {
+    fontSize: 28,
     fontWeight: '700',
     color: '#FFF',
     marginTop: 16,
   },
-  placeholderText: {
-    fontSize: 14,
+  loadingText: {
+    fontSize: 16,
     color: '#94A3B8',
     marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 40,
   },
-  
-  // Top Bar
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  typeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  typeText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  
-  // Frame
-  frameContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  docFrame: {
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderWidth: 4,
-  },
-  tl: { top: 0, left: 0, borderBottomWidth: 0, borderRightWidth: 0, borderTopLeftRadius: 4 },
-  tr: { top: 0, right: 0, borderBottomWidth: 0, borderLeftWidth: 0, borderTopRightRadius: 4 },
-  bl: { bottom: 0, left: 0, borderTopWidth: 0, borderRightWidth: 0, borderBottomLeftRadius: 4 },
-  br: { bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 4 },
-  
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLine: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  gridHorizontal: { left: 0, right: 0, height: 1 },
-  gridVertical: { top: 0, bottom: 0, width: 1 },
-  
-  guideText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 24,
-    textAlign: 'center',
-  },
-  
-  // Bottom Controls
-  bottomControls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-  },
-  typeSelector: {
-    paddingVertical: 12,
-    gap: 8,
-  },
-  typeBtn: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    minWidth: 70,
-  },
-  typeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  mainButtons: {
+  emptyBottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  emptyBtn: {
     alignItems: 'center',
-    paddingVertical: 16,
+    padding: 16,
   },
-  sideBtn: {
-    alignItems: 'center',
-    gap: 6,
+  emptyBtnPrimary: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    paddingHorizontal: 32,
   },
-  sideBtnInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sideBtnText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  captureBtn: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  captureBtnDisabled: {
-    opacity: 0.5,
-  },
-  captureBtnInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFF',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  pagesCountText: {
+  emptyBtnText: {
     color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    marginTop: 4,
   },
   
-  // Preview
-  previewHeader: {
+  // Header
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -862,53 +658,179 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  previewTitle: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
-  previewScroll: {
+  
+  // Preview
+  previewContainer: {
     flex: 1,
+    backgroundColor: '#000',
+    position: 'relative',
   },
-  previewGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 8,
-  },
-  previewImageContainer: {
-    width: '48%',
-    aspectRatio: 0.75,
-    margin: '1%',
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#1E293B',
-  },
-  previewImage: {
+  mainPreview: {
+    flex: 1,
     width: '100%',
-    height: '100%',
   },
-  removeImageBtn: {
+  filterBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  pageNumberText: {
+  filterBadgeText: {
     color: '#FFF',
     fontSize: 12,
     fontWeight: '600',
   },
-  previewActions: {
-    flexDirection: 'row',
-    padding: 16,
+  pageIndicator: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  pageIndicatorText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  // Thumbnails
+  thumbnailSection: {
+    paddingVertical: 12,
+  },
+  thumbnailScroll: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  thumbnail: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  thumbnailSelected: {
+    borderColor: '#3B82F6',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailNumber: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailNumberText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  addMoreBtn: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addMoreText: {
+    color: '#3B82F6',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
+  // Filters
+  filterSection: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  filterScroll: {
     gap: 8,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    gap: 6,
+  },
+  filterBtnActive: {
+    backgroundColor: '#3B82F6',
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Document Type
+  typeSection: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  typeScroll: {
+    gap: 8,
+  },
+  typeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    gap: 6,
+  },
+  typeLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  
+  // Bottom Actions
+  bottomActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 12,
+    alignItems: 'center',
+  },
+  galleryBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtn: {
+    flex: 1,
   },
 });
