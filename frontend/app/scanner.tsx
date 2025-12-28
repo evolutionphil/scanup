@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   Dimensions,
   Platform,
-  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,16 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, FlashMode } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
-import Svg, { Rect, Line, Path, Defs, Mask, Circle } from 'react-native-svg';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // =============================================================================
@@ -50,19 +46,14 @@ interface DocumentType {
   guide: string;
 }
 
-interface NormalizedPoint {
-  x: number;
-  y: number;
-}
-
 // =============================================================================
 // DOCUMENT TYPES CONFIGURATION
 // =============================================================================
 
 const DOCUMENT_TYPES: DocumentType[] = [
   { type: 'auto', label: 'Auto', icon: 'scan-outline', color: '#3B82F6', aspectRatio: 0, guide: 'Auto-detect document' },
-  { type: 'a4', label: 'A4', icon: 'document-outline', color: '#8B5CF6', aspectRatio: 1.414, guide: 'A4 Document' },
-  { type: 'letter', label: 'Letter', icon: 'document-text-outline', color: '#10B981', aspectRatio: 1.294, guide: 'US Letter' },
+  { type: 'a4', label: 'A4', icon: 'document-outline', color: '#8B5CF6', aspectRatio: 1.414, guide: 'A4 Document (210×297mm)' },
+  { type: 'letter', label: 'Letter', icon: 'document-text-outline', color: '#10B981', aspectRatio: 1.294, guide: 'US Letter (8.5×11")' },
   { type: 'id', label: 'ID Card', icon: 'card-outline', color: '#F59E0B', aspectRatio: 0.631, guide: 'ID Card / Credit Card' },
   { type: 'receipt', label: 'Receipt', icon: 'receipt-outline', color: '#EC4899', aspectRatio: 2.5, guide: 'Receipt / Ticket' },
   { type: 'book', label: 'Book', icon: 'book-outline', color: '#6366F1', aspectRatio: 0.75, guide: 'Book Pages' },
@@ -83,44 +74,30 @@ export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   
   // Camera state
-  const [showCamera, setShowCamera] = useState(true);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const cameraRef = useRef<CameraView>(null);
   
   // Scanner state
+  const [isCapturing, setIsCapturing] = useState(false);
   const [capturedImages, setCapturedImages] = useState<CapturedImage[]>([]);
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  
-  // Edge detection state
-  const [liveDetectedEdges, setLiveDetectedEdges] = useState<NormalizedPoint[] | null>(null);
-  const [edgesDetected, setEdgesDetected] = useState(false);
-  const [autoCapture, setAutoCapture] = useState(false);
-  const [autoDetectStable, setAutoDetectStable] = useState(0);
-  const liveDetectionRef = useRef<NodeJS.Timeout | null>(null);
-  const isDetectingRef = useRef(false);
-  const lastDetectionRef = useRef<string>('');
   
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showGridOverlay, setShowGridOverlay] = useState(false);
   const shutterSoundRef = useRef<Audio.Sound | null>(null);
   
-  // Animation
-  const scanningAnim = useRef(new Animated.Value(0)).current;
-  
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
   
   // Calculate frame dimensions based on document type
-  const frameDimensions = useMemo(() => {
+  const getFrameDimensions = () => {
     const maxWidth = SCREEN_WIDTH * 0.85;
-    const maxHeight = SCREEN_HEIGHT * 0.55;
+    const maxHeight = SCREEN_HEIGHT * 0.5;
     
     if (currentType.aspectRatio === 0) {
-      // Auto mode - use a default frame
       return { width: maxWidth, height: maxWidth * 1.3 };
     }
     
@@ -133,7 +110,9 @@ export default function ScannerScreen() {
     }
     
     return { width, height };
-  }, [currentType]);
+  };
+  
+  const frameDimensions = getFrameDimensions();
   
   // Load settings on mount
   useEffect(() => {
@@ -172,9 +151,6 @@ export default function ScannerScreen() {
       if (shutterSoundRef.current) {
         shutterSoundRef.current.unloadAsync();
       }
-      if (liveDetectionRef.current) {
-        clearInterval(liveDetectionRef.current);
-      }
     };
   }, []);
   
@@ -190,114 +166,8 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // REAL-TIME EDGE DETECTION (Backend-based)
-  // =============================================================================
-  
-  const performLiveEdgeDetection = useCallback(async () => {
-    if (isDetectingRef.current || !showCamera || isCapturing || !cameraRef.current) {
-      return;
-    }
-    
-    isDetectingRef.current = true;
-    
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.1,
-        base64: true,
-        skipProcessing: true,
-        exif: false,
-      });
-      
-      if (!photo?.base64) {
-        isDetectingRef.current = false;
-        return;
-      }
-      
-      const response = await fetch(`${BACKEND_URL}/api/images/detect-edges`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          image_base64: photo.base64, 
-          mode: currentType.type,
-          fast_mode: true
-        }),
-      });
-      
-      if (!response.ok) {
-        setLiveDetectedEdges(null);
-        setEdgesDetected(false);
-        isDetectingRef.current = false;
-        return;
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.points && result.auto_detected) {
-        const newEdges = result.points.map((c: any) => ({ x: c.x, y: c.y }));
-        setLiveDetectedEdges(newEdges);
-        setEdgesDetected(true);
-        
-        if (autoCapture) {
-          const signature = result.points.map((c: any) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join('|');
-          
-          if (signature === lastDetectionRef.current) {
-            setAutoDetectStable(prev => prev + 1);
-          } else {
-            setAutoDetectStable(1);
-            lastDetectionRef.current = signature;
-          }
-        }
-      } else {
-        setLiveDetectedEdges(null);
-        setEdgesDetected(false);
-        if (autoCapture) {
-          setAutoDetectStable(0);
-          lastDetectionRef.current = '';
-        }
-      }
-    } catch (error) {
-      console.log('[LiveEdge] Detection error:', error);
-      setLiveDetectedEdges(null);
-      setEdgesDetected(false);
-    } finally {
-      isDetectingRef.current = false;
-    }
-  }, [showCamera, isCapturing, currentType.type, autoCapture]);
-  
-  // Start/stop edge detection
-  useEffect(() => {
-    if (showCamera && !showPreview) {
-      setTimeout(() => performLiveEdgeDetection(), 500);
-      
-      liveDetectionRef.current = setInterval(() => {
-        performLiveEdgeDetection();
-      }, 500);
-    } else {
-      if (liveDetectionRef.current) {
-        clearInterval(liveDetectionRef.current);
-        liveDetectionRef.current = null;
-      }
-      setLiveDetectedEdges(null);
-    }
-    
-    return () => {
-      if (liveDetectionRef.current) {
-        clearInterval(liveDetectionRef.current);
-        liveDetectionRef.current = null;
-      }
-    };
-  }, [showCamera, showPreview, performLiveEdgeDetection]);
-  
-  // Auto-capture when stable
-  useEffect(() => {
-    if (autoCapture && edgesDetected && autoDetectStable >= 3 && !isCapturing) {
-      console.log('[AutoCapture] Edges stable, triggering capture...');
-      captureWithNativeScanner();
-    }
-  }, [autoCapture, edgesDetected, autoDetectStable, isCapturing]);
-  
-  // =============================================================================
-  // CAPTURE USING NATIVE SCANNER (for best quality)
+  // CAPTURE WITH NATIVE SCANNER PLUGIN
+  // Uses the plugin for edge detection, perspective correction, and cropping
   // =============================================================================
   
   const captureWithNativeScanner = async () => {
@@ -312,66 +182,76 @@ export default function ScannerScreen() {
         DocumentScanner = require('react-native-document-scanner-plugin').default;
       } catch (e) {
         console.log('Native scanner not available, using manual capture');
-        captureManually();
+        await captureManually();
         return;
       }
       
       if (!DocumentScanner) {
-        captureManually();
+        await captureManually();
         return;
       }
       
+      // Launch native scanner with BASE64 response (more reliable)
       const result = await DocumentScanner.scanDocument({
-        maxNumDocuments: 1,
-        croppedImageQuality: 95,
-        imageFileType: 'jpg',
+        maxNumDocuments: 10, // Allow multiple pages
+        croppedImageQuality: 90,
+        responseType: 'base64', // Use base64 for reliable saving
       });
       
-      if (result.scannedImages && result.scannedImages.length > 0) {
+      console.log('[Scanner] Plugin result:', result ? 'Got result' : 'No result');
+      
+      if (result?.scannedImages && result.scannedImages.length > 0) {
         const newImages: CapturedImage[] = [];
         
-        for (const imagePath of result.scannedImages) {
-          try {
-            const fileUri = Platform.OS === 'android' ? `file://${imagePath}` : imagePath;
-            
-            const manipResult = await ImageManipulator.manipulateAsync(
-              fileUri,
-              [],
-              { base64: true, compress: 0.9 }
-            );
-            
-            newImages.push({
-              uri: fileUri,
-              base64: manipResult.base64 || '',
-              width: manipResult.width,
-              height: manipResult.height,
-            });
-          } catch (e) {
-            console.error('Error processing scanned image:', e);
+        for (let i = 0; i < result.scannedImages.length; i++) {
+          const imageData = result.scannedImages[i];
+          
+          // The plugin returns base64 string directly when responseType is 'base64'
+          // Clean the base64 string (remove any prefix if present)
+          let base64Data = imageData;
+          if (base64Data.startsWith('data:')) {
+            base64Data = base64Data.split(',')[1];
           }
+          
+          // Create a data URI for display
+          const uri = `data:image/jpeg;base64,${base64Data}`;
+          
+          newImages.push({
+            uri: uri,
+            base64: base64Data,
+            width: 0, // Will be determined when saved
+            height: 0,
+          });
+          
+          console.log(`[Scanner] Processed image ${i + 1}, base64 length: ${base64Data.length}`);
         }
         
         if (newImages.length > 0) {
           setCapturedImages(prev => [...prev, ...newImages]);
           setShowPreview(true);
-          setShowCamera(false);
+          console.log(`[Scanner] Added ${newImages.length} images, showing preview`);
         }
       }
     } catch (error: any) {
-      if (error.message !== 'User cancelled') {
-        console.error('Scanner error:', error);
+      console.log('[Scanner] Error:', error.message);
+      if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
         // Fallback to manual capture
-        captureManually();
+        await captureManually();
       }
     } finally {
       setIsCapturing(false);
-      setAutoDetectStable(0);
     }
   };
   
-  // Manual capture fallback
+  // =============================================================================
+  // MANUAL CAPTURE (fallback when plugin not available)
+  // =============================================================================
+  
   const captureManually = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current) {
+      Alert.alert('Error', 'Camera not ready');
+      return;
+    }
     
     setIsCapturing(true);
     
@@ -393,11 +273,11 @@ export default function ScannerScreen() {
         
         setCapturedImages(prev => [...prev, newImage]);
         setShowPreview(true);
-        setShowCamera(false);
+        console.log('[Scanner] Manual capture successful');
       }
     } catch (error) {
-      console.error('Manual capture error:', error);
-      Alert.alert('Error', 'Failed to capture image');
+      console.error('[Scanner] Manual capture error:', error);
+      Alert.alert('Error', 'Failed to capture image. Please try again.');
     } finally {
       setIsCapturing(false);
     }
@@ -426,10 +306,9 @@ export default function ScannerScreen() {
         
         setCapturedImages(prev => [...prev, ...newImages]);
         setShowPreview(true);
-        setShowCamera(false);
       }
     } catch (error) {
-      console.error('Gallery picker error:', error);
+      console.error('[Scanner] Gallery picker error:', error);
       Alert.alert('Error', 'Failed to select images from gallery.');
     }
   };
@@ -443,7 +322,6 @@ export default function ScannerScreen() {
       const newImages = prev.filter((_, i) => i !== index);
       if (newImages.length === 0) {
         setShowPreview(false);
-        setShowCamera(true);
       }
       return newImages;
     });
@@ -459,49 +337,69 @@ export default function ScannerScreen() {
       return;
     }
     
+    // Validate that we have base64 data
+    const validImages = capturedImages.filter(img => img.base64 && img.base64.length > 100);
+    if (validImages.length === 0) {
+      Alert.alert('Error', 'No valid images to save. Please scan again.');
+      return;
+    }
+    
     setIsSaving(true);
+    console.log(`[Scanner] Saving ${validImages.length} images...`);
     
     try {
       const documentData = {
         name: `Scan ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-        pages: capturedImages.map((img, index) => ({
+        pages: validImages.map((img, index) => ({
           page_number: index + 1,
           image_base64: img.base64,
           original_image_base64: img.base64,
-          width: img.width,
-          height: img.height,
+          width: img.width || 0,
+          height: img.height || 0,
         })),
         document_type: currentType.type,
         tags: [],
       };
       
+      console.log('[Scanner] Document data prepared, pages:', documentData.pages.length);
+      
       if (addToDocumentId) {
+        // Add pages to existing document
         const existingDoc = getDocument(addToDocumentId);
         if (existingDoc) {
-          const newPages = capturedImages.map((img, index) => ({
+          const newPages = validImages.map((img, index) => ({
             page_number: existingDoc.pages.length + index + 1,
             image_base64: img.base64,
             original_image_base64: img.base64,
-            width: img.width,
-            height: img.height,
+            width: img.width || 0,
+            height: img.height || 0,
           }));
           
           await updateDocument(addToDocumentId, {
             pages: [...existingDoc.pages, ...newPages],
           }, token || undefined);
+          
+          console.log('[Scanner] Added pages to existing document');
         }
         router.back();
       } else {
+        // Create new document
+        console.log('[Scanner] Creating new document...');
         const newDocId = await addDocument(documentData, token || undefined);
+        
         if (newDocId) {
+          console.log('[Scanner] Document created with ID:', newDocId);
           router.replace(`/document/${newDocId}`);
         } else {
-          Alert.alert('Error', 'Failed to create document');
+          throw new Error('Failed to create document - no ID returned');
         }
       }
-    } catch (error) {
-      console.error('Save error:', error);
-      Alert.alert('Save Error', 'Failed to save document. Please try again.');
+    } catch (error: any) {
+      console.error('[Scanner] Save error:', error);
+      Alert.alert(
+        'Save Error', 
+        `Failed to save document: ${error.message || 'Unknown error'}. Please try again.`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -510,17 +408,6 @@ export default function ScannerScreen() {
   // Toggle flash
   const toggleFlash = () => {
     setFlashMode(prev => prev === 'off' ? 'on' : 'off');
-  };
-  
-  // Toggle auto capture
-  const toggleAutoCapture = () => {
-    setAutoCapture(prev => {
-      if (!prev) {
-        setAutoDetectStable(0);
-        lastDetectionRef.current = '';
-      }
-      return !prev;
-    });
   };
   
   // =============================================================================
@@ -556,17 +443,14 @@ export default function ScannerScreen() {
   }
   
   // =============================================================================
-  // PREVIEW SCREEN
+  // PREVIEW SCREEN - Review scanned pages before saving
   // =============================================================================
   
   if (showPreview && capturedImages.length > 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={[styles.previewHeader, { borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={() => {
-            setShowPreview(false);
-            setShowCamera(true);
-          }} style={styles.headerBtn}>
+          <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.headerBtn}>
             <Ionicons name="arrow-back" size={24} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.previewTitle, { color: theme.text }]}>
@@ -575,9 +459,8 @@ export default function ScannerScreen() {
           <TouchableOpacity onPress={() => {
             setCapturedImages([]);
             setShowPreview(false);
-            setShowCamera(true);
           }} style={styles.headerBtn}>
-            <Ionicons name="trash-outline" size={24} color={theme.danger} />
+            <Ionicons name="trash-outline" size={24} color="#EF4444" />
           </TouchableOpacity>
         </View>
         
@@ -585,7 +468,7 @@ export default function ScannerScreen() {
           {capturedImages.map((img, index) => (
             <View key={index} style={styles.previewImageContainer}>
               <Image 
-                source={{ uri: img.uri || `data:image/jpeg;base64,${img.base64}` }} 
+                source={{ uri: img.uri }} 
                 style={styles.previewImage} 
                 resizeMode="cover" 
               />
@@ -606,10 +489,7 @@ export default function ScannerScreen() {
           <Button 
             title="Add More" 
             variant="outline" 
-            onPress={() => {
-              setShowPreview(false);
-              setShowCamera(true);
-            }}
+            onPress={() => setShowPreview(false)}
             style={{ flex: 1, marginRight: 8 }}
             icon={<Ionicons name="add" size={20} color={theme.primary} />}
           />
@@ -626,7 +506,7 @@ export default function ScannerScreen() {
   }
   
   // =============================================================================
-  // CAMERA VIEW
+  // CAMERA VIEW - Pre-scan UI with document type selection
   // =============================================================================
   
   return (
@@ -653,101 +533,34 @@ export default function ScannerScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* Document Frame & Edge Overlay */}
+        {/* Document Frame Guide */}
         <View style={styles.frameContainer}>
-          {/* Live Edge Detection Overlay */}
-          {liveDetectedEdges && liveDetectedEdges.length === 4 ? (
-            <Svg
-              style={StyleSheet.absoluteFill}
-              width={SCREEN_WIDTH}
-              height={SCREEN_HEIGHT}
-            >
-              {/* Dark overlay outside document */}
-              <Defs>
-                <Mask id="edgeMask">
-                  <Rect x="0" y="0" width={SCREEN_WIDTH} height={SCREEN_HEIGHT} fill="white" />
-                  <Path
-                    d={`M ${liveDetectedEdges[0].x * SCREEN_WIDTH} ${liveDetectedEdges[0].y * SCREEN_HEIGHT}
-                        L ${liveDetectedEdges[1].x * SCREEN_WIDTH} ${liveDetectedEdges[1].y * SCREEN_HEIGHT}
-                        L ${liveDetectedEdges[2].x * SCREEN_WIDTH} ${liveDetectedEdges[2].y * SCREEN_HEIGHT}
-                        L ${liveDetectedEdges[3].x * SCREEN_WIDTH} ${liveDetectedEdges[3].y * SCREEN_HEIGHT}
-                        Z`}
-                    fill="black"
-                  />
-                </Mask>
-              </Defs>
-              
-              <Rect
-                x="0" y="0"
-                width={SCREEN_WIDTH}
-                height={SCREEN_HEIGHT}
-                fill="rgba(0,0,0,0.5)"
-                mask="url(#edgeMask)"
-              />
-              
-              {/* Edge lines */}
-              <Path
-                d={`M ${liveDetectedEdges[0].x * SCREEN_WIDTH} ${liveDetectedEdges[0].y * SCREEN_HEIGHT}
-                    L ${liveDetectedEdges[1].x * SCREEN_WIDTH} ${liveDetectedEdges[1].y * SCREEN_HEIGHT}
-                    L ${liveDetectedEdges[2].x * SCREEN_WIDTH} ${liveDetectedEdges[2].y * SCREEN_HEIGHT}
-                    L ${liveDetectedEdges[3].x * SCREEN_WIDTH} ${liveDetectedEdges[3].y * SCREEN_HEIGHT}
-                    Z`}
-                stroke="#10B981"
-                strokeWidth={3}
-                fill="transparent"
-                strokeLinejoin="round"
-              />
-              
-              {/* Corner circles */}
-              {liveDetectedEdges.map((corner, index) => (
-                <Circle
-                  key={index}
-                  cx={corner.x * SCREEN_WIDTH}
-                  cy={corner.y * SCREEN_HEIGHT}
-                  r={10}
-                  fill="#10B981"
-                  stroke="#FFF"
-                  strokeWidth={2}
-                />
-              ))}
-            </Svg>
-          ) : (
-            /* Document type frame when no edges detected */
-            <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-              {/* Grid overlay */}
-              {showGridOverlay && (
-                <View style={styles.gridOverlay}>
-                  <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
-                  <View style={[styles.gridLine, styles.gridHorizontal, { top: '66%' }]} />
-                  <View style={[styles.gridLine, styles.gridVertical, { left: '33%' }]} />
-                  <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
-                </View>
-              )}
-              
-              {/* Corner brackets */}
-              <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
-              <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
-            </View>
-          )}
+          <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
+            {/* Grid overlay */}
+            {showGridOverlay && (
+              <View style={styles.gridOverlay}>
+                <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
+                <View style={[styles.gridLine, styles.gridHorizontal, { top: '66%' }]} />
+                <View style={[styles.gridLine, styles.gridVertical, { left: '33%' }]} />
+                <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
+              </View>
+            )}
+            
+            {/* Corner brackets */}
+            <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
+            <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
+            <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
+            <View style={[styles.corner, styles.br, { borderColor: currentType.color }]} />
+          </View>
           
-          <Text style={[styles.guideText, { color: liveDetectedEdges ? '#10B981' : currentType.color }]}>
-            {liveDetectedEdges ? 'Document detected!' : currentType.guide}
+          <Text style={[styles.guideText, { color: currentType.color }]}>
+            {currentType.guide}
+          </Text>
+          
+          <Text style={styles.hintText}>
+            Tap capture to scan with edge detection
           </Text>
         </View>
-        
-        {/* Auto-capture indicator */}
-        {autoCapture && (
-          <View style={styles.autoCaptureIndicator}>
-            <View style={[styles.autoCaptureStatus, { backgroundColor: edgesDetected ? '#10B981' : '#F59E0B' }]}>
-              <Ionicons name={edgesDetected ? 'checkmark-circle' : 'scan-outline'} size={16} color="#FFF" />
-              <Text style={styles.autoCaptureText}>
-                {edgesDetected ? `Auto-capture: ${autoDetectStable}/3` : 'Scanning...'}
-              </Text>
-            </View>
-          </View>
-        )}
         
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
@@ -795,47 +608,36 @@ export default function ScannerScreen() {
               <Text style={styles.sideBtnText}>Gallery</Text>
             </TouchableOpacity>
             
-            {/* Capture Button */}
+            {/* Capture Button - Launches Native Scanner */}
             <TouchableOpacity 
               style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
               onPress={captureWithNativeScanner}
               disabled={isCapturing}
             >
               {isCapturing ? (
-                <ActivityIndicator size="large" color="#FFF" />
+                <ActivityIndicator size="large" color="#3B82F6" />
               ) : (
                 <View style={styles.captureBtnInner} />
               )}
             </TouchableOpacity>
             
-            {/* Auto-capture Toggle */}
-            <TouchableOpacity style={styles.sideBtn} onPress={toggleAutoCapture}>
-              <View style={[
-                styles.sideBtnInner,
-                autoCapture && { backgroundColor: '#10B981' }
-              ]}>
-                <Ionicons name={autoCapture ? 'pause' : 'play'} size={24} color="#FFF" />
+            {/* Pages indicator / Review button */}
+            {capturedImages.length > 0 ? (
+              <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
+                <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
+                  <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
+                </View>
+                <Text style={styles.sideBtnText}>Review</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.sideBtn}>
+                <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
+                  <Ionicons name="documents-outline" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.sideBtnText}>Pages</Text>
               </View>
-              <Text style={styles.sideBtnText}>{autoCapture ? 'Auto On' : 'Auto'}</Text>
-            </TouchableOpacity>
+            )}
           </View>
-          
-          {/* Pages indicator */}
-          {capturedImages.length > 0 && (
-            <TouchableOpacity 
-              style={styles.pagesIndicator}
-              onPress={() => {
-                setShowPreview(true);
-                setShowCamera(false);
-              }}
-            >
-              <View style={styles.pagesIndicatorInner}>
-                <Text style={styles.pagesCount}>{capturedImages.length}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#FFF" />
-              </View>
-              <Text style={styles.pagesText}>Review</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </CameraView>
     </View>
@@ -945,32 +747,16 @@ const styles = StyleSheet.create({
   },
   
   guideText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginTop: 20,
+    marginTop: 24,
     textAlign: 'center',
   },
-  
-  // Auto-capture Indicator
-  autoCaptureIndicator: {
-    position: 'absolute',
-    bottom: 200,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  autoCaptureStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 8,
-  },
-  autoCaptureText: {
-    color: '#FFF',
+  hintText: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 8,
+    textAlign: 'center',
   },
   
   // Bottom Controls
@@ -1040,34 +826,12 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#FFF',
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: '#E5E7EB',
   },
-  
-  // Pages Indicator
-  pagesIndicator: {
-    position: 'absolute',
-    right: 16,
-    bottom: 100,
-    alignItems: 'center',
-  },
-  pagesIndicatorInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
-  },
-  pagesCount: {
+  pagesCountText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-  },
-  pagesText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 4,
   },
   
   // Preview Screen
