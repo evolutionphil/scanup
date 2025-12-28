@@ -60,10 +60,10 @@ export default function DocumentsScreen() {
   // Migrate guest documents after login
   useEffect(() => {
     const migrateIfNeeded = async () => {
-      if (token && !isGuest && user) {
+      if (token && !isGuest && user && user.user_id) {
         // User just logged in - check for local documents to migrate
         const { migrateGuestDocumentsToAccount } = useDocumentStore.getState();
-        const migratedCount = await migrateGuestDocumentsToAccount(token);
+        const migratedCount = await migrateGuestDocumentsToAccount(token, user.user_id);
         if (migratedCount > 0) {
           Alert.alert(
             'Documents Migrated',
