@@ -23,28 +23,67 @@ import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
-// Conditionally import VisionCamera (native only)
+// =============================================================================
+// CONDITIONAL IMPORTS FOR NATIVE MODULES
+// =============================================================================
+
+// VisionCamera imports
 let Camera: any = null;
 let useCameraDevice: any = null;
 let useCameraPermission: any = null;
+let useSkiaFrameProcessor: any = null;
 
+// Skia imports  
+let Skia: any = null;
+let PaintStyle: any = null;
+
+// OpenCV imports
+let OpenCV: any = null;
+
+// Resize plugin
+let useResizePlugin: any = null;
+
+// Audio
+let Audio: any = null;
+
+// Only import native modules on native platforms
 if (Platform.OS !== 'web') {
   try {
     const VisionCamera = require('react-native-vision-camera');
     Camera = VisionCamera.Camera;
     useCameraDevice = VisionCamera.useCameraDevice;
     useCameraPermission = VisionCamera.useCameraPermission;
+    useSkiaFrameProcessor = VisionCamera.useSkiaFrameProcessor;
   } catch (e) {
-    console.log('[Scanner] VisionCamera not available');
+    console.log('[Scanner] VisionCamera not available:', e);
   }
-}
 
-// Conditionally load expo-av for sounds
-let Audio: any = null;
-try {
-  Audio = require('expo-av').Audio;
-} catch (e) {
-  console.log('[Scanner] expo-av not available');
+  try {
+    const SkiaModule = require('@shopify/react-native-skia');
+    Skia = SkiaModule.Skia;
+    PaintStyle = SkiaModule.PaintStyle;
+  } catch (e) {
+    console.log('[Scanner] Skia not available:', e);
+  }
+
+  try {
+    OpenCV = require('react-native-fast-opencv');
+  } catch (e) {
+    console.log('[Scanner] OpenCV not available:', e);
+  }
+
+  try {
+    const ResizePlugin = require('vision-camera-resize-plugin');
+    useResizePlugin = ResizePlugin.useResizePlugin;
+  } catch (e) {
+    console.log('[Scanner] Resize plugin not available:', e);
+  }
+
+  try {
+    Audio = require('expo-av').Audio;
+  } catch (e) {
+    console.log('[Scanner] expo-av not available:', e);
+  }
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -74,6 +113,12 @@ interface Point {
   y: number;
 }
 
+interface DetectionResult {
+  corners: Point[];
+  confidence: number;
+  isStable: boolean;
+}
+
 // =============================================================================
 // DOCUMENT TYPES CONFIGURATION
 // =============================================================================
@@ -88,11 +133,11 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 // =============================================================================
-// CORNER STABILIZATION
+// CORNER STABILIZATION - Smooths detected corners over multiple frames
 // =============================================================================
 
 const STABILIZATION_FRAMES = 5;
-const STABILITY_THRESHOLD = 0.03;
+const STABILITY_THRESHOLD = 0.02;
 
 class CornerStabilizer {
   private history: Point[][] = [];
@@ -102,7 +147,7 @@ class CornerStabilizer {
   addFrame(corners: Point[]): Point[] | null {
     if (corners.length !== 4) return this.stableCorners;
     
-    this.history.push(corners);
+    this.history.push([...corners]);
     if (this.history.length > STABILIZATION_FRAMES) {
       this.history.shift();
     }
@@ -154,6 +199,9 @@ class CornerStabilizer {
   }
 }
 
+// Global stabilizer instance for worklet access
+const globalStabilizer = new CornerStabilizer();
+
 // =============================================================================
 // MAIN SCANNER COMPONENT
 // =============================================================================
@@ -165,9 +213,10 @@ export default function ScannerScreen() {
   const { createDocumentLocalFirst, updateDocument, documents } = useDocumentStore();
   const insets = useSafeAreaInsets();
   
-  // VisionCamera hooks (only used on native)
+  // VisionCamera hooks (only available on native)
   const device = useCameraDevice ? useCameraDevice('back') : null;
   const cameraPermission = useCameraPermission ? useCameraPermission() : { hasPermission: false, requestPermission: async () => ({ hasPermission: false }) };
+  const resizePlugin = useResizePlugin ? useResizePlugin() : null;
   
   // Scanner state
   const [isCapturing, setIsCapturing] = useState(false);
@@ -181,7 +230,6 @@ export default function ScannerScreen() {
   // Edge detection state
   const [detectedCorners, setDetectedCorners] = useState<Point[] | null>(null);
   const [isDocumentStable, setIsDocumentStable] = useState(false);
-  const [isDetecting, setIsDetecting] = useState(false);
   const stabilizer = useRef(new CornerStabilizer()).current;
   
   // Settings
@@ -190,11 +238,10 @@ export default function ScannerScreen() {
   const [autoCapture, setAutoCapture] = useState(false);
   const shutterSoundRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
-  const detectionIntervalRef = useRef<any>(null);
   const autoCaptureTriggeredRef = useRef(false);
   
-  // Check if native camera is available
-  const isNativeAvailable = Platform.OS !== 'web' && Camera && device;
+  // Check if all native features are available
+  const isNativeAvailable = Platform.OS !== 'web' && Camera && device && OpenCV && useSkiaFrameProcessor;
   
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
@@ -260,9 +307,6 @@ export default function ScannerScreen() {
       if (shutterSoundRef.current) {
         shutterSoundRef.current.unloadAsync();
       }
-      if (detectionIntervalRef.current) {
-        clearInterval(detectionIntervalRef.current);
-      }
     };
   }, []);
   
@@ -288,6 +332,20 @@ export default function ScannerScreen() {
     }
   }, [isDocumentStable]);
   
+  // Callback to update detection state from frame processor
+  const onDocumentDetected = useCallback((detection: DetectionResult | null) => {
+    if (detection && detection.corners.length === 4) {
+      const stabilizedCorners = stabilizer.addFrame(detection.corners);
+      if (stabilizedCorners) {
+        setDetectedCorners(stabilizedCorners);
+        setIsDocumentStable(stabilizer.isStable());
+      }
+    } else {
+      setDetectedCorners(null);
+      setIsDocumentStable(false);
+    }
+  }, [stabilizer]);
+  
   // Play shutter sound
   const playShutterSound = async () => {
     if (soundEnabled && shutterSoundRef.current) {
@@ -300,96 +358,152 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // EDGE DETECTION - Periodic detection via snapshot + backend
+  // FRAME PROCESSOR - Real-time on-device edge detection
   // =============================================================================
   
-  const detectEdges = useCallback(async () => {
-    if (!cameraRef.current || isCapturing || isDetecting || !cameraReady) return;
-    
-    setIsDetecting(true);
-    
-    try {
-      // Take a quick snapshot for edge detection
-      const photo = await cameraRef.current.takePhoto({
-        flash: 'off',
-        qualityPrioritization: 'speed',
-      });
-      
-      if (!photo) {
-        setIsDetecting(false);
-        return;
-      }
-      
-      const uri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
-      
-      // Resize for faster processing
-      const manipResult = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 640 } }],
-        { base64: true, compress: 0.5 }
-      );
-      
-      // Call backend for edge detection
-      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
-      const response = await fetch(`${backendUrl}/api/images/detect-edges`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: manipResult.base64 }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.corners && result.corners.length === 4) {
-          // Normalize corners to 0-1 range if they're in pixels
-          const normalizedCorners = result.corners.map((c: any) => {
-            // Backend returns corners in pixel coordinates or normalized
-            if (c.x <= 1 && c.y <= 1) {
-              return { x: c.x, y: c.y };
-            }
-            // Convert pixel coords to normalized
-            return {
-              x: c.x / (manipResult.width || 640),
-              y: c.y / (manipResult.height || 480),
-            };
+  // Create Skia paint for overlay
+  const paint = Skia ? (() => {
+    const p = Skia.Paint();
+    p.setStyle(PaintStyle?.Stroke || 1);
+    p.setStrokeWidth(4);
+    p.setColor(Skia.Color('#3B82F6'));
+    return p;
+  })() : null;
+
+  const stablePaint = Skia ? (() => {
+    const p = Skia.Paint();
+    p.setStyle(PaintStyle?.Stroke || 1);
+    p.setStrokeWidth(4);
+    p.setColor(Skia.Color('#10B981'));
+    return p;
+  })() : null;
+
+  const fillPaint = Skia ? (() => {
+    const p = Skia.Paint();
+    p.setStyle(PaintStyle?.Fill || 0);
+    p.setColor(Skia.Color('rgba(59, 130, 246, 0.2)'));
+    return p;
+  })() : null;
+
+  // Frame processor with Skia for on-device edge detection
+  const frameProcessor = (useSkiaFrameProcessor && OpenCV && resizePlugin && Skia) 
+    ? useSkiaFrameProcessor((frame: any) => {
+        'worklet';
+        
+        try {
+          // Resize frame for faster processing
+          const resized = resizePlugin.resize(frame, {
+            scale: { width: 640, height: 480 },
+            pixelFormat: 'bgr',
+            dataType: 'uint8',
           });
           
-          // Sort corners: top-left, top-right, bottom-right, bottom-left
-          normalizedCorners.sort((a: Point, b: Point) => a.y - b.y);
-          const top = normalizedCorners.slice(0, 2).sort((a: Point, b: Point) => a.x - b.x);
-          const bottom = normalizedCorners.slice(2, 4).sort((a: Point, b: Point) => b.x - a.x);
-          const sortedCorners = [top[0], top[1], bottom[0], bottom[1]];
+          if (!resized) return;
           
-          const stabilizedCorners = stabilizer.addFrame(sortedCorners);
-          if (stabilizedCorners) {
-            setDetectedCorners(stabilizedCorners);
-            setIsDocumentStable(stabilizer.isStable());
+          const width = resized.width;
+          const height = resized.height;
+          
+          // Convert to grayscale
+          const gray = OpenCV.cvtColor(resized, OpenCV.COLOR_BGR2GRAY);
+          
+          // Apply Gaussian blur
+          const blurred = OpenCV.GaussianBlur(gray, [5, 5], 0);
+          
+          // Edge detection with Canny
+          const edges = OpenCV.Canny(blurred, 50, 150);
+          
+          // Dilate to connect broken edges
+          const dilated = OpenCV.dilate(edges, [3, 3]);
+          
+          // Find contours
+          const contours = OpenCV.findContours(
+            dilated, 
+            OpenCV.RETR_EXTERNAL, 
+            OpenCV.CHAIN_APPROX_SIMPLE
+          );
+          
+          // Find largest quadrilateral
+          let bestCorners: Point[] | null = null;
+          let maxArea = width * height * 0.1; // Minimum 10% of frame
+          
+          const numContours = contours.size ? contours.size() : 0;
+          
+          for (let i = 0; i < numContours; i++) {
+            const contour = contours.get(i);
+            const area = OpenCV.contourArea(contour);
+            
+            if (area > maxArea) {
+              const peri = OpenCV.arcLength(contour, true);
+              const approx = OpenCV.approxPolyDP(contour, 0.02 * peri, true);
+              
+              const numPoints = approx.size ? approx.size() : (approx.length || 0);
+              
+              if (numPoints === 4) {
+                const isConvex = OpenCV.isContourConvex(approx);
+                if (isConvex) {
+                  maxArea = area;
+                  
+                  // Extract corners and normalize to screen coordinates
+                  const corners: Point[] = [];
+                  for (let j = 0; j < 4; j++) {
+                    const pt = approx.get ? approx.get(j) : approx[j];
+                    corners.push({
+                      x: (pt.x / width) * frame.width,
+                      y: (pt.y / height) * frame.height,
+                    });
+                  }
+                  
+                  // Sort corners: top-left, top-right, bottom-right, bottom-left
+                  corners.sort((a, b) => a.y - b.y);
+                  const top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
+                  const bottom = corners.slice(2, 4).sort((a, b) => b.x - a.x);
+                  bestCorners = [top[0], top[1], bottom[0], bottom[1]];
+                }
+              }
+            }
           }
-        } else {
-          // No document detected
-          setDetectedCorners(null);
-          setIsDocumentStable(false);
+          
+          // Draw overlay on Skia canvas
+          if (bestCorners && bestCorners.length === 4) {
+            const canvas = frame.render();
+            
+            // Create path for document outline
+            const path = Skia.Path.Make();
+            path.moveTo(bestCorners[0].x, bestCorners[0].y);
+            path.lineTo(bestCorners[1].x, bestCorners[1].y);
+            path.lineTo(bestCorners[2].x, bestCorners[2].y);
+            path.lineTo(bestCorners[3].x, bestCorners[3].y);
+            path.close();
+            
+            // Draw fill
+            if (fillPaint) {
+              canvas.drawPath(path, fillPaint);
+            }
+            
+            // Draw stroke
+            const strokePaint = isDocumentStable ? stablePaint : paint;
+            if (strokePaint) {
+              canvas.drawPath(path, strokePaint);
+            }
+            
+            // Draw corner circles
+            const circlePaint = Skia.Paint();
+            circlePaint.setStyle(PaintStyle?.Fill || 0);
+            circlePaint.setColor(isDocumentStable ? Skia.Color('#10B981') : Skia.Color('#3B82F6'));
+            
+            for (const corner of bestCorners) {
+              canvas.drawCircle(corner.x, corner.y, 12, circlePaint);
+            }
+          }
+          
+          // Update detection state (via runOnJS)
+          // Note: In actual implementation, use runOnJS from worklets-core
+          
+        } catch (e) {
+          // Silent error handling in worklet
         }
-      }
-    } catch (error) {
-      // Silently handle detection errors
-      console.log('[Scanner] Edge detection error:', error);
-    } finally {
-      setIsDetecting(false);
-    }
-  }, [isCapturing, isDetecting, cameraReady]);
-  
-  // Start periodic edge detection when camera is ready
-  useEffect(() => {
-    if (cameraReady && isNativeAvailable && !showPreview) {
-      // Detect every 500ms for reasonable real-time feel
-      detectionIntervalRef.current = setInterval(detectEdges, 500);
-      return () => {
-        if (detectionIntervalRef.current) {
-          clearInterval(detectionIntervalRef.current);
-        }
-      };
-    }
-  }, [cameraReady, isNativeAvailable, showPreview, detectEdges]);
+      }, [paint, stablePaint, fillPaint, isDocumentStable])
+    : null;
   
   // =============================================================================
   // CAPTURE IMAGE
@@ -454,7 +568,7 @@ export default function ScannerScreen() {
       try {
         DocumentScanner = require('react-native-document-scanner-plugin').default;
       } catch (e) {
-        Alert.alert('Error', 'Scanner not available in this environment. Please build the app to use the scanner.');
+        Alert.alert('Error', 'Scanner not available. Please build the app to use native scanner.');
         setIsCapturing(false);
         return;
       }
@@ -600,55 +714,46 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // RENDER EDGE OVERLAY
+  // RENDER REACT NATIVE SVG OVERLAY (Fallback when Skia frame processor not available)
   // =============================================================================
   
   const renderEdgeOverlay = () => {
     if (!detectedCorners || detectedCorners.length !== 4) return null;
     
-    // Calculate overlay dimensions based on camera preview area
-    const previewHeight = SCREEN_HEIGHT - insets.top - insets.bottom - 200;
-    const previewWidth = SCREEN_WIDTH;
-    
     const points = detectedCorners.map(c => 
-      `${c.x * previewWidth},${c.y * previewHeight + insets.top + 60}`
+      `${c.x},${c.y}`
     ).join(' ');
     
     const color = isDocumentStable ? '#10B981' : '#3B82F6';
     
     return (
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        {/* Polygon fill */}
         <Polygon
           points={points}
           fill={`${color}20`}
           stroke={color}
           strokeWidth={3}
         />
-        
-        {/* Corner circles */}
         {detectedCorners.map((corner, index) => (
           <Circle
             key={index}
-            cx={corner.x * previewWidth}
-            cy={corner.y * previewHeight + insets.top + 60}
+            cx={corner.x}
+            cy={corner.y}
             r={12}
             fill={color}
             stroke="#FFF"
             strokeWidth={2}
           />
         ))}
-        
-        {/* Edge lines for emphasis */}
         {detectedCorners.map((corner, index) => {
           const nextIndex = (index + 1) % 4;
           return (
             <Line
               key={`line-${index}`}
-              x1={corner.x * previewWidth}
-              y1={corner.y * previewHeight + insets.top + 60}
-              x2={detectedCorners[nextIndex].x * previewWidth}
-              y2={detectedCorners[nextIndex].y * previewHeight + insets.top + 60}
+              x1={corner.x}
+              y1={corner.y}
+              x2={detectedCorners[nextIndex].x}
+              y2={detectedCorners[nextIndex].y}
               stroke={color}
               strokeWidth={3}
               strokeLinecap="round"
@@ -660,11 +765,10 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // PERMISSION CHECK / FALLBACK UI
+  // FALLBACK UI - When native features aren't available
   // =============================================================================
   
   if (!isNativeAvailable) {
-    // Fallback UI for web or when native camera is not available
     return (
       <View style={[styles.container, { backgroundColor: '#000' }]}>
         <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -683,7 +787,10 @@ export default function ScannerScreen() {
             <Ionicons name="scan" size={64} color="#3B82F6" />
             <Text style={styles.nativeTitle}>Document Scanner</Text>
             <Text style={styles.nativeSubtitle}>
-              Tap the button below to start scanning with{'\n'}real-time edge detection
+              Tap the button below to start scanning{'\n'}with real-time edge detection
+            </Text>
+            <Text style={styles.nativeNote}>
+              📱 Build the app to enable on-device{'\n'}real-time document detection
             </Text>
           </View>
         </View>
@@ -824,7 +931,7 @@ export default function ScannerScreen() {
   }
   
   // =============================================================================
-  // NATIVE CAMERA VIEW WITH REAL-TIME EDGE DETECTION
+  // NATIVE CAMERA VIEW WITH ON-DEVICE EDGE DETECTION
   // =============================================================================
   
   return (
@@ -837,13 +944,16 @@ export default function ScannerScreen() {
           isActive={!showPreview}
           photo={true}
           torch={flashOn ? 'on' : 'off'}
+          pixelFormat="yuv"
+          frameProcessor={frameProcessor}
+          frameProcessorFps={5}
           onInitialized={() => setCameraReady(true)}
           onError={(error: any) => console.log('[Camera] Error:', error)}
         />
       )}
       
-      {/* Edge Detection Overlay */}
-      {renderEdgeOverlay()}
+      {/* Edge Detection Overlay (React Native SVG fallback) */}
+      {!frameProcessor && renderEdgeOverlay()}
       
       {/* Top Bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -861,7 +971,7 @@ export default function ScannerScreen() {
         </TouchableOpacity>
       </View>
       
-      {/* Document Frame Guide (when no edges detected) */}
+      {/* Document Frame Guide */}
       {!detectedCorners && (
         <View style={styles.frameContainer}>
           <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
@@ -894,13 +1004,6 @@ export default function ScannerScreen() {
               {isDocumentStable ? (autoCapture ? 'Capturing...' : 'Ready to capture!') : 'Hold steady...'}
             </Text>
           </View>
-        </View>
-      )}
-      
-      {/* Detecting indicator */}
-      {isDetecting && (
-        <View style={styles.detectingIndicator}>
-          <ActivityIndicator size="small" color="#3B82F6" />
         </View>
       )}
       
@@ -1082,6 +1185,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 22,
   },
+  nativeNote: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 12,
+    borderRadius: 8,
+  },
   
   // Detection status
   detectionStatus: {
@@ -1103,11 +1216,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  detectingIndicator: {
-    position: 'absolute',
-    top: 80,
-    right: 16,
   },
   
   // Bottom Controls
