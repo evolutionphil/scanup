@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,15 +14,38 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions, FlashMode } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
+import Svg, { Polygon, Circle, Line } from 'react-native-svg';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
+
+// Conditionally import VisionCamera and OpenCV (native only)
+let Camera: any = null;
+let useCameraDevice: any = null;
+let useCameraPermission: any = null;
+let useFrameProcessor: any = null;
+let OpenCV: any = null;
+
+try {
+  const VisionCamera = require('react-native-vision-camera');
+  Camera = VisionCamera.Camera;
+  useCameraDevice = VisionCamera.useCameraDevice;
+  useCameraPermission = VisionCamera.useCameraPermission;
+  useFrameProcessor = VisionCamera.useFrameProcessor;
+} catch (e) {
+  console.log('[Scanner] VisionCamera not available');
+}
+
+try {
+  OpenCV = require('react-native-fast-opencv').default;
+} catch (e) {
+  console.log('[Scanner] OpenCV not available');
+}
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,6 +69,16 @@ interface DocumentType {
   guide: string;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface DetectedDocument {
+  corners: Point[];
+  confidence: number;
+}
+
 // =============================================================================
 // DOCUMENT TYPES CONFIGURATION
 // =============================================================================
@@ -60,6 +93,73 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 // =============================================================================
+// CORNER STABILIZATION - Smooths detected corners over multiple frames
+// =============================================================================
+
+const STABILIZATION_FRAMES = 5;
+const STABILITY_THRESHOLD = 0.02; // 2% movement threshold
+
+class CornerStabilizer {
+  private history: Point[][] = [];
+  private stableCorners: Point[] | null = null;
+  private stableCount = 0;
+  
+  addFrame(corners: Point[]): Point[] | null {
+    if (corners.length !== 4) return this.stableCorners;
+    
+    this.history.push(corners);
+    if (this.history.length > STABILIZATION_FRAMES) {
+      this.history.shift();
+    }
+    
+    if (this.history.length < 3) return null;
+    
+    // Average corners over history
+    const avgCorners: Point[] = [];
+    for (let i = 0; i < 4; i++) {
+      let sumX = 0, sumY = 0;
+      for (const frame of this.history) {
+        sumX += frame[i].x;
+        sumY += frame[i].y;
+      }
+      avgCorners.push({
+        x: sumX / this.history.length,
+        y: sumY / this.history.length,
+      });
+    }
+    
+    // Check if stable
+    if (this.stableCorners) {
+      let maxMove = 0;
+      for (let i = 0; i < 4; i++) {
+        const dx = Math.abs(avgCorners[i].x - this.stableCorners[i].x);
+        const dy = Math.abs(avgCorners[i].y - this.stableCorners[i].y);
+        maxMove = Math.max(maxMove, dx, dy);
+      }
+      
+      if (maxMove < STABILITY_THRESHOLD) {
+        this.stableCount++;
+      } else {
+        this.stableCount = 0;
+      }
+    }
+    
+    this.stableCorners = avgCorners;
+    return avgCorners;
+  }
+  
+  isStable(): boolean {
+    return this.stableCount >= STABILIZATION_FRAMES;
+  }
+  
+  reset() {
+    this.history = [];
+    this.stableCorners = null;
+    this.stableCount = 0;
+  }
+}
+
+// =============================================================================
 // MAIN SCANNER COMPONENT
 // =============================================================================
 
@@ -70,12 +170,9 @@ export default function ScannerScreen() {
   const { addDocument, updateDocument, getDocument } = useDocumentStore();
   const insets = useSafeAreaInsets();
   
-  // Permissions
-  const [permission, requestPermission] = useCameraPermissions();
-  
-  // Camera state
-  const [flashMode, setFlashMode] = useState<FlashMode>('off');
-  const cameraRef = useRef<CameraView>(null);
+  // VisionCamera hooks (only used on native)
+  const device = useCameraDevice ? useCameraDevice('back') : null;
+  const cameraPermission = useCameraPermission ? useCameraPermission() : { hasPermission: false, requestPermission: () => {} };
   
   // Scanner state
   const [isCapturing, setIsCapturing] = useState(false);
@@ -83,16 +180,26 @@ export default function ScannerScreen() {
   const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
+  
+  // Edge detection state
+  const [detectedCorners, setDetectedCorners] = useState<Point[] | null>(null);
+  const [isDocumentStable, setIsDocumentStable] = useState(false);
+  const stabilizer = useRef(new CornerStabilizer()).current;
   
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showGridOverlay, setShowGridOverlay] = useState(false);
   const shutterSoundRef = useRef<Audio.Sound | null>(null);
+  const cameraRef = useRef<any>(null);
+  
+  // Check if native features are available
+  const isNativeAvailable = Camera && OpenCV && device;
   
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
   
-  // Calculate frame dimensions based on document type
+  // Calculate frame dimensions
   const getFrameDimensions = () => {
     const maxWidth = SCREEN_WIDTH * 0.85;
     const maxHeight = SCREEN_HEIGHT * 0.5;
@@ -114,7 +221,7 @@ export default function ScannerScreen() {
   
   const frameDimensions = getFrameDimensions();
   
-  // Load settings on mount
+  // Load settings
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -154,6 +261,13 @@ export default function ScannerScreen() {
     };
   }, []);
   
+  // Request camera permission
+  useEffect(() => {
+    if (cameraPermission && !cameraPermission.hasPermission) {
+      cameraPermission.requestPermission();
+    }
+  }, []);
+  
   // Play shutter sound
   const playShutterSound = async () => {
     if (soundEnabled && shutterSoundRef.current) {
@@ -166,118 +280,202 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // CAPTURE WITH NATIVE SCANNER PLUGIN
-  // Uses the plugin for edge detection, perspective correction, and cropping
+  // FRAME PROCESSOR - Real-time edge detection using OpenCV
   // =============================================================================
   
-  const captureWithNativeScanner = async () => {
-    setIsCapturing(true);
+  const frameProcessor = useFrameProcessor ? useFrameProcessor((frame: any) => {
+    'worklet';
+    
+    if (!OpenCV) return;
     
     try {
-      await playShutterSound();
+      const width = frame.width;
+      const height = frame.height;
       
-      // Dynamically import native scanner (only works on real devices)
-      let DocumentScanner: any;
-      try {
-        DocumentScanner = require('react-native-document-scanner-plugin').default;
-      } catch (e) {
-        console.log('Native scanner not available, using manual capture');
-        await captureManually();
-        return;
-      }
+      // Convert frame to OpenCV Mat
+      const src = OpenCV.frameBufferToMat(height, width, frame);
       
-      if (!DocumentScanner) {
-        await captureManually();
-        return;
-      }
+      // Resize for faster processing
+      const scale = 0.25;
+      const smallWidth = Math.floor(width * scale);
+      const smallHeight = Math.floor(height * scale);
+      const resized = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8UC4);
+      OpenCV.invoke('resize', src, resized, { width: smallWidth, height: smallHeight });
       
-      // Launch native scanner with BASE64 response (more reliable)
-      const result = await DocumentScanner.scanDocument({
-        maxNumDocuments: 10, // Allow multiple pages
-        croppedImageQuality: 90,
-        responseType: 'base64', // Use base64 for reliable saving
-      });
+      // Convert to grayscale
+      const gray = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8U);
+      OpenCV.invoke('cvtColor', resized, gray, OpenCV.ColorConversionCodes.COLOR_RGBA2GRAY);
       
-      console.log('[Scanner] Plugin result:', result ? 'Got result' : 'No result');
+      // Apply Gaussian blur
+      OpenCV.invoke('GaussianBlur', gray, gray, { width: 5, height: 5 }, 0);
       
-      if (result?.scannedImages && result.scannedImages.length > 0) {
-        const newImages: CapturedImage[] = [];
+      // Edge detection with Canny
+      const edges = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8U);
+      OpenCV.invoke('Canny', gray, edges, 50, 150);
+      
+      // Dilate edges to connect broken lines
+      const kernel = OpenCV.getStructuringElement(OpenCV.MorphShapes.MORPH_RECT, { width: 3, height: 3 });
+      OpenCV.invoke('dilate', edges, edges, kernel, { x: -1, y: -1 }, 2);
+      
+      // Find contours
+      const contours = OpenCV.createObject(OpenCV.ObjectType.MatVector);
+      const hierarchy = OpenCV.createObject(OpenCV.ObjectType.Mat);
+      OpenCV.invoke('findContours', edges, contours, hierarchy, 
+        OpenCV.RetrievalModes.RETR_EXTERNAL, 
+        OpenCV.ContourApproximationModes.CHAIN_APPROX_SIMPLE
+      );
+      
+      // Find largest quadrilateral
+      let bestCorners: Point[] | null = null;
+      let maxArea = (smallWidth * smallHeight) * 0.1; // Minimum 10% of frame
+      
+      const numContours = OpenCV.invoke('size', contours);
+      for (let i = 0; i < numContours; i++) {
+        const contour = OpenCV.invoke('at', contours, i);
+        const area = OpenCV.invoke('contourArea', contour);
         
-        for (let i = 0; i < result.scannedImages.length; i++) {
-          const imageData = result.scannedImages[i];
+        if (area > maxArea) {
+          // Approximate polygon
+          const peri = OpenCV.invoke('arcLength', contour, true);
+          const approx = OpenCV.createObject(OpenCV.ObjectType.Mat);
+          OpenCV.invoke('approxPolyDP', contour, approx, 0.02 * peri, true);
           
-          // The plugin returns base64 string directly when responseType is 'base64'
-          // Clean the base64 string (remove any prefix if present)
-          let base64Data = imageData;
-          if (base64Data.startsWith('data:')) {
-            base64Data = base64Data.split(',')[1];
+          const numPoints = OpenCV.invoke('rows', approx);
+          
+          if (numPoints === 4) {
+            // Check if convex
+            const isConvex = OpenCV.invoke('isContourConvex', approx);
+            if (isConvex) {
+              maxArea = area;
+              
+              // Extract corners and normalize to 0-1
+              const corners: Point[] = [];
+              for (let j = 0; j < 4; j++) {
+                const pt = OpenCV.invoke('at', approx, j, 0);
+                corners.push({
+                  x: (pt.x / scale) / width,
+                  y: (pt.y / scale) / height,
+                });
+              }
+              
+              // Sort corners: top-left, top-right, bottom-right, bottom-left
+              corners.sort((a, b) => a.y - b.y);
+              const top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
+              const bottom = corners.slice(2, 4).sort((a, b) => b.x - a.x);
+              bestCorners = [top[0], top[1], bottom[0], bottom[1]];
+            }
           }
-          
-          // Create a data URI for display
-          const uri = `data:image/jpeg;base64,${base64Data}`;
-          
-          newImages.push({
-            uri: uri,
-            base64: base64Data,
-            width: 0, // Will be determined when saved
-            height: 0,
-          });
-          
-          console.log(`[Scanner] Processed image ${i + 1}, base64 length: ${base64Data.length}`);
-        }
-        
-        if (newImages.length > 0) {
-          setCapturedImages(prev => [...prev, ...newImages]);
-          setShowPreview(true);
-          console.log(`[Scanner] Added ${newImages.length} images, showing preview`);
         }
       }
-    } catch (error: any) {
-      console.log('[Scanner] Error:', error.message);
-      if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
-        // Fallback to manual capture
-        await captureManually();
+      
+      // Clear OpenCV buffers
+      OpenCV.clearBuffers();
+      
+      // Update state (via runOnJS if needed)
+      if (bestCorners) {
+        // This would need to be called via runOnJS
+        // For now, we'll use a different approach
       }
-    } finally {
-      setIsCapturing(false);
+    } catch (e) {
+      // Silently handle errors in frame processor
     }
-  };
+  }, []) : null;
   
   // =============================================================================
-  // MANUAL CAPTURE (fallback when plugin not available)
+  // CAPTURE IMAGE
   // =============================================================================
   
-  const captureManually = async () => {
-    if (!cameraRef.current) {
-      Alert.alert('Error', 'Camera not ready');
-      return;
-    }
+  const captureImage = async () => {
+    if (isCapturing || !cameraRef.current) return;
     
     setIsCapturing(true);
     
     try {
       await playShutterSound();
       
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.9,
-        base64: true,
+      // Take photo with VisionCamera
+      const photo = await cameraRef.current.takePhoto({
+        flash: flashOn ? 'on' : 'off',
+        qualityPrioritization: 'quality',
       });
       
       if (photo) {
+        const uri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
+        
+        // Get base64
+        const manipResult = await ImageManipulator.manipulateAsync(
+          uri,
+          [],
+          { base64: true, compress: 0.9 }
+        );
+        
         const newImage: CapturedImage = {
-          uri: photo.uri,
-          base64: photo.base64 || '',
+          uri: uri,
+          base64: manipResult.base64 || '',
           width: photo.width,
           height: photo.height,
         };
         
         setCapturedImages(prev => [...prev, newImage]);
         setShowPreview(true);
-        console.log('[Scanner] Manual capture successful');
+        stabilizer.reset();
+        setDetectedCorners(null);
+        setIsDocumentStable(false);
       }
     } catch (error) {
-      console.error('[Scanner] Manual capture error:', error);
+      console.error('[Scanner] Capture error:', error);
       Alert.alert('Error', 'Failed to capture image. Please try again.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+  
+  // =============================================================================
+  // FALLBACK: Use document scanner plugin
+  // =============================================================================
+  
+  const captureWithPlugin = async () => {
+    setIsCapturing(true);
+    
+    try {
+      await playShutterSound();
+      
+      let DocumentScanner: any;
+      try {
+        DocumentScanner = require('react-native-document-scanner-plugin').default;
+      } catch (e) {
+        Alert.alert('Error', 'Scanner not available');
+        setIsCapturing(false);
+        return;
+      }
+      
+      const result = await DocumentScanner.scanDocument({
+        maxNumDocuments: 10,
+        croppedImageQuality: 90,
+        responseType: 'base64',
+      });
+      
+      if (result?.scannedImages && result.scannedImages.length > 0) {
+        const newImages: CapturedImage[] = result.scannedImages.map((imageData: string) => {
+          let base64Data = imageData;
+          if (base64Data.startsWith('data:')) {
+            base64Data = base64Data.split(',')[1];
+          }
+          return {
+            uri: `data:image/jpeg;base64,${base64Data}`,
+            base64: base64Data,
+            width: 0,
+            height: 0,
+          };
+        });
+        
+        setCapturedImages(prev => [...prev, ...newImages]);
+        setShowPreview(true);
+      }
+    } catch (error: any) {
+      if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
+        console.error('[Scanner] Plugin error:', error);
+      }
     } finally {
       setIsCapturing(false);
     }
@@ -308,8 +506,8 @@ export default function ScannerScreen() {
         setShowPreview(true);
       }
     } catch (error) {
-      console.error('[Scanner] Gallery picker error:', error);
-      Alert.alert('Error', 'Failed to select images from gallery.');
+      console.error('[Scanner] Gallery error:', error);
+      Alert.alert('Error', 'Failed to select images.');
     }
   };
   
@@ -337,15 +535,13 @@ export default function ScannerScreen() {
       return;
     }
     
-    // Validate that we have base64 data
     const validImages = capturedImages.filter(img => img.base64 && img.base64.length > 100);
     if (validImages.length === 0) {
-      Alert.alert('Error', 'No valid images to save. Please scan again.');
+      Alert.alert('Error', 'No valid images to save.');
       return;
     }
     
     setIsSaving(true);
-    console.log(`[Scanner] Saving ${validImages.length} images...`);
     
     try {
       const documentData = {
@@ -361,10 +557,7 @@ export default function ScannerScreen() {
         tags: [],
       };
       
-      console.log('[Scanner] Document data prepared, pages:', documentData.pages.length);
-      
       if (addToDocumentId) {
-        // Add pages to existing document
         const existingDoc = getDocument(addToDocumentId);
         if (existingDoc) {
           const newPages = validImages.map((img, index) => ({
@@ -378,72 +571,183 @@ export default function ScannerScreen() {
           await updateDocument(addToDocumentId, {
             pages: [...existingDoc.pages, ...newPages],
           }, token || undefined);
-          
-          console.log('[Scanner] Added pages to existing document');
         }
         router.back();
       } else {
-        // Create new document
-        console.log('[Scanner] Creating new document...');
         const newDocId = await addDocument(documentData, token || undefined);
-        
         if (newDocId) {
-          console.log('[Scanner] Document created with ID:', newDocId);
           router.replace(`/document/${newDocId}`);
         } else {
-          throw new Error('Failed to create document - no ID returned');
+          throw new Error('Failed to create document');
         }
       }
     } catch (error: any) {
       console.error('[Scanner] Save error:', error);
-      Alert.alert(
-        'Save Error', 
-        `Failed to save document: ${error.message || 'Unknown error'}. Please try again.`
-      );
+      Alert.alert('Save Error', `Failed to save: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
   };
   
-  // Toggle flash
-  const toggleFlash = () => {
-    setFlashMode(prev => prev === 'off' ? 'on' : 'off');
+  // =============================================================================
+  // RENDER EDGE OVERLAY
+  // =============================================================================
+  
+  const renderEdgeOverlay = () => {
+    if (!detectedCorners || detectedCorners.length !== 4) return null;
+    
+    const points = detectedCorners.map(c => 
+      `${c.x * SCREEN_WIDTH},${c.y * SCREEN_HEIGHT}`
+    ).join(' ');
+    
+    const color = isDocumentStable ? '#10B981' : '#3B82F6';
+    
+    return (
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* Polygon fill */}
+        <Polygon
+          points={points}
+          fill={`${color}20`}
+          stroke={color}
+          strokeWidth={3}
+        />
+        
+        {/* Corner circles */}
+        {detectedCorners.map((corner, index) => (
+          <Circle
+            key={index}
+            cx={corner.x * SCREEN_WIDTH}
+            cy={corner.y * SCREEN_HEIGHT}
+            r={12}
+            fill={color}
+            stroke="#FFF"
+            strokeWidth={2}
+          />
+        ))}
+        
+        {/* Edge lines for emphasis */}
+        {detectedCorners.map((corner, index) => {
+          const nextIndex = (index + 1) % 4;
+          return (
+            <Line
+              key={`line-${index}`}
+              x1={corner.x * SCREEN_WIDTH}
+              y1={corner.y * SCREEN_HEIGHT}
+              x2={detectedCorners[nextIndex].x * SCREEN_WIDTH}
+              y2={detectedCorners[nextIndex].y * SCREEN_HEIGHT}
+              stroke={color}
+              strokeWidth={3}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </Svg>
+    );
   };
   
   // =============================================================================
   // PERMISSION CHECK
   // =============================================================================
   
-  if (!permission) {
+  if (!isNativeAvailable) {
+    // Fallback UI when native camera is not available
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={[styles.container, { backgroundColor: '#000' }]}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+            <Ionicons name="close" size={28} color="#FFF" />
+          </TouchableOpacity>
+          <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
+            <Ionicons name={currentType.icon} size={16} color={currentType.color} />
+            <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
+          </View>
+          <View style={{ width: 44 }} />
+        </View>
+        
+        <View style={styles.frameContainer}>
+          <View style={styles.nativeUnavailable}>
+            <Ionicons name="scan" size={64} color="#3B82F6" />
+            <Text style={styles.nativeTitle}>Document Scanner</Text>
+            <Text style={styles.nativeSubtitle}>
+              Tap the button below to start scanning with{'\n'}real-time edge detection
+            </Text>
+          </View>
+        </View>
+        
+        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.typeSelector}
+          >
+            {DOCUMENT_TYPES.map((type, index) => (
+              <TouchableOpacity
+                key={type.type}
+                style={[
+                  styles.typeBtn,
+                  selectedTypeIndex === index && {
+                    backgroundColor: type.color + '30',
+                    borderColor: type.color,
+                    borderWidth: 2,
+                  }
+                ]}
+                onPress={() => setSelectedTypeIndex(index)}
+              >
+                <Ionicons 
+                  name={type.icon} 
+                  size={22} 
+                  color={selectedTypeIndex === index ? type.color : '#94A3B8'} 
+                />
+                <Text style={[styles.typeLabel, { color: selectedTypeIndex === index ? type.color : '#94A3B8' }]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          <View style={styles.mainButtons}>
+            <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
+              <View style={styles.sideBtnInner}>
+                <Ionicons name="images" size={24} color="#FFF" />
+              </View>
+              <Text style={styles.sideBtnText}>Gallery</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
+              onPress={captureWithPlugin}
+              disabled={isCapturing}
+            >
+              {isCapturing ? (
+                <ActivityIndicator size="large" color="#3B82F6" />
+              ) : (
+                <View style={styles.captureBtnInner} />
+              )}
+            </TouchableOpacity>
+            
+            {capturedImages.length > 0 ? (
+              <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
+                <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
+                  <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
+                </View>
+                <Text style={styles.sideBtnText}>Review</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.sideBtn}>
+                <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
+                  <Ionicons name="documents-outline" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.sideBtnText}>Pages</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
     );
   }
   
-  if (!permission.granted) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={64} color={theme.textSecondary} />
-          <Text style={[styles.permissionTitle, { color: theme.text }]}>
-            Camera Permission Required
-          </Text>
-          <Text style={[styles.permissionText, { color: theme.textSecondary }]}>
-            ScanUp needs camera access to scan your documents
-          </Text>
-          <Button title="Grant Permission" onPress={requestPermission} style={{ marginTop: 20 }} />
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-            <Text style={{ color: theme.primary }}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-  
   // =============================================================================
-  // PREVIEW SCREEN - Review scanned pages before saving
+  // PREVIEW SCREEN
   // =============================================================================
   
   if (showPreview && capturedImages.length > 0) {
@@ -506,37 +810,47 @@ export default function ScannerScreen() {
   }
   
   // =============================================================================
-  // CAMERA VIEW - Pre-scan UI with document type selection
+  // NATIVE CAMERA VIEW WITH REAL-TIME EDGE DETECTION
   // =============================================================================
   
   return (
     <View style={[styles.container, { backgroundColor: '#000' }]}>
-      <CameraView
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        facing="back"
-        flash={flashMode}
-      >
-        {/* Top Bar */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color="#FFF" />
-          </TouchableOpacity>
-          
-          <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
-            <Ionicons name={currentType.icon} size={16} color={currentType.color} />
-            <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
-          </View>
-          
-          <TouchableOpacity style={styles.iconBtn} onPress={toggleFlash}>
-            <Ionicons name={flashMode === 'on' ? 'flash' : 'flash-off'} size={24} color="#FFF" />
-          </TouchableOpacity>
+      {device && (
+        <Camera
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={!showPreview}
+          photo={true}
+          torch={flashOn ? 'on' : 'off'}
+          frameProcessor={frameProcessor}
+          frameProcessorFps={5}
+        />
+      )}
+      
+      {/* Edge Detection Overlay */}
+      {renderEdgeOverlay()}
+      
+      {/* Top Bar */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="close" size={28} color="#FFF" />
+        </TouchableOpacity>
+        
+        <View style={[styles.typeIndicator, { backgroundColor: currentType.color + '30' }]}>
+          <Ionicons name={currentType.icon} size={16} color={currentType.color} />
+          <Text style={[styles.typeText, { color: currentType.color }]}>{currentType.label}</Text>
         </View>
         
-        {/* Document Frame Guide */}
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setFlashOn(!flashOn)}>
+          <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Document Frame Guide (when no edges detected) */}
+      {!detectedCorners && (
         <View style={styles.frameContainer}>
           <View style={[styles.docFrame, { width: frameDimensions.width, height: frameDimensions.height }]}>
-            {/* Grid overlay */}
             {showGridOverlay && (
               <View style={styles.gridOverlay}>
                 <View style={[styles.gridLine, styles.gridHorizontal, { top: '33%' }]} />
@@ -545,8 +859,6 @@ export default function ScannerScreen() {
                 <View style={[styles.gridLine, styles.gridVertical, { left: '66%' }]} />
               </View>
             )}
-            
-            {/* Corner brackets */}
             <View style={[styles.corner, styles.tl, { borderColor: currentType.color }]} />
             <View style={[styles.corner, styles.tr, { borderColor: currentType.color }]} />
             <View style={[styles.corner, styles.bl, { borderColor: currentType.color }]} />
@@ -556,90 +868,97 @@ export default function ScannerScreen() {
           <Text style={[styles.guideText, { color: currentType.color }]}>
             {currentType.guide}
           </Text>
-          
-          <Text style={styles.hintText}>
-            Tap capture to scan with edge detection
-          </Text>
         </View>
-        
-        {/* Bottom Controls */}
-        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
-          {/* Document Type Selector */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.typeSelector}
-          >
-            {DOCUMENT_TYPES.map((type, index) => (
-              <TouchableOpacity
-                key={type.type}
-                style={[
-                  styles.typeBtn,
-                  selectedTypeIndex === index && {
-                    backgroundColor: type.color + '30',
-                    borderColor: type.color,
-                    borderWidth: 2,
-                  }
-                ]}
-                onPress={() => setSelectedTypeIndex(index)}
-              >
-                <Ionicons 
-                  name={type.icon} 
-                  size={22} 
-                  color={selectedTypeIndex === index ? type.color : '#94A3B8'} 
-                />
-                <Text style={[
-                  styles.typeLabel,
-                  { color: selectedTypeIndex === index ? type.color : '#94A3B8' }
-                ]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          {/* Main Buttons */}
-          <View style={styles.mainButtons}>
-            {/* Gallery Button */}
-            <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
-              <View style={styles.sideBtnInner}>
-                <Ionicons name="images" size={24} color="#FFF" />
-              </View>
-              <Text style={styles.sideBtnText}>Gallery</Text>
-            </TouchableOpacity>
-            
-            {/* Capture Button - Launches Native Scanner */}
-            <TouchableOpacity 
-              style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]} 
-              onPress={captureWithNativeScanner}
-              disabled={isCapturing}
-            >
-              {isCapturing ? (
-                <ActivityIndicator size="large" color="#3B82F6" />
-              ) : (
-                <View style={styles.captureBtnInner} />
-              )}
-            </TouchableOpacity>
-            
-            {/* Pages indicator / Review button */}
-            {capturedImages.length > 0 ? (
-              <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
-                <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
-                  <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
-                </View>
-                <Text style={styles.sideBtnText}>Review</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.sideBtn}>
-                <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
-                  <Ionicons name="documents-outline" size={24} color="#FFF" />
-                </View>
-                <Text style={styles.sideBtnText}>Pages</Text>
-              </View>
-            )}
+      )}
+      
+      {/* Detection Status */}
+      {detectedCorners && (
+        <View style={styles.detectionStatus}>
+          <View style={[styles.statusBadge, { backgroundColor: isDocumentStable ? '#10B981' : '#3B82F6' }]}>
+            <Ionicons name={isDocumentStable ? 'checkmark-circle' : 'scan-outline'} size={16} color="#FFF" />
+            <Text style={styles.statusText}>
+              {isDocumentStable ? 'Ready to capture!' : 'Hold steady...'}
+            </Text>
           </View>
         </View>
-      </CameraView>
+      )}
+      
+      {/* Bottom Controls */}
+      <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 16 }]}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.typeSelector}
+        >
+          {DOCUMENT_TYPES.map((type, index) => (
+            <TouchableOpacity
+              key={type.type}
+              style={[
+                styles.typeBtn,
+                selectedTypeIndex === index && {
+                  backgroundColor: type.color + '30',
+                  borderColor: type.color,
+                  borderWidth: 2,
+                }
+              ]}
+              onPress={() => setSelectedTypeIndex(index)}
+            >
+              <Ionicons 
+                name={type.icon} 
+                size={22} 
+                color={selectedTypeIndex === index ? type.color : '#94A3B8'} 
+              />
+              <Text style={[styles.typeLabel, { color: selectedTypeIndex === index ? type.color : '#94A3B8' }]}>
+                {type.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <View style={styles.mainButtons}>
+          <TouchableOpacity style={styles.sideBtn} onPress={pickFromGallery}>
+            <View style={styles.sideBtnInner}>
+              <Ionicons name="images" size={24} color="#FFF" />
+            </View>
+            <Text style={styles.sideBtnText}>Gallery</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[
+              styles.captureBtn, 
+              isCapturing && styles.captureBtnDisabled,
+              isDocumentStable && styles.captureBtnReady
+            ]} 
+            onPress={captureImage}
+            disabled={isCapturing}
+          >
+            {isCapturing ? (
+              <ActivityIndicator size="large" color="#3B82F6" />
+            ) : (
+              <View style={[
+                styles.captureBtnInner,
+                isDocumentStable && { backgroundColor: '#10B981', borderColor: '#10B981' }
+              ]} />
+            )}
+          </TouchableOpacity>
+          
+          {capturedImages.length > 0 ? (
+            <TouchableOpacity style={styles.sideBtn} onPress={() => setShowPreview(true)}>
+              <View style={[styles.sideBtnInner, { backgroundColor: '#10B981' }]}>
+                <Text style={styles.pagesCountText}>{capturedImages.length}</Text>
+              </View>
+              <Text style={styles.sideBtnText}>Review</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.sideBtn}>
+              <View style={[styles.sideBtnInner, { opacity: 0.5 }]}>
+                <Ionicons name="documents-outline" size={24} color="#FFF" />
+              </View>
+              <Text style={styles.sideBtnText}>Pages</Text>
+            </View>
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -651,26 +970,6 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  
-  // Permission
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  permissionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  permissionText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 12,
-    lineHeight: 24,
   },
   
   // Top Bar
@@ -707,14 +1006,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Frame Container
+  // Frame
   frameContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   docFrame: {
-    borderWidth: 0,
     position: 'relative',
   },
   corner: {
@@ -735,16 +1033,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  gridHorizontal: {
-    left: 0,
-    right: 0,
-    height: 1,
-  },
-  gridVertical: {
-    top: 0,
-    bottom: 0,
-    width: 1,
-  },
+  gridHorizontal: { left: 0, right: 0, height: 1 },
+  gridVertical: { top: 0, bottom: 0, width: 1 },
   
   guideText: {
     fontSize: 18,
@@ -752,11 +1042,46 @@ const styles = StyleSheet.create({
     marginTop: 24,
     textAlign: 'center',
   },
-  hintText: {
+  
+  // Native unavailable
+  nativeUnavailable: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  nativeTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+    marginTop: 16,
+  },
+  nativeSubtitle: {
     fontSize: 14,
     color: '#94A3B8',
-    marginTop: 8,
     textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
+  },
+  
+  // Detection status
+  detectionStatus: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    gap: 8,
+  },
+  statusText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   
   // Bottom Controls
@@ -820,6 +1145,9 @@ const styles = StyleSheet.create({
   captureBtnDisabled: {
     opacity: 0.5,
   },
+  captureBtnReady: {
+    borderColor: '#10B981',
+  },
   captureBtnInner: {
     width: 60,
     height: 60,
@@ -834,7 +1162,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  // Preview Screen
+  // Preview
   previewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
