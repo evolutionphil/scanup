@@ -31,6 +31,7 @@ export default function FolderDetailScreen() {
   const { id, folder_name } = useLocalSearchParams<{ id: string; folder_name: string }>();
   const { token } = useAuthStore();
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const { documents, folders, fetchDocuments, fetchFolders, updateDocument, deleteFolder, updateFolder } = useDocumentStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showAddDocModal, setShowAddDocModal] = useState(false);
