@@ -381,6 +381,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         return;
       }
 
+      // First, load from local cache for instant display
+      const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
+      if (cached) {
+        const cachedDocs = JSON.parse(cached);
+        set({ documents: cachedDocs });
+      }
+
       const queryParams = new URLSearchParams();
       if (params.folder_id) queryParams.append('folder_id', params.folder_id);
       if (params.search) queryParams.append('search', params.search);
@@ -394,10 +401,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (!response.ok) throw new Error('Failed to fetch documents');
       const documents = await response.json();
       set({ documents, isLoading: false });
+      
+      // Save to local cache for next time
+      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(documents));
     } catch (e) {
       console.error('Error fetching documents:', e);
       set({ isLoading: false });
-      throw e;
+      // Don't throw if we have cached data
+      const { documents } = get();
+      if (documents.length === 0) {
+        throw e;
+      }
     }
   },
 
