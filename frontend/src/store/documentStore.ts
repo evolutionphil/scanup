@@ -733,39 +733,43 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   // Migrate guest/local documents to user account after login
-  migrateGuestDocumentsToAccount: async (token: string) => {
+  // This function now checks if migration was already done for this user
+  migrateGuestDocumentsToAccount: async (token: string, userId: string) => {
     try {
+      // Check if already migrated for this user
+      const migratedKey = `migrated_docs_${userId}`;
+      const alreadyMigrated = await AsyncStorage.getItem(migratedKey);
+      
+      if (alreadyMigrated === 'true') {
+        console.log('Documents already migrated for this user');
+        // Still clear guest docs if any exist
+        await AsyncStorage.removeItem(GUEST_DOCUMENTS_KEY);
+        await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
+        return 0;
+      }
+      
       // Load any stored guest documents
       const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
       const guestDocuments: Document[] = storedDocs ? JSON.parse(storedDocs) : [];
       
-      // Also check for local documents in current state that haven't been synced
-      const { documents, createDocument } = get();
-      const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
-      
-      // Combine both sources (avoid duplicates)
-      const allLocalDocs = [...guestDocuments];
-      for (const doc of localDocs) {
-        if (!allLocalDocs.find(d => d.document_id === doc.document_id)) {
-          allLocalDocs.push(doc);
-        }
-      }
-      
-      if (allLocalDocs.length === 0) {
-        console.log('No local documents to migrate');
+      if (guestDocuments.length === 0) {
+        console.log('No guest documents to migrate');
+        // Mark as migrated anyway to prevent future checks
+        await AsyncStorage.setItem(migratedKey, 'true');
         return 0;
       }
       
-      console.log(`Migrating ${allLocalDocs.length} local documents to account...`);
+      console.log(`Migrating ${guestDocuments.length} guest documents to account...`);
       
       let migratedCount = 0;
+      const { createDocument } = get();
       
-      for (const localDoc of allLocalDocs) {
+      for (const localDoc of guestDocuments) {
         try {
           // Create a new document in the user's account
           const newDoc = await createDocument(token, {
             name: localDoc.name,
-            folder_id: undefined, // Put in root folder
+            folder_id: undefined,
             tags: localDoc.tags || [],
             pages: localDoc.pages.map(page => ({
               image_base64: page.image_base64,
@@ -786,13 +790,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         }
       }
       
-      // Clear guest documents after successful migration
-      if (migratedCount > 0) {
-        await AsyncStorage.removeItem(GUEST_DOCUMENTS_KEY);
-        await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
-        console.log(`Successfully migrated ${migratedCount} documents`);
-      }
+      // Clear guest documents and mark as migrated
+      await AsyncStorage.removeItem(GUEST_DOCUMENTS_KEY);
+      await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
+      await AsyncStorage.setItem(migratedKey, 'true');
       
+      console.log(`Successfully migrated ${migratedCount} documents`);
       return migratedCount;
     } catch (e) {
       console.error('Error migrating guest documents:', e);
