@@ -162,7 +162,7 @@ export default function ScannerScreen() {
   const params = useLocalSearchParams();
   const { theme } = useThemeStore();
   const { user, isGuest, token } = useAuthStore();
-  const { addDocument, updateDocument, getDocument } = useDocumentStore();
+  const { createDocumentLocalFirst, updateDocument, documents } = useDocumentStore();
   const insets = useSafeAreaInsets();
   
   // VisionCamera hooks (only used on native)
