@@ -21,7 +21,13 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
-import DocumentScanner from 'react-native-document-scanner-plugin';
+// Native document scanner - only available on real devices (iOS/Android)
+let DocumentScanner: any = null;
+try {
+  DocumentScanner = require('react-native-document-scanner-plugin').default;
+} catch (e) {
+  console.log('DocumentScanner not available (web preview)');
+}
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
