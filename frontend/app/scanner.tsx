@@ -243,29 +243,67 @@ export default function ScannerScreen() {
     
     try {
       const currentImage = capturedImages[selectedImageIndex];
-      let manipulations: ImageManipulator.Action[] = [];
       
-      // Note: ImageManipulator has limited filter options
-      // For real filters, you'd need a more advanced library
-      // This is a simplified version
-      
-      if (filterId === 'grayscale') {
-        // Convert to grayscale by desaturating
-        // ImageManipulator doesn't support grayscale directly,
-        // but we can mark it for backend processing
+      // If original, reset to original image
+      if (filterId === 'original') {
+        const updatedImages = [...capturedImages];
+        updatedImages[selectedImageIndex] = {
+          ...currentImage,
+          filter: filterId,
+        };
+        setCapturedImages(updatedImages);
+        setIsProcessing(false);
+        return;
       }
       
-      // For now, just update the filter tag
-      // Real filtering would require backend processing or a native module
-      const updatedImages = [...capturedImages];
-      updatedImages[selectedImageIndex] = {
-        ...currentImage,
-        filter: filterId,
-      };
-      setCapturedImages(updatedImages);
+      // Apply filter via backend
+      const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+      const response = await fetch(`${BACKEND_URL}/api/images/process-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_base64: currentImage.base64,
+          operation: 'filter',
+          params: {
+            type: filterId,
+            brightness: 0,
+            contrast: 0,
+            saturation: 0,
+          },
+        }),
+      });
       
+      if (response.ok) {
+        const result = await response.json();
+        if (result.processed_image_base64) {
+          const updatedImages = [...capturedImages];
+          updatedImages[selectedImageIndex] = {
+            ...currentImage,
+            base64: result.processed_image_base64,
+            uri: `data:image/jpeg;base64,${result.processed_image_base64}`,
+            filter: filterId,
+          };
+          setCapturedImages(updatedImages);
+        }
+      } else {
+        // Fallback - just mark the filter
+        const updatedImages = [...capturedImages];
+        updatedImages[selectedImageIndex] = {
+          ...currentImage,
+          filter: filterId,
+        };
+        setCapturedImages(updatedImages);
+      }
     } catch (error) {
       console.error('[Scanner] Filter error:', error);
+      // Fallback - just mark the filter
+      const updatedImages = [...capturedImages];
+      const currentImage = capturedImages[selectedImageIndex];
+      updatedImages[selectedImageIndex] = {
+        ...currentImage,
+        filter: selectedFilter,
+      };
+      setCapturedImages(updatedImages);
     } finally {
       setIsProcessing(false);
     }
