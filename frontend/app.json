@@ -104,7 +104,8 @@
         {
           "microphonePermission": "Allow ScanUp to access your microphone for video capture"
         }
-      ]
+      ],
+      "@shopify/react-native-skia"
     ],
     "experiments": {
       "typedRoutes": true
