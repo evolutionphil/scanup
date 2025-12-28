@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
 import Button from './Button';
@@ -59,6 +60,7 @@ export default function ExportModal({
 }: ExportModalProps) {
   const { theme } = useThemeStore();
   const { isGuest } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [selectedFormat, setSelectedFormat] = useState<string>('pdf');
   const [includeOcr, setIncludeOcr] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -83,15 +85,6 @@ export default function ExportModal({
       let fileName: string;
       let mimeType: string;
 
-      console.log('=== EXPORT DEBUG ===');
-      console.log('Format:', selectedFormat);
-      console.log('Is Guest:', isGuest);
-      console.log('Document ID:', documentId);
-      console.log('Has Token:', !!token);
-      console.log('Pages count:', pages?.length);
-      console.log('FileSystem.cacheDirectory:', FileSystem.cacheDirectory);
-      console.log('FileSystem.documentDirectory:', FileSystem.documentDirectory);
-
       // For JPEG and PNG, handle locally
       if (selectedFormat === 'jpeg' || selectedFormat === 'png') {
         if (!pages || pages.length === 0) {
@@ -100,7 +93,7 @@ export default function ExportModal({
         
         const firstPage = pages[0];
         if (!firstPage || !firstPage.image_base64) {
-          throw new Error('First page has no image_base64 data');
+          throw new Error('First page has no image data');
         }
         
         fileBase64 = firstPage.image_base64;
@@ -128,8 +121,6 @@ export default function ExportModal({
           throw new Error('Page images not available. Please try again.');
         }
         
-        console.log('Calling public export endpoint...');
-        
         const response = await fetch(`${BACKEND_URL}/api/export/public`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -140,12 +131,9 @@ export default function ExportModal({
           }),
         });
         
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Export error response:', errorText);
-          throw new Error(`Export failed: ${response.status} - ${errorText}`);
+          throw new Error(`Export failed: ${response.status}`);
         }
         
         const result = await response.json();
@@ -163,36 +151,26 @@ export default function ExportModal({
         return;
       } else {
         // Use backend for TIFF, DOCX and other formats (require authentication)
-        console.log('Calling backend export...');
-        
-        const requestBody = {
-          format: selectedFormat,
-          include_ocr: includeOcr || format.requiresOcr,
-        };
-        
         const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}/export`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({
+            format: selectedFormat,
+            include_ocr: includeOcr || format.requiresOcr,
+          }),
         });
 
-        console.log('Response status:', response.status);
-
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Export error response:', errorText);
-          throw new Error(`Export failed: ${response.status} - ${errorText}`);
+          throw new Error(`Export failed: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('Export result keys:', Object.keys(result));
-        console.log('Has file_base64:', !!result.file_base64);
         
         if (!result.file_base64) {
-          throw new Error('No file_base64 data received from server');
+          throw new Error('No file data received from server');
         }
         
         fileBase64 = result.file_base64;
@@ -200,40 +178,27 @@ export default function ExportModal({
         mimeType = result.mime_type || format.mimeType;
       }
 
-      // Get the cache directory - use documentDirectory as fallback
+      // Get the cache directory
       const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       
       if (!cacheDir) {
-        // If no filesystem access (Expo Go web?), show a message
-        Alert.alert(
-          'Export Ready',
-          'File export is not supported in this environment. Please use a development build or standalone app for full export functionality.',
-          [{ text: 'OK', onPress: onClose }]
-        );
+        Alert.alert('Error', 'File system not available.');
         return;
       }
       
       const fileUri = `${cacheDir}${fileName}`;
-      console.log('Saving to:', fileUri);
-      console.log('Base64 length:', fileBase64?.length || 0);
       
       if (!fileBase64 || fileBase64.length === 0) {
         throw new Error('File data is empty');
       }
       
-      // Write file with proper encoding - check if EncodingType exists
-      const encoding = FileSystem.EncodingType?.Base64 || 'base64';
-      console.log('Using encoding:', encoding);
-      
+      // Write file
       await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
-        encoding: encoding as any,
+        encoding: FileSystem.EncodingType.Base64,
       });
-
-      console.log('File written successfully');
       
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
-      console.log('Sharing available:', isAvailable);
       
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
@@ -246,16 +211,8 @@ export default function ExportModal({
         onClose();
       }
     } catch (error: any) {
-      console.error('=== EXPORT ERROR ===');
-      console.error('Error:', error);
-      
-      // Provide more helpful error message
-      let errorMessage = error.message || 'Unknown error occurred';
-      if (errorMessage.includes('Base64') || errorMessage.includes('undefined')) {
-        errorMessage = 'File system not fully available in Expo Go. Try using a development build for PDF export.';
-      }
-      
-      Alert.alert('Export Failed', errorMessage);
+      console.error('Export error:', error);
+      Alert.alert('Export Failed', error.message || 'Unknown error occurred');
     } finally {
       setIsExporting(false);
     }
@@ -263,9 +220,9 @@ export default function ExportModal({
 
   const selectedFormatInfo = EXPORT_FORMATS.find((f) => f.id === selectedFormat);
   
-  // Filter formats for guests (only JPEG available without backend)
+  // All formats available for logged-in users, PDF/JPEG for guests
   const availableFormats = isGuest 
-    ? EXPORT_FORMATS.filter(f => f.id === 'jpeg')
+    ? EXPORT_FORMATS.filter(f => f.id === 'pdf' || f.id === 'jpeg')
     : EXPORT_FORMATS;
 
   return (
@@ -276,7 +233,13 @@ export default function ExportModal({
       onRequestClose={onClose}
     >
       <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-        <View style={[styles.content, { backgroundColor: theme.surface }]}>
+        <View style={[
+          styles.content, 
+          { 
+            backgroundColor: theme.surface,
+            paddingBottom: Math.max(insets.bottom, 24) + 16,
+          }
+        ]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.text }]}>Export Document</Text>
             <TouchableOpacity onPress={onClose}>
@@ -288,7 +251,7 @@ export default function ExportModal({
             <View style={[styles.guestNotice, { backgroundColor: theme.warning + '20' }]}>
               <Ionicons name="information-circle" size={20} color={theme.warning} />
               <Text style={[styles.guestNoticeText, { color: theme.warning }]}>
-                Sign in to unlock PDF and advanced exports
+                Sign in to unlock all export formats
               </Text>
             </View>
           )}
