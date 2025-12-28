@@ -67,13 +67,6 @@
       "expo-font",
       "expo-localization",
       [
-        "react-native-vision-camera",
-        {
-          "cameraPermission": "ScanUp needs camera access to scan documents with real-time edge detection",
-          "enableMicrophonePermission": false
-        }
-      ],
-      [
         "expo-camera",
         {
           "cameraPermission": "Allow ScanUp to access your camera to scan documents"
