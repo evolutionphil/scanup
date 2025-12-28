@@ -306,6 +306,21 @@ export default function ScannerScreen() {
     try {
       await playShutterSound();
       
+      // Dynamically import native scanner (only works on real devices)
+      let DocumentScanner: any;
+      try {
+        DocumentScanner = require('react-native-document-scanner-plugin').default;
+      } catch (e) {
+        console.log('Native scanner not available, using manual capture');
+        captureManually();
+        return;
+      }
+      
+      if (!DocumentScanner) {
+        captureManually();
+        return;
+      }
+      
       const result = await DocumentScanner.scanDocument({
         maxNumDocuments: 1,
         croppedImageQuality: 95,
