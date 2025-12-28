@@ -9,14 +9,17 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import Slider from './Slider';
 import Button from './Button';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface FilterValues {
   brightness: number;
@@ -41,7 +44,7 @@ interface FilterEditorProps {
   currentFilter: string;
   onApply: (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => void;
   isProcessing?: boolean;
-  token?: string;
+  token?: string | null;
 }
 
 export default function FilterEditor({
@@ -55,6 +58,7 @@ export default function FilterEditor({
   token,
 }: FilterEditorProps) {
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState(currentFilter || 'original');
   const [brightness, setBrightness] = useState(50);
   const [contrast, setContrast] = useState(50);
@@ -64,7 +68,7 @@ export default function FilterEditor({
   // Live preview state
   const [previewImage, setPreviewImage] = useState<string>(imageBase64);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewTimeout, setPreviewTimeout] = useState<NodeJS.Timeout | null>(null);
+  const previewTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Reset when modal opens
   useEffect(() => {
@@ -89,19 +93,21 @@ export default function FilterEditor({
       return;
     }
 
-    // If no token, can't preview
-    if (!token) {
-      return;
-    }
-
     setIsLoadingPreview(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/images/process`, {
+      // Use public endpoint if no token (guest users)
+      const endpoint = token 
+        ? `${BACKEND_URL}/api/images/process`
+        : `${BACKEND_URL}/api/images/process-public`;
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           image_base64: baseImage,
           operation: 'filter',
@@ -132,21 +138,19 @@ export default function FilterEditor({
     if (!visible) return;
 
     // Clear existing timeout
-    if (previewTimeout) {
-      clearTimeout(previewTimeout);
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
     }
 
     // Set new timeout for debounced update
-    const timeout = setTimeout(() => {
+    previewTimeoutRef.current = setTimeout(() => {
       updatePreview(selectedFilter, brightness, contrast, saturation);
     }, 300); // 300ms debounce
 
-    setPreviewTimeout(timeout);
-
     return () => {
-      if (timeout) clearTimeout(timeout);
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
     };
-  }, [selectedFilter, brightness, contrast, saturation, visible]);
+  }, [selectedFilter, brightness, contrast, saturation, visible, updatePreview]);
 
   const handleApply = () => {
     onApply(selectedFilter, {
@@ -174,6 +178,14 @@ export default function FilterEditor({
     setPreviewImage(originalImageBase64 || imageBase64);
   };
 
+  // Ensure image has proper prefix
+  const getImageUri = (base64: string) => {
+    if (!base64) return '';
+    if (base64.startsWith('data:')) return base64;
+    if (base64.startsWith('http')) return base64;
+    return `data:image/jpeg;base64,${base64}`;
+  };
+
   return (
     <Modal
       visible={visible}
@@ -181,143 +193,158 @@ export default function FilterEditor({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-        <View style={[styles.content, { backgroundColor: theme.surface }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <Text style={[styles.title, { color: theme.text }]}>Adjust & Filter</Text>
-            <TouchableOpacity onPress={handleReset}>
-              <Text style={[styles.resetText, { color: theme.primary }]}>Reset</Text>
-            </TouchableOpacity>
-          </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
+      >
+        <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+          <View style={[
+            styles.content, 
+            { 
+              backgroundColor: theme.surface,
+              paddingBottom: Math.max(insets.bottom, 20) + 16,
+            }
+          ]}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.title, { color: theme.text }]}>Adjust & Filter</Text>
+              <TouchableOpacity onPress={handleReset} style={styles.headerBtn}>
+                <Text style={[styles.resetText, { color: theme.primary }]}>Reset</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Live Preview */}
-          <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: `data:image/jpeg;base64,${previewImage}` }}
-              style={styles.preview}
-              resizeMode="contain"
-            />
-            {(isProcessing || isLoadingPreview) && (
-              <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color={theme.primary} />
-                <Text style={styles.processingText}>
-                  {isProcessing ? 'Applying...' : 'Previewing...'}
-                </Text>
+            {/* Live Preview */}
+            <View style={styles.previewContainer}>
+              <Image
+                source={{ uri: getImageUri(previewImage) }}
+                style={styles.preview}
+                resizeMode="contain"
+              />
+              {(isProcessing || isLoadingPreview) && (
+                <View style={styles.processingOverlay}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <Text style={styles.processingText}>
+                    {isProcessing ? 'Applying...' : 'Updating preview...'}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.livePreviewBadge, { backgroundColor: theme.success + '20' }]}>
+                <Ionicons name="eye" size={12} color={theme.success} />
+                <Text style={[styles.livePreviewText, { color: theme.success }]}>Live Preview</Text>
+              </View>
+            </View>
+
+            {/* Filter Presets */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
+              <View style={styles.presets}>
+                {FILTER_PRESETS.map((preset) => (
+                  <TouchableOpacity
+                    key={preset.id}
+                    style={[
+                      styles.presetItem,
+                      { backgroundColor: theme.background },
+                      selectedFilter === preset.id && { borderColor: theme.primary, borderWidth: 2 },
+                    ]}
+                    onPress={() => setSelectedFilter(preset.id)}
+                  >
+                    <View style={[
+                      styles.presetIcon,
+                      { backgroundColor: selectedFilter === preset.id ? theme.primary + '20' : theme.surfaceVariant || theme.surface },
+                    ]}>
+                      <Ionicons
+                        name={preset.icon as any}
+                        size={22}
+                        color={selectedFilter === preset.id ? theme.primary : theme.textMuted}
+                      />
+                    </View>
+                    <Text style={[
+                      styles.presetName,
+                      { color: selectedFilter === preset.id ? theme.primary : theme.textMuted },
+                    ]}>
+                      {preset.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Advanced Toggle */}
+            <TouchableOpacity
+              style={styles.advancedToggle}
+              onPress={() => setShowAdvanced(!showAdvanced)}
+            >
+              <Text style={[styles.advancedText, { color: theme.textSecondary }]}>
+                Fine-tune adjustments
+              </Text>
+              <Ionicons
+                name={showAdvanced ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Sliders */}
+            {showAdvanced && (
+              <View style={styles.sliders}>
+                <Slider
+                  label="Brightness"
+                  value={brightness}
+                  onValueChange={setBrightness}
+                  minimumValue={0}
+                  maximumValue={100}
+                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
+                />
+                <Slider
+                  label="Contrast"
+                  value={contrast}
+                  onValueChange={setContrast}
+                  minimumValue={0}
+                  maximumValue={100}
+                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
+                />
+                <Slider
+                  label="Saturation"
+                  value={saturation}
+                  onValueChange={setSaturation}
+                  minimumValue={0}
+                  maximumValue={100}
+                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
+                />
               </View>
             )}
-            <View style={[styles.livePreviewBadge, { backgroundColor: theme.success + '20' }]}>
-              <Ionicons name="eye" size={12} color={theme.success} />
-              <Text style={[styles.livePreviewText, { color: theme.success }]}>Live Preview</Text>
-            </View>
-          </View>
 
-          {/* Filter Presets */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
-            <View style={styles.presets}>
-              {FILTER_PRESETS.map((preset) => (
-                <TouchableOpacity
-                  key={preset.id}
-                  style={[
-                    styles.presetItem,
-                    { backgroundColor: theme.background },
-                    selectedFilter === preset.id && { borderColor: theme.primary, borderWidth: 2 },
-                  ]}
-                  onPress={() => setSelectedFilter(preset.id)}
-                >
-                  <View style={[
-                    styles.presetIcon,
-                    { backgroundColor: selectedFilter === preset.id ? theme.primary + '20' : theme.surfaceVariant || theme.surface },
-                  ]}>
-                    <Ionicons
-                      name={preset.icon as any}
-                      size={22}
-                      color={selectedFilter === preset.id ? theme.primary : theme.textMuted}
-                    />
-                  </View>
-                  <Text style={[
-                    styles.presetName,
-                    { color: selectedFilter === preset.id ? theme.primary : theme.textMuted },
-                  ]}>
-                    {preset.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-
-          {/* Advanced Toggle */}
-          <TouchableOpacity
-            style={styles.advancedToggle}
-            onPress={() => setShowAdvanced(!showAdvanced)}
-          >
-            <Text style={[styles.advancedText, { color: theme.textSecondary }]}>
-              Fine-tune adjustments
-            </Text>
-            <Ionicons
-              name={showAdvanced ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={theme.textSecondary}
-            />
-          </TouchableOpacity>
-
-          {/* Sliders */}
-          {showAdvanced && (
-            <View style={styles.sliders}>
-              <Slider
-                label="Brightness"
-                value={brightness}
-                onValueChange={setBrightness}
-                minimumValue={0}
-                maximumValue={100}
-                valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
+            {/* Action Buttons */}
+            <View style={styles.actions}>
+              <Button
+                title="Revert to Original"
+                variant="secondary"
+                onPress={handleRevertToOriginal}
+                style={styles.revertButton}
+                icon={<Ionicons name="refresh" size={18} color={theme.primary} />}
               />
-              <Slider
-                label="Contrast"
-                value={contrast}
-                onValueChange={setContrast}
-                minimumValue={0}
-                maximumValue={100}
-                valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
-              />
-              <Slider
-                label="Saturation"
-                value={saturation}
-                onValueChange={setSaturation}
-                minimumValue={0}
-                maximumValue={100}
-                valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
+              <Button
+                title="Apply"
+                onPress={handleApply}
+                loading={isProcessing}
+                disabled={isProcessing}
+                style={styles.applyButton}
+                icon={!isProcessing ? <Ionicons name="checkmark" size={18} color="#FFF" /> : undefined}
               />
             </View>
-          )}
-
-          {/* Action Buttons */}
-          <View style={styles.actions}>
-            <Button
-              title="Revert to Original"
-              variant="outline"
-              onPress={handleRevertToOriginal}
-              style={styles.actionButton}
-              icon={<Ionicons name="refresh" size={18} color={theme.primary} />}
-            />
-            <Button
-              title="Apply"
-              onPress={handleApply}
-              loading={isProcessing}
-              style={[styles.actionButton, { flex: 1.5 }]}
-              icon={!isProcessing ? <Ionicons name="checkmark" size={18} color="#FFF" /> : undefined}
-            />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -325,30 +352,35 @@ const styles = StyleSheet.create({
   content: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '90%',
+    paddingTop: 16,
+    maxHeight: SCREEN_HEIGHT * 0.9,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  headerBtn: {
+    minWidth: 60,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
   },
   resetText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'right',
   },
   previewContainer: {
     height: 200,
-    borderRadius: 12,
+    marginHorizontal: 16,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#000',
     marginBottom: 16,
-    position: 'relative',
   },
   preview: {
     width: '100%',
@@ -356,14 +388,14 @@ const styles = StyleSheet.create({
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   processingText: {
     color: '#FFF',
-    fontSize: 12,
     marginTop: 8,
+    fontSize: 14,
   },
   livePreviewBadge: {
     position: 'absolute',
@@ -371,27 +403,27 @@ const styles = StyleSheet.create({
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 4,
   },
   livePreviewText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
   presetsScroll: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   presets: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   presetItem: {
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     minWidth: 70,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -410,22 +442,30 @@ const styles = StyleSheet.create({
   },
   advancedToggle: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'center',
+    paddingVertical: 10,
     gap: 6,
   },
   advancedText: {
     fontSize: 14,
+    fontWeight: '500',
   },
   sliders: {
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    gap: 8,
   },
   actions: {
     flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 8,
     gap: 12,
   },
-  actionButton: {
+  revertButton: {
+    flex: 1,
+  },
+  applyButton: {
     flex: 1,
   },
 });
