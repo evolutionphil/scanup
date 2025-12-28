@@ -568,7 +568,7 @@ export default function ScannerScreen() {
       };
       
       if (addToDocumentId) {
-        const existingDoc = getDocument(addToDocumentId);
+        const existingDoc = documents.find(d => d.document_id === addToDocumentId);
         if (existingDoc) {
           const newPages = validImages.map((img, index) => ({
             page_number: existingDoc.pages.length + index + 1,
@@ -578,15 +578,15 @@ export default function ScannerScreen() {
             height: img.height || 0,
           }));
           
-          await updateDocument(addToDocumentId, {
+          await updateDocument(token || null, addToDocumentId, {
             pages: [...existingDoc.pages, ...newPages],
-          }, token || undefined);
+          });
         }
         router.back();
       } else {
-        const newDocId = await addDocument(documentData, token || undefined);
-        if (newDocId) {
-          router.replace(`/document/${newDocId}`);
+        const newDoc = await createDocumentLocalFirst(token || null, documentData);
+        if (newDoc && newDoc.document_id) {
+          router.replace(`/document/${newDoc.document_id}`);
         } else {
           throw new Error('Failed to create document');
         }
