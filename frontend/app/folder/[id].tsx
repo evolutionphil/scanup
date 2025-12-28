@@ -433,26 +433,28 @@ export default function FolderDetailScreen() {
         animationType="slide"
         onRequestClose={() => setShowPasswordModal(false)}
       >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setShowPasswordModal(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={[styles.bottomSheet, { backgroundColor: theme.surface }]}>
-            <View style={styles.sheetHandle} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Set Folder Password</Text>
-            <Text style={[styles.passwordHint, { color: theme.textMuted }]}>
-              Protect this folder with a password
-            </Text>
-            
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-              placeholder="Password"
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalBackdrop}>
+              <View style={[styles.bottomSheet, { backgroundColor: theme.surface, paddingBottom: Math.max(insets.bottom, 20) + 16 }]}>
+                <View style={styles.sheetHandle} />
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>Set Folder Password</Text>
+                <Text style={[styles.passwordHint, { color: theme.textMuted }]}>
+                  Protect this folder with a password
+                </Text>
+                
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  placeholder="Password"
+                  placeholderTextColor={theme.textMuted}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  autoFocus={true}
+                />
             
             <TextInput
               style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
