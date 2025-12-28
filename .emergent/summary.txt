@@ -1,199 +1,349 @@
 <analysis>
-**original_problem_statement**: The user wants to enhance the ScanUp mobile app with a variety of new features and bug fixes to improve its functionality and user experience, bringing it closer to competitors like Adobe Scan. The core requests involved fixing scanning mechanics, improving the UI/UX, implementing a freemium model, ensuring production-readiness with cloud storage, and adding advanced scanning features like Book Mode and automatic perspective correction.
+original_problem_statement: The user's initial goal was to enhance the ScanUp mobile app with features like Book Mode, perspective correction, and a freemium model, bringing it closer to competitors like Adobe Scan. The project has since evolved into an iterative cycle of feature implementation and bug fixing based on detailed user feedback.
+
+Recent user requests have focused on fixing a wide range of bugs, improving existing features, and expanding the project's scope. This includes:
+- Fixing numerous UI/UX bugs related to guest user experience, document previews, sharing, and navigation.
+- Improving core scanning features like auto-detection and auto-capture.
+- Enhancing the new Annotations feature to be more robust and usable.
+- A new request to build a comprehensive web-based Admin Dashboard for user management, analytics, and localization.
+- A request for guidance on deploying the backend to a production environment (Railway), which has led to deployment issues.
+- Critical need for real-time, on-device document edge detection in the scanner, similar to Adobe Scan.
 
 **PRODUCT REQUIREMENTS (Summary from recent user messages):**
-- **Core Functionality:**
-    - **Book Scan Mode:** The app must support scanning open books in a single photo. This requires a landscape UI with a visual guide for left/right pages, automatic splitting of the image into two separate pages, and independent perspective correction for each. The user should be able to adjust a 6-point crop overlay (4 outer corners, 2 inner gutter points).
-    - **Automatic Perspective Correction:** After any scan, the document should be automatically transformed into a front-facing, rectangular shape, removing any keystone distortion from angled captures.
-    - **Real-time Edge Detection:** The app should automatically detect the document's edges when the crop screen is presented, pre-populating the crop handles. A manual Auto-Detect button should be available.
-    - **High-Quality Scans:** The final saved images must be of high quality, avoiding excessive compression. The camera should capture at high resolution.
-    - **Batch Scanning:** Implement a continuous scanning mode where the user can scan multiple pages without interruption, returning to the camera view immediately after each capture.
-    - **Document Templates:** Provide pre-defined crop ratios for common document types (e.g., A4, Letter, ID Card) that can be applied on the crop screen.
-    - **Additional Export Formats:** The app should support exporting documents as PNG, TIFF, and Word (.docx) in addition to PDF and JPEG.
-    - **Onboarding/Tutorial:** A simple walkthrough should be shown to new users on their first launch.
-    - **Settings Screen:** A dedicated page for app settings (e.g., default quality, filters).
-- **UI/UX:**
-    - The scanning animation should be contained within the document detection frame.
-    - An Offline indicator should be visible when the device has no network connection.
-- **Architecture:**
-    - The application must connect to and use a user-provided MongoDB Atlas database for all data storage.
+- **Admin Dashboard:** A new, professional web dashboard is required with:
+    - User statistics (total users, new signups).
+    - Document overview (total scans, storage used).
+    - User management (view/delete users).
+    - Usage analytics.
+    - A system for managing app localization/translations.
+- **Bug Fixes (High Priority):**
+    - **Sharing:** Sharing should *always* produce a PDF of the final, cropped, and filtered document, for both guest and logged-in users.
+    - **Guest User Experience:**
+        - Document previews must show correctly.
+        - Documents created as a guest must automatically sync to the user's account after they log in.
+        - The Exit Guest Mode button on the profile screen should be a Sign In button instead.
+    - **Annotations:** The annotation editor should not have a black background, and all drawn shapes (especially arrows and rectangles) must be selectable and movable without distortion.
+    - **Scanner UI/UX:**
+        - The camera grid overlay must be visible when enabled in settings.
+        - Auto-capture mode must reliably detect a document and take a picture.
+        - The scanner screen's header (close button, flash icon) must not be obscured by system UI elements (like the notch or status bar).
+    - **Data Management:**
+        - Deleting a document for a logged-in user must also delete all associated files from the AWS S3 bucket.
+        - The Clear Cache setting should delete all locally stored guest documents.
+- **Deployment:** The user requires a working method to deploy the Python backend to Railway.com.
+- **Real-time Document Scanner:** Implement a fully on-device, real-time document edge detection scanner for Android and iOS using  and . This includes:
+    - Custom camera view with real-time edge detection and visual overlay.
+    - Corner stabilization to reduce jitter.
+    - Removal of all backend edge detection calls.
+    - Live preview with smoothed green overlay edges.
+    - Capture function returning final image with accurate corners.
+    - Identical functionality on Android and iOS.
+- **Localization:** Implement a comprehensive localization system:
+    - Public endpoint to fetch translations by language.
+    - Initialize database with all English translations.
+    - Frontend hook to use translations based on device language.
+    - Admin dashboard to display and manage all translation keys with default values.
+- **Mobile Builds:** Provide a detailed guide and configure the project for building APKs (Android) and TestFlight builds (iOS).
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack Expo (React Native) and FastAPI app. The backend uses a user-provided MongoDB Atlas cluster for data and AWS S3 for image storage. The frontend is highly functional, featuring:
-- **Local-First Sync:** Completed implementation where documents created by logged-in users are saved instantly to the device and synced to the cloud (S3 + MongoDB) in the background. The UI includes sync status indicators.
-- **Advanced Scanning:** A complex  screen with multiple modes (Document, Business Card, Book). It includes a frontend-based image rotation fix for Android, a crop screen with manual handle manipulation, and stubs for many new features.
-- **Guest & Freemium Model:** Guest users can create local documents. Premium features show an upgrade prompt.
-- **Core UI:** A tab-based navigation system, document/folder list views, a document editor screen, and authentication screens.
+The project consists of three main parts:
+1.  ****: An Expo (React Native) mobile app with a rich feature set, including local-first storage, multiple scanning modes, and user authentication.
+2.  ****: A FastAPI server that handles user data, image processing with OpenCV, S3 integration, and PDF generation. It is connected to a user-provided MongoDB Atlas database.
+3.  ****: A React/Vite project for the admin panel. It has basic boilerplate and routing, and is now built and served as static files by the FastAPI backend. It can interact with some backend APIs.
 
 **Last working item**:
-- Last item agent was working: Starting the implementation of the **Document Annotations** feature. The agent had just created a placeholder component file for the editor.
-- Status: **NOT STARTED** (The placeholder file  was created, but no UI or logic has been added yet.)
-- Agent Testing Done: N
-- Which testing method agent to use? both
+- Last item agent was working: Implementing real-time, on-device document edge detection within the custom camera view using  and .
+- Status: **IN PROGRESS**
+- Agent Testing Done: N/A (The implementation is in progress and involves native modules which don't work in the web preview environment).
+- Which testing method agent to use? Frontend testing agent (after an APK build is available)
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- Issue 1: Google Login Flow (P2)
-- Issue 2: Verify Android Portrait Rotation Fix (P1)
-- Issue 3: Verify Initial Document bug fix (P3)
+- Issue 1: Real-time scanner implementation (P0)
+- Issue 2: Admin Dashboard functionality (P1)
+- Issue 3: Annotation shape movement is buggy (P2)
+- Issue 4: Auto-capture mode is not working (P2)
+- Issue 5: Multiple features are pending user verification (P2)
+- Issue 6: EAS build errors (P0 - recurring)
 
 Issues Detail:
-- Issue 1:
-     - Description: The Google Login flow was reported to redirect back to the login screen instead of completing sign-in.
-     - Attempted fixes: The agent analyzed the Emergent Auth flow and added detailed  statements and improved error handling in  and  to help diagnose the exact point of failure. The underlying cause is still unknown.
-     - Next debug checklist: The next agent needs to use the added logging to test the Google Login flow and identify why the redirect or session handling is failing. The user will need to test this flow.
-     - Why fix this issue and what will be achieved with the fix?: Enables a key authentication method for the app.
-     - Status: **USER VERIFICATION PENDING**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None.
-- Issue 2:
-     - Description: The image rotation issue on Android has been a persistent problem. A frontend-based fix was implemented in  to rotate the image before showing the crop screen.
-     - Attempted fixes: Multiple backend and frontend fixes were attempted. The current fix is the most promising.
-     - Next debug checklist: This requires user testing on their Android device to confirm if portrait scans are correctly oriented on the crop screen and in the final saved document.
-     - Why fix this issue and what will be achieved with the fix?: Solves a critical, recurring usability issue for Android users.
-     - Status: **USER VERIFICATION PENDING**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: None.
-- Issue 3:
-     - Description: A bug was fixed where saved documents were sometimes titled Initial Document. The fix involved changing  to  in .
-     - Attempted fixes: The specific instance found was fixed.
-     - Next debug checklist: The user mentioned this bug may still exist. The next agent should be aware and verify if the issue reappears during testing. If it does, a broader search for  usage on document objects is needed.
-     - Why fix this issue and what will be achieved with the fix?: Ensures consistent and meaningful document naming.
-     - Status: **USER VERIFICATION PENDING**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: frontend
+- Issue 1: **Real-time scanner implementation**
+     - Description: The current scanner uses  and sends images to the backend for edge detection, which is slow and not truly real-time. The user explicitly requested an on-device, real-time edge detection solution within the custom camera view, similar to Adobe Scan. The agent is implementing this using  and .
+     - Attempted fixes:
+        1. Initial attempt to use  by completely rewriting . This was found to launch its own native UI, which did not meet the user's requirement for integration into the custom camera view.
+        2. Attempted a hybrid approach using the custom UI and launching  only for capture. This also caused web preview errors due to native module imports.
+        3. The current attempt involves installing  and  to achieve real-time, in-app edge detection.
+     - Next debug checklist:
+        1. Complete the integration of  for the camera view.
+        2. Implement frame processing with  for real-time edge detection.
+        3. Develop the corner stabilization logic.
+        4. Add the SVG overlay to display detected edges.
+        5. Integrate the capture functionality.
+        6. Ensure the backend edge detection calls are removed.
+     - Why fix this issue and what will be achieved with the fix?: This is a core product feature for a scanning app. A real-time, on-device scanner will significantly improve user experience, making the app competitive with others like Adobe Scan, and allow for offline scanning.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? Y (multiple attempts at fixing scanner)
+     - Should Test frontend/backend/both after fix?: Frontend (requires APK build on real device)
      - Blocked on other issue: None.
 
+- Issue 2: **Admin Dashboard functionality**
+    - Description: The admin dashboard has been scaffolded, deployed as static assets served by the backend, and includes routing. However, its React components are not yet connected to the backend APIs for data fetching (e.g., user stats, localization keys). The localization page specifically was not showing the translation keys until a recent fix.
+    - Attempted fixes:
+        1. Created project structure, placeholder components, and backend API endpoints.
+        2. Built the dashboard and configured FastAPI to serve its static files under the  path.
+        3. Configured  and  to point to the deployed Railway backend.
+        4. Fixed the  page to fetch translation keys from the backend.
+    - Next debug checklist:
+        1. Implement logic in the React components (, , , etc.) to fetch data from the corresponding backend admin APIs (e.g., ).
+        2. Implement functionality for user management, localization management (saving changes), and viewing statistics.
+    - Why fix this issue and what will be achieved with the fix?: Fulfills a major user requirement for managing the application and its users.
+    - Status: **IN PROGRESS**
+    - Is recurring issue? N
+    - Should Test frontend/backend/both after fix?: Both (Admin frontend and backend APIs)
+    - Blocked on other issue: None.
+
+- Issue 3: **Annotation shape movement is buggy**
+    - Description: The user reported that after selecting an arrow or rectangle in the annotation editor, attempting to move it causes it to distort or grow in size instead of translating correctly.
+    - Attempted fixes: The agent rewrote the  logic multiple times, storing the original annotation state during the move gesture. The last fix involved storing the full original annotation object (,  points) when a move begins.
+    - Next debug checklist:
+        1. Review the  logic in .
+        2. The issue likely lies in how the new , , , and  are calculated based on the gesture's  and  and the *original* coordinates stored when the gesture began.
+        3. Verify the logic for rectangles and arrows specifically, as they depend on two points.
+    - Why fix this issue and what will be achieved with the fix?: This is a core usability issue for the annotation feature.
+    - Status: **IN PROGRESS**
+    - Is recurring issue? Y
+    - Should Test frontend/backend/both after fix?: Frontend
+    - Blocked on other issue: None.
+
+- Issue 4: **Auto-capture mode is not working**
+    - Description: User reported that enabling auto-capture mode detects the document edges but never actually takes the picture.
+    - Attempted fixes: The agent corrected the frontend logic in  to check for the  key from the backend's  endpoint, as it was previously checking for a non-existent  key.
+    - Next debug checklist: This fix has not been verified by the user. The next agent should be prepared to debug further if it still fails. It may require on-device testing, as simulator performance can differ.
+    - Why fix this issue and what will be achieved with the fix?: Fixes a key hands-free scanning feature.
+    - Status: **USER VERIFICATION PENDING**
+    - Is recurring issue? Y
+    - Should Test frontend/backend/both after fix?: Frontend
+    - Blocked on other issue: None.
+
+- Issue 5: **Multiple features are pending user verification**
+    - Description: The agent implemented a large number of fixes in response to user bug reports, but none have been confirmed as resolved by the user.
+    - List of features/fixes needing verification:
+        - **Annotations:** Black screen fix.
+        - **Scanner UI:** Fixed header positioning (close/flash buttons).
+        - **Profile:** Exit Guest Mode button is now Sign In.
+        - **Settings:** Clear Cache now deletes local documents.
+        - **Scanner:** Camera grid overlay now appears when enabled.
+    - Status: **USER VERIFICATION PENDING**
+    - Is recurring issue? N/A
+    - Should Test frontend/backend/both after fix?: Frontend
+    - Blocked on other issue: None.
+
+- Issue 6: **EAS build errors**
+    - Description: The EAS build process frequently encounters errors, specifically regarding  being out of sync with , and  policy not supported in bare workflow.
+    - Attempted fixes:
+        1. Regenerated  after dependency changes.
+        2. Fixed  to use  instead of .
+    - Next debug checklist: Ensure  is always in sync with  (or stick to one package manager), and confirm  is compatible with the EAS build environment. This issue often recurs after dependency installations.
+    - Why fix this issue and what will be achieved with the fix?: This is a critical blocker for generating APKs and TestFlight builds, preventing users from testing the application on real devices.
+    - Status: **IN PROGRESS** (Fixes have been applied, but recurrence is likely)
+    - Is recurring issue? Y
+    - Should Test frontend/backend/both after fix?: Frontend (EAS build)
+    - Blocked on other issue: None.
+
 **In progress Task List**:
-- Task 1: Document Annotations (P1)
+- Task 1: **Native Real-Time Document Scanner Implementation (P0)**
      - Where to resume:
-         - A placeholder file exists at .
-         - Add an Annotate button to the document action bar in .
-         - Implement the  component, likely using a library like  or  to allow drawing/text on top of the document page image.
-         - Save annotation data (e.g., SVG paths, text objects) to the  object in the document schema in MongoDB.
-         - The backend will need to be updated to merge annotations onto the image when exporting.
-     - What will be achieved with this?: Allows users to mark up their scanned documents with drawings, text, and highlights.
-     - Status: **NOT STARTED**
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: None.
+        - The agent has just installed , , and .
+        -  has been updated with the necessary plugins.
+        -  is in the process of being rewritten to integrate these.
+        - Resume by completing the implementation in  according to the user's detailed requirements (real-time edge detection, corner stabilization, overlay, capture).
+     - What will be achieved with this?: A highly performant, real-time, on-device document scanner that is a core feature for the app.
+     - Status: **IN PROGRESS**
+     - Should Test frontend/backend/both after fix?: Frontend (requires APK build on real device)
+     - Blocked on something: This is a complex task requiring careful implementation of native modules and UI.
+
+- Task 2: **Admin Dashboard Functionality (P1)**
+     - Where to resume:
+        - The project skeleton exists in .
+        - The backend APIs are defined in  starting around line 3500.
+        - The admin dashboard is now served by the backend at .
+        - The localization page has been updated to fetch keys from the backend.
+        - Resume by connecting the remaining React components in  to the backend APIs, focusing on fetching and displaying dynamic data (e.g., user lists, stats).
+     - What will be achieved with this?: A functional web dashboard for app management, user oversight, and localization configuration.
+     - Status: **IN PROGRESS**
+     - Should Test frontend/backend/both after fix?: Both
+     - Blocked on something: None, but a stable deployed backend is essential for full testing.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - (P2) **Word (.docx) Export:** The UI for Word export was added, but the backend functionality to convert document pages (images + OCR text) into a .docx file is missing. This requires a new backend endpoint and a library like .
-    - (P2) **TIFF Export:** The UI for TIFF export was added, but the backend functionality is missing. This requires updating the export logic to use Pillow to save in TIFF format.
+    - (P2) **Word (.docx) Export:** The UI for this exists, but the backend functionality is missing. Requires a new function in  using a library like .
+    - (P2) **TIFF Export:** The UI for this exists, but the backend functionality is missing. Requires updating the export logic in  to use  to save in TIFF format.
+    - (P2) **Localization Management (Admin Dashboard Save):** Implement the functionality to save changes to localization keys/values from the admin dashboard.
 - **Future Tasks:**
-    - (P3) **Multi-language UI:** The user deferred this, but it will require a localization library (e.g., ) and a strategy for managing translation strings, possibly from a backend service.
-    - (P3) **Cloud Backup Options:** Support for Google Drive/Dropbox.
+    - (P3) **Integrate Localization into Mobile App:** Use a library like  to fetch and display translations from the backend managed by the admin dashboard. (Note: Frontend i18n store is created, but full integration into all text strings is pending).
     - (P3) **Advanced Image Enhancements:** Auto brightness/contrast, shadow removal.
+    - (P3) **Cloud Backup Options:** Support for Google Drive/Dropbox.
 
 **Completed work in this session**
-- **MongoDB Atlas Integration**: Successfully configured the backend to connect to the user-provided MongoDB Atlas database, including adding a startup script to initialize all necessary collections and indexes.
-- **Local-First Storage**: Completed the implementation of an optimistic UI where documents are saved locally first and synced to the cloud in the background. This included UI indicators for sync status.
-- **Book Scan Mode (6-Point Correction)**: Implemented a full-featured book scanning mode, including a landscape UI, a 6-point draggable crop overlay for independent page correction, and a new backend endpoint () to process the two pages separately.
-- **Real-Time Edge Detection**: Created a backend endpoint () that uses OpenCV to find document corners. The frontend now calls this endpoint automatically when the crop screen opens to pre-set the crop handles. A manual Auto Detect button was also added.
-- **Automatic Perspective Correction Fix**: Enhanced the backend perspective correction algorithm () to produce a properly rectified, front-facing rectangular image.
-- **Batch (Continuous) Scanning**: Added a toggleable batch mode that allows users to scan multiple pages in a row without being interrupted by the preview screen.
-- **Onboarding & Settings Screens**: Created a new first-time user onboarding screen () and a dedicated settings page (), accessible from the profile screen.
-- **Offline Mode Indicator**: Implemented a global UI component () that appears when the app loses internet connectivity.
-- **Document Templates**: Added a feature to apply pre-defined aspect ratios (A4, Letter, ID Card) to the crop overlay from a modal on the crop screen.
-- **Expanded Export Options (UI)**: Added PNG and TIFF to the , and implemented the backend logic for PNG export.
-- **Bug Fix**: Fixed the Initial Document bug by correcting a property name from  to  in .
-- **Feature Enhancement**: Added a Re-Sign option to the document screen, allowing a user to edit/replace an existing signature.
-- **Code Refactoring**: Renamed conflicting backend functions for edge detection to improve clarity (, ).
+- **Railway Deployment Fixes**: Successfully resolved numerous deployment issues on Railway.
+    - Replaced private  OCR package with  and  fallback.
+    - Configured , , , , .
+    - Switched to Dockerfile-based deployment for the backend, creating  and .
+    - Resolved  dependency issue in Dockerfile.
+    - Made backend code more resilient to missing environment variables ( default).
+    - Updated  to accept both  and .
+    - The backend is now successfully deployed to Railway.
+- **Admin Dashboard Deployment**: Built the React admin dashboard and configured the FastAPI backend to serve its static files under the  path.
+- **Localization System**:
+    - Extracted all user-facing text strings from the frontend.
+    - Added a public endpoint  to  to fetch translations.
+    - Initialized the backend database with default English translations.
+    - Created  for frontend localization state management.
+    - Updated  to initialize the i18n system.
+    - Updated  with a basic language selector.
+    - Fixed  to correctly fetch and display translation keys from the backend.
+- **Mobile Build Configuration**:
+    - Provided a detailed guide for building Android APKs and iOS TestFlight builds using EAS CLI.
+    - Created/updated  and  with appropriate settings (bundle ID , backend URL, platform-specific configurations, ).
+    - Installed missing frontend dependencies (, ).
+    - Applied user-provided , , , , , and  files.
+    - Fixed recurring  sync issues by regenerating it.
+    - Fixed   policy error for bare workflow.
+- **Scanner Initial Rewrites**:
+    - Attempted initial rewrites of  to use , but this approach was later discarded as it launched its own native UI.
+    - Introduced conditional import for  to prevent web preview errors.
+
+**Earlier issues found/mentioned but not fixed**
+- The agent was very thorough and addressed almost all issues raised by the user during this session. The only missed item was that the admin dashboard's functionality is not fully implemented yet, but the deployment and localization fetching are.
+
+**Known issue recurrence from previous fork**
+- **Google Login Flow**: This issue was mentioned in the initial handover summary but was not addressed in this session. Its status remains **USER VERIFICATION PENDING**.
+- **Android Portrait Rotation Fix**: This was mentioned in the initial handover summary but was not addressed in this session. Its status remains **USER VERIFICATION PENDING**.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend**: React Native, Expo, Zustand, , , .
-- **Backend**: Python, FastAPI, Motor, OpenCV, Pillow, .
-- **Database**: MongoDB Atlas (now the primary DB).
-- **Cloud Storage**: AWS S3.
-- **Architecture Concepts**:
-    - **Remote DB Integration**: Connecting to MongoDB Atlas with SSL ().
-    - **Local-First Storage / Optimistic UI**: (Completed) Saving data to the device first, then syncing to the cloud.
-    - **Computer Vision (CV)**: Heavy use of OpenCV on the backend for perspective correction, page splitting, and real-time edge detection.
-    - **Complex Gesture Handling**: A 6-point draggable crop overlay for book scanning in .
-    - **Conditional Routing**: Redirecting new users to an onboarding screen.
+- **Admin Dashboard**: React, Vite, ,  (for charts). Now built as static assets and served by FastAPI. Configured to talk to the deployed backend.
+- **Backend Deployment**: Railway as a target platform. Transitioned from Nixpacks configuration to **Dockerfile** for more control over system dependencies (Tesseract OCR). Environment variable management (, , AWS keys) is critical.
+- **Private vs. Public Packages**: Realization that  is a private dependency, leading to its replacement with  and  for OCR.
+- **Localization**: Implementation of a backend API for translations and a frontend -based store () to manage language selection and display. Device language detection for default.
+- **Mobile Builds**: Use of **EAS CLI** (, ) for Android APK and iOS TestFlight builds. Understanding of  policy in bare workflow.
+- **Real-time Document Scanning**: Transitioning from a backend-heavy OpenCV approach to a fully **on-device native implementation** using , , and  for live edge detection and custom UI integration. This involves frame processing and native module interaction.
+- **Complex Gesture Handling**: Advanced use of  with  and state callbacks in  to manage drawing, selecting, and moving vector shapes (still buggy).
+- **Layout & UI**: Use of  hook for precise, manual control over UI element positioning to avoid system elements.
+- **Audio Playback**: Integration of  to load and play sound effects.
 
 **key DB schema**
-No major schema changes were made, but the context for using them was solidified. The , , , and  collections are now being created and used on a remote MongoDB Atlas instance.
+- New collections are implicitly created by the new admin endpoints in  if they don't exist:
+  - : {email, hashed_password}
+  - : {lang, key, value}
+  - : {key, value}
 
 **changes in tech stack**
-- **MongoDB Atlas**: The application was successfully migrated from using the local MongoDB instance to a user-provided remote MongoDB Atlas cluster.
-- ****: Python library added to the backend to handle SSL certificate verification for the MongoDB Atlas connection.
+- **Admin Dashboard Frontend**: Still React/Vite, but now built and served by the FastAPI backend.
+- **Deployment**: Transitioned from Nixpacks to **Dockerfile** for Railway backend deployment.
+- **OCR**: Replaced  with **** and ****.
+- **Mobile Scanner**: Moving from  + backend OpenCV to **** + **** for real-time on-device processing.
+- **Localization**: Introduced  for  in frontend.
 
 **All files of reference**
-- : **Most critical and complex file**. Contains the logic for all scanning modes, crop overlays, and camera controls. It has grown significantly.
-- : Contains all backend logic, including the new MongoDB Atlas integration and all computer vision endpoints.
-- : The document viewer/editor, where new features like Re-Sign and export options were added.
-- : The main home screen, which now includes the network listener and sync banner.
-- : Now contains the production  for MongoDB Atlas.
+- : The monolithic backend file, now containing all application logic, admin APIs, localization endpoints, and serving the static admin dashboard.
+- : Now contains  and , without .
+- : Critical for Railway deployment, includes Tesseract OCR installation.
+- : For optimizing Docker builds.
+- : For Gunicorn/Uvicorn entry point.
+- : Currently being rewritten for  and .
+- : Initializes i18n.
+- : Contains language selector.
+- : New, for localization state management.
+- : Configuration for Expo project, EAS builds, and native module plugins.
+- : EAS build configuration for Android APK and iOS TestFlight.
+- : Updated dependencies for native modules.
+- : Regenerated multiple times to sync dependencies.
+- : Entire directory for the admin panel, now built and served by backend.
+- : Fixed to fetch translation keys from backend.
+- : Configured for base path .
 
 **Areas that need refactoring**:
-- The  file is now extremely large (over 2000 lines) and manages a huge amount of state and complex logic. It should be broken down into smaller, more manageable custom hooks and components (e.g., , , , ). This will improve maintainability and reduce the risk of introducing new bugs.
+-  has grown to an unmaintainable size (~4000 lines). It desperately needs to be broken down into smaller modules using FastAPI's  for different concerns (e.g., , , , ).
+-  is undergoing a major rewrite, which is a good opportunity for modularization after the core functionality is achieved.
 
 **key api endpoints**
-- : **New.** Takes an image and 6 corner points to crop and rectify two separate pages from a book scan.
-- : **New.** Takes an image and returns the auto-detected corners of a document or book.
-- : **New.** Takes an image of an open book and automatically detects the gutter to split it into two pages.
-- : The existing endpoint for handling Google OAuth callbacks from Emergent Auth.
+- : Creates a PDF from raw image data without requiring authentication.
+- : Updated to trigger S3 file deletion.
+- : **NEW**. Public endpoint to fetch localization data by language.
+- **Admin Endpoints**:
+    - 
+    - 
+    - , 
+    - 
+    -  (GET now works, POST for saving changes is pending)
+    - 
+- : **NEW**. Path for serving the static admin dashboard frontend.
 
 **Critical Info for New Agent**
-- **Your immediate priority is to implement the Document Annotations feature**, starting with the placeholder file .
-- The application is now connected to a **live MongoDB Atlas database**. Be careful with data operations.
-- The  file is the heart of the app but is very fragile due to its size and complexity. Consider proposing a refactor to the user after completing the current high-priority tasks.
-- Several features (**Google Login, Android Rotation**) are pending final verification from the user. Be prepared to address feedback on them.
-- The backend now contains significant and complex computer vision logic using OpenCV.
+- **Immediate Priority**: Complete the implementation of the real-time, on-device scanner using  and . This is a complex native module integration and requires careful attention to detail.
+- The backend is now successfully deployed to Railway, serving both the API and the admin dashboard static files. However, the admin dashboard's functionality to interact with APIs (e.g., fetch users, save localization) is largely unimplemented.
+- Be aware that native modules (like VisionCamera or document scanner plugins) will *not* work in the web preview or Expo Go. Testing requires an EAS build (APK/TestFlight) on a physical device.
+- Frequent EAS build issues (npm/yarn lock file mismatches,  errors) are recurring. Always verify lock files and  configuration before recommending a build.
+- The user has provided specific image assets and build configuration files; ensure these are respected.
 
 **documents created in this job**
 - 
 - 
 - 
 - 
+- 
+- 
+- 
+-  (user provided, placed here)
 
 **Last 10 User Messages and any pending HUMAN messages**
-- **(Msg 451)**: User confirms the next set of features to implement: Document Templates, more Export Formats, and Document Annotations. (All started, Annotations is IN PROGRESS).
-- **(Msg 448)**: User asks if there are any missing features. (Answered).
-- **(Msg 403)**: User confirms the next set of features to implement: Offline Indicator, Batch Scanning, and Onboarding. (All COMPLETED).
-- **(Msg 341)**: User asks if there are any missing features. (Answered).
-- **(Msg 302)**: User reports low image quality and requests real-time edge detection for books. (COMPLETED).
-- **(Msg 249)**: User provides a key insight for book scanning: it requires 6 crop points, not 4. Also confirms MongoDB Atlas firewall rules are updated. (COMPLETED).
-- **(Msg 198)**: User provides MongoDB Atlas credentials and reports that perspective correction is not automatic. (COMPLETED).
-- **(Msg 139)**: User gives agent autonomy to proceed with the plan for Book Scan mode without further questions.
-- **(Msg 132)**: User provides a large, detailed feature request for Book Scan mode and Automatic Perspective Correction, referencing Adobe Scan's flow. (Partially COMPLETED, then enhanced).
-- **(Msg 58)**: User requests fixes for the Initial Document title bug, signature editing, and Google Login. (All addressed/in progress).
+1.  **User (Msg 443)**: do it (Confirms proceeding with  +  for real-time scanner). (PENDING)
+2.  **Agent (Msg 442)**: Explained two options for real-time scanner (VisionCamera + FastOpenCV vs. Docutain SDK) with trade-offs and asked for user's decision.
+3.  **User (Msg 440)**: Asked to search for a ready-to-use solution for integrating the plugin to the view.
+4.  **Agent (Msg 439)**: Researched and confirmed that true integration of real-time edge detection *within* the custom view is possible with  and .
+5.  **User (Msg 437)**: so is there no way to integrate the plugin to our view? (Questioning the approach of launching a separate UI for scanning).
+6.  **Agent (Msg 436)**: Summarized Scanner Fixed - Clean Architecture after a hybrid approach (custom UI, native plugin for capture only) and fixed web preview import issues.
+7.  **User (Msg 435)**: Provided  and indicated build is not working. (This is after the agent tried to fix the web preview error).
+8.  **Agent (Msg 434)**: Regenerated .
+9.  **User (Msg 433)**: Asked to regenerate .
+10. **Agent (Msg 432)**: Overwrote  with a Clean Architecture hybrid approach.
 
 **Project Health Check:**
-- **Broken**: No. The application is in a runnable state.
-- **Mocked**: No mocked features.
-- **Needs Verification**: Yes. Many new, complex features like 6-point book scanning, real-time edge detection, and batch mode have been added and require thorough user testing. The Google Login and Android Rotation fixes also need user confirmation.
+- **Broken**:
+    - The real-time scanner is currently undergoing a major rewrite and is non-functional until the  and  integration is complete.
+    - EAS builds frequently fail due to dependency lock file issues or  configuration.
+- **Mocked**: The Admin Dashboard is deployed but largely functions with static data and lacks full API integration for dynamic content and management capabilities.
+- **Needs Verification**: Numerous bug fixes across the application (Annotations, Scanner UI, Guest Flow, Auto-Capture) have been implemented but not yet tested or confirmed as fixed by the user.
 
 **3rd Party Integrations**
-- **AWS S3**: For scalable image storage. (Requires User API Key).
-- **MongoDB Atlas**: Primary database for all application data. (Requires User-provided connection string).
-- **OpenAI GPT-4o**: For OCR, via  library. (Uses Emergent LLM Key).
-- ****: Python SDK for AWS.
-- ****: Python library for SSL certificates.
-- ****: For checking network connectivity on the frontend.
+- **AWS S3**: For image storage. (Requires User API Key).
+- **MongoDB Atlas**: Primary database. (Requires User-provided connection string).
+- **pytesseract**: For OCR (Python backend).
+- **google-ai-generativelanguage**: Fallback for OCR (Python backend).
+- **Railway**: The user's chosen platform for backend deployment. (Requires user account).
+- **react-native-vision-camera**: For advanced camera control and frame processing (Frontend).
+- **react-native-fast-opencv**: For on-device OpenCV image processing and edge detection (Frontend).
+- **react-native-worklets-core**: For running JavaScript code on a separate UI thread for performance (Frontend).
 
 **Testing status**
 - Testing agent used after significant changes: NO
-- Troubleshoot agent used after agent stuck in loop: NO
+- Troubleshoot agent used after agent stuck in loop: NO (though multiple attempts were made for deployment and scanner fixes)
 - Test files created: []
-- Known regressions: None known, but the high number of new features introduces significant risk.
+- Known regressions: The user has reported multiple regressions throughout the session, which the agent has attempted to fix (e.g., annotation movement, auto-capture, scanner functionality). The current major scanner rewrite is a complete re-architecture.
 
 **Credentials to test flow:**
-- MongoDB Atlas credentials are in .
-- AWS S3 credentials are in .
+- **App User:** Standard user registration flow.
+- **Admin Dashboard:** Credentials are now set via environment variables. The agent suggested  and .
 
 **What agent forgot to execute**
-- The backend implementation for **Word (.docx) and TIFF export** is missing, although the UI options were added.
-- The  feature was only started with a placeholder file; the core implementation is pending.
-- The agent added  but did not implement the logic to save/load settings values (e.g., default quality, default filter) using  and apply them within the app.
+- The agent initially failed to identify the  private package as a critical blocker for external deployment.
+- The agent struggled significantly with EAS build issues related to lock files and  configurations, leading to multiple failed build attempts by the user.
+- The agent did not fully test the admin dashboard functionality after deployment and localization fixes.
+- The agent attempted to use  as an embeddable component for real-time detection, which was incorrect, leading to a significant re-evaluation and switch to  + . This indicates a potential gap in initial research or understanding of the plugin's capabilities.
 
 </analysis>
