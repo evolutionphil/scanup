@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,34 +17,34 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio } from 'expo-av';
 import Svg, { Polygon, Circle, Line } from 'react-native-svg';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 import Button from '../src/components/Button';
 
-// Conditionally import VisionCamera and OpenCV (native only)
+// Conditionally import VisionCamera (native only)
 let Camera: any = null;
 let useCameraDevice: any = null;
 let useCameraPermission: any = null;
-let useFrameProcessor: any = null;
-let OpenCV: any = null;
 
-try {
-  const VisionCamera = require('react-native-vision-camera');
-  Camera = VisionCamera.Camera;
-  useCameraDevice = VisionCamera.useCameraDevice;
-  useCameraPermission = VisionCamera.useCameraPermission;
-  useFrameProcessor = VisionCamera.useFrameProcessor;
-} catch (e) {
-  console.log('[Scanner] VisionCamera not available');
+if (Platform.OS !== 'web') {
+  try {
+    const VisionCamera = require('react-native-vision-camera');
+    Camera = VisionCamera.Camera;
+    useCameraDevice = VisionCamera.useCameraDevice;
+    useCameraPermission = VisionCamera.useCameraPermission;
+  } catch (e) {
+    console.log('[Scanner] VisionCamera not available');
+  }
 }
 
+// Conditionally load expo-av for sounds
+let Audio: any = null;
 try {
-  OpenCV = require('react-native-fast-opencv').default;
+  Audio = require('expo-av').Audio;
 } catch (e) {
-  console.log('[Scanner] OpenCV not available');
+  console.log('[Scanner] expo-av not available');
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -74,11 +74,6 @@ interface Point {
   y: number;
 }
 
-interface DetectedDocument {
-  corners: Point[];
-  confidence: number;
-}
-
 // =============================================================================
 // DOCUMENT TYPES CONFIGURATION
 // =============================================================================
@@ -93,11 +88,11 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 // =============================================================================
-// CORNER STABILIZATION - Smooths detected corners over multiple frames
+// CORNER STABILIZATION
 // =============================================================================
 
 const STABILIZATION_FRAMES = 5;
-const STABILITY_THRESHOLD = 0.02; // 2% movement threshold
+const STABILITY_THRESHOLD = 0.03;
 
 class CornerStabilizer {
   private history: Point[][] = [];
@@ -172,7 +167,7 @@ export default function ScannerScreen() {
   
   // VisionCamera hooks (only used on native)
   const device = useCameraDevice ? useCameraDevice('back') : null;
-  const cameraPermission = useCameraPermission ? useCameraPermission() : { hasPermission: false, requestPermission: () => {} };
+  const cameraPermission = useCameraPermission ? useCameraPermission() : { hasPermission: false, requestPermission: async () => ({ hasPermission: false }) };
   
   // Scanner state
   const [isCapturing, setIsCapturing] = useState(false);
@@ -181,20 +176,25 @@ export default function ScannerScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   
   // Edge detection state
   const [detectedCorners, setDetectedCorners] = useState<Point[] | null>(null);
   const [isDocumentStable, setIsDocumentStable] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
   const stabilizer = useRef(new CornerStabilizer()).current;
   
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showGridOverlay, setShowGridOverlay] = useState(false);
-  const shutterSoundRef = useRef<Audio.Sound | null>(null);
+  const [autoCapture, setAutoCapture] = useState(false);
+  const shutterSoundRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
+  const detectionIntervalRef = useRef<any>(null);
+  const autoCaptureTriggeredRef = useRef(false);
   
-  // Check if native features are available
-  const isNativeAvailable = Camera && OpenCV && device;
+  // Check if native camera is available
+  const isNativeAvailable = Platform.OS !== 'web' && Camera && device;
   
   const currentType = DOCUMENT_TYPES[selectedTypeIndex];
   const addToDocumentId = params.addToDocument as string | undefined;
@@ -230,6 +230,7 @@ export default function ScannerScreen() {
           const settings = JSON.parse(savedSettings);
           setSoundEnabled(settings.soundEffects ?? true);
           setShowGridOverlay(settings.showGrid ?? false);
+          setAutoCapture(settings.autoCapture ?? false);
         }
       } catch (e) {
         console.log('Failed to load settings');
@@ -237,6 +238,7 @@ export default function ScannerScreen() {
     };
     
     const setupAudio = async () => {
+      if (!Audio) return;
       try {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
@@ -258,6 +260,9 @@ export default function ScannerScreen() {
       if (shutterSoundRef.current) {
         shutterSoundRef.current.unloadAsync();
       }
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+      }
     };
   }, []);
   
@@ -267,6 +272,21 @@ export default function ScannerScreen() {
       cameraPermission.requestPermission();
     }
   }, []);
+  
+  // Auto-capture when document is stable
+  useEffect(() => {
+    if (autoCapture && isDocumentStable && cameraReady && !isCapturing && !autoCaptureTriggeredRef.current) {
+      autoCaptureTriggeredRef.current = true;
+      captureImage();
+    }
+  }, [autoCapture, isDocumentStable, cameraReady, isCapturing]);
+  
+  // Reset auto-capture trigger when corners change significantly
+  useEffect(() => {
+    if (!isDocumentStable) {
+      autoCaptureTriggeredRef.current = false;
+    }
+  }, [isDocumentStable]);
   
   // Play shutter sound
   const playShutterSound = async () => {
@@ -280,106 +300,96 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // FRAME PROCESSOR - Real-time edge detection using OpenCV
+  // EDGE DETECTION - Periodic detection via snapshot + backend
   // =============================================================================
   
-  const frameProcessor = useFrameProcessor ? useFrameProcessor((frame: any) => {
-    'worklet';
+  const detectEdges = useCallback(async () => {
+    if (!cameraRef.current || isCapturing || isDetecting || !cameraReady) return;
     
-    if (!OpenCV) return;
+    setIsDetecting(true);
     
     try {
-      const width = frame.width;
-      const height = frame.height;
+      // Take a quick snapshot for edge detection
+      const photo = await cameraRef.current.takePhoto({
+        flash: 'off',
+        qualityPrioritization: 'speed',
+      });
       
-      // Convert frame to OpenCV Mat
-      const src = OpenCV.frameBufferToMat(height, width, frame);
+      if (!photo) {
+        setIsDetecting(false);
+        return;
+      }
+      
+      const uri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
       
       // Resize for faster processing
-      const scale = 0.25;
-      const smallWidth = Math.floor(width * scale);
-      const smallHeight = Math.floor(height * scale);
-      const resized = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8UC4);
-      OpenCV.invoke('resize', src, resized, { width: smallWidth, height: smallHeight });
-      
-      // Convert to grayscale
-      const gray = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8U);
-      OpenCV.invoke('cvtColor', resized, gray, OpenCV.ColorConversionCodes.COLOR_RGBA2GRAY);
-      
-      // Apply Gaussian blur
-      OpenCV.invoke('GaussianBlur', gray, gray, { width: 5, height: 5 }, 0);
-      
-      // Edge detection with Canny
-      const edges = OpenCV.createObject(OpenCV.ObjectType.Mat, smallHeight, smallWidth, OpenCV.DataTypes.CV_8U);
-      OpenCV.invoke('Canny', gray, edges, 50, 150);
-      
-      // Dilate edges to connect broken lines
-      const kernel = OpenCV.getStructuringElement(OpenCV.MorphShapes.MORPH_RECT, { width: 3, height: 3 });
-      OpenCV.invoke('dilate', edges, edges, kernel, { x: -1, y: -1 }, 2);
-      
-      // Find contours
-      const contours = OpenCV.createObject(OpenCV.ObjectType.MatVector);
-      const hierarchy = OpenCV.createObject(OpenCV.ObjectType.Mat);
-      OpenCV.invoke('findContours', edges, contours, hierarchy, 
-        OpenCV.RetrievalModes.RETR_EXTERNAL, 
-        OpenCV.ContourApproximationModes.CHAIN_APPROX_SIMPLE
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 640 } }],
+        { base64: true, compress: 0.5 }
       );
       
-      // Find largest quadrilateral
-      let bestCorners: Point[] | null = null;
-      let maxArea = (smallWidth * smallHeight) * 0.1; // Minimum 10% of frame
+      // Call backend for edge detection
+      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${backendUrl}/api/images/detect-edges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: manipResult.base64 }),
+      });
       
-      const numContours = OpenCV.invoke('size', contours);
-      for (let i = 0; i < numContours; i++) {
-        const contour = OpenCV.invoke('at', contours, i);
-        const area = OpenCV.invoke('contourArea', contour);
-        
-        if (area > maxArea) {
-          // Approximate polygon
-          const peri = OpenCV.invoke('arcLength', contour, true);
-          const approx = OpenCV.createObject(OpenCV.ObjectType.Mat);
-          OpenCV.invoke('approxPolyDP', contour, approx, 0.02 * peri, true);
-          
-          const numPoints = OpenCV.invoke('rows', approx);
-          
-          if (numPoints === 4) {
-            // Check if convex
-            const isConvex = OpenCV.invoke('isContourConvex', approx);
-            if (isConvex) {
-              maxArea = area;
-              
-              // Extract corners and normalize to 0-1
-              const corners: Point[] = [];
-              for (let j = 0; j < 4; j++) {
-                const pt = OpenCV.invoke('at', approx, j, 0);
-                corners.push({
-                  x: (pt.x / scale) / width,
-                  y: (pt.y / scale) / height,
-                });
-              }
-              
-              // Sort corners: top-left, top-right, bottom-right, bottom-left
-              corners.sort((a, b) => a.y - b.y);
-              const top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
-              const bottom = corners.slice(2, 4).sort((a, b) => b.x - a.x);
-              bestCorners = [top[0], top[1], bottom[0], bottom[1]];
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.corners && result.corners.length === 4) {
+          // Normalize corners to 0-1 range if they're in pixels
+          const normalizedCorners = result.corners.map((c: any) => {
+            // Backend returns corners in pixel coordinates or normalized
+            if (c.x <= 1 && c.y <= 1) {
+              return { x: c.x, y: c.y };
             }
+            // Convert pixel coords to normalized
+            return {
+              x: c.x / (manipResult.width || 640),
+              y: c.y / (manipResult.height || 480),
+            };
+          });
+          
+          // Sort corners: top-left, top-right, bottom-right, bottom-left
+          normalizedCorners.sort((a: Point, b: Point) => a.y - b.y);
+          const top = normalizedCorners.slice(0, 2).sort((a: Point, b: Point) => a.x - b.x);
+          const bottom = normalizedCorners.slice(2, 4).sort((a: Point, b: Point) => b.x - a.x);
+          const sortedCorners = [top[0], top[1], bottom[0], bottom[1]];
+          
+          const stabilizedCorners = stabilizer.addFrame(sortedCorners);
+          if (stabilizedCorners) {
+            setDetectedCorners(stabilizedCorners);
+            setIsDocumentStable(stabilizer.isStable());
           }
+        } else {
+          // No document detected
+          setDetectedCorners(null);
+          setIsDocumentStable(false);
         }
       }
-      
-      // Clear OpenCV buffers
-      OpenCV.clearBuffers();
-      
-      // Update state (via runOnJS if needed)
-      if (bestCorners) {
-        // This would need to be called via runOnJS
-        // For now, we'll use a different approach
-      }
-    } catch (e) {
-      // Silently handle errors in frame processor
+    } catch (error) {
+      // Silently handle detection errors
+      console.log('[Scanner] Edge detection error:', error);
+    } finally {
+      setIsDetecting(false);
     }
-  }, []) : null;
+  }, [isCapturing, isDetecting, cameraReady]);
+  
+  // Start periodic edge detection when camera is ready
+  useEffect(() => {
+    if (cameraReady && isNativeAvailable && !showPreview) {
+      // Detect every 500ms for reasonable real-time feel
+      detectionIntervalRef.current = setInterval(detectEdges, 500);
+      return () => {
+        if (detectionIntervalRef.current) {
+          clearInterval(detectionIntervalRef.current);
+        }
+      };
+    }
+  }, [cameraReady, isNativeAvailable, showPreview, detectEdges]);
   
   // =============================================================================
   // CAPTURE IMAGE
@@ -444,7 +454,7 @@ export default function ScannerScreen() {
       try {
         DocumentScanner = require('react-native-document-scanner-plugin').default;
       } catch (e) {
-        Alert.alert('Error', 'Scanner not available');
+        Alert.alert('Error', 'Scanner not available in this environment. Please build the app to use the scanner.');
         setIsCapturing(false);
         return;
       }
@@ -596,8 +606,12 @@ export default function ScannerScreen() {
   const renderEdgeOverlay = () => {
     if (!detectedCorners || detectedCorners.length !== 4) return null;
     
+    // Calculate overlay dimensions based on camera preview area
+    const previewHeight = SCREEN_HEIGHT - insets.top - insets.bottom - 200;
+    const previewWidth = SCREEN_WIDTH;
+    
     const points = detectedCorners.map(c => 
-      `${c.x * SCREEN_WIDTH},${c.y * SCREEN_HEIGHT}`
+      `${c.x * previewWidth},${c.y * previewHeight + insets.top + 60}`
     ).join(' ');
     
     const color = isDocumentStable ? '#10B981' : '#3B82F6';
@@ -616,8 +630,8 @@ export default function ScannerScreen() {
         {detectedCorners.map((corner, index) => (
           <Circle
             key={index}
-            cx={corner.x * SCREEN_WIDTH}
-            cy={corner.y * SCREEN_HEIGHT}
+            cx={corner.x * previewWidth}
+            cy={corner.y * previewHeight + insets.top + 60}
             r={12}
             fill={color}
             stroke="#FFF"
@@ -631,10 +645,10 @@ export default function ScannerScreen() {
           return (
             <Line
               key={`line-${index}`}
-              x1={corner.x * SCREEN_WIDTH}
-              y1={corner.y * SCREEN_HEIGHT}
-              x2={detectedCorners[nextIndex].x * SCREEN_WIDTH}
-              y2={detectedCorners[nextIndex].y * SCREEN_HEIGHT}
+              x1={corner.x * previewWidth}
+              y1={corner.y * previewHeight + insets.top + 60}
+              x2={detectedCorners[nextIndex].x * previewWidth}
+              y2={detectedCorners[nextIndex].y * previewHeight + insets.top + 60}
               stroke={color}
               strokeWidth={3}
               strokeLinecap="round"
@@ -646,11 +660,11 @@ export default function ScannerScreen() {
   };
   
   // =============================================================================
-  // PERMISSION CHECK
+  // PERMISSION CHECK / FALLBACK UI
   // =============================================================================
   
   if (!isNativeAvailable) {
-    // Fallback UI when native camera is not available
+    // Fallback UI for web or when native camera is not available
     return (
       <View style={[styles.container, { backgroundColor: '#000' }]}>
         <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -815,7 +829,7 @@ export default function ScannerScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: '#000' }]}>
-      {device && (
+      {device && Camera && (
         <Camera
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
@@ -823,8 +837,8 @@ export default function ScannerScreen() {
           isActive={!showPreview}
           photo={true}
           torch={flashOn ? 'on' : 'off'}
-          frameProcessor={frameProcessor}
-          frameProcessorFps={5}
+          onInitialized={() => setCameraReady(true)}
+          onError={(error: any) => console.log('[Camera] Error:', error)}
         />
       )}
       
@@ -877,9 +891,16 @@ export default function ScannerScreen() {
           <View style={[styles.statusBadge, { backgroundColor: isDocumentStable ? '#10B981' : '#3B82F6' }]}>
             <Ionicons name={isDocumentStable ? 'checkmark-circle' : 'scan-outline'} size={16} color="#FFF" />
             <Text style={styles.statusText}>
-              {isDocumentStable ? 'Ready to capture!' : 'Hold steady...'}
+              {isDocumentStable ? (autoCapture ? 'Capturing...' : 'Ready to capture!') : 'Hold steady...'}
             </Text>
           </View>
+        </View>
+      )}
+      
+      {/* Detecting indicator */}
+      {isDetecting && (
+        <View style={styles.detectingIndicator}>
+          <ActivityIndicator size="small" color="#3B82F6" />
         </View>
       )}
       
@@ -1082,6 +1103,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  detectingIndicator: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
   },
   
   // Bottom Controls
