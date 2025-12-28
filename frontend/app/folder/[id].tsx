@@ -473,13 +473,16 @@ export default function FolderDetailScreen() {
                   setShowPasswordModal(false);
                   setPassword('');
                   setConfirmPassword('');
+                  Keyboard.dismiss();
                 }}
                 style={styles.modalButton}
               />
               <Button title="Set Password" onPress={handleSetPassword} style={styles.modalButton} />
             </View>
           </View>
-        </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
