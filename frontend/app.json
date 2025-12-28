@@ -103,8 +103,7 @@
         {
           "microphonePermission": "Allow ScanUp to access your microphone for video capture"
         }
-      ],
-      "react-native-worklets-core"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
