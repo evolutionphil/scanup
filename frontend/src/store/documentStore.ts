@@ -193,8 +193,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // Limit cache size to prevent storage issues
       const docsToCache = documents.slice(0, 100);
       await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(docsToCache));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error saving local cache:', e);
+      // If storage is full, don't crash - just log and continue
+      if (e?.message?.includes('SQLITE_FULL') || e?.message?.includes('disk is full')) {
+        console.warn('Storage full - local cache not saved. Clear app data to free space.');
+      }
     }
   },
 
