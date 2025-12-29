@@ -30,23 +30,16 @@ export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  // Start with splash visible, then quickly hide on web
   const [showSplash, setShowSplash] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [navigating, setNavigating] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  // First useEffect - mark component as mounted (client-side only)
-  useEffect(() => {
-    setMounted(true);
-    
-    // On web, show navigation menu after brief splash
+  // Use useLayoutEffect for earlier execution
+  React.useLayoutEffect(() => {
+    // On web, show navigation menu quickly
     if (checkIsWeb()) {
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-        setShowMenu(true);
-      }, 500); // Brief 0.5s splash then show menu
-      return () => clearTimeout(timer);
+      setShowSplash(false);
+      setShowMenu(true);
     }
   }, []);
 
