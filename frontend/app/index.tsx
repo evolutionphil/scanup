@@ -30,16 +30,23 @@ export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  // Don't use useState with conditional initial value for SSR
+  // Start with splash visible, then quickly hide on web
   const [showSplash, setShowSplash] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [navigating, setNavigating] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Immediately detect web and show menu
+  // First useEffect - mark component as mounted (client-side only)
   useEffect(() => {
+    setMounted(true);
+    
+    // On web, show navigation menu after brief splash
     if (checkIsWeb()) {
-      setShowSplash(false);
-      setShowMenu(true);
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+        setShowMenu(true);
+      }, 500); // Brief 0.5s splash then show menu
+      return () => clearTimeout(timer);
     }
   }, []);
 
