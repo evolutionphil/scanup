@@ -1172,6 +1172,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
             };
           }));
           
+          // Check if we have any valid images to migrate
+          const hasValidImages = pagesWithImages.some(p => p.image_base64 && p.image_base64.length > 100);
+          if (!hasValidImages) {
+            console.log(`Skipping ${localDoc.name} - no valid images to migrate`);
+            skippedCount++;
+            continue;
+          }
+          
           // Create a new document in the user's account
           const newDoc = await createDocument(token, {
             name: localDoc.name,
@@ -1187,6 +1195,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           }
         } catch (docError) {
           console.error(`Failed to migrate document ${localDoc.name}:`, docError);
+          skippedCount++;
         }
       }
       
@@ -1195,7 +1204,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
       await AsyncStorage.setItem(migratedKey, 'true');
       
-      console.log(`Successfully migrated ${migratedCount} documents`);
+      console.log(`Successfully migrated ${migratedCount} documents, skipped ${skippedCount}`);
       return migratedCount;
     } catch (e) {
       console.error('Error migrating guest documents:', e);
