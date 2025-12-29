@@ -336,19 +336,45 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   // Add item to pending sync queue
+  // CRITICAL: Never store base64 data here - only file URIs for images
   addToPendingSync: async (item: PendingSyncItem) => {
     try {
+      // Strip any base64 data from the item before saving
+      let cleanedItem = { ...item };
+      if (cleanedItem.data && cleanedItem.data.pages) {
+        cleanedItem.data = {
+          ...cleanedItem.data,
+          pages: cleanedItem.data.pages.map((page: any) => ({
+            page_id: page.page_id,
+            image_file_uri: page.image_file_uri,
+            original_file_uri: page.original_file_uri,
+            filter_applied: page.filter_applied,
+            rotation: page.rotation,
+            order: page.order,
+            ocr_text: page.ocr_text,
+            // Explicitly exclude base64 data
+          }))
+        };
+      }
+      
       const existing = await AsyncStorage.getItem(PENDING_SYNC_KEY);
       const items: PendingSyncItem[] = existing ? JSON.parse(existing) : [];
       
       // Remove any existing item for same document
       const filtered = items.filter(i => i.document_id !== item.document_id);
-      filtered.push(item);
+      filtered.push(cleanedItem);
       
-      await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(filtered));
+      const jsonStr = JSON.stringify(filtered);
+      console.log(`[addToPendingSync] Saving ${filtered.length} items, size: ${(jsonStr.length / 1024).toFixed(1)}KB`);
+      
+      await AsyncStorage.setItem(PENDING_SYNC_KEY, jsonStr);
       set({ pendingSyncCount: filtered.length });
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error adding to pending sync:', e);
+      // If storage is full, just skip - don't crash
+      if (e?.message?.includes('SQLITE_FULL')) {
+        console.warn('[addToPendingSync] Storage full - sync item not saved');
+      }
     }
   },
 
