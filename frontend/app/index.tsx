@@ -60,37 +60,28 @@ export default function Index() {
       }
 
       // Navigate after splash delay
-      const timer = setTimeout(async () => {
+      const timer = setTimeout(() => {
         if (navigating) return;
         setNavigating(true);
+        setShowSplash(false);
         
-        try {
-          // On web, use direct navigation
-          if (Platform.OS === 'web') {
-            window.location.href = '/onboarding';
-            return;
-          }
-          
-          const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+        // For web, always go to onboarding for design testing
+        if (Platform.OS === 'web') {
+          router.replace('/onboarding');
+          return;
+        }
+        
+        // For native, check onboarding status
+        AsyncStorage.getItem(ONBOARDING_KEY).then((completed) => {
           if (!completed) {
-            // First time user - show onboarding
             router.replace('/onboarding');
           } else {
-            // User has completed onboarding
-            setShowSplash(false);
-            // Continue as guest for easy testing
             continueAsGuest();
             router.replace('/(tabs)');
           }
-        } catch (error) {
-          console.error('Navigation error:', error);
-          // Default to onboarding on error
-          if (Platform.OS === 'web') {
-            window.location.href = '/onboarding';
-          } else {
-            router.replace('/onboarding');
-          }
-        }
+        }).catch(() => {
+          router.replace('/onboarding');
+        });
       }, 2000);
       
       return () => clearTimeout(timer);
