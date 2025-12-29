@@ -17,16 +17,31 @@ const BRAND_BLUE = '#3366FF';
 // Logo image URL for web compatibility
 const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f61c01c3-3d34-442e-9c76-6cdad5808a35/artifacts/vjga57ci_Frame%20147.png';
 
-// Check if we're on web at module level
-const IS_WEB = Platform.OS === 'web';
+// Check if we're on web using browser-safe check
+const checkIsWeb = () => {
+  try {
+    return Platform.OS === 'web';
+  } catch {
+    return false;
+  }
+};
 
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  // On web, start with showSplash = false to skip splash
-  const [showSplash, setShowSplash] = useState(IS_WEB ? false : true);
+  // Don't use useState with conditional initial value for SSR
+  const [showSplash, setShowSplash] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
   const [navigating, setNavigating] = useState(false);
+
+  // Immediately detect web and show menu
+  useEffect(() => {
+    if (checkIsWeb()) {
+      setShowSplash(false);
+      setShowMenu(true);
+    }
+  }, []);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
