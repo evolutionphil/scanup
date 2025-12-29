@@ -160,15 +160,21 @@ export default function Index() {
     );
   }
 
-  // Splash Screen - Figma Design (Native only)
-  if (showSplash) {
+  // Splash Screen with navigation buttons for web
+  if (showSplash && !showMenu) {
     return (
       <View style={styles.splashContainer}>
-        {/* Logo Icon - Use Ionicons as fallback for web */}
-        <View style={styles.splashLogoContainer}>
-          {Platform.OS === 'web' ? (
+        {/* Logo Icon */}
+        <TouchableOpacity 
+          style={styles.splashLogoContainer}
+          onPress={() => {
+            setShowSplash(false);
+            setShowMenu(true);
+          }}
+        >
+          {checkIsWeb() ? (
             <View style={styles.webLogoContainer}>
-              <Ionicons name="document-text" size={80} color="#FFFFFF" />
+              <Ionicons name="document-text" size={60} color="#FFFFFF" />
             </View>
           ) : (
             <Image
@@ -177,7 +183,7 @@ export default function Index() {
               resizeMode="contain"
             />
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* App Name */}
         <View style={styles.splashTextContainer}>
@@ -187,10 +193,25 @@ export default function Index() {
           </Text>
         </View>
 
-        {/* Loading indicator */}
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        </View>
+        {/* Tap to continue (web only) */}
+        {checkIsWeb() && (
+          <TouchableOpacity 
+            style={styles.tapToContinue}
+            onPress={() => {
+              setShowSplash(false);
+              setShowMenu(true);
+            }}
+          >
+            <Text style={styles.tapText}>Tap to continue →</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Loading indicator (native only) */}
+        {!checkIsWeb() && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          </View>
+        )}
       </View>
     );
   }
