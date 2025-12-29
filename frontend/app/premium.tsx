@@ -64,7 +64,8 @@ export default function PremiumScreen() {
   };
 
   const handleClose = () => {
-    router.back();
+    // Navigate to main app
+    router.replace('/(tabs)');
   };
 
   return (
