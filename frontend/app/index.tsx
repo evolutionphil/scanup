@@ -60,11 +60,17 @@ export default function Index() {
       }
 
       // Navigate after splash delay
-      setTimeout(async () => {
+      const timer = setTimeout(async () => {
         if (navigating) return;
         setNavigating(true);
         
         try {
+          // On web, skip AsyncStorage check and go directly to onboarding
+          if (Platform.OS === 'web') {
+            router.replace('/onboarding');
+            return;
+          }
+          
           const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
           if (!completed) {
             // First time user - show onboarding
@@ -82,6 +88,8 @@ export default function Index() {
           router.replace('/onboarding');
         }
       }, 2000);
+      
+      return () => clearTimeout(timer);
     }
   }, []);
 
