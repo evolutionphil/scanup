@@ -109,7 +109,7 @@ export default function PremiumScreen() {
           {FEATURES.map((feature, index) => (
             <View key={index} style={styles.featureItem}>
               <View style={styles.checkIcon}>
-                <Ionicons name="checkmark" size={16} color={BRAND_BLUE} />
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
               </View>
               <Text style={styles.featureText}>{feature}</Text>
             </View>
