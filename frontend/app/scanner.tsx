@@ -73,17 +73,46 @@ export default function ScannerScreen() {
     }
   }, []);
   
+  // Track navigation state to prevent double navigation
+  const isNavigatingRef = useRef(false);
+  
   // Handle go back safely
   const handleGoBack = () => {
+    if (isNavigatingRef.current) {
+      console.log('[Scanner] Navigation already in progress');
+      return;
+    }
+    
+    isNavigatingRef.current = true;
+    console.log('[Scanner] handleGoBack called');
+    
     try {
-      if (router.canGoBack()) {
-        router.back();
+      // For scanner modal, we should dismiss it properly
+      // Check if we came from a document (addToDocument param exists)
+      if (addToDocumentId) {
+        // Go back to the document screen that launched us
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          // Fallback: navigate to the document
+          router.replace(`/document/${addToDocumentId}`);
+        }
       } else {
+        // New scan - go to home/tabs
         router.replace('/(tabs)');
       }
     } catch (e) {
       console.error('[Scanner] Navigation error:', e);
-      router.replace('/(tabs)');
+      try {
+        router.replace('/(tabs)');
+      } catch (e2) {
+        console.error('[Scanner] Fallback navigation error:', e2);
+      }
+    } finally {
+      // Reset navigation lock after a delay
+      setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 500);
     }
   };
   
