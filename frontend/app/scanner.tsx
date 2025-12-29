@@ -131,8 +131,13 @@ export default function ScannerScreen() {
         const newDoc = await createDocumentLocalFirst(token || null, documentData);
         
         if (newDoc && newDoc.document_id) {
-          // Navigate to the new document
-          router.replace(`/document/${newDoc.document_id}`);
+          console.log('[Scanner] Document created with ID:', newDoc.document_id);
+          
+          // Small delay to ensure state is updated
+          setTimeout(() => {
+            // Navigate to the new document - use push instead of replace for better navigation
+            router.push(`/document/${newDoc.document_id}`);
+          }, 100);
         } else {
           throw new Error('Failed to create document');
         }
