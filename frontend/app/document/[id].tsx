@@ -181,6 +181,65 @@ export default function DocumentScreen() {
       
       if (!doc || !doc.pages || doc.pages.length === 0) {
         setLoadError('Document has no pages');
+        return;
+      }
+      
+      // CRITICAL: Load images from file system if pages only have file URIs
+      const needsFileLoad = doc.pages.some(p => 
+        p.image_file_uri && !p.image_base64 && !p.image_url
+      );
+      
+      if (needsFileLoad) {
+        console.log('[DocumentScreen] Loading images from file system...');
+        const pagesWithImages = await Promise.all(doc.pages.map(async (page) => {
+          // If page already has base64 or URL, skip file loading
+          if (page.image_base64 || page.image_url) {
+            return page;
+          }
+          
+          // Load image from file URI
+          if (page.image_file_uri) {
+            try {
+              const fileInfo = await getInfoAsync(page.image_file_uri);
+              if (fileInfo.exists) {
+                const base64 = await readAsStringAsync(page.image_file_uri, {
+                  encoding: EncodingType.Base64,
+                });
+                console.log('[DocumentScreen] Loaded image from file:', page.image_file_uri.substring(page.image_file_uri.lastIndexOf('/') + 1));
+                return {
+                  ...page,
+                  image_base64: base64, // Raw base64, getPageImage will add data: prefix
+                };
+              } else {
+                console.warn('[DocumentScreen] File not found:', page.image_file_uri);
+              }
+            } catch (e) {
+              console.error('[DocumentScreen] Error loading image from file:', e);
+            }
+          }
+          
+          // Load original from file too if needed
+          let updatedPage = { ...page };
+          if (page.original_file_uri && !page.original_image_base64) {
+            try {
+              const fileInfo = await getInfoAsync(page.original_file_uri);
+              if (fileInfo.exists) {
+                const base64 = await readAsStringAsync(page.original_file_uri, {
+                  encoding: EncodingType.Base64,
+                });
+                updatedPage.original_image_base64 = base64;
+              }
+            } catch (e) {
+              console.error('[DocumentScreen] Error loading original from file:', e);
+            }
+          }
+          
+          return updatedPage;
+        }));
+        
+        // Update the document in store with loaded images
+        const docWithImages = { ...doc, pages: pagesWithImages };
+        useDocumentStore.setState({ currentDocument: docWithImages });
       }
     } catch (e: any) {
       console.error('[DocumentScreen] Failed to load document:', e);
