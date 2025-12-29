@@ -716,8 +716,50 @@ export default function DocumentScreen() {
     }
   };
 
-  if (loading || !currentDocument) {
-    return <LoadingScreen message="Loading document..." />;
+  // Loading state with back button
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={handleGoBack}>
+            <Ionicons name="arrow-back" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.text }]}>Loading...</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading document...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state or no document
+  if (loadError || !currentDocument) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={handleGoBack}>
+            <Ionicons name="arrow-back" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.text }]}>Document</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.loadingCenter}>
+          <Ionicons name="alert-circle-outline" size={64} color={theme.danger} />
+          <Text style={[styles.errorTitle, { color: theme.text }]}>Document Not Found</Text>
+          <Text style={[styles.errorText, { color: theme.textMuted }]}>
+            {loadError || 'This document could not be loaded.'}
+          </Text>
+          <Button 
+            title="Go Back" 
+            onPress={handleGoBack}
+            style={{ marginTop: 20 }}
+          />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const currentPage = currentDocument.pages[selectedPageIndex];
