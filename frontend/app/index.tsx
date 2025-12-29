@@ -65,9 +65,9 @@ export default function Index() {
         setNavigating(true);
         
         try {
-          // On web, skip AsyncStorage check and go directly to onboarding
+          // On web, use direct navigation
           if (Platform.OS === 'web') {
-            router.replace('/onboarding');
+            window.location.href = '/onboarding';
             return;
           }
           
@@ -85,7 +85,11 @@ export default function Index() {
         } catch (error) {
           console.error('Navigation error:', error);
           // Default to onboarding on error
-          router.replace('/onboarding');
+          if (Platform.OS === 'web') {
+            window.location.href = '/onboarding';
+          } else {
+            router.replace('/onboarding');
+          }
         }
       }, 2000);
       
