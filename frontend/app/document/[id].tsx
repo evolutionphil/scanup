@@ -941,7 +941,26 @@ export default function DocumentScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsScroll}>
         <View style={[styles.actions, { borderTopColor: theme.border }]}>
-          <ActionButton icon="add-circle" label="Add Page" onPress={() => router.push({ pathname: '/scanner', params: { addToDocument: currentDocument.document_id } })} theme={theme} />
+          <ActionButton 
+            icon="add-circle" 
+            label="Add Page" 
+            onPress={() => {
+              if (isNavigatingRef.current) return;
+              isNavigatingRef.current = true;
+              try {
+                router.push({ pathname: '/scanner', params: { addToDocument: currentDocument.document_id } });
+              } catch (e) {
+                console.error('[Document] Add page navigation error:', e);
+              } finally {
+                setTimeout(() => {
+                  if (isMountedRef.current) {
+                    isNavigatingRef.current = false;
+                  }
+                }, 500);
+              }
+            }} 
+            theme={theme} 
+          />
           <ActionButton icon="color-wand" label="Filters" onPress={() => setShowFilterEditor(true)} theme={theme} />
           <ActionButton icon="refresh" label="Rotate" onPress={handleRotate} theme={theme} />
           <ActionButton icon="crop" label="Auto Crop" onPress={handleAutoCrop} theme={theme} />
