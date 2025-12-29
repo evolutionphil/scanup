@@ -401,8 +401,6 @@ export default function ScannerScreen() {
   // Completely transparent/invisible screen - scanner opens via useEffect
   // Home screen will show through until scanner plugin takes over
   return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
-    </View>
-  );
 }
 
 // =============================================================================
