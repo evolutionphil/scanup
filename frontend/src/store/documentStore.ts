@@ -410,9 +410,32 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(metaDocs));
     } catch (e: any) {
       console.error('Error saving local cache:', e);
-      // If storage is full, don't crash - just log and continue
+      // If storage is full, clear old corrupted data and retry ONCE
       if (e?.message?.includes('SQLITE_FULL') || e?.message?.includes('disk is full')) {
-        console.warn('Storage full - local cache not saved. Images saved to file system instead.');
+        console.warn('[saveLocalCache] Storage full! Clearing corrupted data and retrying...');
+        const cleared = await clearCorruptedAsyncStorage();
+        if (cleared) {
+          try {
+            // Retry save after clearing
+            const { documents } = get();
+            const cleanDocs = documents.map(doc => ({
+              ...doc,
+              pages: doc.pages.map(p => ({
+                page_id: p.page_id,
+                image_file_uri: p.image_file_uri,
+                image_url: p.image_url,
+                original_file_uri: p.original_file_uri,
+                filter_applied: p.filter_applied,
+                rotation: p.rotation,
+                order: p.order,
+              }))
+            }));
+            await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(cleanDocs));
+            console.log('[saveLocalCache] ✅ Retry successful after clearing corrupted data');
+          } catch (retryError) {
+            console.error('[saveLocalCache] Retry failed:', retryError);
+          }
+        }
       }
     }
   },
