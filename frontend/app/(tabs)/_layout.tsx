@@ -8,17 +8,19 @@ import { useThemeStore } from '../../src/store/themeStore';
 import OfflineIndicator from '../../src/components/OfflineIndicator';
 
 export default function TabsLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Only redirect if not loading and not authenticated AND not a guest
+    if (!isLoading && !isAuthenticated && !isGuest) {
       router.replace('/');
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, isGuest]);
 
-  if (!isAuthenticated) {
+  // Allow guests and authenticated users
+  if (!isAuthenticated && !isGuest) {
     return null;
   }
 
