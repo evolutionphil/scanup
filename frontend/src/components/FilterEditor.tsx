@@ -89,7 +89,7 @@ export default function FilterEditor({
     
     // If no image data, can't preview
     if (!baseImage || baseImage.length < 100) {
-      console.warn('[FilterEditor] No valid image data for preview');
+      console.warn('[FilterEditor] No valid image data for preview, baseImage:', baseImage ? `${baseImage.length} chars` : 'null/empty');
       return;
     }
     
@@ -115,6 +115,12 @@ export default function FilterEditor({
       let imageData = baseImage;
       if (baseImage.startsWith('data:')) {
         imageData = baseImage.split(',')[1];
+      }
+      
+      // Final validation - don't send empty or invalid data
+      if (!imageData || imageData.length < 100) {
+        console.error('[FilterEditor] Invalid imageData after processing:', imageData ? `${imageData.length} chars` : 'null/empty');
+        return;
       }
       
       console.log('[FilterEditor] Sending preview request, image length:', imageData.length);
@@ -144,7 +150,8 @@ export default function FilterEditor({
           setPreviewImage(processedWithPrefix);
         }
       } else {
-        console.error('[FilterEditor] Preview API error:', response.status);
+        const errorText = await response.text();
+        console.error('[FilterEditor] Preview API error:', response.status, errorText);
       }
     } catch (e) {
       console.error('[FilterEditor] Preview error:', e);
