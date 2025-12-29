@@ -156,10 +156,33 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
       const localFolders = folders.filter(f => f.folder_id.startsWith('local_'));
       
-      await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
+      // Don't save if storage is likely full (more than 50 local docs)
+      if (localDocs.length > 50) {
+        console.warn('Too many local documents, consider syncing to server');
+        // Only keep the most recent 50 documents in storage
+        const recentDocs = localDocs.slice(0, 50);
+        await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(recentDocs));
+      } else {
+        await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
+      }
       await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error saving guest data:', e);
+      // If storage is full, try to clear old data
+      if (e?.message?.includes('SQLITE_FULL') || e?.message?.includes('disk is full')) {
+        console.warn('Storage full, attempting to clear old cache...');
+        try {
+          await AsyncStorage.removeItem(LOCAL_DOCUMENTS_KEY);
+          // Retry save after clearing cache
+          const { documents, folders } = get();
+          const localDocs = documents.filter(d => d.document_id.startsWith('local_')).slice(0, 20);
+          const localFolders = folders.filter(f => f.folder_id.startsWith('local_'));
+          await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
+          await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
+        } catch (retryError) {
+          console.error('Still cannot save after clearing cache:', retryError);
+        }
+      }
     }
   },
 
@@ -167,7 +190,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   saveLocalCache: async () => {
     try {
       const { documents } = get();
-      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(documents));
+      // Limit cache size to prevent storage issues
+      const docsToCache = documents.slice(0, 100);
+      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(docsToCache));
     } catch (e) {
       console.error('Error saving local cache:', e);
     }
