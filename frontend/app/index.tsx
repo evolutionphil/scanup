@@ -21,7 +21,7 @@ export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(Platform.OS !== 'web'); // Skip splash on web
   const [navigating, setNavigating] = useState(false);
 
   // Animations
