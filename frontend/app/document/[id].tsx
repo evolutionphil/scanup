@@ -348,6 +348,22 @@ export default function DocumentScreen() {
         return;
       }
       
+      // Strip data: prefix if present - API expects raw base64
+      let imageData = baseImage;
+      if (baseImage.startsWith('data:')) {
+        imageData = baseImage.split(',')[1];
+      }
+      
+      // Validate image data
+      if (!imageData || imageData.length < 100) {
+        console.error('[handleApplyFilter] Invalid image data:', imageData?.length || 0);
+        Alert.alert('Error', 'Image data is not available. Please try closing and reopening the document.');
+        setProcessing(false);
+        return;
+      }
+      
+      console.log('[handleApplyFilter] Sending filter request, image length:', imageData.length);
+      
       // Use public endpoint for guests/local docs, authenticated for logged-in users
       const endpoint = (isLocalDoc || !token) 
         ? `${BACKEND_URL}/api/images/process-public`
@@ -362,7 +378,7 @@ export default function DocumentScreen() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          image_base64: baseImage,
+          image_base64: imageData,
           operation: 'filter',
           params: {
             type: filterType,
@@ -374,6 +390,8 @@ export default function DocumentScreen() {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[handleApplyFilter] API error:', response.status, errorText);
         throw new Error('Failed to process image');
       }
 
