@@ -118,16 +118,25 @@ export default function DocumentScreen() {
       return;
     }
     
+    console.log('[DocumentScreen] Loading document:', id);
     setLoading(true);
     setLoadError(null);
     
     try {
       // For local documents (guest mode), token can be null
-      await fetchDocument(token, id);
+      const doc = await fetchDocument(token, id);
+      console.log('[DocumentScreen] Document loaded:', doc?.document_id, 'Pages:', doc?.pages?.length);
+      
+      if (!doc || !doc.pages || doc.pages.length === 0) {
+        setLoadError('Document has no pages');
+      }
     } catch (e: any) {
-      console.error('Failed to load document:', e);
+      console.error('[DocumentScreen] Failed to load document:', e);
       setLoadError(e.message || 'Failed to load document');
     } finally {
+      setLoading(false);
+    }
+  };
       setLoading(false);
     }
   };
