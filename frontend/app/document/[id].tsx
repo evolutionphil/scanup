@@ -1062,7 +1062,12 @@ export default function DocumentScreen() {
             }} 
             theme={theme} 
           />
-          <ActionButton icon="share-outline" label="Share" onPress={handleShare} theme={theme} />
+          <ActionButton 
+            icon="share-outline" 
+            label="Share" 
+            onPress={() => setShowShareModal(true)} 
+            theme={theme} 
+          />
           {currentDocument.pages.length > 1 && (
             <>
               <ActionButton 
