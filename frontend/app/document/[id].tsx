@@ -17,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
-import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import { cacheDirectory, writeAsStringAsync, EncodingType, readAsStringAsync, getInfoAsync } from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
