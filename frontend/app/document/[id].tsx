@@ -1000,7 +1000,7 @@ export default function DocumentScreen() {
         >
           {currentDocument.pages.map((page, index) => (
             <TouchableOpacity
-              key={page.page_id}
+              key={page.page_id || `page-${index}`}
               style={[
                 styles.thumbnailContainer,
                 { borderColor: index === selectedPageIndex ? theme.primary : 'transparent' },
