@@ -353,71 +353,76 @@ export default function ScannerScreen() {
   // RENDER
   // =============================================================================
   
+  // Make the screen nearly invisible during initial scanner launch
+  // Only show UI if there's an error or if saving
+  const showUI = scannerError || isSaving || (!isScanning && hasScannedRef.current);
+  
   return (
     <View style={[styles.container, { backgroundColor: '#000' }]}>
-      <SafeAreaView style={styles.content} edges={['top', 'bottom']}>
-        {/* Header with back button */}
-        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-            <Ionicons name="close" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {addToDocumentId ? 'Add Page' : 'Scan Document'}
-          </Text>
-          <View style={{ width: 44 }} />
-        </View>
-        
-        {/* Main content */}
-        <View style={styles.loadingContainer}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="scan" size={64} color="#3B82F6" />
+      {showUI ? (
+        <SafeAreaView style={styles.content} edges={['top', 'bottom']}>
+          {/* Header with back button */}
+          <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
+            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+              <Ionicons name="close" size={28} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>
+              {addToDocumentId ? 'Add Page' : 'Scan Document'}
+            </Text>
+            <View style={{ width: 44 }} />
           </View>
           
-          {scannerError ? (
-            <>
-              <Text style={styles.errorText}>{scannerError}</Text>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.actionButton} onPress={openDocumentScanner}>
-                  <Ionicons name="refresh" size={24} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Retry</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={openCameraFallback}>
-                  <Ionicons name="camera" size={24} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Camera</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={openGallery}>
-                  <Ionicons name="images" size={24} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Gallery</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              <ActivityIndicator size="large" color="#3B82F6" style={styles.spinner} />
-              <Text style={styles.statusText}>{statusMessage}</Text>
-              {isSaving && (
+          {/* Main content */}
+          <View style={styles.loadingContainer}>
+            {scannerError ? (
+              <>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="scan" size={64} color="#3B82F6" />
+                </View>
+                <Text style={styles.errorText}>{scannerError}</Text>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity style={styles.actionButton} onPress={openDocumentScanner}>
+                    <Ionicons name="refresh" size={24} color="#FFF" />
+                    <Text style={styles.actionButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton} onPress={openCameraFallback}>
+                    <Ionicons name="camera" size={24} color="#FFF" />
+                    <Text style={styles.actionButtonText}>Camera</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton} onPress={openGallery}>
+                    <Ionicons name="images" size={24} color="#FFF" />
+                    <Text style={styles.actionButtonText}>Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : isSaving ? (
+              <>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="document" size={64} color="#3B82F6" />
+                </View>
+                <ActivityIndicator size="large" color="#3B82F6" style={styles.spinner} />
+                <Text style={styles.statusText}>{statusMessage}</Text>
                 <Text style={styles.subText}>Please wait...</Text>
-              )}
-            </>
-          )}
-        </View>
-        
-        {/* Bottom buttons */}
-        {!scannerError && !isScanning && !isSaving && (
-          <View style={[styles.bottomButtons, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <TouchableOpacity style={styles.bottomButton} onPress={handleGoBack}>
-              <Ionicons name="close-circle" size={24} color="#FFF" />
-              <Text style={styles.bottomButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.bottomButton, styles.primaryButton]} onPress={openDocumentScanner}>
-              <Ionicons name="scan" size={24} color="#FFF" />
-              <Text style={styles.bottomButtonText}>Scan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bottomButton} onPress={openGallery}>
-              <Ionicons name="images" size={24} color="#FFF" />
-              <Text style={styles.bottomButtonText}>Gallery</Text>
-            </TouchableOpacity>
+              </>
+            ) : null}
           </View>
+          
+          {/* Bottom buttons - only show if not scanning and not saving */}
+          {!scannerError && !isScanning && !isSaving && (
+            <View style={[styles.bottomButtons, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+              <TouchableOpacity style={styles.bottomButton} onPress={handleGoBack}>
+                <Ionicons name="close-circle" size={24} color="#FFF" />
+                <Text style={styles.bottomButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.bottomButton, styles.primaryButton]} onPress={openDocumentScanner}>
+                <Ionicons name="scan" size={24} color="#FFF" />
+                <Text style={styles.bottomButtonText}>Scan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bottomButton} onPress={openGallery}>
+                <Ionicons name="images" size={24} color="#FFF" />
+                <Text style={styles.bottomButtonText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
         )}
       </SafeAreaView>
     </View>
