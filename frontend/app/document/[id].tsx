@@ -812,7 +812,7 @@ export default function DocumentScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <TouchableOpacity
