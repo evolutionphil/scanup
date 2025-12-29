@@ -11,9 +11,10 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
