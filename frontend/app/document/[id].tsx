@@ -411,72 +411,7 @@ export default function DocumentScreen() {
     }
   };
 
-  const handleAutoCrop = async () => {
-    if (!currentDocument || processing) return;
-    
-    setProcessing(true);
-    try {
-      const currentPage = currentDocument.pages[selectedPageIndex];
-      const isLocalDoc = currentDocument.document_id.startsWith('local_');
-      
-      // Store original before cropping if not already stored
-      const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
-      
-      // Strip data: prefix if present - API expects raw base64
-      let imageData = currentPage.image_base64;
-      if (imageData && imageData.startsWith('data:')) {
-        imageData = imageData.split(',')[1];
-      }
-      
-      // Validate image data
-      if (!imageData || imageData.length < 100) {
-        Alert.alert('Error', 'Image data is not available. Please try closing and reopening the document.');
-        setProcessing(false);
-        return;
-      }
-      
-      // Use public endpoint for guest/local documents
-      const endpoint = isLocalDoc
-        ? `${BACKEND_URL}/api/images/auto-crop-public`
-        : `${BACKEND_URL}/api/images/auto-crop`;
-      
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token && !isLocalDoc) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          image_base64: imageData,
-          operation: 'auto_crop',
-          params: {}
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.cropped_image_base64) {
-        const updatedPages = [...currentDocument.pages];
-        updatedPages[selectedPageIndex] = {
-          ...updatedPages[selectedPageIndex],
-          image_base64: result.cropped_image_base64,
-          original_image_base64: originalImage, // Preserve original for revert
-        };
-
-        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-        Alert.alert('Success', 'Document cropped. Use "Revert" to undo if needed.');
-      } else {
-        Alert.alert('Auto-crop', result.message || 'Could not detect document edges. The image might already be well-cropped or try manual adjustment.');
-      }
-    } catch (e) {
-      console.error('Auto-crop error:', e);
-      Alert.alert('Error', 'Failed to auto-crop image');
-    } finally {
-      setProcessing(false);
-    }
-  };
+  // Auto-crop removed - document scanner plugin handles cropping during scan
 
   const handleRevertToOriginal = async () => {
     if (!currentDocument || processing) return;
