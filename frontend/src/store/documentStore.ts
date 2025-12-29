@@ -1,12 +1,58 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import * as FileSystem from 'expo-file-system';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const GUEST_DOCUMENTS_KEY = 'guest_documents';
+const GUEST_DOCUMENTS_KEY = 'guest_documents_meta'; // Only stores metadata now
 const GUEST_FOLDERS_KEY = 'guest_folders';
 const PENDING_SYNC_KEY = 'pending_sync_documents';
-const LOCAL_DOCUMENTS_KEY = 'local_documents_cache';
+const LOCAL_DOCUMENTS_KEY = 'local_documents_meta'; // Only stores metadata now
+
+// Image storage directory
+const IMAGE_DIR = `${FileSystem.documentDirectory}scanup_images/`;
+
+// Ensure image directory exists
+const ensureImageDir = async () => {
+  const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
+  if (!dirInfo.exists) {
+    await FileSystem.makeDirectoryAsync(IMAGE_DIR, { intermediates: true });
+  }
+};
+
+// Save image to file system, return file URI
+const saveImageToFile = async (base64: string, docId: string, pageNum: number): Promise<string> => {
+  await ensureImageDir();
+  const filename = `${docId}_p${pageNum}_${Date.now()}.jpg`;
+  const fileUri = `${IMAGE_DIR}${filename}`;
+  const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+  await FileSystem.writeAsStringAsync(fileUri, cleanBase64, { encoding: FileSystem.EncodingType.Base64 });
+  return fileUri;
+};
+
+// Load image from file system as base64
+const loadImageFromFile = async (fileUri: string): Promise<string | null> => {
+  try {
+    const info = await FileSystem.getInfoAsync(fileUri);
+    if (!info.exists) return null;
+    const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (e) {
+    console.error('Error loading image from file:', e);
+    return null;
+  }
+};
+
+// Delete image file
+const deleteImageFile = async (fileUri: string) => {
+  try {
+    if (fileUri.startsWith('file://') || fileUri.startsWith(IMAGE_DIR)) {
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    }
+  } catch (e) {
+    console.error('Error deleting image file:', e);
+  }
+};
 
 // Sync status for documents
 export type SyncStatus = 'local' | 'syncing' | 'synced' | 'failed';
