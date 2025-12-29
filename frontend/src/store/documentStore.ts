@@ -13,6 +13,36 @@ const LOCAL_DOCUMENTS_KEY = 'local_documents_meta'; // Only stores metadata now
 // Image storage directory
 const IMAGE_DIR = `${FileSystem.documentDirectory}scanup_images/`;
 
+// Clear ALL corrupted AsyncStorage data (nuclear option for SQLITE_FULL)
+const clearCorruptedAsyncStorage = async (): Promise<boolean> => {
+  try {
+    console.log('[Storage] 🧹 Clearing all corrupted AsyncStorage data...');
+    const keys = await AsyncStorage.getAllKeys();
+    const documentKeys = keys.filter(k => 
+      k.includes('document') || 
+      k.includes('local_') || 
+      k.includes('guest') ||
+      k.includes('pending_sync') ||
+      k.includes('catalystLocalStorage')
+    );
+    
+    for (const key of documentKeys) {
+      try {
+        await AsyncStorage.removeItem(key);
+        console.log(`[Storage] Removed key: ${key}`);
+      } catch (e) {
+        console.error(`[Storage] Failed to remove ${key}:`, e);
+      }
+    }
+    
+    console.log('[Storage] ✅ Cleared corrupted data');
+    return true;
+  } catch (e) {
+    console.error('[Storage] Failed to clear corrupted data:', e);
+    return false;
+  }
+};
+
 // Ensure image directory exists
 const ensureImageDir = async () => {
   const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
