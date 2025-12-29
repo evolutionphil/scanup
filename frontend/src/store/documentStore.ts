@@ -194,49 +194,66 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
       const storedFolders = await AsyncStorage.getItem(GUEST_FOLDERS_KEY);
       
-      const documents = storedDocs ? JSON.parse(storedDocs) : [];
+      const metaDocs = storedDocs ? JSON.parse(storedDocs) : [];
       const folders = storedFolders ? JSON.parse(storedFolders) : [];
       
-      set({ documents, folders });
+      // Documents from meta storage already have file URIs pointing to saved images
+      set({ documents: metaDocs, folders });
     } catch (e) {
       console.error('Error loading guest data:', e);
     }
   },
 
+  // Save documents: images to file system, metadata to AsyncStorage
   saveGuestDocuments: async () => {
     try {
       const { documents, folders } = get();
-      // Only save local documents and folders (those with 'local_' prefix)
       const localDocs = documents.filter(d => d.document_id.startsWith('local_'));
       const localFolders = folders.filter(f => f.folder_id.startsWith('local_'));
       
-      // Don't save if storage is likely full (more than 50 local docs)
-      if (localDocs.length > 50) {
-        console.warn('Too many local documents, consider syncing to server');
-        // Only keep the most recent 50 documents in storage
-        const recentDocs = localDocs.slice(0, 50);
-        await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(recentDocs));
-      } else {
-        await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
-      }
+      // Process each document - save images to files, keep metadata light
+      const metaDocs = await Promise.all(localDocs.map(async (doc) => {
+        const processedPages = await Promise.all(doc.pages.map(async (page, idx) => {
+          let fileUri = page.image_file_uri;
+          let origFileUri = page.original_file_uri;
+          
+          // If we have base64 but no file URI, save to file
+          if (page.image_base64 && !page.image_file_uri) {
+            try {
+              fileUri = await saveImageToFile(page.image_base64, doc.document_id, idx);
+            } catch (e) {
+              console.error('Error saving image to file:', e);
+            }
+          }
+          
+          // Save original image to file too
+          if (page.original_image_base64 && !page.original_file_uri) {
+            try {
+              origFileUri = await saveImageToFile(page.original_image_base64, doc.document_id + '_orig', idx);
+            } catch (e) {
+              console.error('Error saving original image to file:', e);
+            }
+          }
+          
+          // Return page with file URIs, WITHOUT base64 (to keep metadata small)
+          return {
+            ...page,
+            image_file_uri: fileUri,
+            original_file_uri: origFileUri,
+            image_base64: undefined, // Don't store in AsyncStorage
+            original_image_base64: undefined, // Don't store in AsyncStorage
+          };
+        }));
+        
+        return { ...doc, pages: processedPages };
+      }));
+      
+      // Save only metadata (with file URIs) to AsyncStorage - much smaller!
+      await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(metaDocs));
       await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
+      console.log(`[Storage] Saved ${metaDocs.length} docs metadata + images to files`);
     } catch (e: any) {
       console.error('Error saving guest data:', e);
-      // If storage is full, try to clear old data
-      if (e?.message?.includes('SQLITE_FULL') || e?.message?.includes('disk is full')) {
-        console.warn('Storage full, attempting to clear old cache...');
-        try {
-          await AsyncStorage.removeItem(LOCAL_DOCUMENTS_KEY);
-          // Retry save after clearing cache
-          const { documents, folders } = get();
-          const localDocs = documents.filter(d => d.document_id.startsWith('local_')).slice(0, 20);
-          const localFolders = folders.filter(f => f.folder_id.startsWith('local_'));
-          await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(localDocs));
-          await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
-        } catch (retryError) {
-          console.error('Still cannot save after clearing cache:', retryError);
-        }
-      }
     }
   },
 
@@ -244,9 +261,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   saveLocalCache: async () => {
     try {
       const { documents } = get();
-      // Limit cache size to prevent storage issues
-      const docsToCache = documents.slice(0, 100);
-      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(docsToCache));
+      
+      // Strip base64 from docs before saving metadata
+      const metaDocs = documents.slice(0, 100).map(doc => ({
+        ...doc,
+        pages: doc.pages.map(page => ({
+          ...page,
+          image_base64: undefined,
+          original_image_base64: undefined,
+        }))
+      }));
+      
+      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(metaDocs));
     } catch (e: any) {
       console.error('Error saving local cache:', e);
       // If storage is full, don't crash - just log and continue
