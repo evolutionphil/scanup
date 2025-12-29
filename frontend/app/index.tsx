@@ -240,49 +240,38 @@ function FeatureItem({
 }
 
 const styles = StyleSheet.create({
-  // Splash Screen Styles
+  // Splash Screen Styles - Figma Design
   splashContainer: {
     flex: 1,
+    backgroundColor: BRAND_BLUE,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  gradientCircle: {
-    position: 'absolute',
-    width: width * 1.5,
-    height: width * 1.5,
-    borderRadius: width * 0.75,
-    top: -width * 0.5,
-    right: -width * 0.5,
-  },
-  gradientCircle2: {
-    position: 'absolute',
-    width: width * 1.2,
-    height: width * 1.2,
-    borderRadius: width * 0.6,
-    bottom: -width * 0.3,
-    left: -width * 0.4,
   },
   splashLogoContainer: {
-    marginBottom: 24,
-  },
-  splashLogoWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 32,
+    width: 180,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  splashLogo: {
+    width: 160,
+    height: 160,
   },
   splashTextContainer: {
     alignItems: 'center',
+    marginTop: 24,
   },
   splashAppName: {
     fontSize: 42,
-    fontWeight: '700',
-    letterSpacing: -1,
+    letterSpacing: 1,
   },
-  splashTagline: {
-    fontSize: 16,
-    marginTop: 8,
+  scanText: {
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  upText: {
+    fontWeight: '300',
+    color: '#FFFFFF',
   },
   loadingContainer: {
     position: 'absolute',
