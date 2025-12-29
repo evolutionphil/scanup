@@ -73,7 +73,11 @@ export default function TabsLayout() {
             title: '',
             tabBarIcon: ({ focused }) => (
               <View style={[styles.scanButton, { backgroundColor: theme.primary }]}>
-                <Ionicons name="scan" size={28} color="#FFF" />
+                <Image 
+                  source={require('../../assets/images/scanner-icon.png')} 
+                  style={styles.scanIcon}
+                  resizeMode="contain"
+                />
               </View>
             ),
           }}
