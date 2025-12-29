@@ -86,10 +86,11 @@ export default function OnboardingScreen() {
   const completeOnboarding = async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-      router.replace('/');
+      // Show premium screen after onboarding
+      router.replace('/premium');
     } catch (error) {
       console.error('Failed to save onboarding status:', error);
-      router.replace('/');
+      router.replace('/premium');
     }
   };
 
