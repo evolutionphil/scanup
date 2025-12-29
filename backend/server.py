@@ -1932,7 +1932,9 @@ async def process_image(
 @api_router.post("/images/process-public", response_model=ImageProcessResponse)
 async def process_image_public(request: ImageProcessRequest):
     """Public endpoint to process an image (no auth required) - for guest users"""
-    logger.info(f"Processing image, operation: {request.operation}, image length: {len(request.image_base64) if request.image_base64 else 0}")
+    # DEBUG: Log incoming request details
+    img_preview = (request.image_base64[:50] + "...") if request.image_base64 and len(request.image_base64) > 50 else request.image_base64
+    logger.info(f"[process-public] operation={request.operation}, image_len={len(request.image_base64) if request.image_base64 else 0}, preview={img_preview}")
     result = request.image_base64
     
     if request.operation == "filter":
