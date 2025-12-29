@@ -26,6 +26,7 @@ import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
 import ExportModal from '../../src/components/ExportModal';
+import ShareModal from '../../src/components/ShareModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
 // Local image processing - no backend needed!
