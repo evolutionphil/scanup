@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import * as FileSystem from 'expo-file-system';
+// Use legacy API for expo-file-system (SDK 54+ deprecated the old methods)
+import * as FileSystem from 'expo-file-system/legacy';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const GUEST_DOCUMENTS_KEY = 'guest_documents_meta'; // Only stores metadata now
