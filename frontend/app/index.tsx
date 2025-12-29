@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity, Image, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
@@ -14,6 +14,9 @@ const ONBOARDING_KEY = '@scanup_onboarding_complete';
 // Brand color from Figma design
 const BRAND_BLUE = '#3366FF';
 
+// Use native driver only on native platforms
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
@@ -21,10 +24,10 @@ export default function Index() {
   const [showSplash, setShowSplash] = useState(true);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  // Animations - start with visible values for web
+  const fadeAnim = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
