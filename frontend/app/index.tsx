@@ -97,6 +97,31 @@ export default function Index() {
 
   // Splash Screen - Figma Design
   if (showSplash || isLoading) {
+    // On web, show static splash without animations
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.splashContainer}>
+          <View style={styles.splashLogoContainer}>
+            <Image
+              source={require('../assets/images/logo.png')}
+              style={styles.splashLogo}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.splashTextContainer}>
+            <Text style={styles.splashAppName}>
+              <Text style={styles.scanText}>Scan</Text>
+              <Text style={styles.upText}>Up</Text>
+            </Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          </View>
+        </View>
+      );
+    }
+    
+    // On native, show animated splash
     return (
       <View style={styles.splashContainer}>
         {/* Logo Icon */}
