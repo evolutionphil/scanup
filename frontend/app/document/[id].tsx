@@ -56,6 +56,19 @@ const getPageThumbnail = (page: PageData): string => {
   return getPageImage(page); // Fallback to main image
 };
 
+// Helper to get base64 for API calls (needed for filters, OCR, export)
+// Returns the actual base64 data (without data: prefix) for API calls
+const getPageBase64ForAPI = (page: PageData): string => {
+  if (page.image_base64) {
+    // Remove data: prefix if present
+    if (page.image_base64.startsWith('data:')) {
+      return page.image_base64.split(',')[1];
+    }
+    return page.image_base64;
+  }
+  return '';
+};
+
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token, user, refreshUser, isGuest } = useAuthStore();
