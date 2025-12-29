@@ -105,11 +105,14 @@ export default function ExportModal({
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.${ext}`;
         mimeType = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
       } else if (selectedFormat === 'pdf') {
-        // Use public endpoint for PDF - works for both guest and logged-in users
+        // LOCAL PDF generation - no backend needed!
         if (!pages || pages.length === 0) {
           throw new Error('No pages available for PDF export');
         }
         
+        console.log('[ExportModal] Generating PDF locally...');
+        
+        // Prepare images for PDF
         const imagesBase64 = pages.map(page => {
           let imgData = page.image_base64 || '';
           if (imgData.includes(',')) {
@@ -122,30 +125,46 @@ export default function ExportModal({
           throw new Error('Page images not available. Please try again.');
         }
         
-        const response = await fetch(`${BACKEND_URL}/api/export/public`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            format: 'pdf',
-            images_base64: imagesBase64,
-            document_name: documentName,
-          }),
+        // Build HTML with images for local PDF generation
+        const imageHtml = imagesBase64.map((img, index) => {
+          const base64WithPrefix = `data:image/jpeg;base64,${img}`;
+          return `
+            <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
+              <img src="${base64WithPrefix}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+            </div>
+          `;
+        }).join('');
+
+        const html = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <title>${documentName}</title>
+              <style>
+                @page { margin: 10mm; padding: 0; }
+                body { margin: 0; padding: 0; }
+                img { display: block; margin: 0 auto; }
+              </style>
+            </head>
+            <body>
+              ${imageHtml}
+            </body>
+          </html>
+        `;
+
+        // Generate PDF locally using expo-print
+        const { uri } = await Print.printToFileAsync({ html });
+        
+        // Read the PDF file as base64
+        fileBase64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Export failed: ${response.status}`);
-        }
+        fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+        mimeType = 'application/pdf';
         
-        const result = await response.json();
-        
-        if (!result.success || !result.file_base64) {
-          throw new Error(result.message || 'Failed to generate PDF');
-        }
-        
-        fileBase64 = result.file_base64;
-        fileName = result.filename || `${documentName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-        mimeType = result.mime_type || 'application/pdf';
+        console.log('[ExportModal] PDF generated locally, size:', fileBase64.length);
       } else if (isGuest) {
         Alert.alert('Sign In Required', `Sign in to export as ${format.name}.`);
         setIsExporting(false);
