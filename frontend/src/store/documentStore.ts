@@ -416,26 +416,76 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   fetchDocument: async (token, documentId) => {
-    // If no token or local document, find in local state
-    if (!token || documentId.startsWith('local_')) {
-      const { documents } = get();
-      const document = documents.find(d => d.document_id === documentId);
-      if (document) {
-        set({ currentDocument: document });
-        return document;
+    // First, try to find in local state/cache
+    const { documents } = get();
+    const cachedDocument = documents.find(d => d.document_id === documentId);
+    
+    // If no token, use cached/local document only
+    if (!token) {
+      if (cachedDocument) {
+        set({ currentDocument: cachedDocument });
+        return cachedDocument;
+      }
+      // Try loading from local storage
+      const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
+      if (storedDocs) {
+        const guestDocs = JSON.parse(storedDocs);
+        const localDoc = guestDocs.find((d: Document) => d.document_id === documentId);
+        if (localDoc) {
+          set({ currentDocument: localDoc });
+          return localDoc;
+        }
       }
       throw new Error('Document not found');
     }
+    
+    // For local documents, just use the cached version
+    if (documentId.startsWith('local_')) {
+      if (cachedDocument) {
+        set({ currentDocument: cachedDocument });
+        return cachedDocument;
+      }
+      throw new Error('Local document not found');
+    }
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/documents/${documentId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    // Show cached document immediately while fetching
+    if (cachedDocument) {
+      set({ currentDocument: cachedDocument });
+    }
 
-    if (!response.ok) throw new Error('Failed to fetch document');
-    const document = await response.json();
-    set({ currentDocument: document });
-    return document;
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/documents/${documentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!response.ok) {
+        // If server fetch fails but we have cached, use cached
+        if (cachedDocument) {
+          return cachedDocument;
+        }
+        throw new Error('Failed to fetch document');
+      }
+      
+      const document = await response.json();
+      set({ currentDocument: document });
+      
+      // Update the cached version
+      const updatedDocs = documents.map(d => 
+        d.document_id === documentId ? document : d
+      );
+      set({ documents: updatedDocs });
+      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(updatedDocs));
+      
+      return document;
+    } catch (e) {
+      // If fetch fails but we have cached document, use it
+      if (cachedDocument) {
+        set({ currentDocument: cachedDocument });
+        return cachedDocument;
+      }
+      throw e;
+    }
   },
 
   createDocument: async (token, data) => {
