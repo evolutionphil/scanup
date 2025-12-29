@@ -263,6 +263,24 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // Save only metadata (with file URIs) to AsyncStorage - much smaller!
       await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, jsonStr);
       await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
+      
+      // ALSO update the in-memory state with file URIs so subsequent operations work
+      // But keep the base64 in memory for immediate display
+      const updatedDocs = documents.map(doc => {
+        if (!doc.document_id.startsWith('local_')) return doc;
+        const metaDoc = metaDocs.find(m => m.document_id === doc.document_id);
+        if (!metaDoc) return doc;
+        return {
+          ...doc,
+          pages: doc.pages.map((page, idx) => ({
+            ...page,
+            image_file_uri: metaDoc.pages[idx]?.image_file_uri || page.image_file_uri,
+            original_file_uri: metaDoc.pages[idx]?.original_file_uri || page.original_file_uri,
+          }))
+        };
+      });
+      set({ documents: updatedDocs });
+      
     } catch (e: any) {
       console.error('Error saving guest data:', e);
       if (e?.message?.includes('SQLITE_FULL')) {
