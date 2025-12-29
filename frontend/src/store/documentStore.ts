@@ -222,6 +222,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           if (page.image_base64 && !page.image_file_uri) {
             try {
               fileUri = await saveImageToFile(page.image_base64, doc.document_id, idx);
+              console.log(`[saveGuestDocuments] Saved image to: ${fileUri}`);
             } catch (e) {
               console.error('Error saving image to file:', e);
             }
@@ -236,25 +237,37 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
             }
           }
           
-          // Return page with file URIs, WITHOUT base64 (to keep metadata small)
+          // Return ONLY metadata fields - NO base64 data!
           return {
-            ...page,
+            page_id: page.page_id,
             image_file_uri: fileUri,
+            image_url: page.image_url,
             original_file_uri: origFileUri,
-            image_base64: undefined, // Don't store in AsyncStorage
-            original_image_base64: undefined, // Don't store in AsyncStorage
+            thumbnail_url: page.thumbnail_url,
+            ocr_text: page.ocr_text,
+            filter_applied: page.filter_applied,
+            rotation: page.rotation,
+            order: page.order,
+            created_at: page.created_at,
+            adjustments: page.adjustments,
+            // Explicitly NOT including: image_base64, original_image_base64, thumbnail_base64
           };
         }));
         
         return { ...doc, pages: processedPages };
       }));
       
+      const jsonStr = JSON.stringify(metaDocs);
+      console.log(`[saveGuestDocuments] Saving ${metaDocs.length} docs, size: ${(jsonStr.length / 1024).toFixed(1)}KB`);
+      
       // Save only metadata (with file URIs) to AsyncStorage - much smaller!
-      await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, JSON.stringify(metaDocs));
+      await AsyncStorage.setItem(GUEST_DOCUMENTS_KEY, jsonStr);
       await AsyncStorage.setItem(GUEST_FOLDERS_KEY, JSON.stringify(localFolders));
-      console.log(`[Storage] Saved ${metaDocs.length} docs metadata + images to files`);
     } catch (e: any) {
       console.error('Error saving guest data:', e);
+      if (e?.message?.includes('SQLITE_FULL')) {
+        console.warn('[saveGuestDocuments] Storage full! This should not happen if base64 is properly stripped.');
+      }
     }
   },
 
