@@ -423,8 +423,12 @@ export default function ScannerScreen() {
                 <Text style={styles.bottomButtonText}>Gallery</Text>
               </TouchableOpacity>
             </View>
-        )}
-      </SafeAreaView>
+          )}
+        </SafeAreaView>
+      ) : (
+        // Minimal black screen while scanner is launching
+        <View style={styles.loadingContainer} />
+      )}
     </View>
   );
 }
