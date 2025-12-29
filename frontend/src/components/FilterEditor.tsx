@@ -87,6 +87,12 @@ export default function FilterEditor({
     // Use original image as base for preview
     const baseImage = originalImageBase64 || imageBase64;
     
+    // If no image data, can't preview
+    if (!baseImage || baseImage.length < 100) {
+      console.warn('[FilterEditor] No valid image data for preview');
+      return;
+    }
+    
     // For "original" filter with no adjustments, show original
     if (filter === 'original' && b === 50 && c === 50 && s === 50) {
       setPreviewImage(baseImage);
@@ -105,11 +111,19 @@ export default function FilterEditor({
         headers['Authorization'] = `Bearer ${token}`;
       }
       
+      // Ensure we send raw base64, not data URI
+      let imageData = baseImage;
+      if (baseImage.startsWith('data:')) {
+        imageData = baseImage.split(',')[1];
+      }
+      
+      console.log('[FilterEditor] Sending preview request, image length:', imageData.length);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          image_base64: baseImage,
+          image_base64: imageData,
           operation: 'filter',
           params: {
             type: filter,
@@ -123,11 +137,17 @@ export default function FilterEditor({
       if (response.ok) {
         const result = await response.json();
         if (result.processed_image_base64) {
-          setPreviewImage(result.processed_image_base64);
+          // Add data URI prefix back for display
+          const processedWithPrefix = result.processed_image_base64.startsWith('data:') 
+            ? result.processed_image_base64 
+            : `data:image/jpeg;base64,${result.processed_image_base64}`;
+          setPreviewImage(processedWithPrefix);
         }
+      } else {
+        console.error('[FilterEditor] Preview API error:', response.status);
       }
     } catch (e) {
-      console.error('Preview error:', e);
+      console.error('[FilterEditor] Preview error:', e);
     } finally {
       setIsLoadingPreview(false);
     }
