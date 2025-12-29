@@ -16,6 +16,9 @@ import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
 
+// Generate unique ID for pages
+const generatePageId = () => `page_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
 // =============================================================================
 // SCANNER - Opens document scanner and saves directly
 // =============================================================================
