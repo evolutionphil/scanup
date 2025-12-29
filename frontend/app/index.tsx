@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
@@ -10,6 +10,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const ONBOARDING_KEY = '@scanup_onboarding_complete';
+
+// Brand color from Figma design
+const BRAND_BLUE = '#3366FF';
 
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth } = useAuthStore();
@@ -89,15 +92,11 @@ export default function Index() {
     }
   }, [isAuthenticated, isLoading, showSplash]);
 
-  // Splash Screen
+  // Splash Screen - Figma Design
   if (showSplash || isLoading) {
     return (
-      <View style={[styles.splashContainer, { backgroundColor: theme.background }]}>
-        {/* Background gradient circles */}
-        <View style={[styles.gradientCircle, { backgroundColor: theme.primary + '15' }]} />
-        <View style={[styles.gradientCircle2, { backgroundColor: theme.primary + '10' }]} />
-        
-        {/* Logo */}
+      <View style={styles.splashContainer}>
+        {/* Logo Icon */}
         <Animated.View
           style={[
             styles.splashLogoContainer,
@@ -107,9 +106,11 @@ export default function Index() {
             },
           ]}
         >
-          <View style={[styles.splashLogoWrapper, { backgroundColor: theme.primary + '20' }]}>
-            <Ionicons name="scan" size={60} color={theme.primary} />
-          </View>
+          <Image
+            source={require('../assets/images/logo.png')}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
         </Animated.View>
 
         {/* App Name */}
@@ -122,15 +123,15 @@ export default function Index() {
             },
           ]}
         >
-          <Text style={[styles.splashAppName, { color: theme.text }]}>ScanUp</Text>
-          <Text style={[styles.splashTagline, { color: theme.textSecondary }]}>
-            Smart Document Scanner
+          <Text style={styles.splashAppName}>
+            <Text style={styles.scanText}>Scan</Text>
+            <Text style={styles.upText}>Up</Text>
           </Text>
         </Animated.View>
 
-        {/* Loading dots */}
+        {/* Loading indicator */}
         <Animated.View style={[styles.loadingContainer, { opacity: fadeAnim }]}>
-          <ActivityIndicator size="small" color={theme.primary} />
+          <ActivityIndicator size="small" color="#FFFFFF" />
         </Animated.View>
       </View>
     );
