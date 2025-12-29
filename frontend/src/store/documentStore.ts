@@ -1145,6 +1145,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       console.log(`Migrating ${guestDocuments.length} guest documents to account...`);
       
       let migratedCount = 0;
+      let skippedCount = 0;
       const { createDocument } = get();
       
       for (const localDoc of guestDocuments) {
