@@ -91,7 +91,16 @@ export default function DocumentScreen() {
   }, [id]);
 
   const handleGoBack = () => {
-    router.back();
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (e) {
+      console.error('[Document] Navigation error:', e);
+      router.replace('/(tabs)');
+    }
   };
 
   // Helper to show upgrade prompt for premium features
