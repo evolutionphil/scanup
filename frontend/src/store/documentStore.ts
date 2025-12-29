@@ -78,14 +78,20 @@ export interface PageData {
   };
 }
 
-// Helper to get image source (handles both base64 and S3 URLs)
+// Helper to get image source (handles file URIs, base64, and S3 URLs)
 export const getImageSource = (page: PageData, useThumbnail: boolean = false) => {
   if (useThumbnail) {
     if (page.thumbnail_url) return { uri: page.thumbnail_url };
     if (page.thumbnail_base64) return { uri: `data:image/jpeg;base64,${page.thumbnail_base64}` };
   }
+  // Priority: S3 URL > File URI > Base64
   if (page.image_url) return { uri: page.image_url };
-  if (page.image_base64) return { uri: `data:image/jpeg;base64,${page.image_base64}` };
+  if (page.image_file_uri) return { uri: page.image_file_uri };
+  if (page.image_base64) {
+    // Handle both raw base64 and data URI
+    if (page.image_base64.startsWith('data:')) return { uri: page.image_base64 };
+    return { uri: `data:image/jpeg;base64,${page.image_base64}` };
+  }
   return { uri: '' };
 };
 
