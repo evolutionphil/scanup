@@ -1104,13 +1104,31 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Strip data: prefix if present - API expects raw base64
+    let imageData = imageBase64;
+    if (imageBase64 && imageBase64.startsWith('data:')) {
+      imageData = imageBase64.split(',')[1];
+    }
+    
+    // Validate image data
+    if (!imageData || imageData.length < 100) {
+      console.error('[processImage] Invalid image data:', imageData?.length || 0);
+      throw new Error('Invalid image data');
+    }
+    
+    console.log('[processImage] Sending request, operation:', operation, 'image length:', imageData.length);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ image_base64: imageBase64, operation, params }),
+      body: JSON.stringify({ image_base64: imageData, operation, params }),
     });
 
-    if (!response.ok) throw new Error('Failed to process image');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[processImage] API error:', response.status, errorText);
+      throw new Error('Failed to process image');
+    }
     const result = await response.json();
     return result.processed_image_base64;
   },
