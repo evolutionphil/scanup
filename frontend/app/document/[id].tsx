@@ -28,6 +28,8 @@ import FilterEditor from '../../src/components/FilterEditor';
 import ExportModal from '../../src/components/ExportModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
+// Local image processing - no backend needed!
+import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile } from '../../src/utils/localImageProcessor';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
