@@ -137,9 +137,6 @@ export default function DocumentScreen() {
       setLoading(false);
     }
   };
-      setLoading(false);
-    }
-  };
 
   const handleRename = async () => {
     if (!newName.trim() || !currentDocument || !token) return;
