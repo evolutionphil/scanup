@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for ScanUp Document Scanner App
-Focus: Document Export API and Perspective Crop functionality
+Focus: Image Processing Public Endpoint /api/images/process-public
 """
 
 import requests
@@ -11,6 +11,9 @@ import uuid
 from datetime import datetime
 import sys
 import os
+from io import BytesIO
+from PIL import Image
+import time
 
 # Test configuration
 BASE_URL = "https://scanup-bugfix.preview.emergentagent.com/api"
@@ -18,8 +21,15 @@ TEST_USER_EMAIL = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
 TEST_USER_PASSWORD = "TestPassword123!"
 TEST_USER_NAME = "Test User"
 
-# Sample base64 image for testing (small 100x100 white square)
-SAMPLE_IMAGE_BASE64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/wA=="
+def create_test_image(width=100, height=100, color='red'):
+    """Create a small test image in base64 format"""
+    img = Image.new('RGB', (width, height), color=color)
+    buffer = BytesIO()
+    img.save(buffer, format='JPEG')
+    return base64.b64encode(buffer.getvalue()).decode()
+
+# Sample base64 image for testing (small 100x100 red square)
+SAMPLE_IMAGE_BASE64 = create_test_image(100, 100, 'red')
 
 class TestResults:
     def __init__(self):
