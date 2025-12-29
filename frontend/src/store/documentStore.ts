@@ -59,9 +59,11 @@ export type SyncStatus = 'local' | 'syncing' | 'synced' | 'failed';
 
 export interface PageData {
   page_id: string;
-  image_base64?: string;           // Base64 image (local/MongoDB storage)
+  image_base64?: string;           // Base64 image (for display/upload)
+  image_file_uri?: string;         // Local file path (for file system storage)
   image_url?: string;              // S3 URL (cloud storage)
   original_image_base64?: string;  // Original image before filters
+  original_file_uri?: string;      // Original image file path
   thumbnail_base64?: string;       // Base64 thumbnail
   thumbnail_url?: string;          // S3 thumbnail URL
   ocr_text?: string;
