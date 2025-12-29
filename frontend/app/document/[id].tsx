@@ -84,6 +84,7 @@ export default function DocumentScreen() {
   const [newName, setNewName] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showFilterEditor, setShowFilterEditor] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [showOcrModal, setShowOcrModal] = useState(false);
