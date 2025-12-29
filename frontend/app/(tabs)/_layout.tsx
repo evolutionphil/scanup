@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
