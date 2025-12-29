@@ -1177,6 +1177,15 @@ export default function DocumentScreen() {
         pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
       />
 
+      {/* Share Modal - Figma Design */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        documentName={currentDocument.name}
+        pageCount={currentDocument.pages.length}
+        pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
+      />
+
       {/* Signature Drawing Modal - Step 1 */}
       <SignatureDrawingModal
         visible={showSignatureDrawing}
