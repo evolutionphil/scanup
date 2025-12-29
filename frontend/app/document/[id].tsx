@@ -47,8 +47,9 @@ const getPageThumbnail = (page: PageData): string => {
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, user, refreshUser } = useAuthStore();
+  const { token, user, refreshUser, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const { currentDocument, fetchDocument, updateDocument, deleteDocument, processImage } = useDocumentStore();
   const [loading, setLoading] = useState(true);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
@@ -62,6 +63,7 @@ export default function DocumentScreen() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [showReorderModal, setShowReorderModal] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Signature states
   const [showSignatureDrawing, setShowSignatureDrawing] = useState(false);
@@ -71,9 +73,26 @@ export default function DocumentScreen() {
   // Annotation states
   const [showAnnotationEditor, setShowAnnotationEditor] = useState(false);
 
+  // Handle Android back button
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        handleGoBack();
+        return true;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
+
   useEffect(() => {
     loadDocument();
   }, [id]);
+
+  const handleGoBack = () => {
+    router.back();
+  };
 
   // Helper to show upgrade prompt for premium features
   const showUpgradePrompt = (featureName: string) => {
