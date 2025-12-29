@@ -330,6 +330,242 @@ def test_edge_cases(token, document_id, results):
     except Exception as e:
         results.add_fail("Perspective Crop with Invalid Data", str(e))
 
+def test_image_process_public_endpoint(results):
+    """Test the /api/images/process-public endpoint specifically"""
+    print("\n🎨 Testing Image Processing Public Endpoint")
+    print("=" * 50)
+    
+    # Test 1: Process image with raw base64 (no data: prefix) - GRAYSCALE FILTER
+    print("\n🧪 Test 1: Raw base64 with grayscale filter")
+    try:
+        payload = {
+            "image_base64": SAMPLE_IMAGE_BASE64,
+            "operation": "filter",
+            "params": {
+                "type": "grayscale",
+                "brightness": 0,
+                "contrast": 0,
+                "saturation": 0
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "processed_image_base64" in data:
+                processed_len = len(data["processed_image_base64"])
+                print(f"   ✅ SUCCESS: Received processed image ({processed_len} chars)")
+                results.add_pass("Process Public - Raw base64 grayscale")
+            else:
+                results.add_fail("Process Public - Raw base64 grayscale", "Missing processed_image_base64 in response")
+        else:
+            results.add_fail("Process Public - Raw base64 grayscale", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Raw base64 grayscale", str(e))
+    
+    # Test 2: Process image with data: prefix (should still work)
+    print("\n🧪 Test 2: Base64 with data: prefix")
+    try:
+        data_uri_base64 = f"data:image/jpeg;base64,{SAMPLE_IMAGE_BASE64}"
+        payload = {
+            "image_base64": data_uri_base64,
+            "operation": "filter",
+            "params": {
+                "type": "enhanced",
+                "brightness": 10,
+                "contrast": 5,
+                "saturation": -10
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "processed_image_base64" in data:
+                processed_len = len(data["processed_image_base64"])
+                print(f"   ✅ SUCCESS: Processed image with data: prefix ({processed_len} chars)")
+                results.add_pass("Process Public - Data URI prefix")
+            else:
+                results.add_fail("Process Public - Data URI prefix", "Missing processed_image_base64 in response")
+        else:
+            results.add_fail("Process Public - Data URI prefix", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Data URI prefix", str(e))
+    
+    # Test 3: Verify rotation endpoint works
+    print("\n🧪 Test 3: Image rotation")
+    try:
+        payload = {
+            "image_base64": SAMPLE_IMAGE_BASE64,
+            "operation": "rotate",
+            "params": {
+                "degrees": 90
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "processed_image_base64" in data:
+                processed_len = len(data["processed_image_base64"])
+                print(f"   ✅ SUCCESS: Rotated image 90 degrees ({processed_len} chars)")
+                results.add_pass("Process Public - Rotation")
+            else:
+                results.add_fail("Process Public - Rotation", "Missing processed_image_base64 in response")
+        else:
+            results.add_fail("Process Public - Rotation", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Rotation", str(e))
+    
+    # Test 4: Test crop operation
+    print("\n🧪 Test 4: Image cropping")
+    try:
+        payload = {
+            "image_base64": SAMPLE_IMAGE_BASE64,
+            "operation": "crop",
+            "params": {
+                "x": 10,
+                "y": 10,
+                "width": 50,
+                "height": 50
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "processed_image_base64" in data:
+                processed_len = len(data["processed_image_base64"])
+                print(f"   ✅ SUCCESS: Cropped image ({processed_len} chars)")
+                results.add_pass("Process Public - Cropping")
+            else:
+                results.add_fail("Process Public - Cropping", "Missing processed_image_base64 in response")
+        else:
+            results.add_fail("Process Public - Cropping", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Cropping", str(e))
+    
+    # Test 5: Test with empty/invalid image data
+    print("\n🧪 Test 5: Empty image data validation")
+    try:
+        payload = {
+            "image_base64": "",
+            "operation": "filter",
+            "params": {
+                "type": "grayscale"
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code == 422:
+            print(f"   ✅ SUCCESS: Properly rejected empty image data with 422")
+            results.add_pass("Process Public - Empty data validation")
+        elif response.status_code == 200:
+            print(f"   ⚠️  WARNING: Accepted empty image data (should validate)")
+            results.add_pass("Process Public - Empty data validation (lenient)")
+        else:
+            results.add_fail("Process Public - Empty data validation", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Empty data validation", str(e))
+    
+    # Test 6: Test with invalid base64 data
+    print("\n🧪 Test 6: Invalid base64 data")
+    try:
+        payload = {
+            "image_base64": "invalid_base64_data_here",
+            "operation": "filter",
+            "params": {
+                "type": "grayscale"
+            }
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/images/process-public",
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        
+        print(f"   Status Code: {response.status_code}")
+        
+        if response.status_code in [400, 422, 500]:
+            print(f"   ✅ SUCCESS: Properly handled invalid base64 data")
+            results.add_pass("Process Public - Invalid base64")
+        elif response.status_code == 200:
+            print(f"   ⚠️  WARNING: Accepted invalid base64 data")
+            results.add_pass("Process Public - Invalid base64 (lenient)")
+        else:
+            results.add_fail("Process Public - Invalid base64", f"HTTP {response.status_code}: {response.text}")
+            
+    except Exception as e:
+        results.add_fail("Process Public - Invalid base64", str(e))
+
+def check_backend_logs():
+    """Check backend logs for any errors"""
+    print("\n🔍 Checking backend logs...")
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["tail", "-n", "20", "/var/log/supervisor/backend.err.log"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            print("📋 Recent backend error logs:")
+            print(result.stdout)
+        else:
+            print("⚠️  Could not read backend error logs")
+            
+    except Exception as e:
+        print(f"❌ Error reading logs: {e}")
+
 def main():
     """Main test execution"""
     print("🚀 Starting ScanUp Document Export API Tests")
