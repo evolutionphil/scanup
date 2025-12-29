@@ -11,15 +11,21 @@ export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
+  const hasRedirected = React.useRef(false);
 
   useEffect(() => {
-    // Only redirect if not loading and not authenticated AND not a guest
-    if (!isLoading && !isAuthenticated && !isGuest) {
+    // Only redirect once if not authenticated and not a guest
+    if (!isLoading && !isAuthenticated && !isGuest && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.replace('/');
     }
   }, [isAuthenticated, isLoading, isGuest]);
 
   // Allow guests and authenticated users
+  if (isLoading) {
+    return null;
+  }
+
   if (!isAuthenticated && !isGuest) {
     return null;
   }
