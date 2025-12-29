@@ -24,15 +24,9 @@ export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  const [showSplash, setShowSplash] = useState(true);
+  // On web, start with showSplash = false to skip splash
+  const [showSplash, setShowSplash] = useState(IS_WEB ? false : true);
   const [navigating, setNavigating] = useState(false);
-
-  useEffect(() => {
-    // On web, skip splash immediately
-    if (IS_WEB) {
-      setShowSplash(false);
-    }
-  }, []);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
