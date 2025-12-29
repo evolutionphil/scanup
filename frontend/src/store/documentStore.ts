@@ -259,26 +259,65 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   // Save all documents to local cache (for offline access)
+  // CRITICAL: Never save base64 data to AsyncStorage - only metadata with file URIs
   saveLocalCache: async () => {
     try {
       const { documents } = get();
       
-      // Strip base64 from docs before saving metadata
-      const metaDocs = documents.slice(0, 100).map(doc => ({
-        ...doc,
-        pages: doc.pages.map(page => ({
-          ...page,
-          image_base64: undefined,
-          original_image_base64: undefined,
-        }))
+      // Process each document - save images to files if needed, strip all base64
+      const metaDocs = await Promise.all(documents.slice(0, 100).map(async (doc) => {
+        const processedPages = await Promise.all(doc.pages.map(async (page, idx) => {
+          let fileUri = page.image_file_uri;
+          let origFileUri = page.original_file_uri;
+          
+          // If we have base64 but no file URI, save to file first
+          if (page.image_base64 && !page.image_file_uri) {
+            try {
+              fileUri = await saveImageToFile(page.image_base64, doc.document_id, idx);
+              console.log(`[saveLocalCache] Saved image to file: ${fileUri}`);
+            } catch (e) {
+              console.error('[saveLocalCache] Error saving image to file:', e);
+            }
+          }
+          
+          // Save original to file if needed
+          if (page.original_image_base64 && !page.original_file_uri) {
+            try {
+              origFileUri = await saveImageToFile(page.original_image_base64, doc.document_id + '_orig', idx);
+            } catch (e) {
+              console.error('[saveLocalCache] Error saving original to file:', e);
+            }
+          }
+          
+          // Return ONLY metadata - NO base64 data!
+          return {
+            page_id: page.page_id,
+            image_file_uri: fileUri,
+            image_url: page.image_url,
+            original_file_uri: origFileUri,
+            thumbnail_url: page.thumbnail_url,
+            ocr_text: page.ocr_text,
+            filter_applied: page.filter_applied,
+            rotation: page.rotation,
+            order: page.order,
+            created_at: page.created_at,
+            adjustments: page.adjustments,
+            // Explicitly exclude: image_base64, original_image_base64, thumbnail_base64
+          };
+        }));
+        
+        return { ...doc, pages: processedPages };
       }));
+      
+      const jsonStr = JSON.stringify(metaDocs);
+      console.log(`[saveLocalCache] Saving ${metaDocs.length} docs, size: ${(jsonStr.length / 1024).toFixed(1)}KB`);
       
       await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(metaDocs));
     } catch (e: any) {
       console.error('Error saving local cache:', e);
       // If storage is full, don't crash - just log and continue
       if (e?.message?.includes('SQLITE_FULL') || e?.message?.includes('disk is full')) {
-        console.warn('Storage full - local cache not saved. Clear app data to free space.');
+        console.warn('Storage full - local cache not saved. Images saved to file system instead.');
       }
     }
   },
@@ -512,8 +551,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const documents = await response.json();
       set({ documents, isLoading: false });
       
-      // Save to local cache for next time
-      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(documents));
+      // Save to local cache for next time (this will strip base64 and save images to files)
+      await get().saveLocalCache();
     } catch (e) {
       console.error('Error fetching documents:', e);
       set({ isLoading: false });
@@ -585,7 +624,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         d.document_id === documentId ? document : d
       );
       set({ documents: updatedDocs });
-      await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(updatedDocs));
+      // Save to local cache (strips base64, saves to file system)
+      await get().saveLocalCache();
       
       return document;
     } catch (e) {
