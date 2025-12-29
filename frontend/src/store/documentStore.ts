@@ -192,16 +192,50 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   loadGuestDocuments: async () => {
     try {
+      // First, check if AsyncStorage has corrupted/oversized data and clean it
+      try {
+        const allKeys = await AsyncStorage.getAllKeys();
+        console.log('[loadGuestDocuments] AsyncStorage keys:', allKeys.length);
+        
+        // Check size of each document-related key
+        for (const key of allKeys) {
+          if (key.includes('document') || key.includes('local_')) {
+            const value = await AsyncStorage.getItem(key);
+            if (value && value.length > 100000) { // More than 100KB is suspicious
+              console.warn(`[loadGuestDocuments] Found oversized key "${key}" (${(value.length / 1024).toFixed(1)}KB) - likely contains base64, clearing...`);
+              await AsyncStorage.removeItem(key);
+            }
+          }
+        }
+      } catch (cleanupError) {
+        console.error('[loadGuestDocuments] Error during cleanup check:', cleanupError);
+      }
+      
       const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
       const storedFolders = await AsyncStorage.getItem(GUEST_FOLDERS_KEY);
       
       const metaDocs = storedDocs ? JSON.parse(storedDocs) : [];
       const folders = storedFolders ? JSON.parse(storedFolders) : [];
       
+      console.log(`[loadGuestDocuments] Loaded ${metaDocs.length} docs, ${folders.length} folders`);
+      
       // Documents from meta storage already have file URIs pointing to saved images
       set({ documents: metaDocs, folders });
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error loading guest data:', e);
+      // If loading fails due to corruption, clear everything and start fresh
+      if (e?.message?.includes('SQLITE') || e?.message?.includes('parse')) {
+        console.warn('[loadGuestDocuments] Storage corrupted, clearing all document data...');
+        try {
+          await AsyncStorage.removeItem(GUEST_DOCUMENTS_KEY);
+          await AsyncStorage.removeItem(GUEST_FOLDERS_KEY);
+          await AsyncStorage.removeItem(LOCAL_DOCUMENTS_KEY);
+          await AsyncStorage.removeItem(PENDING_SYNC_KEY);
+          set({ documents: [], folders: [] });
+        } catch (clearError) {
+          console.error('[loadGuestDocuments] Failed to clear corrupted data:', clearError);
+        }
+      }
     }
   },
 
