@@ -98,7 +98,7 @@ export default function Index() {
   }, []);
 
   // On web, show a simple welcome screen with navigation buttons
-  if (Platform.OS === 'web') {
+  if (isWeb && !showSplash) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
