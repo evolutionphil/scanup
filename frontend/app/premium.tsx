@@ -64,7 +64,10 @@ export default function PremiumScreen() {
   };
 
   const handleClose = () => {
-    // Navigate to main app
+    // For modal screens, use back() or dismiss
+    // Then continue as guest and go to main app
+    const { continueAsGuest } = useAuthStore.getState();
+    continueAsGuest();
     router.replace('/(tabs)');
   };
 
