@@ -416,7 +416,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   // Sync pending documents to server
   syncPendingDocuments: async (token: string) => {
-    const { isSyncing, getPendingSyncItems, clearPendingSyncItem, updateDocumentSyncStatus } = get();
+    const { isSyncing, getPendingSyncItems, clearPendingSyncItem, updateDocumentSyncStatus, documents } = get();
     
     if (isSyncing) return;
     
@@ -444,6 +444,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         
         try {
           if (item.action === 'create' && item.data) {
+            // Find the local document to get file URIs
+            const localDoc = documents.find(d => d.document_id === item.document_id);
+            
+            // Read images from files for upload
+            const pagesWithImages = await Promise.all((item.data.pages || []).map(async (page: any, idx: number) => {
+              let imageBase64 = page.image_base64;
+              
+              // If no base64, try to read from file
+              if (!imageBase64 && page.image_file_uri) {
+                imageBase64 = await loadImageFromFile(page.image_file_uri);
+              }
+              // Also try from local document
+              if (!imageBase64 && localDoc?.pages[idx]?.image_file_uri) {
+                imageBase64 = await loadImageFromFile(localDoc.pages[idx].image_file_uri);
+              }
+              
+              return {
+                ...page,
+                image_base64: imageBase64,
+              };
+            }));
+            
             // Upload to server
             const response = await fetch(`${BACKEND_URL}/api/documents`, {
               method: 'POST',
@@ -451,7 +473,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify(item.data),
+              body: JSON.stringify({
+                ...item.data,
+                pages: pagesWithImages,
+              }),
             });
             
             if (response.ok) {
