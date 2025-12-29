@@ -17,21 +17,15 @@ const BRAND_BLUE = '#3366FF';
 // Logo image URL for web compatibility
 const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f61c01c3-3d34-442e-9c76-6cdad5808a35/artifacts/vjga57ci_Frame%20147.png';
 
+// Check if we're on web at module level
+const IS_WEB = typeof window !== 'undefined' && Platform.OS === 'web';
+
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  const [isWeb, setIsWeb] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!IS_WEB);
   const [navigating, setNavigating] = useState(false);
-
-  // Detect web platform on mount
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      setIsWeb(true);
-      setShowSplash(false);
-    }
-  }, []);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
