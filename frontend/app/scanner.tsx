@@ -353,17 +353,16 @@ export default function ScannerScreen() {
   // RENDER
   // =============================================================================
   
-  // Show minimal black screen during:
-  // - Scanner launching (isScanning = true)
-  // - Saving in progress (isSaving = true)
-  // Only show UI if there's an error that requires user action
-  const showFullUI = scannerError && !isScanning && !isSaving;
+  // Make the screen completely invisible/transparent
+  // The scanner plugin will open immediately via useEffect
+  // After scanning, navigation happens automatically
+  // Only show error UI if scanner fails to open
   
-  return (
-    <View style={[styles.container, { backgroundColor: '#000' }]}>
-      {showFullUI ? (
+  if (scannerError) {
+    // Only show UI when there's an error that needs user action
+    return (
+      <View style={[styles.container, { backgroundColor: '#000' }]}>
         <SafeAreaView style={styles.content} edges={['top', 'bottom']}>
-          {/* Header with back button */}
           <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? insets.top : 0 }]}>
             <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
               <Ionicons name="close" size={28} color="#FFF" />
@@ -374,7 +373,6 @@ export default function ScannerScreen() {
             <View style={{ width: 44 }} />
           </View>
           
-          {/* Main content - Error state */}
           <View style={styles.loadingContainer}>
             <View style={styles.iconContainer}>
               <Ionicons name="scan" size={64} color="#3B82F6" />
@@ -396,10 +394,13 @@ export default function ScannerScreen() {
             </View>
           </View>
         </SafeAreaView>
-      ) : (
-        // Minimal black screen while scanner is launching or saving
-        <View style={styles.loadingContainer} />
-      )}
+      </View>
+    );
+  }
+  
+  // Completely transparent/invisible screen - scanner opens via useEffect
+  // Home screen will show through until scanner plugin takes over
+  return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
     </View>
   );
 }
