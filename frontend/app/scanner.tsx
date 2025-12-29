@@ -168,8 +168,18 @@ export default function ScannerScreen() {
             pages: [...existingDoc.pages, ...newPages],
           });
           
-          // Go back to the document
-          handleGoBack();
+          console.log('[Scanner] Pages added to document:', addToDocumentId);
+          
+          // Navigate back to the document - use replace to ensure clean state
+          setTimeout(() => {
+            try {
+              // Use replace to avoid navigation stack issues
+              router.replace(`/document/${addToDocumentId}`);
+            } catch (e) {
+              console.error('[Scanner] Navigation error after adding pages:', e);
+              handleGoBack();
+            }
+          }, 200);
         } else {
           throw new Error('Document not found');
         }
