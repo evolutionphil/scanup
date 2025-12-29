@@ -112,15 +112,21 @@ export default function DocumentScreen() {
   };
 
   const loadDocument = async () => {
-    if (!id) return;
+    if (!id) {
+      setLoadError('No document ID provided');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
+    setLoadError(null);
+    
     try {
       // For local documents (guest mode), token can be null
       await fetchDocument(token, id);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load document:', e);
-      Alert.alert('Error', 'Failed to load document');
-      router.back();
+      setLoadError(e.message || 'Failed to load document');
     } finally {
       setLoading(false);
     }
