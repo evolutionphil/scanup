@@ -766,3 +766,41 @@ agent_communication:
     6. Use 'Revert' button to undo all annotations if needed"
 
 
+
+  - agent: "main"
+    message: "WHITE SCREEN BUG FIX - Guest Mode Navigation:
+    
+    ## Problem Analysis:
+    The white screen crash in guest mode was caused by navigation issues when:
+    1. Scanner uses `router.replace()` which corrupts the navigation stack
+    2. `router.back()` called when there's nothing to go back to
+    3. Double navigation attempts causing race conditions
+    
+    ## Fixes Applied:
+    
+    ### 1. document/[id].tsx:
+    - Added `isMountedRef` to track component mount state
+    - Added `isNavigatingRef` to prevent double navigation
+    - Changed `handleGoBack()` to always use `router.replace('/(tabs)')` for consistency
+    - Added navigation lock on 'Add Page' button to prevent race conditions
+    - Wrapped all navigation in try-catch with fallbacks
+    
+    ### 2. scanner.tsx:
+    - Added `isNavigatingRef` to prevent double navigation
+    - Improved `handleGoBack()` to handle both new scans and 'Add Page' scenarios
+    - When adding pages to existing document, now uses `router.replace()` after success
+    - All navigation wrapped in try-catch with proper fallbacks
+    
+    ## Key Changes:
+    - Navigation is now more deterministic (always replace to known route)
+    - Double-tap protection prevents white screen from concurrent navigations
+    - Mount state tracking prevents state updates on unmounted components
+    
+    ## How to Test:
+    1. Continue as Guest
+    2. Scan a new document
+    3. On document screen, tap Back button → should go to home
+    4. Open document again, tap 'Add Page'
+    5. Scan or cancel → should return to document or home
+    6. Both actions should not cause white screen"
+
