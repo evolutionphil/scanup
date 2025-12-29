@@ -1031,18 +1031,34 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       
       for (const localDoc of guestDocuments) {
         try {
+          // Read images from file system for migration
+          const pagesWithImages = await Promise.all(localDoc.pages.map(async (page) => {
+            let imageBase64 = page.image_base64;
+            let originalBase64 = page.original_image_base64;
+            
+            // Read from file if we only have file URI
+            if (!imageBase64 && page.image_file_uri) {
+              imageBase64 = await loadImageFromFile(page.image_file_uri);
+            }
+            if (!originalBase64 && page.original_file_uri) {
+              originalBase64 = await loadImageFromFile(page.original_file_uri);
+            }
+            
+            return {
+              image_base64: imageBase64,
+              original_image_base64: originalBase64,
+              filter_applied: page.filter_applied || 'original',
+              rotation: page.rotation || 0,
+              ocr_text: page.ocr_text,
+            };
+          }));
+          
           // Create a new document in the user's account
           const newDoc = await createDocument(token, {
             name: localDoc.name,
             folder_id: undefined,
             tags: localDoc.tags || [],
-            pages: localDoc.pages.map(page => ({
-              image_base64: page.image_base64,
-              original_image_base64: page.original_image_base64,
-              filter_applied: page.filter_applied || 'original',
-              rotation: page.rotation || 0,
-              ocr_text: page.ocr_text,
-            })),
+            pages: pagesWithImages,
             document_type: localDoc.document_type || 'document',
           });
           
