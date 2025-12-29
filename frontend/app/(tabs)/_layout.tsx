@@ -136,4 +136,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  scanIcon: {
+    width: 28,
+    height: 28,
+    tintColor: '#FFFFFF',
+  },
 });
