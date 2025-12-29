@@ -465,6 +465,19 @@ export default function DocumentScreen() {
       // Store original before cropping if not already stored
       const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
       
+      // Strip data: prefix if present - API expects raw base64
+      let imageData = currentPage.image_base64;
+      if (imageData && imageData.startsWith('data:')) {
+        imageData = imageData.split(',')[1];
+      }
+      
+      // Validate image data
+      if (!imageData || imageData.length < 100) {
+        Alert.alert('Error', 'Image data is not available. Please try closing and reopening the document.');
+        setProcessing(false);
+        return;
+      }
+      
       // Use public endpoint for guest/local documents
       const endpoint = isLocalDoc
         ? `${BACKEND_URL}/api/images/auto-crop-public`
@@ -479,7 +492,7 @@ export default function DocumentScreen() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          image_base64: currentPage.image_base64,
+          image_base64: imageData,
           operation: 'auto_crop',
           params: {}
         }),
