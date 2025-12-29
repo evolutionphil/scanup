@@ -297,6 +297,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 80,
   },
+  tapToContinue: {
+    position: 'absolute',
+    bottom: 80,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+  },
+  tapText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   // Welcome Screen Styles
   container: {
     flex: 1,
