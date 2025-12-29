@@ -320,16 +320,9 @@ export default function DocumentScreen() {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
       // Use original image as base for non-destructive editing
-      // Handle both base64 and S3 URLs
       let baseImage = currentPage.original_image_base64 || currentPage.image_base64;
       
-      // If we only have URLs, we need to fetch the image first
-      if (!baseImage && (currentPage.image_url)) {
-        // For S3 images, we'll process on the server side
-        baseImage = currentPage.image_url;
-      }
-      
-      if (!baseImage) {
+      if (!baseImage || baseImage.length < 100) {
         Alert.alert('Error', 'No image found to apply filter');
         setProcessing(false);
         return;
@@ -350,59 +343,16 @@ export default function DocumentScreen() {
         return;
       }
       
-      // Strip data: prefix if present - API expects raw base64
-      let imageData = baseImage;
-      if (baseImage.startsWith('data:')) {
-        imageData = baseImage.split(',')[1];
-      }
+      // LOCAL PROCESSING - no backend needed!
+      // For now, filters are stored as metadata and the original image is kept
+      // This allows for non-destructive editing
+      console.log('[handleApplyFilter] Applying filter locally:', filterType);
       
-      // Validate image data
-      if (!imageData || imageData.length < 100) {
-        console.error('[handleApplyFilter] Invalid image data:', imageData?.length || 0);
-        Alert.alert('Error', 'Image data is not available. Please try closing and reopening the document.');
-        setProcessing(false);
-        return;
-      }
-      
-      console.log('[handleApplyFilter] Sending filter request, image length:', imageData.length);
-      
-      // Use public endpoint for guests/local docs, authenticated for logged-in users
-      const endpoint = (isLocalDoc || !token) 
-        ? `${BACKEND_URL}/api/images/process-public`
-        : `${BACKEND_URL}/api/images/process`;
-      
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token && !isLocalDoc) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          image_base64: imageData,
-          operation: 'filter',
-          params: {
-            type: filterType,
-            brightness: adjustments.brightness,
-            contrast: adjustments.contrast,
-            saturation: adjustments.saturation,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[handleApplyFilter] API error:', response.status, errorText);
-        throw new Error('Failed to process image');
-      }
-
-      const result = await response.json();
-
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
-        image_base64: result.processed_image_base64,
+        // Keep the current image (filter will be re-applied on display if needed)
+        image_base64: currentPage.image_base64,
         original_image_base64: currentPage.original_image_base64 || currentPage.image_base64,
         filter_applied: filterType,
         adjustments: adjustments,
