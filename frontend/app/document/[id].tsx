@@ -628,10 +628,8 @@ export default function DocumentScreen() {
     try {
       const docName = currentDocument.name.replace(/[^a-z0-9]/gi, '_');
       
-      // Always use public PDF export - send image data directly from memory
-      // This works for both guest and logged-in users
+      // Get image data from pages
       const imagesBase64 = currentDocument.pages.map(page => {
-        // The page should have image_base64 from local cache or from fetch
         let imgData = page.image_base64 || '';
         if (imgData.includes(',')) {
           imgData = imgData.split(',')[1];
@@ -640,38 +638,52 @@ export default function DocumentScreen() {
       });
       
       if (!imagesBase64[0] || imagesBase64[0].length < 100) {
-        // If no local base64, try to fetch from image_url
         Alert.alert('Share Error', 'Document image not available locally. Please try opening the document again.');
         return;
       }
       
-      const response = await fetch(`${BACKEND_URL}/api/export/public`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          format: 'pdf',
-          images_base64: imagesBase64,
-          document_name: currentDocument.name,
-        }),
-      });
+      // LOCAL PDF generation - no backend needed!
+      console.log('[handleShare] Generating PDF locally...');
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Export error:', errorText);
-        throw new Error('Failed to generate PDF');
-      }
+      // Build HTML with images
+      const imageHtml = imagesBase64.map((img, index) => {
+        const base64WithPrefix = `data:image/jpeg;base64,${img}`;
+        return `
+          <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
+            <img src="${base64WithPrefix}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+          </div>
+        `;
+      }).join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>${currentDocument.name}</title>
+            <style>
+              @page { margin: 10mm; padding: 0; }
+              body { margin: 0; padding: 0; }
+              img { display: block; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            ${imageHtml}
+          </body>
+        </html>
+      `;
+
+      // Generate PDF locally using expo-print
+      const { printToFileAsync } = await import('expo-print');
+      const { uri } = await printToFileAsync({ html });
       
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to generate PDF');
-      }
-      
+      // Move to cache with proper name
       const fileName = `ScanUp_${docName}.pdf`;
       const fileUri = `${cacheDirectory}${fileName}`;
       
-      await writeAsStringAsync(fileUri, result.file_base64, {
-        encoding: EncodingType.Base64,
-      });
+      // Copy the PDF to cache directory with proper name
+      const { copyAsync } = await import('expo-file-system');
+      await copyAsync({ from: uri, to: fileUri });
 
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
