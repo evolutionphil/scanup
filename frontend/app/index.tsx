@@ -21,8 +21,17 @@ export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  const [showSplash, setShowSplash] = useState(Platform.OS !== 'web'); // Skip splash on web
+  const [isWeb, setIsWeb] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [navigating, setNavigating] = useState(false);
+
+  // Detect web platform on mount
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setIsWeb(true);
+      setShowSplash(false);
+    }
+  }, []);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
