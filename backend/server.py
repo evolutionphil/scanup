@@ -58,6 +58,26 @@ s3_client = None
 # Create the main app without a prefix
 app = FastAPI()
 
+# Add validation error handler to log 422 errors
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"[422 Validation Error] URL: {request.url}")
+    logger.error(f"[422 Validation Error] Errors: {exc.errors()}")
+    # Log body if small enough (don't log huge base64)
+    try:
+        body = await request.body()
+        body_str = body.decode('utf-8')[:500] if body else 'empty'
+        logger.error(f"[422 Validation Error] Body preview: {body_str}...")
+    except:
+        pass
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
