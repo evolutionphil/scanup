@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
@@ -9,11 +9,14 @@ import { useI18n } from '../src/store/i18nStore';
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    loadTheme();
-    // Initialize i18n - detect device language and fetch translations
-    initializeI18n();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      loadTheme();
+      initializeI18n();
+    }
   }, []);
 
   return (
