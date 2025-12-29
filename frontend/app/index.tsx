@@ -88,7 +88,60 @@ export default function Index() {
     }
   }, []);
 
-  // Splash Screen - Figma Design
+  // On web, show a simple welcome screen with navigation buttons
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
+        <View style={styles.content}>
+          {/* App Logo */}
+          <View style={[styles.splashLogoContainer, { marginBottom: 16 }]}>
+            <View style={[styles.webLogoContainer, { backgroundColor: BRAND_BLUE }]}>
+              <Ionicons name="document-text" size={60} color="#FFFFFF" />
+            </View>
+          </View>
+          
+          <View style={styles.welcomeHeader}>
+            <Text style={[styles.welcomeTitle, { color: theme.text }]}>
+              <Text style={{ fontWeight: '700' }}>Scan</Text>
+              <Text style={{ fontWeight: '300' }}>Up</Text>
+            </Text>
+            <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
+              Smart Document Scanner
+            </Text>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <Button
+              title="View Onboarding"
+              onPress={() => router.push('/onboarding')}
+              style={styles.getStartedButton}
+            />
+            
+            <Button
+              title="View Premium Screen"
+              onPress={() => router.push('/premium')}
+              variant="secondary"
+              style={styles.getStartedButton}
+            />
+            
+            <TouchableOpacity 
+              style={styles.loginLink}
+              onPress={() => {
+                continueAsGuest();
+                router.push('/(tabs)');
+              }}
+            >
+              <Text style={[styles.loginText, { color: theme.primary }]}>
+                Enter App as Guest →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Splash Screen - Figma Design (Native only)
   if (showSplash) {
     return (
       <View style={styles.splashContainer}>
