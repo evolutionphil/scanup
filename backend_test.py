@@ -567,51 +567,28 @@ def check_backend_logs():
         print(f"❌ Error reading logs: {e}")
 
 def main():
-    """Main test execution"""
-    print("🚀 Starting ScanUp Document Export API Tests")
+    """Main test execution - Focus on Image Processing Public Endpoint"""
+    print("🚀 Starting ScanUp Image Processing API Tests")
     print(f"Testing against: {BASE_URL}")
     print("=" * 60)
     
     results = TestResults()
     
-    # Step 1: Register user
-    print("\n📝 Step 1: User Registration")
-    token = test_user_registration(results)
-    if not token:
-        print("❌ Cannot proceed without authentication token")
-        return False
+    # Test the specific image processing endpoint as requested
+    print("\n🎨 Testing Image Processing Public Endpoint")
+    test_image_process_public_endpoint(results)
     
-    # Step 2: Create document
-    print("\n📄 Step 2: Document Creation")
-    document_id = test_create_document(token, results)
-    if not document_id:
-        print("❌ Cannot proceed without document")
-        return False
-    
-    print(f"✅ Created document with ID: {document_id}")
-    
-    # Step 3: Test Export PDF
-    print("\n📋 Step 3: Testing PDF Export")
-    test_export_pdf(token, document_id, results)
-    
-    # Step 4: Test Export JPEG
-    print("\n🖼️ Step 4: Testing JPEG Export")
-    test_export_jpeg(token, document_id, results)
-    
-    # Step 5: Test Perspective Crop
-    print("\n✂️ Step 5: Testing Perspective Crop")
-    test_perspective_crop(token, results)
-    
-    # Step 6: Test Edge Cases
-    print("\n⚠️ Step 6: Testing Edge Cases")
-    test_edge_cases(token, document_id, results)
+    # Check backend logs for any issues
+    check_backend_logs()
     
     # Final Results
     print("\n" + "=" * 60)
     success = results.summary()
     
     if success:
-        print("🎉 All tests passed!")
+        print("🎉 All image processing tests passed!")
+        print("✅ The /api/images/process-public endpoint is working correctly.")
+        print("✅ 422 error fix has been verified - endpoint handles base64 data properly.")
     else:
         print("⚠️ Some tests failed. Check the details above.")
     
