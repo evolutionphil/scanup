@@ -73,6 +73,43 @@ export default function DocumentScreen() {
   // Annotation states
   const [showAnnotationEditor, setShowAnnotationEditor] = useState(false);
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = React.useRef(true);
+  const isNavigatingRef = React.useRef(false);
+
+  // Handle safe navigation back
+  const handleGoBack = useCallback(() => {
+    // Prevent double navigation
+    if (isNavigatingRef.current) {
+      console.log('[Document] Navigation already in progress');
+      return;
+    }
+    
+    isNavigatingRef.current = true;
+    console.log('[Document] handleGoBack called');
+    
+    try {
+      // Always navigate to tabs home for consistency
+      // This avoids issues with corrupted navigation stack
+      router.replace('/(tabs)');
+    } catch (e) {
+      console.error('[Document] Navigation error:', e);
+      // Last resort fallback
+      try {
+        router.navigate('/(tabs)');
+      } catch (e2) {
+        console.error('[Document] Fallback navigation error:', e2);
+      }
+    } finally {
+      // Reset navigation lock after a delay
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          isNavigatingRef.current = false;
+        }
+      }, 500);
+    }
+  }, []);
+
   // Handle Android back button
   useFocusEffect(
     useCallback(() => {
@@ -83,25 +120,20 @@ export default function DocumentScreen() {
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [])
+    }, [handleGoBack])
   );
+
+  // Track mount state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     loadDocument();
   }, [id]);
-
-  const handleGoBack = () => {
-    try {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)');
-      }
-    } catch (e) {
-      console.error('[Document] Navigation error:', e);
-      router.replace('/(tabs)');
-    }
-  };
 
   // Helper to show upgrade prompt for premium features
   const showUpgradePrompt = (featureName: string) => {
