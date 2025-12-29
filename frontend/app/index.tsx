@@ -97,16 +97,19 @@ export default function Index() {
   if (showSplash) {
     return (
       <View style={styles.splashContainer}>
-        {/* Logo Icon - Use URL for web, require for native */}
+        {/* Logo Icon - Use Ionicons as fallback for web */}
         <View style={styles.splashLogoContainer}>
-          <Image
-            source={Platform.OS === 'web' 
-              ? { uri: LOGO_URL }
-              : require('../assets/images/logo.png')
-            }
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
+          {Platform.OS === 'web' ? (
+            <View style={styles.webLogoContainer}>
+              <Ionicons name="document-text" size={80} color="#FFFFFF" />
+            </View>
+          ) : (
+            <Image
+              source={require('../assets/images/logo.png')}
+              style={styles.splashLogo}
+              resizeMode="contain"
+            />
+          )}
         </View>
 
         {/* App Name */}
