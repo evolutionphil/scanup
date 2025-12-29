@@ -772,6 +772,34 @@ export default function DocumentScreen() {
   }
 
   const currentPage = currentDocument.pages[selectedPageIndex];
+  
+  // Check if current page is valid
+  if (!currentPage) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surface }]} onPress={handleGoBack}>
+            <Ionicons name="arrow-back" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.text }]}>Document</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.loadingCenter}>
+          <Ionicons name="alert-circle-outline" size={64} color={theme.warning} />
+          <Text style={[styles.errorTitle, { color: theme.text }]}>No Pages</Text>
+          <Text style={[styles.errorText, { color: theme.textMuted }]}>
+            This document has no pages to display.
+          </Text>
+          <Button 
+            title="Go Back" 
+            onPress={handleGoBack}
+            style={{ marginTop: 20 }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
   // Show revert button if we have an original saved (regardless of current filter)
   const hasOriginal = !!currentPage.original_image_base64;
 
