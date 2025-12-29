@@ -32,16 +32,27 @@ import AnnotationEditor from '../../src/components/AnnotationEditor';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Helper to get page image (handles both S3 URLs and base64)
+// Helper to get page image (handles S3 URLs, file URIs, and base64)
+// Priority: base64 (in memory) > S3 URL > file URI
 const getPageImage = (page: PageData): string => {
+  // Priority 1: In-memory base64 (already loaded)
+  if (page.image_base64) {
+    if (page.image_base64.startsWith('data:')) return page.image_base64;
+    return `data:image/jpeg;base64,${page.image_base64}`;
+  }
+  // Priority 2: S3 URL
   if (page.image_url) return page.image_url;
-  if (page.image_base64) return `data:image/jpeg;base64,${page.image_base64}`;
+  // Priority 3: File URI (local storage)
+  if (page.image_file_uri) return page.image_file_uri;
   return '';
 };
 
 const getPageThumbnail = (page: PageData): string => {
   if (page.thumbnail_url) return page.thumbnail_url;
-  if (page.thumbnail_base64) return `data:image/jpeg;base64,${page.thumbnail_base64}`;
+  if (page.thumbnail_base64) {
+    if (page.thumbnail_base64.startsWith('data:')) return page.thumbnail_base64;
+    return `data:image/jpeg;base64,${page.thumbnail_base64}`;
+  }
   return getPageImage(page); // Fallback to main image
 };
 
