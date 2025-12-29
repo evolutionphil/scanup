@@ -160,6 +160,7 @@ export default function ScannerScreen() {
         const existingDoc = documents.find(d => d.document_id === addToDocumentId);
         if (existingDoc) {
           const newPages = validImages.map((img, index) => ({
+            page_id: generatePageId(),
             page_number: existingDoc.pages.length + index + 1,
             image_base64: img.base64,
             original_image_base64: img.base64,
