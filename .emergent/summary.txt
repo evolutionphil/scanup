@@ -1,349 +1,243 @@
 <analysis>
-original_problem_statement: The user's initial goal was to enhance the ScanUp mobile app with features like Book Mode, perspective correction, and a freemium model, bringing it closer to competitors like Adobe Scan. The project has since evolved into an iterative cycle of feature implementation and bug fixing based on detailed user feedback.
+<original_problem_statement>
+The user's initial goal was to create a ScanUp mobile app competitive with Adobe Scan, featuring a real-time on-device document scanner, a freemium model, and an admin dashboard.
 
-Recent user requests have focused on fixing a wide range of bugs, improving existing features, and expanding the project's scope. This includes:
-- Fixing numerous UI/UX bugs related to guest user experience, document previews, sharing, and navigation.
-- Improving core scanning features like auto-detection and auto-capture.
-- Enhancing the new Annotations feature to be more robust and usable.
-- A new request to build a comprehensive web-based Admin Dashboard for user management, analytics, and localization.
-- A request for guidance on deploying the backend to a production environment (Railway), which has led to deployment issues.
-- Critical need for real-time, on-device document edge detection in the scanner, similar to Adobe Scan.
+The current session focused on implementing the real-time scanner and fixing a long list of user-reported bugs. After multiple failed attempts to build a stable custom scanner with  and , the strategy pivoted to using the pre-built  for the core scanning functionality, and then directing the user to the app's custom UI for review, editing, and saving.
 
-**PRODUCT REQUIREMENTS (Summary from recent user messages):**
-- **Admin Dashboard:** A new, professional web dashboard is required with:
-    - User statistics (total users, new signups).
-    - Document overview (total scans, storage used).
-    - User management (view/delete users).
-    - Usage analytics.
-    - A system for managing app localization/translations.
-- **Bug Fixes (High Priority):**
-    - **Sharing:** Sharing should *always* produce a PDF of the final, cropped, and filtered document, for both guest and logged-in users.
-    - **Guest User Experience:**
-        - Document previews must show correctly.
-        - Documents created as a guest must automatically sync to the user's account after they log in.
-        - The Exit Guest Mode button on the profile screen should be a Sign In button instead.
-    - **Annotations:** The annotation editor should not have a black background, and all drawn shapes (especially arrows and rectangles) must be selectable and movable without distortion.
-    - **Scanner UI/UX:**
-        - The camera grid overlay must be visible when enabled in settings.
-        - Auto-capture mode must reliably detect a document and take a picture.
-        - The scanner screen's header (close button, flash icon) must not be obscured by system UI elements (like the notch or status bar).
-    - **Data Management:**
-        - Deleting a document for a logged-in user must also delete all associated files from the AWS S3 bucket.
-        - The Clear Cache setting should delete all locally stored guest documents.
-- **Deployment:** The user requires a working method to deploy the Python backend to Railway.com.
-- **Real-time Document Scanner:** Implement a fully on-device, real-time document edge detection scanner for Android and iOS using  and . This includes:
-    - Custom camera view with real-time edge detection and visual overlay.
-    - Corner stabilization to reduce jitter.
-    - Removal of all backend edge detection calls.
-    - Live preview with smoothed green overlay edges.
-    - Capture function returning final image with accurate corners.
-    - Identical functionality on Android and iOS.
-- **Localization:** Implement a comprehensive localization system:
-    - Public endpoint to fetch translations by language.
-    - Initialize database with all English translations.
-    - Frontend hook to use translations based on device language.
-    - Admin dashboard to display and manage all translation keys with default values.
-- **Mobile Builds:** Provide a detailed guide and configure the project for building APKs (Android) and TestFlight builds (iOS).
+**Recent User Requests:**
+- **Fix Critical Bugs (High Priority):**
+    - **White Screen Crash:** After scanning a document as a guest, navigating from the document edit screen (e.g., pressing Back or Add Page) results in a white, frozen screen. This is the most critical blocking issue.
+    - **Android Navigation Bar Overlap:** System navigation buttons hide UI elements on several screens.
+    - **Live Previews:** Adjustments and filters no longer update the image preview in real-time.
+    - **Session Persistence:** Users are logged out after restarting the app.
+    - **Duplicate Uploads:** Guest documents are re-uploaded to the server on every login.
+    - **Keyboard on Password Popup:** The keyboard obstructs the password input field for folders.
+    - **Export Failures:** Exporting documents fails even in the built APK.
+- **Implement Custom Authentication:**
+    - Replace the current Emergent branded Google login with the user's own Google Cloud OAuth credentials.
+    - Add Sign in with Apple for the iOS version.
+- **Improve Scanner Flow:**
+    - The user agreed to use  for its stable, real-time edge detection and auto-capture, followed by the app's own custom UI for editing and saving. The agent has implemented this, but a post-scan review screen was still appearing, which the user wants removed.
+</original_problem_statement>
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project consists of three main parts:
-1.  ****: An Expo (React Native) mobile app with a rich feature set, including local-first storage, multiple scanning modes, and user authentication.
-2.  ****: A FastAPI server that handles user data, image processing with OpenCV, S3 integration, and PDF generation. It is connected to a user-provided MongoDB Atlas database.
-3.  ****: A React/Vite project for the admin panel. It has basic boilerplate and routing, and is now built and served as static files by the FastAPI backend. It can interact with some backend APIs.
+The project consists of a React Native (Expo) frontend and a FastAPI backend with a MongoDB database.
+- The **frontend** uses  for navigation,  for state management, and now relies on  for its core scanning feature. A complex, custom real-time scanner implementation using  and  was attempted and then **removed** due to instability and build issues.
+- The **backend** () provides APIs for user management, document storage (interfacing with S3), and image processing.
+- The agent has implemented numerous bug fixes related to guest document handling, local caching, and UI layout issues, but several critical bugs remain.
 
 **Last working item**:
-- Last item agent was working: Implementing real-time, on-device document edge detection within the custom camera view using  and .
-- Status: **IN PROGRESS**
-- Agent Testing Done: N/A (The implementation is in progress and involves native modules which don't work in the web preview environment).
-- Which testing method agent to use? Frontend testing agent (after an APK build is available)
-- User Testing Done: N
+    - Last item agent was working: Fixing a critical white screen bug. When in guest mode on the document edit screen (), actions like tapping the back button or Add Page cause the app to freeze on a blank white screen.
+    - Status: **IN PROGRESS**
+    - Agent Testing Done: N
+    - Which testing method agent to use? Frontend testing agent. This requires building an APK and replicating the user's reported steps on a device, as it's a native runtime and navigation issue.
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- Issue 1: Real-time scanner implementation (P0)
-- Issue 2: Admin Dashboard functionality (P1)
-- Issue 3: Annotation shape movement is buggy (P2)
-- Issue 4: Auto-capture mode is not working (P2)
-- Issue 5: Multiple features are pending user verification (P2)
-- Issue 6: EAS build errors (P0 - recurring)
-
-Issues Detail:
-- Issue 1: **Real-time scanner implementation**
-     - Description: The current scanner uses  and sends images to the backend for edge detection, which is slow and not truly real-time. The user explicitly requested an on-device, real-time edge detection solution within the custom camera view, similar to Adobe Scan. The agent is implementing this using  and .
-     - Attempted fixes:
-        1. Initial attempt to use  by completely rewriting . This was found to launch its own native UI, which did not meet the user's requirement for integration into the custom camera view.
-        2. Attempted a hybrid approach using the custom UI and launching  only for capture. This also caused web preview errors due to native module imports.
-        3. The current attempt involves installing  and  to achieve real-time, in-app edge detection.
+  - Issue 1: Critical: App freezes on a white screen during navigation from the document edit page in guest mode. (P0)
+  - Issue 2: Custom Google & Apple authentication implementation is pending user-provided credentials. (P1)
+  - Issue 3: Android system navigation buttons overlap with app UI buttons on multiple screens. (P2)
+  - Issue 4: Adjustments and filters do not provide a real-time preview in the editor. (P2)
+  - Issue 5: Saved image rotation is not reflected in the main document preview. (P3)
+  - Issue 6: User session is not persisted after an app restart. (P3)
+  
+  Issues Detail:
+  - Issue 1: **Critical: White Screen on Guest Mode Navigation**
+     - Description: The user reported that after scanning a document as a guest and landing on the edit screen, any navigation action (tapping the header back button, Add Page) causes the app to show a white screen and freeze.
+     - Attempted fixes: The agent made several changes to  to make navigation safer (), improve error handling during document loading (), and add guards against undefined page objects. The agent also modified  to ensure the document ID is correctly passed. Despite these efforts, the user reported the issue persists.
      - Next debug checklist:
-        1. Complete the integration of  for the camera view.
-        2. Implement frame processing with  for real-time edge detection.
-        3. Develop the corner stabilization logic.
-        4. Add the SVG overlay to display detected edges.
-        5. Integrate the capture functionality.
-        6. Ensure the backend edge detection calls are removed.
-     - Why fix this issue and what will be achieved with the fix?: This is a core product feature for a scanning app. A real-time, on-device scanner will significantly improve user experience, making the app competitive with others like Adobe Scan, and allow for offline scanning.
+        1. Review  and its usage of  and . The issue likely lies in how the navigation state is handled when pushing/replacing routes, especially in a stack.
+        2. Examine the  handlers for the back button and the Add Page button in . The navigation calls might be causing a fatal error in the Expo Router stack.
+        3. Check  to confirm that  is being called correctly with a valid document ID after a scan.
+        4. Add extensive logging around navigation events in both  and  to trace the app state right before the white screen appears.
+     - Why fix this issue and what will be achieved with the fix?: This is a critical, app-breaking bug that makes the core scanning workflow unusable for guest users.
      - Status: **IN PROGRESS**
-     - Is recurring issue? Y (multiple attempts at fixing scanner)
-     - Should Test frontend/backend/both after fix?: Frontend (requires APK build on real device)
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
      - Blocked on other issue: None.
 
-- Issue 2: **Admin Dashboard functionality**
-    - Description: The admin dashboard has been scaffolded, deployed as static assets served by the backend, and includes routing. However, its React components are not yet connected to the backend APIs for data fetching (e.g., user stats, localization keys). The localization page specifically was not showing the translation keys until a recent fix.
-    - Attempted fixes:
-        1. Created project structure, placeholder components, and backend API endpoints.
-        2. Built the dashboard and configured FastAPI to serve its static files under the  path.
-        3. Configured  and  to point to the deployed Railway backend.
-        4. Fixed the  page to fetch translation keys from the backend.
-    - Next debug checklist:
-        1. Implement logic in the React components (, , , etc.) to fetch data from the corresponding backend admin APIs (e.g., ).
-        2. Implement functionality for user management, localization management (saving changes), and viewing statistics.
-    - Why fix this issue and what will be achieved with the fix?: Fulfills a major user requirement for managing the application and its users.
-    - Status: **IN PROGRESS**
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: Both (Admin frontend and backend APIs)
-    - Blocked on other issue: None.
-
-- Issue 3: **Annotation shape movement is buggy**
-    - Description: The user reported that after selecting an arrow or rectangle in the annotation editor, attempting to move it causes it to distort or grow in size instead of translating correctly.
-    - Attempted fixes: The agent rewrote the  logic multiple times, storing the original annotation state during the move gesture. The last fix involved storing the full original annotation object (,  points) when a move begins.
-    - Next debug checklist:
-        1. Review the  logic in .
-        2. The issue likely lies in how the new , , , and  are calculated based on the gesture's  and  and the *original* coordinates stored when the gesture began.
-        3. Verify the logic for rectangles and arrows specifically, as they depend on two points.
-    - Why fix this issue and what will be achieved with the fix?: This is a core usability issue for the annotation feature.
-    - Status: **IN PROGRESS**
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend
-    - Blocked on other issue: None.
-
-- Issue 4: **Auto-capture mode is not working**
-    - Description: User reported that enabling auto-capture mode detects the document edges but never actually takes the picture.
-    - Attempted fixes: The agent corrected the frontend logic in  to check for the  key from the backend's  endpoint, as it was previously checking for a non-existent  key.
-    - Next debug checklist: This fix has not been verified by the user. The next agent should be prepared to debug further if it still fails. It may require on-device testing, as simulator performance can differ.
-    - Why fix this issue and what will be achieved with the fix?: Fixes a key hands-free scanning feature.
-    - Status: **USER VERIFICATION PENDING**
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend
-    - Blocked on other issue: None.
-
-- Issue 5: **Multiple features are pending user verification**
-    - Description: The agent implemented a large number of fixes in response to user bug reports, but none have been confirmed as resolved by the user.
-    - List of features/fixes needing verification:
-        - **Annotations:** Black screen fix.
-        - **Scanner UI:** Fixed header positioning (close/flash buttons).
-        - **Profile:** Exit Guest Mode button is now Sign In.
-        - **Settings:** Clear Cache now deletes local documents.
-        - **Scanner:** Camera grid overlay now appears when enabled.
-    - Status: **USER VERIFICATION PENDING**
-    - Is recurring issue? N/A
-    - Should Test frontend/backend/both after fix?: Frontend
-    - Blocked on other issue: None.
-
-- Issue 6: **EAS build errors**
-    - Description: The EAS build process frequently encounters errors, specifically regarding  being out of sync with , and  policy not supported in bare workflow.
-    - Attempted fixes:
-        1. Regenerated  after dependency changes.
-        2. Fixed  to use  instead of .
-    - Next debug checklist: Ensure  is always in sync with  (or stick to one package manager), and confirm  is compatible with the EAS build environment. This issue often recurs after dependency installations.
-    - Why fix this issue and what will be achieved with the fix?: This is a critical blocker for generating APKs and TestFlight builds, preventing users from testing the application on real devices.
-    - Status: **IN PROGRESS** (Fixes have been applied, but recurrence is likely)
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend (EAS build)
-    - Blocked on other issue: None.
-
-**In progress Task List**:
-- Task 1: **Native Real-Time Document Scanner Implementation (P0)**
-     - Where to resume:
-        - The agent has just installed , , and .
-        -  has been updated with the necessary plugins.
-        -  is in the process of being rewritten to integrate these.
-        - Resume by completing the implementation in  according to the user's detailed requirements (real-time edge detection, corner stabilization, overlay, capture).
-     - What will be achieved with this?: A highly performant, real-time, on-device document scanner that is a core feature for the app.
-     - Status: **IN PROGRESS**
-     - Should Test frontend/backend/both after fix?: Frontend (requires APK build on real device)
-     - Blocked on something: This is a complex task requiring careful implementation of native modules and UI.
-
-- Task 2: **Admin Dashboard Functionality (P1)**
-     - Where to resume:
-        - The project skeleton exists in .
-        - The backend APIs are defined in  starting around line 3500.
-        - The admin dashboard is now served by the backend at .
-        - The localization page has been updated to fetch keys from the backend.
-        - Resume by connecting the remaining React components in  to the backend APIs, focusing on fetching and displaying dynamic data (e.g., user lists, stats).
-     - What will be achieved with this?: A functional web dashboard for app management, user oversight, and localization configuration.
-     - Status: **IN PROGRESS**
+  - Issue 2: **Custom Google & Apple Authentication**
+     - Description: The user wants to replace the current generic Emergent-based Google login with their own custom Google OAuth client. They also want to add Sign in with Apple for the iOS app.
+     - Attempted fixes: The agent correctly identified the required credentials (Client IDs for Google, Service/Team/Key IDs for Apple) and has requested them from the user.
+     - Next debug checklist: Once the user provides the credentials, the agent needs to:
+        1. Install necessary packages (, ).
+        2. Configure the native projects (Android/iOS) with the provided credentials.
+        3. Update the login logic in  to use the native sign-in flows.
+        4. Update the backend () with new endpoints to verify the tokens from Google/Apple and create a user session.
+     - Why fix this issue and what will be achieved with this?: Fulfills a direct user requirement for branded, native authentication, improving user trust and experience.
+     - Status: **BLOCKED** (Waiting for user-provided credentials).
+     - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Both
-     - Blocked on something: None, but a stable deployed backend is essential for full testing.
+     - Blocked on other issue: None.
+
+  - Issue 3: **Android Navigation Bar Overlap**
+     - Description: The user reported that on several screens (e.g., Export, Adjust Filters), the app's buttons are hidden behind the Android system navigation bar.
+     - Attempted fixes: The agent has previously used  and  to fix similar issues on other pages (, ). This same pattern needs to be applied to the remaining affected screens.
+     - Next debug checklist:
+        1. Identify all screens mentioned by the user where this occurs.
+        2. For each screen, wrap the root view in a  or use the  hook to apply appropriate padding to the bottom of the content container.
+     - Why fix this issue and what will be achieved with this?: Fixes a critical UI/UX bug that makes core features unusable on some Android devices.
+     - Status: **NOT STARTED**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None.
+
+  - Issue 4: **Live Filter/Adjust Previews Not Working**
+     - Description: In the document edit screen, applying filters or adjustments doesn't update the image preview in real time. The changes are only visible after saving.
+     - Attempted fixes: The agent fixed this for guest users by making  use a new public backend endpoint (). However, the user's latest feedback implies it's still not working as expected.
+     - Next debug checklist:
+        1. Review the  function in  and the  function in .
+        2. Ensure the state holding the preview image () is being updated correctly in the  block of the API call.
+        3. Check for any race conditions or state management issues where the component might be re-rendering with the old image before the new one is available.
+     - Why fix this issue and what will be achieved with this?: Restores a critical piece of UX for the editing process, allowing users to see their changes instantly.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None.
+
+  - Issue 5: **Rotation Not Updating in Preview**
+     - Description: When an image is rotated on the edit screen, the rotation is saved but not reflected on the document's thumbnail in the main list view.
+     - Attempted fixes: The agent investigated the  function and the  component. The agent suspected a thumbnail regeneration issue but did not implement a concrete fix.
+     - Next debug checklist:
+        1. In , after a successful rotation in  or , the corresponding document object in the  array needs to be updated with the new  or a new thumbnail.
+        2. The simplest solution is to update the entire document object in the state with the response from the backend, which should trigger a re-render of the .
+     - Why fix this issue and what will be achieved with this?: Provides correct visual feedback to the user, avoiding confusion.
+     - Status: **NOT STARTED**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None.
+
+  - Issue 6: **Session Not Persisting**
+     - Description: The user is logged out every time they restart the app.
+     - Attempted fixes: The agent reviewed , which uses  to persist the token and user data. The logic appears to be in place.
+     - Next debug checklist:
+        1. Review the  file to see how and when the  function from  is called. It should be called on app startup.
+        2. Add logging within  to confirm that it is reading from  and successfully setting the auth state.
+        3. Check the  function to ensure it's not being called unintentionally on app close.
+     - Why fix this issue and what will be achieved with this?: Fixes a major UX flaw and is standard behavior for any authenticated app.
+     - Status: **NOT STARTED**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None.
+
+**In progress Task List**: None. The current work is focused on fixing the list of user-reported bugs.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - (P2) **Word (.docx) Export:** The UI for this exists, but the backend functionality is missing. Requires a new function in  using a library like .
-    - (P2) **TIFF Export:** The UI for this exists, but the backend functionality is missing. Requires updating the export logic in  to use  to save in TIFF format.
-    - (P2) **Localization Management (Admin Dashboard Save):** Implement the functionality to save changes to localization keys/values from the admin dashboard.
+    - (P0) Implement custom Google Sign-In using user-provided credentials.
+    - (P0) Implement Sign in with Apple for the iOS platform.
 - **Future Tasks:**
-    - (P3) **Integrate Localization into Mobile App:** Use a library like  to fetch and display translations from the backend managed by the admin dashboard. (Note: Frontend i18n store is created, but full integration into all text strings is pending).
-    - (P3) **Advanced Image Enhancements:** Auto brightness/contrast, shadow removal.
-    - (P3) **Cloud Backup Options:** Support for Google Drive/Dropbox.
+    - (P2) Refactor the monolithic  into smaller, manageable routers.
+    - (P2) Refactor the  to simplify state management and reduce bugs.
+    - (P3) Re-evaluate and implement Auto-crop on edit screen or Manual crop with adjustable edges as requested by the user.
 
 **Completed work in this session**
-- **Railway Deployment Fixes**: Successfully resolved numerous deployment issues on Railway.
-    - Replaced private  OCR package with  and  fallback.
-    - Configured , , , , .
-    - Switched to Dockerfile-based deployment for the backend, creating  and .
-    - Resolved  dependency issue in Dockerfile.
-    - Made backend code more resilient to missing environment variables ( default).
-    - Updated  to accept both  and .
-    - The backend is now successfully deployed to Railway.
-- **Admin Dashboard Deployment**: Built the React admin dashboard and configured the FastAPI backend to serve its static files under the  path.
-- **Localization System**:
-    - Extracted all user-facing text strings from the frontend.
-    - Added a public endpoint  to  to fetch translations.
-    - Initialized the backend database with default English translations.
-    - Created  for frontend localization state management.
-    - Updated  to initialize the i18n system.
-    - Updated  with a basic language selector.
-    - Fixed  to correctly fetch and display translation keys from the backend.
-- **Mobile Build Configuration**:
-    - Provided a detailed guide for building Android APKs and iOS TestFlight builds using EAS CLI.
-    - Created/updated  and  with appropriate settings (bundle ID , backend URL, platform-specific configurations, ).
-    - Installed missing frontend dependencies (, ).
-    - Applied user-provided , , , , , and  files.
-    - Fixed recurring  sync issues by regenerating it.
-    - Fixed   policy error for bare workflow.
-- **Scanner Initial Rewrites**:
-    - Attempted initial rewrites of  to use , but this approach was later discarded as it launched its own native UI.
-    - Introduced conditional import for  to prevent web preview errors.
+- **Scanner Re-architecture (Major Pivot):**
+    - **Abandoned Custom Scanner:** Removed the highly complex and unstable implementation that used , , and Skia for on-device frame processing.
+    - **Adopted Plugin:** Rewrote  to use , leveraging its stable native UI for scanning, edge detection, and cropping.
+    - **Custom Review UI:** The app now takes the images from the plugin and passes them to the app's own  screen for filtering, saving, and management, providing a hybrid best of both worlds approach.
+- **Build & Dependency Fixes:**
+    - **Removed Unused Native Modules:** Uninstalled , , , , and others to resolve critical Android build failures ().
+    - **Fixed Babel/Reanimated Error:** Re-installed  as it was a required peer dependency for , fixing a Metro bundler crash.
+- **Bug Fixes based on User Feedback:**
+    - **Duplicate Guest Uploads:** Updated 's  function with a check () to prevent documents from being uploaded to the server multiple times.
+    - **Export on Web:** Fixed the Export not supported error by wrapping the export logic in  with a  check.
+    - **Folder Password UX:** Fixed the keyboard covering the input field by wrapping the modal in  with .
+    - **Post-Scan Screen Removed:** Simplified the flow in  to immediately save the document and navigate to the edit screen after the scanning plugin returns images, removing an unnecessary intermediate review screen.
 
 **Earlier issues found/mentioned but not fixed**
-- The agent was very thorough and addressed almost all issues raised by the user during this session. The only missed item was that the admin dashboard's functionality is not fully implemented yet, but the deployment and localization fetching are.
+All issues mentioned by the user have been either fixed or are listed in the Pending/In progress Issue list. The agent was diligent in addressing the user's detailed feedback list.
 
 **Known issue recurrence from previous fork**
-- **Google Login Flow**: This issue was mentioned in the initial handover summary but was not addressed in this session. Its status remains **USER VERIFICATION PENDING**.
-- **Android Portrait Rotation Fix**: This was mentioned in the initial handover summary but was not addressed in this session. Its status remains **USER VERIFICATION PENDING**.
+- **Build Failures:** The session was plagued by build failures. Initially due to a local Java version mismatch on the user's machine, and then a major Gradle dependency resolution failure on EAS Build, which was eventually fixed by removing numerous conflicting and unused native libraries. This highlights the fragility of the native dependency tree.
+- **Expo Tunnel Instability:** The agent spent a significant amount of time fighting with  tunnel errors, which prevented the web preview from working. This appears to be an infrastructure issue rather than a code issue.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Admin Dashboard**: React, Vite, ,  (for charts). Now built as static assets and served by FastAPI. Configured to talk to the deployed backend.
-- **Backend Deployment**: Railway as a target platform. Transitioned from Nixpacks configuration to **Dockerfile** for more control over system dependencies (Tesseract OCR). Environment variable management (, , AWS keys) is critical.
-- **Private vs. Public Packages**: Realization that  is a private dependency, leading to its replacement with  and  for OCR.
-- **Localization**: Implementation of a backend API for translations and a frontend -based store () to manage language selection and display. Device language detection for default.
-- **Mobile Builds**: Use of **EAS CLI** (, ) for Android APK and iOS TestFlight builds. Understanding of  policy in bare workflow.
-- **Real-time Document Scanning**: Transitioning from a backend-heavy OpenCV approach to a fully **on-device native implementation** using , , and  for live edge detection and custom UI integration. This involves frame processing and native module interaction.
-- **Complex Gesture Handling**: Advanced use of  with  and state callbacks in  to manage drawing, selecting, and moving vector shapes (still buggy).
-- **Layout & UI**: Use of  hook for precise, manual control over UI element positioning to avoid system elements.
-- **Audio Playback**: Integration of  to load and play sound effects.
+- **Hybrid Scanner Approach:** Using a stable, third-party native UI () for the complex task of real-time scanning, and then bringing the user back into the app's custom UI for review and management. This is a pragmatic architectural decision to prioritize stability over a fully custom (but buggy) UI.
+- **State Management for Guest Users:** Heavy reliance on  and  to manage documents created by non-logged-in users. The logic for creating, storing, fetching, and migrating these documents is complex and has been the source of multiple bugs (duplicate uploads, white screens).
+- **Conditional Logic for Authentication:** The code in the stores and components frequently checks  to differentiate behavior for guest vs. authenticated users. This is particularly relevant for API calls.
+- **Build Dependency Management:** The session highlighted the critical importance of maintaining a clean  and removing unused native libraries to ensure successful EAS builds.
 
 **key DB schema**
-- New collections are implicitly created by the new admin endpoints in  if they don't exist:
-  - : {email, hashed_password}
-  - : {lang, key, value}
-  - : {key, value}
+No changes were made to the database schema in this session.
 
 **changes in tech stack**
-- **Admin Dashboard Frontend**: Still React/Vite, but now built and served by the FastAPI backend.
-- **Deployment**: Transitioned from Nixpacks to **Dockerfile** for Railway backend deployment.
-- **OCR**: Replaced  with **** and ****.
-- **Mobile Scanner**: Moving from  + backend OpenCV to **** + **** for real-time on-device processing.
-- **Localization**: Introduced  for  in frontend.
+- **REMOVED:** , , , , . The app no longer has a custom, on-device real-time scanner.
+- **ADOPTED:**  is now the primary technology for document capture.
+- **RE-ADDED:**  was re-installed to satisfy a dependency of .
 
 **All files of reference**
-- : The monolithic backend file, now containing all application logic, admin APIs, localization endpoints, and serving the static admin dashboard.
-- : Now contains  and , without .
-- : Critical for Railway deployment, includes Tesseract OCR installation.
-- : For optimizing Docker builds.
-- : For Gunicorn/Uvicorn entry point.
-- : Currently being rewritten for  and .
-- : Initializes i18n.
-- : Contains language selector.
-- : New, for localization state management.
-- : Configuration for Expo project, EAS builds, and native module plugins.
-- : EAS build configuration for Android APK and iOS TestFlight.
-- : Updated dependencies for native modules.
-- : Regenerated multiple times to sync dependencies.
-- : Entire directory for the admin panel, now built and served by backend.
-- : Fixed to fetch translation keys from backend.
-- : Configured for base path .
+- : Completely rewritten to use .
+- : Heavily modified to fix bugs; remains the source of the critical white screen issue.
+- : Major logic changes to handle guest document migration and prevent duplicate uploads.
+- : Major dependency changes, with many native modules removed.
+- : Updated to remove the  plugin.
+- : Updated to fix keyboard-hiding-input bug.
+- : Updated to disable export on web.
+- : Updated to support guest user previews.
+- : Updated to improve guest document migration logic.
+- : Updated with more robust redirect URL parsing for Google login.
 
-**Areas that need refactoring**:
--  has grown to an unmaintainable size (~4000 lines). It desperately needs to be broken down into smaller modules using FastAPI's  for different concerns (e.g., , , , ).
--  is undergoing a major rewrite, which is a good opportunity for modularization after the core functionality is achieved.
+**Areas that need refactoring**
+- : This file is overly complex. The logic for managing guest documents, pending syncs, and remote documents is intertwined and hard to follow, leading to bugs like the white screen and duplicate uploads. It should be refactored, possibly by creating a separate  or using more clearly defined state transitions.
+- : This component has grown too large. It manages loading states, error states, multiple modals, user interactions, and API calls. It should be broken down into smaller components and custom hooks (e.g., , ) to improve readability and maintainability.
 
 **key api endpoints**
-- : Creates a PDF from raw image data without requiring authentication.
-- : Updated to trigger S3 file deletion.
-- : **NEW**. Public endpoint to fetch localization data by language.
-- **Admin Endpoints**:
-    - 
-    - 
-    - , 
-    - 
-    -  (GET now works, POST for saving changes is pending)
-    - 
-- : **NEW**. Path for serving the static admin dashboard frontend.
+- : This existing public endpoint was leveraged to enable live filter previews for guest users. No new endpoints were created.
 
 **Critical Info for New Agent**
-- **Immediate Priority**: Complete the implementation of the real-time, on-device scanner using  and . This is a complex native module integration and requires careful attention to detail.
-- The backend is now successfully deployed to Railway, serving both the API and the admin dashboard static files. However, the admin dashboard's functionality to interact with APIs (e.g., fetch users, save localization) is largely unimplemented.
-- Be aware that native modules (like VisionCamera or document scanner plugins) will *not* work in the web preview or Expo Go. Testing requires an EAS build (APK/TestFlight) on a physical device.
-- Frequent EAS build issues (npm/yarn lock file mismatches,  errors) are recurring. Always verify lock files and  configuration before recommending a build.
-- The user has provided specific image assets and build configuration files; ensure these are respected.
+- **Top Priority is the White Screen Bug:** The user is blocked by a critical bug causing the app to freeze on a white screen when navigating from the document edit page in guest mode. This must be the first thing you fix.
+- **Scanner Strategy has Pivoted:** Do NOT attempt to re-implement a custom real-time scanner with VisionCamera. The accepted strategy is to use  for capture and the app's own UI for everything after.
+- **Be Careful with Native Dependencies:** The project's build is sensitive to native dependency conflicts. Before adding any new native module, double-check for compatibility. Many were just removed to achieve a stable build.
+- **Wait for Auth Credentials:** The user has requested custom Google/Apple login. Do not proceed with implementation until the user provides the necessary OAuth/Service credentials.
+- **Focus on the Bug List:** The user has provided a very clear list of remaining issues (nav bar overlap, live previews, session persistence, etc.). Address these systematically after fixing the critical white screen bug.
 
 **documents created in this job**
-- 
-- 
-- 
-- 
-- 
-- 
-- 
--  (user provided, placed here)
+- A temporary  file was created but is likely no longer relevant after the custom scanner was removed.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Msg 443)**: do it (Confirms proceeding with  +  for real-time scanner). (PENDING)
-2.  **Agent (Msg 442)**: Explained two options for real-time scanner (VisionCamera + FastOpenCV vs. Docutain SDK) with trade-offs and asked for user's decision.
-3.  **User (Msg 440)**: Asked to search for a ready-to-use solution for integrating the plugin to the view.
-4.  **Agent (Msg 439)**: Researched and confirmed that true integration of real-time edge detection *within* the custom view is possible with  and .
-5.  **User (Msg 437)**: so is there no way to integrate the plugin to our view? (Questioning the approach of launching a separate UI for scanning).
-6.  **Agent (Msg 436)**: Summarized Scanner Fixed - Clean Architecture after a hybrid approach (custom UI, native plugin for capture only) and fixed web preview import issues.
-7.  **User (Msg 435)**: Provided  and indicated build is not working. (This is after the agent tried to fix the web preview error).
-8.  **Agent (Msg 434)**: Regenerated .
-9.  **User (Msg 433)**: Asked to regenerate .
-10. **Agent (Msg 432)**: Overwrote  with a Clean Architecture hybrid approach.
+1.  **User (Msg 381)**: Reports the critical white screen bug in guest mode. When on the document edit screen, clicking back or add page freezes the app. (PENDING)
+2.  **User (Msg 379)**: Requests custom Google & Apple login, not the Emergent one. Asks for confirmation that the app will work the same on iOS and Android. (PENDING - BLOCKED)
+3.  **User (Msg 350)**: Asks for confirmation that the white screen issue after scanning is now fixed. (The agent's fix was insufficient).
+4.  **User (Msg 311)**: Reports two issues: 1) A post-scan review page is still showing and should be removed completely. 2) The white screen issue still occurs when opening a document from the list. (Partially addressed).
+5.  **User (Msg 220)**: Confirms the agent should fix the remaining list of bugs. (In Progress).
+6.  **User (Msg 181)**: Provides a detailed list of 11 bugs and UX issues, including rotation, navigation bar overlap, Google login problems, session persistence, duplicate uploads, etc. (This is the primary work list for the agent).
+7.  **User (Msg 158)**: Shares logs of a failed EAS build. (Resolved).
+8.  **User (Msg 149)**: Complains that the VisionCamera implementation is not a real scanner (no edge detection, no auto-capture) and suggests using the  instead. (This triggered the major pivot).
+9.  **User (Msg 143)**: Asks if the UI of  can be customized. (Agent confirmed it cannot).
+10. **User (Msg 137)**: Reports that the app with the VisionCamera implementation shows a white screen or crashes, and the back button doesn't work. (This led to abandoning the custom scanner).
 
 **Project Health Check:**
 - **Broken**:
-    - The real-time scanner is currently undergoing a major rewrite and is non-functional until the  and  integration is complete.
-    - EAS builds frequently fail due to dependency lock file issues or  configuration.
-- **Mocked**: The Admin Dashboard is deployed but largely functions with static data and lacks full API integration for dynamic content and management capabilities.
-- **Needs Verification**: Numerous bug fixes across the application (Annotations, Scanner UI, Guest Flow, Auto-Capture) have been implemented but not yet tested or confirmed as fixed by the user.
+    - The core user flow for guests is critically broken due to the white screen freeze on the  page.
+    - Several UI elements are unusable on Android due to the navigation bar overlap issue.
+- **Mocked**:
+    - Google Sign-In uses a generic Emergent branded service, which the user wants replaced with their own custom implementation.
 
 **3rd Party Integrations**
 - **AWS S3**: For image storage. (Requires User API Key).
 - **MongoDB Atlas**: Primary database. (Requires User-provided connection string).
-- **pytesseract**: For OCR (Python backend).
-- **google-ai-generativelanguage**: Fallback for OCR (Python backend).
-- **Railway**: The user's chosen platform for backend deployment. (Requires user account).
-- **react-native-vision-camera**: For advanced camera control and frame processing (Frontend).
-- **react-native-fast-opencv**: For on-device OpenCV image processing and edge detection (Frontend).
-- **react-native-worklets-core**: For running JavaScript code on a separate UI thread for performance (Frontend).
+- **react-native-document-scanner-plugin**: For document capture and edge detection.
+- : Requested by user, to be implemented.
+- : Requested by user, to be implemented.
 
 **Testing status**
-- Testing agent used after significant changes: NO
-- Troubleshoot agent used after agent stuck in loop: NO (though multiple attempts were made for deployment and scanner fixes)
-- Test files created: []
-- Known regressions: The user has reported multiple regressions throughout the session, which the agent has attempted to fix (e.g., annotation movement, auto-capture, scanner functionality). The current major scanner rewrite is a complete re-architecture.
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions: The user reported multiple issues. The most significant is the white screen crash which persists despite the agent's attempts to fix it.
 
 **Credentials to test flow:**
-- **App User:** Standard user registration flow.
-- **Admin Dashboard:** Credentials are now set via environment variables. The agent suggested  and .
+- **App User:** Standard user registration flow or guest mode.
+- **Google/Apple Auth:** The agent has requested custom OAuth credentials from the user. Implementation is blocked until these are provided.
 
 **What agent forgot to execute**
-- The agent initially failed to identify the  private package as a critical blocker for external deployment.
-- The agent struggled significantly with EAS build issues related to lock files and  configurations, leading to multiple failed build attempts by the user.
-- The agent did not fully test the admin dashboard functionality after deployment and localization fixes.
-- The agent attempted to use  as an embeddable component for real-time detection, which was incorrect, leading to a significant re-evaluation and switch to  + . This indicates a potential gap in initial research or understanding of the plugin's capabilities.
-
+- The agent failed to fully resolve the critical white screen bug. Despite multiple file edits targeting the issue, the root cause was not found, and the bug persists.
+- The agent flip-flopped between three different scanner implementations, wasting significant time and effort before settling on the plugin-based approach requested by the user.
+- The agent did not address all the bugs from the user's comprehensive list (Message 181), such as the Android navigation bar overlap, session persistence, and rotation preview. These are now pending tasks.
 </analysis>
