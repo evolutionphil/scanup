@@ -181,6 +181,14 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
   },
+  webLogoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   splashTextContainer: {
     alignItems: 'center',
     marginTop: 24,
