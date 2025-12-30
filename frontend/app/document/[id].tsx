@@ -1186,6 +1186,8 @@ export default function DocumentScreen() {
         visible={showFilterEditor}
         onClose={() => setShowFilterEditor(false)}
         imageBase64={currentPage.image_base64 || ''}
+        imageUrl={currentPage.image_url}
+        imageFileUri={currentPage.image_file_uri}
         originalImageBase64={currentPage.original_image_base64 || ''}
         currentFilter={currentPage.filter_applied || 'original'}
         onApply={handleApplyFilter}
