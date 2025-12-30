@@ -97,6 +97,7 @@ export default function ShareModal({
   const insets = useSafeAreaInsets();
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
   const [passwordProtect, setPasswordProtect] = useState(false);
+  const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   // Calculate file size from pages
