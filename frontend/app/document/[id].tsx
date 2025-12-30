@@ -776,9 +776,6 @@ export default function DocumentScreen() {
         ? currentPage.original_image_base64 
         : currentImage;
       
-      // BURN signature into CURRENT image (preserving filters/edits)
-      console.log('[handleApplySignature] Adding signature to current image (preserving filters)');
-      
       // Clean up base64 data
       const cleanImageBase64 = currentImage.startsWith('data:') 
         ? currentImage.split(',')[1] 
@@ -786,6 +783,47 @@ export default function DocumentScreen() {
       const cleanSigBase64 = signatureBase64.startsWith('data:') 
         ? signatureBase64.split(',')[1] 
         : signatureBase64;
+      
+      // Check if offline - queue operation instead of direct API call
+      if (!isOnline) {
+        console.log('[handleApplySignature] Offline - queueing operation');
+        await queueSignature(
+          currentDocument.document_id,
+          selectedPageIndex,
+          cleanImageBase64,
+          cleanSigBase64,
+          position,
+          scale,
+          token
+        );
+        
+        // Store signature overlay locally for visual preview
+        const signatureOverlay = {
+          signature_base64: cleanSigBase64,
+          position_x: position.x,
+          position_y: position.y,
+          scale: scale,
+          timestamp: Date.now(),
+          pending: true, // Mark as pending
+        };
+        
+        const existingSignatures = (currentPage as any).signatures || [];
+        const updatedPages = [...currentDocument.pages];
+        updatedPages[selectedPageIndex] = {
+          ...updatedPages[selectedPageIndex],
+          original_image_base64: originalImage,
+          signatures: [...existingSignatures, signatureOverlay],
+        };
+
+        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+        Alert.alert('Queued', 'Signature will be applied when back online.');
+        setProcessing(false);
+        setPendingSignature(null);
+        return;
+      }
+      
+      // BURN signature into CURRENT image (preserving filters/edits)
+      console.log('[handleApplySignature] Adding signature to current image (preserving filters)');
       
       const endpoint = `${BACKEND_URL}/api/images/apply-signature`;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
