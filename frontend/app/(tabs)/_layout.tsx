@@ -78,14 +78,6 @@ export default function TabsLayout() {
               <Ionicons name={focused ? "folder" : "folder-outline"} size={22} color={color} />
             ),
           }}
-          listeners={{
-            tabPress: (e) => {
-              // Navigate to home and switch to folders tab
-              e.preventDefault();
-              router.push('/(tabs)');
-              // We'll handle the tab switch in the index screen
-            },
-          }}
         />
         <Tabs.Screen
           name="scan"
