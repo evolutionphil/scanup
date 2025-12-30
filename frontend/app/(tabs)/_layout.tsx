@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   scanButtonContainer: {
     position: 'absolute',
-    top: -SCAN_BUTTON_OFFSET,
+    top: -SCAN_BUTTON_OFFSET - 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   scanButtonImage: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
     tintColor: '#FFFFFF',
   },
 });
