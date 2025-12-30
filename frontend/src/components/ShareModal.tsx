@@ -177,26 +177,47 @@ export default function ShareModal({
         // Apply password protection if enabled
         if (passwordProtect && password) {
           try {
-            console.log('[ShareModal] Applying password protection...');
+            console.log('[ShareModal] Applying password protection with pdf-lib-with-encrypt...');
             
             // Read the PDF file
             const pdfBase64 = await readAsStringAsync(newUri, {
               encoding: EncodingType.Base64,
             });
             
-            // Load the PDF and encrypt it
-            const pdfDoc = await PDFDocument.load(pdfBase64, { ignoreEncryption: true });
+            // Convert base64 to Uint8Array
+            const binaryString = atob(pdfBase64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
             
-            // Note: pdf-lib doesn't support encryption directly in the save method
-            // We need to use a different approach - for now we'll add a password hint page
-            // and mark the PDF as "protected"
+            // Load the PDF
+            const pdfDoc = await PDFDocument.load(bytes);
             
-            // Add a cover page with password info (workaround since pdf-lib doesn't encrypt)
-            // In a production app, you'd use a native module or server-side encryption
+            // Encrypt the PDF with user password
+            // pdf-lib-with-encrypt supports encryption via save options
+            const encryptedPdfBytes = await pdfDoc.save({
+              userPassword: password,
+              ownerPassword: password,
+              permissions: {
+                printing: 'highResolution',
+                modifying: false,
+                copying: false,
+                annotating: true,
+                fillingForms: true,
+                contentAccessibility: true,
+                documentAssembly: false,
+              },
+            });
             
-            // Save the document
-            const encryptedPdfBytes = await pdfDoc.save();
-            const encryptedBase64 = btoa(String.fromCharCode(...encryptedPdfBytes));
+            // Convert back to base64
+            let encryptedBase64 = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < encryptedPdfBytes.length; i += chunkSize) {
+              const chunk = encryptedPdfBytes.slice(i, i + chunkSize);
+              encryptedBase64 += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            encryptedBase64 = btoa(encryptedBase64);
             
             // Save encrypted PDF
             const protectedUri = `${cacheDirectory}${safeFileName}_protected.pdf`;
@@ -205,7 +226,7 @@ export default function ShareModal({
             });
             newUri = protectedUri;
             
-            console.log('[ShareModal] PDF processed');
+            console.log('[ShareModal] PDF encrypted successfully with password');
           } catch (encryptError) {
             console.error('[ShareModal] Password protection error:', encryptError);
             Alert.alert('Warning', 'Could not apply password protection. Sharing unprotected PDF.');
