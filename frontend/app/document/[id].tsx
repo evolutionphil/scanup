@@ -1504,6 +1504,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'capitalize',
   },
+  signatureOverlay: {
+    position: 'absolute',
+    zIndex: 10,
+  },
+  annotationOverlay: {
+    position: 'absolute',
+    zIndex: 11,
+  },
   pageIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
