@@ -11,30 +11,6 @@ config.cacheStores = [
   new FileStore({ root: path.join(root, 'cache') }),
 ];
 
-// Force CommonJS for zustand to avoid import.meta issues on web
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === 'web' && moduleName === 'zustand') {
-    return {
-      filePath: require.resolve('zustand/index.js'),
-      type: 'sourceFile',
-    };
-  }
-  if (platform === 'web' && moduleName === 'zustand/middleware') {
-    return {
-      filePath: require.resolve('zustand/middleware.js'),
-      type: 'sourceFile',
-    };
-  }
-  if (platform === 'web' && moduleName === 'zustand/shallow') {
-    return {
-      filePath: require.resolve('zustand/shallow.js'),
-      type: 'sourceFile',
-    };
-  }
-  // Fall back to default resolution
-  return context.resolveRequest(context, moduleName, platform);
-};
-
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
