@@ -393,12 +393,30 @@ export default function ShareModal({
             <Text style={styles.rowLabel}>Password protect</Text>
             <Switch
               value={passwordProtect}
-              onValueChange={setPasswordProtect}
+              onValueChange={(value) => {
+                setPasswordProtect(value);
+                if (!value) setPassword('');
+              }}
               trackColor={{ false: '#E5E5E5', true: BRAND_BLUE + '50' }}
               thumbColor={passwordProtect ? BRAND_BLUE : '#FFFFFF'}
               ios_backgroundColor="#E5E5E5"
             />
           </View>
+          
+          {/* Password Input - shows when toggle is on */}
+          {passwordProtect && selectedFormat === 'pdf' && (
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Enter password for PDF"
+                placeholderTextColor={TEXT_MUTED}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+          )}
 
           <View style={styles.divider} />
 
