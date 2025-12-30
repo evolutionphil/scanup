@@ -1326,7 +1326,8 @@ export default function DocumentScreen() {
         <AnnotationEditor
           visible={showAnnotationEditor}
           onClose={() => setShowAnnotationEditor(false)}
-          imageBase64={currentDocument.pages[selectedPageIndex].image_base64}
+          imageBase64={currentDocument.pages[selectedPageIndex].image_base64 || ''}
+          imageUrl={currentDocument.pages[selectedPageIndex].image_url}
           onSave={handleSaveAnnotations}
           existingAnnotations={(currentDocument.pages[selectedPageIndex] as any).annotations || []}
         />
