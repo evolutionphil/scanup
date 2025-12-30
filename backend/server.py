@@ -1812,12 +1812,27 @@ async def create_folder(
 
 @api_router.get("/folders", response_model=List[Folder])
 async def get_folders(current_user: User = Depends(get_current_user)):
-    """Get all folders for current user"""
+    """Get all folders for current user with document counts"""
     folders = await db.folders.find(
         {"user_id": current_user.user_id},
         {"_id": 0}
     ).to_list(1000)
-    return [Folder(**f) for f in folders]
+    
+    # Add document count to each folder
+    result_folders = []
+    for f in folders:
+        folder_obj = Folder(**f)
+        # Count documents in this folder
+        doc_count = await db.documents.count_documents({
+            "user_id": current_user.user_id,
+            "folder_id": folder_obj.folder_id
+        })
+        # Convert to dict and add document_count
+        folder_dict = folder_obj.model_dump()
+        folder_dict["document_count"] = doc_count
+        result_folders.append(folder_dict)
+    
+    return result_folders
 
 class FolderUpdate(BaseModel):
     name: Optional[str] = None
