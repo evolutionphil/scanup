@@ -673,6 +673,39 @@ export default function DocumentsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      
+      {/* Unlock Password Modal */}
+      <Modal visible={showUnlockModal} transparent animationType="fade" onRequestClose={() => setShowUnlockModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUnlockModal(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={styles.unlockHeader}>
+              <Ionicons name="lock-closed" size={40} color={theme.primary} />
+              <Text style={[styles.modalTitle, { color: theme.text, marginTop: 12 }]}>Document Protected</Text>
+            </View>
+            <Text style={[styles.modalSubtitle, { color: theme.textMuted, textAlign: 'center' }]}>
+              Enter the password to view this document.
+            </Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              value={unlockPasswordValue}
+              onChangeText={setUnlockPasswordValue}
+              placeholder="Enter password"
+              placeholderTextColor={theme.textMuted}
+              secureTextEntry
+              autoFocus
+              onSubmitEditing={handleUnlockDocument}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowUnlockModal(false)}>
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={handleUnlockDocument}>
+                <Text style={styles.modalBtnConfirmText}>Unlock</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
