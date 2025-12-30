@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   scanButtonContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 20 : 8,
+    marginBottom: Platform.OS === 'ios' ? 30 : 20,
   },
   scanIconExact: {
     width: 48,
