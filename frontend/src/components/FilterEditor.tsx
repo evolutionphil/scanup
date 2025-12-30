@@ -271,11 +271,13 @@ export default function FilterEditor({
   }, [selectedFilter, brightness, contrast, saturation, visible, updatePreview]);
 
   const handleApply = () => {
+    // Pass the processed preview image along with the settings
+    const processedImage = previewImage || effectiveImageBase64;
     onApply(selectedFilter, {
       brightness: brightness - 50,
       contrast: contrast - 50,
       saturation: saturation - 50,
-    });
+    }, processedImage);
   };
 
   const handleRevertToOriginal = () => {
