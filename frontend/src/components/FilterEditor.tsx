@@ -246,7 +246,7 @@ export default function FilterEditor({
     } finally {
       setIsLoadingPreview(false);
     }
-  }, [imageBase64, originalImageBase64, processImageLocally]);
+  }, [effectiveImageBase64, originalImageBase64, processImageLocally]);
 
   // Debounced preview update
   useEffect(() => {
