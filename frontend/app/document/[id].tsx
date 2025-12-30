@@ -756,36 +756,33 @@ export default function DocumentScreen() {
       // Store original before signing if not already stored
       const originalImage = currentPage.original_image_base64 || imageBase64;
       
-      const response = await fetch(`${BACKEND_URL}/api/images/add-signature`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          image_base64: imageBase64,
-          signature_base64: signatureBase64,
-          position_x: position.x,
-          position_y: position.y,
-          scale: scale,
-        }),
-      });
+      // LOCAL SIGNATURE PROCESSING - Store signature as overlay metadata
+      // The signature will be rendered on top of the image in the viewer
+      // This is non-destructive - original image is preserved
+      console.log('[handleApplySignature] Applying signature locally');
+      
+      // Create signature overlay data
+      const signatureOverlay = {
+        signature_base64: signatureBase64,
+        position_x: position.x,
+        position_y: position.y,
+        scale: scale,
+        timestamp: Date.now(),
+      };
+      
+      // Get existing signatures or create new array
+      const existingSignatures = (currentPage as any).signatures || [];
+      
+      const updatedPages = [...currentDocument.pages];
+      updatedPages[selectedPageIndex] = {
+        ...updatedPages[selectedPageIndex],
+        image_base64: imageBase64,
+        original_image_base64: originalImage,
+        signatures: [...existingSignatures, signatureOverlay], // Store signature as metadata
+      };
 
-      const result = await response.json();
-
-      if (result.success && result.signed_image_base64) {
-        const updatedPages = [...currentDocument.pages];
-        updatedPages[selectedPageIndex] = {
-          ...updatedPages[selectedPageIndex],
-          image_base64: result.signed_image_base64,
-          original_image_base64: originalImage, // Preserve original for revert
-        };
-
-        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-        Alert.alert('Success', 'Signature added to document. Use "Revert" to undo.');
-      } else {
-        Alert.alert('Error', result.message || 'Failed to add signature');
-      }
+      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+      Alert.alert('Success', 'Signature added to document. Use "Revert" to undo.');
     } catch (e) {
       console.error('Signature error:', e);
       Alert.alert('Error', 'Failed to add signature');
