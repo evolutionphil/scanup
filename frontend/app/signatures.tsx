@@ -35,15 +35,8 @@ export default function SignaturesScreen() {
     loadSignatures();
   }, []);
 
-  // Reload signatures when screen is focused
-  useEffect(() => {
-    const unsubscribe = router.subscribe((state) => {
-      loadSignatures();
-    });
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
+  // Reload signatures when navigation changes
+  const { useFocusEffect } = require('expo-router');
 
   const loadSignatures = async () => {
     try {
