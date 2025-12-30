@@ -77,7 +77,14 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "folder" : "folder-outline"} size={22} color={color} />
             ),
-            href: null, // Hide this tab, folders shown in home screen
+          }}
+          listeners={{
+            tabPress: (e) => {
+              // Prevent default navigation to separate folders screen
+              e.preventDefault();
+              // Will be handled by setting activeTab in the index screen
+              router.push('/(tabs)');
+            },
           }}
         />
         <Tabs.Screen
