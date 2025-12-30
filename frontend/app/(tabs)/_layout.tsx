@@ -150,9 +150,9 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   scanButtonContainer: {
-    // Elevated above the tab bar
+    // Position at top: 0px relative to tab bar - button sits on top edge
     position: 'absolute',
-    top: -SCAN_BUTTON_ELEVATION,
+    top: -SCAN_BUTTON_OFFSET,
     justifyContent: 'center',
     alignItems: 'center',
   },
