@@ -36,14 +36,39 @@ export default function DocumentCard({
   onPress,
   onLongPress,
   selected,
+  onExport,
+  onRename,
+  onEdit,
+  onPrint,
+  onPassword,
+  onMoveToFolder,
+  onDelete,
 }: DocumentCardProps) {
   const { theme } = useThemeStore();
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  
   // Support both base64 and S3 URLs for thumbnails
   const firstPage = document.pages[0];
   const thumbnailSource = firstPage ? getImageSource(firstPage, true) : null;
   const pageCount = document.pages.length;
   const hasOCR = !!document.ocr_full_text;
   const syncStatus = document.sync_status;
+  
+  // Calculate file size
+  const fileSize = document.pages.reduce((acc, page) => {
+    const base64 = page.image_base64 || '';
+    return acc + (base64.length * 0.75); // Approximate size
+  }, 0);
+  const fileSizeFormatted = fileSize > 1024 * 1024 
+    ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB` 
+    : fileSize > 1024 
+    ? `${(fileSize / 1024).toFixed(0)} KB`
+    : 'N/A';
+
+  const handleMenuOption = (action: (() => void) | undefined) => {
+    setShowOptionsMenu(false);
+    if (action) action();
+  };
 
   return (
     <TouchableOpacity
