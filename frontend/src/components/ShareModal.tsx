@@ -533,6 +533,18 @@ const styles = StyleSheet.create({
   formatTextSelected: {
     color: '#FFFFFF',
   },
+  passwordInputContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  passwordInput: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: TEXT_DARK,
+  },
   shareButton: {
     flexDirection: 'row',
     backgroundColor: BRAND_BLUE,
