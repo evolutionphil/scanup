@@ -42,6 +42,16 @@ export default function DocumentsScreen() {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showViewMenu, setShowViewMenu] = useState(false);
+  
+  // Rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDoc, setRenameDoc] = useState<Document | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordDoc, setPasswordDoc] = useState<Document | null>(null);
+  const [passwordValue, setPasswordValue] = useState('');
 
   // Network listener for background sync
   useEffect(() => {
