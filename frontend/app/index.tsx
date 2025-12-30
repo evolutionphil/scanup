@@ -79,8 +79,15 @@ export default function Index() {
     }
   }, []);
 
-  // WEB: Show navigation menu directly (no splash)
+  // WEB: Show navigation menu with direct links
   if (IS_WEB) {
+    // Use Linking for web navigation
+    const navigateWeb = (path: string) => {
+      if (typeof window !== 'undefined') {
+        window.location.href = path;
+      }
+    };
+    
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
@@ -102,32 +109,26 @@ export default function Index() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <View 
+            <TouchableOpacity 
               style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              // @ts-ignore - Using web-specific onClick for SSR
-              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/onboarding'; }}
-              accessibilityRole="button"
+              onPress={() => navigateWeb('/onboarding')}
             >
               <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
-            </View>
+            </TouchableOpacity>
             
-            <View 
+            <TouchableOpacity 
               style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              // @ts-ignore
-              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/premium'; }}
-              accessibilityRole="button"
+              onPress={() => navigateWeb('/premium')}
             >
               <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
-            </View>
+            </TouchableOpacity>
             
-            <View 
+            <TouchableOpacity 
               style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
-              // @ts-ignore
-              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/(tabs)'; }}
-              accessibilityRole="button"
+              onPress={() => navigateWeb('/(tabs)')}
             >
               <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App</Text>
-            </View>
+            </TouchableOpacity>
           </View>
           
           <Text style={[styles.noteText, { color: theme.textMuted }]}>
