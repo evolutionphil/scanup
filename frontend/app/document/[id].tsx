@@ -954,7 +954,7 @@ export default function DocumentScreen() {
   };
 
   // Handle saving annotations
-  const handleSaveAnnotations = async (annotations: any[], annotatedImageBase64: string) => {
+  const handleSaveAnnotations = async (annotations: any[], annotatedImageBase64: string, displayDimensions?: { width: number; height: number }) => {
     if (!currentDocument || processing) return;
     
     const isLocalDoc = currentDocument.document_id.startsWith('local_');
@@ -998,13 +998,23 @@ export default function DocumentScreen() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
+      // Build request body with optional display dimensions for scaling
+      const requestBody: any = {
+        image_base64: cleanImageBase64,
+        annotations: annotations,
+      };
+      
+      // Add display dimensions if provided for proper coordinate scaling
+      if (displayDimensions && displayDimensions.width > 0 && displayDimensions.height > 0) {
+        requestBody.display_width = displayDimensions.width;
+        requestBody.display_height = displayDimensions.height;
+        console.log('[handleSaveAnnotations] Display dimensions:', displayDimensions);
+      }
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          image_base64: cleanImageBase64,
-          annotations: annotations,
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (response.ok) {
