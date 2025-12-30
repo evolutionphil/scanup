@@ -1050,4 +1050,50 @@ const styles = StyleSheet.create({
   folderGridCount: {
     fontSize: 11,
   },
+  // List action button styles
+  listActionBtn: {
+    padding: 8,
+  },
+  // List menu modal styles
+  listMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  listMenuContainer: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  listMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  listMenuTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  listMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 16,
+  },
+  listMenuText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
