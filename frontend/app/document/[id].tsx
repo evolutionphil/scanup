@@ -731,16 +731,30 @@ export default function DocumentScreen() {
 
   // Step 2: User positions and applies signature
   const handleApplySignature = async (signatureBase64: string, position: { x: number; y: number }, scale: number) => {
-    if (!currentDocument || !token || processing) return;
+    if (!currentDocument || processing) return;
     
     setShowSignaturePlacement(false);
     setProcessing(true);
     
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
+      const isLocalDoc = currentDocument.document_id.startsWith('local_');
+      
+      // Ensure we have the image base64
+      let imageBase64 = currentPage.image_base64;
+      if (!imageBase64 || imageBase64.length < 100) {
+        imageBase64 = await loadImageBase64(currentPage);
+      }
+      
+      if (!imageBase64 || imageBase64.length < 100) {
+        Alert.alert('Error', 'Could not load document image');
+        setProcessing(false);
+        setPendingSignature(null);
+        return;
+      }
       
       // Store original before signing if not already stored
-      const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
+      const originalImage = currentPage.original_image_base64 || imageBase64;
       
       const response = await fetch(`${BACKEND_URL}/api/images/add-signature`, {
         method: 'POST',
@@ -749,7 +763,7 @@ export default function DocumentScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          image_base64: currentPage.image_base64,
+          image_base64: imageBase64,
           signature_base64: signatureBase64,
           position_x: position.x,
           position_y: position.y,
@@ -767,7 +781,7 @@ export default function DocumentScreen() {
           original_image_base64: originalImage, // Preserve original for revert
         };
 
-        await updateDocument(token, currentDocument.document_id, { pages: updatedPages });
+        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
         Alert.alert('Success', 'Signature added to document. Use "Revert" to undo.');
       } else {
         Alert.alert('Error', result.message || 'Failed to add signature');
