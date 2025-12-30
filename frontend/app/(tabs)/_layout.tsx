@@ -80,10 +80,10 @@ export default function TabsLayout() {
           options={{
             title: '',
             tabBarIcon: ({ focused }) => (
-              <View style={[styles.scanButton, { backgroundColor: theme.primary }]}>
+              <View style={styles.scanButtonContainer}>
                 <Image 
-                  source={require('../../assets/images/scanner-icon.png')} 
-                  style={styles.scanIcon}
+                  source={require('../../assets/images/scan-icon-new.png')} 
+                  style={styles.scanIconExact}
                   resizeMode="contain"
                 />
               </View>
