@@ -1038,7 +1038,7 @@ export default function DocumentsScreen() {
       )}
 
       {/* Content */}
-      {activeTab === 'documents' ? renderDocumentsContent() : renderFoldersContent()}
+      {activeMainTab === 'documents' ? renderDocumentsContent() : renderFoldersContent()}
 
       {/* Sort Menu Modal */}
       <Modal visible={showSortMenu} transparent animationType="fade">
