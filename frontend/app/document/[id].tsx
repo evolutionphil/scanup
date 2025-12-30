@@ -365,7 +365,7 @@ export default function DocumentScreen() {
     );
   };
 
-  const handleApplyFilter = async (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => {
+  const handleApplyFilter = async (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }, processedImage?: string) => {
     if (!currentDocument || processing) return;
     
     const isLocalDoc = currentDocument.document_id.startsWith('local_');
@@ -374,13 +374,13 @@ export default function DocumentScreen() {
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
-      // Use original image as base for non-destructive editing - load from any source
-      let baseImage = currentPage.original_image_base64;
-      if (!baseImage || baseImage.length < 100) {
-        baseImage = await loadImageBase64(currentPage);
+      // Get original image for restoration later
+      let originalImage = currentPage.original_image_base64;
+      if (!originalImage || originalImage.length < 100) {
+        originalImage = await loadImageBase64(currentPage);
       }
       
-      if (!baseImage || baseImage.length < 100) {
+      if (!originalImage || originalImage.length < 100) {
         Alert.alert('Error', 'No image found to apply filter. Please try again.');
         setProcessing(false);
         return;
@@ -391,7 +391,7 @@ export default function DocumentScreen() {
         const updatedPages = [...currentDocument.pages];
         updatedPages[selectedPageIndex] = {
           ...updatedPages[selectedPageIndex],
-          image_base64: baseImage,
+          image_base64: originalImage,
           filter_applied: 'original',
           adjustments: undefined,
         };
@@ -401,17 +401,21 @@ export default function DocumentScreen() {
         return;
       }
       
-      // LOCAL PROCESSING - no backend needed!
-      // For now, filters are stored as metadata and the original image is kept
-      // This allows for non-destructive editing
-      console.log('[handleApplyFilter] Applying filter locally:', filterType);
+      // Use the processed image from FilterEditor if available
+      let finalImage = processedImage || originalImage;
+      
+      // Strip data: prefix if present
+      if (finalImage && finalImage.startsWith('data:')) {
+        finalImage = finalImage.split(',')[1];
+      }
+      
+      console.log('[handleApplyFilter] Applying filter:', filterType, 'Image length:', finalImage?.length);
       
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
-        // Keep the current image (filter will be re-applied on display if needed)
-        image_base64: baseImage,
-        original_image_base64: baseImage,
+        image_base64: finalImage,
+        original_image_base64: originalImage,
         filter_applied: filterType,
         adjustments: adjustments,
       };
