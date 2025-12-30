@@ -1230,7 +1230,12 @@ export default function DocumentScreen() {
         hasOcrText={currentDocument.pages.some((p) => !!p.ocr_text)}
         isPremium={user?.is_premium || false}
         token={token || ''}
-        pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
+        pages={currentDocument.pages.map(p => ({ 
+          image_base64: p.image_base64, 
+          image_url: p.image_url,
+          image_file_uri: p.image_file_uri,
+          ocr_text: p.ocr_text 
+        }))}
       />
 
       {/* Share Modal - Figma Design */}
@@ -1239,7 +1244,12 @@ export default function DocumentScreen() {
         onClose={() => setShowShareModal(false)}
         documentName={currentDocument.name}
         pageCount={currentDocument.pages.length}
-        pages={currentDocument.pages.map(p => ({ image_base64: p.image_base64, ocr_text: p.ocr_text }))}
+        pages={currentDocument.pages.map(p => ({ 
+          image_base64: p.image_base64, 
+          image_url: p.image_url,
+          image_file_uri: p.image_file_uri,
+          ocr_text: p.ocr_text 
+        }))}
       />
 
       {/* Signature Drawing Modal - Step 1 */}
