@@ -335,6 +335,7 @@ export default function DocumentsScreen() {
       try {
         await updateDocument(token, passwordDoc.document_id, { 
           password: passwordValue || null,
+          is_password_protected: !!passwordValue,
           is_locked: !!passwordValue
         });
         Alert.alert('Success', passwordValue ? 'Password set successfully' : 'Password removed');
