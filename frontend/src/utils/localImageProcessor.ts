@@ -429,10 +429,10 @@ export async function addSignatureLocally(
     // Alternative: Just return the HTML render as an image
     // This is a workaround since RN doesn't have native canvas
     
-    // Read result as base64
-    const resultBase64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    // Read result as base64 (for future use)
+    // const resultBase64 = await FileSystem.readAsStringAsync(uri, {
+    //   encoding: FileSystem.EncodingType.Base64,
+    // });
     
     // Clean up
     await FileSystem.deleteAsync(uri, { idempotent: true });
