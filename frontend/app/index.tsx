@@ -267,6 +267,15 @@ const styles = StyleSheet.create({
   },
   navButton: {
     width: '100%',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   noteText: {
     fontSize: 12,
