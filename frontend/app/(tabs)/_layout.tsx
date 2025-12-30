@@ -7,6 +7,11 @@ import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import OfflineIndicator from '../../src/components/OfflineIndicator';
 
+// Figma design specs
+const TAB_BAR_HEIGHT = 91;
+const SCAN_BUTTON_SIZE = 50;
+const SCAN_BUTTON_OFFSET = 25; // How much button sits above tab bar
+
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
@@ -30,9 +35,9 @@ export default function TabsLayout() {
     return null;
   }
 
-  // Calculate proper bottom padding for Android navigation bar
-  const bottomPadding = Platform.OS === 'ios' ? 28 : Math.max(insets.bottom, 16);
-  const tabBarHeight = Platform.OS === 'ios' ? 88 : 64 + insets.bottom;
+  // Calculate bottom safe area for proper padding
+  const bottomPadding = Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 8);
+  const tabBarHeight = TAB_BAR_HEIGHT + bottomPadding;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -45,24 +50,30 @@ export default function TabsLayout() {
           tabBarStyle: [
             styles.tabBar,
             {
-              backgroundColor: theme.surface,
-              borderTopColor: theme.border,
+              backgroundColor: '#FFFFFF',
               height: tabBarHeight,
               paddingBottom: bottomPadding,
+              // Figma shadow: 0px -9px 24px rgba(0, 0, 0, 0.07)
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -9 },
+              shadowOpacity: 0.07,
+              shadowRadius: 24,
+              elevation: 10,
             },
           ],
-          tabBarActiveTintColor: theme.primary,
-          tabBarInactiveTintColor: theme.textMuted,
+          tabBarActiveTintColor: '#3E51FB',
+          tabBarInactiveTintColor: '#A5A5A5',
           tabBarShowLabel: true,
           tabBarLabelStyle: styles.tabBarLabel,
+          tabBarIconStyle: styles.tabBarIcon,
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Documents',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="documents" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="documents" size={24} color={color} />
             ),
           }}
         />
@@ -70,8 +81,8 @@ export default function TabsLayout() {
           name="folders"
           options={{
             title: 'Folders',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="folder" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="folder" size={24} color={color} />
             ),
           }}
         />
@@ -79,13 +90,15 @@ export default function TabsLayout() {
           name="scan"
           options={{
             title: '',
-            tabBarIcon: ({ focused }) => (
+            tabBarIcon: () => (
               <View style={styles.scanButtonContainer}>
-                <Image 
-                  source={require('../../assets/images/scan-icon-new.png')} 
-                  style={styles.scanIconExact}
-                  resizeMode="contain"
-                />
+                <View style={styles.scanButton}>
+                  <Image 
+                    source={require('../../assets/images/scan-icon-new.png')} 
+                    style={styles.scanIcon}
+                    resizeMode="contain"
+                  />
+                </View>
               </View>
             ),
           }}
@@ -100,8 +113,8 @@ export default function TabsLayout() {
           name="search"
           options={{
             title: 'Search',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="search" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="search" size={24} color={color} />
             ),
           }}
         />
@@ -109,8 +122,8 @@ export default function TabsLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person" size={24} color={color} />
             ),
           }}
         />
@@ -124,38 +137,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    borderTopWidth: 1,
-    paddingTop: 8,
+    borderTopWidth: 0,
+    paddingTop: 12,
   },
   tabBarLabel: {
     fontSize: 11,
     fontWeight: '500',
+    marginTop: 4,
   },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 20 : 8,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  scanIcon: {
-    width: 28,
-    height: 28,
-    tintColor: '#FFFFFF',
+  tabBarIcon: {
+    marginTop: 4,
   },
   scanButtonContainer: {
+    position: 'absolute',
+    top: -SCAN_BUTTON_OFFSET,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -26,
   },
-  scanIconExact: {
-    width: 56,
-    height: 56,
+  scanButton: {
+    width: SCAN_BUTTON_SIZE,
+    height: SCAN_BUTTON_SIZE,
+    borderRadius: 8,
+    backgroundColor: '#3E51FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Figma shadow: 0px 4px 4px rgba(62, 81, 251, 0.21)
+    shadowColor: '#3E51FB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.21,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  scanIcon: {
+    width: 34,
+    height: 34,
+    tintColor: '#FFFFFF',
   },
 });
