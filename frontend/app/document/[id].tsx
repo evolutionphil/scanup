@@ -30,10 +30,63 @@ import ShareModal from '../../src/components/ShareModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
 // Local image processing - no backend needed!
-import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile } from '../../src/utils/localImageProcessor';
+import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile, getImageBase64 } from '../../src/utils/localImageProcessor';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Helper to load image base64 from any source
+const loadImageBase64 = async (page: PageData): Promise<string> => {
+  // Priority 1: Already have base64
+  if (page.image_base64 && page.image_base64.length > 100) {
+    // Remove data: prefix if present
+    if (page.image_base64.startsWith('data:')) {
+      return page.image_base64.split(',')[1];
+    }
+    return page.image_base64;
+  }
+  
+  // Priority 2: Load from file URI
+  if (page.image_file_uri) {
+    try {
+      const fileInfo = await getInfoAsync(page.image_file_uri);
+      if (fileInfo.exists) {
+        const base64 = await readAsStringAsync(page.image_file_uri, {
+          encoding: EncodingType.Base64,
+        });
+        console.log('[loadImageBase64] Loaded from file URI');
+        return base64;
+      }
+    } catch (e) {
+      console.error('[loadImageBase64] Failed to load from file:', e);
+    }
+  }
+  
+  // Priority 3: Download from S3 URL
+  if (page.image_url) {
+    try {
+      console.log('[loadImageBase64] Downloading from S3...');
+      const response = await fetch(page.image_url);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          const base64 = dataUrl.split(',')[1];
+          console.log('[loadImageBase64] Downloaded from S3');
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('[loadImageBase64] Failed to download from S3:', e);
+    }
+  }
+  
+  return '';
+};
 
 // Helper to get page image (handles S3 URLs, file URIs, and base64)
 // Priority: base64 (in memory) > S3 URL > file URI
