@@ -288,41 +288,66 @@ export default function DocumentsScreen() {
     router.push(`/document/${doc.document_id}`);
   };
 
+  // Helper to load page image
+  const loadPageImage = async (page: any): Promise<string> => {
+    if (page?.image_base64 && page.image_base64.length > 100) {
+      return page.image_base64.startsWith('data:') 
+        ? page.image_base64 
+        : `data:image/jpeg;base64,${page.image_base64}`;
+    }
+    
+    if (page?.image_url) {
+      try {
+        const response = await fetch(page.image_url);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.error('Failed to fetch image:', e);
+      }
+    }
+    
+    return '';
+  };
+
   const handlePrintDocument = async (doc: Document) => {
     try {
-      // Get image data
-      const page = doc.pages[0];
-      let imageUri = '';
+      Alert.alert('Preparing', 'Loading document for printing...');
       
-      if (page?.image_base64 && page.image_base64.length > 100) {
-        imageUri = page.image_base64.startsWith('data:') 
-          ? page.image_base64 
-          : `data:image/jpeg;base64,${page.image_base64}`;
-      } else if (page?.image_url) {
-        imageUri = page.image_url;
-      }
+      // Load all page images
+      const pageImages = await Promise.all(
+        doc.pages.map(async (page) => await loadPageImage(page))
+      );
       
-      if (!imageUri) {
-        Alert.alert('Error', 'No image available to print');
+      const validImages = pageImages.filter(img => img.length > 0);
+      
+      if (validImages.length === 0) {
+        Alert.alert('Error', 'No images available to print');
         return;
       }
       
       // Build HTML for all pages
-      const pagesHtml = doc.pages.map((p, i) => {
-        let imgSrc = '';
-        if (p.image_base64 && p.image_base64.length > 100) {
-          imgSrc = p.image_base64.startsWith('data:') 
-            ? p.image_base64 
-            : `data:image/jpeg;base64,${p.image_base64}`;
-        } else if (p.image_url) {
-          imgSrc = p.image_url;
-        }
-        return imgSrc ? `<div style="page-break-after: ${i < doc.pages.length - 1 ? 'always' : 'auto'};"><img src="${imgSrc}" style="max-width: 100%; max-height: 100vh; object-fit: contain;"/></div>` : '';
+      const pagesHtml = validImages.map((imgSrc, i) => {
+        return `<div style="page-break-after: ${i < validImages.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
+          <img src="${imgSrc}" style="max-width: 100%; max-height: 100vh; object-fit: contain;"/>
+        </div>`;
       }).join('');
       
       const html = `
+        <!DOCTYPE html>
         <html>
-          <body style="margin: 0; padding: 0; text-align: center;">
+          <head>
+            <meta charset="UTF-8">
+            <title>${doc.name}</title>
+            <style>
+              @page { margin: 10mm; }
+              body { margin: 0; padding: 0; }
+            </style>
+          </head>
+          <body>
             ${pagesHtml}
           </body>
         </html>
