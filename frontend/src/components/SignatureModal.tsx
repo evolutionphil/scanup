@@ -226,12 +226,28 @@ export function SignatureDrawingModal({ visible, onClose, onSignatureCreated, th
 }
 
 // ============ SIGNATURE PLACEMENT MODAL ============
-export function SignaturePlacementModal({ visible, documentImage, signatureImage, onClose, onApply, theme }: SignaturePlacementProps) {
+export function SignaturePlacementModal({ visible, documentImage, documentImageUrl, signatureImage, onClose, onApply, theme }: SignaturePlacementProps) {
   const insets = useSafeAreaInsets();
   const [position, setPosition] = useState({ x: 0.5, y: 0.7 });
   const [scale, setScale] = useState(0.3);
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Get the image source - prefer base64, fallback to URL
+  const getImageSource = () => {
+    if (documentImage && documentImage.length > 100) {
+      // Has base64 data
+      if (documentImage.startsWith('data:')) {
+        return { uri: documentImage };
+      }
+      return { uri: `data:image/jpeg;base64,${documentImage}` };
+    }
+    if (documentImageUrl) {
+      // Use S3 URL directly
+      return { uri: documentImageUrl };
+    }
+    return { uri: '' };
+  };
   
   // For gesture handling
   const startPosition = useRef({ x: 0, y: 0 });
