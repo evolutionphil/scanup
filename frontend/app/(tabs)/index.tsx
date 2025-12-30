@@ -201,6 +201,75 @@ export default function DocumentsScreen() {
     }
   };
 
+  // Document card action handlers
+  const handleExportDocument = (doc: Document) => {
+    router.push(`/document/${doc.document_id}?action=export`);
+  };
+
+  const handleRenameDocument = (doc: Document) => {
+    Alert.prompt(
+      'Rename Document',
+      'Enter a new name for this document',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Rename',
+          onPress: async (newName?: string) => {
+            if (newName && newName.trim() && token) {
+              try {
+                await updateDocument(token, doc.document_id, { name: newName.trim() });
+              } catch (e) {
+                Alert.alert('Error', 'Failed to rename document');
+              }
+            }
+          },
+        },
+      ],
+      'plain-text',
+      doc.name
+    );
+  };
+
+  const handleEditDocument = (doc: Document) => {
+    router.push(`/document/${doc.document_id}`);
+  };
+
+  const handlePrintDocument = (doc: Document) => {
+    router.push(`/document/${doc.document_id}?action=print`);
+  };
+
+  const handlePasswordDocument = (doc: Document) => {
+    router.push(`/document/${doc.document_id}?action=password`);
+  };
+
+  const handleMoveDocument = (doc: Document) => {
+    setSelectedDocs([doc.document_id]);
+    setShowMoveModal(true);
+  };
+
+  const handleDeleteDocument = (doc: Document) => {
+    Alert.alert(
+      'Delete Document',
+      `Are you sure you want to delete "${doc.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (token) {
+              try {
+                await deleteDocument(token, doc.document_id);
+              } catch (e) {
+                Alert.alert('Error', 'Failed to delete document');
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
