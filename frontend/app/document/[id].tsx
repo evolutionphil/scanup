@@ -1086,7 +1086,7 @@ export default function DocumentScreen() {
 
       <View style={styles.imageContainer}>
         <Image
-          key={`page-${selectedPageIndex}-${currentPage.image_base64?.length || 0}-${Date.now()}`}
+          key={`page-${selectedPageIndex}-${currentPage.image_base64?.length || 0}`}
           source={{ uri: getPageImage(currentPage) }}
           style={styles.mainImage}
           resizeMode="contain"
