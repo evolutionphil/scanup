@@ -85,11 +85,60 @@ export default function FilterEditor({
   const [saturation, setSaturation] = useState(50);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loadedBase64, setLoadedBase64] = useState<string>('');
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
   
   // Live preview state
   const [previewImage, setPreviewImage] = useState<string>(imageBase64);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const previewTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Load image from URL/file when modal opens if base64 is not available
+  useEffect(() => {
+    const loadImage = async () => {
+      if (!visible) return;
+      
+      // Check if we have base64 already
+      if (imageBase64 && imageBase64.length > 100) {
+        setLoadedBase64(imageBase64);
+        return;
+      }
+      
+      setIsLoadingImage(true);
+      
+      // Try to load from file URI first
+      if (imageFileUri) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
+          if (fileInfo.exists) {
+            const base64 = await FileSystem.readAsStringAsync(imageFileUri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            console.log('[FilterEditor] Loaded from file URI');
+            setLoadedBase64(base64);
+            setIsLoadingImage(false);
+            return;
+          }
+        } catch (e) {
+          console.error('[FilterEditor] Failed to load from file:', e);
+        }
+      }
+      
+      // Try to load from URL
+      if (imageUrl) {
+        const base64 = await loadImageFromUrl(imageUrl);
+        if (base64) {
+          setLoadedBase64(base64);
+        }
+      }
+      
+      setIsLoadingImage(false);
+    };
+    
+    loadImage();
+  }, [visible, imageBase64, imageUrl, imageFileUri]);
+
+  // Get the actual image to use
+  const effectiveImageBase64 = loadedBase64 || imageBase64;
 
   // Reset when modal opens
   useEffect(() => {
@@ -99,9 +148,9 @@ export default function FilterEditor({
       setContrast(50);
       setSaturation(50);
       // Start with original image for preview
-      setPreviewImage(originalImageBase64 || imageBase64);
+      setPreviewImage(originalImageBase64 || effectiveImageBase64);
     }
-  }, [visible, currentFilter, imageBase64, originalImageBase64]);
+  }, [visible, currentFilter, effectiveImageBase64, originalImageBase64]);
 
   // Local image processing function
   const processImageLocally = useCallback(async (
