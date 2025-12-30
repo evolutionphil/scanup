@@ -73,42 +73,34 @@ export default function Index() {
 
     const navigate = async () => {
       try {
-        // Add timeout for AsyncStorage to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('AsyncStorage timeout')), 2000)
-        );
+        // For web, skip AsyncStorage check and go directly to tabs
+        if (Platform.OS === 'web') {
+          console.log('[Index] Web platform - navigating to tabs');
+          continueAsGuest();
+          router.replace('/(tabs)');
+          return;
+        }
         
+        // For native, check onboarding status
         let completed = null;
         try {
-          completed = await Promise.race([
-            AsyncStorage.getItem(ONBOARDING_KEY),
-            timeoutPromise
-          ]);
+          completed = await AsyncStorage.getItem(ONBOARDING_KEY);
         } catch (e) {
-          console.log('[Index] AsyncStorage failed or timed out, defaulting to onboarding');
+          console.log('[Index] AsyncStorage failed, defaulting to onboarding');
           completed = null;
         }
         
         if (!completed) {
-          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.location.href = '/onboarding';
-          } else {
-            router.replace('/onboarding');
-          }
+          router.replace('/onboarding');
         } else {
           continueAsGuest();
-          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.location.href = '/(tabs)';
-          } else {
-            router.replace('/(tabs)');
-          }
+          router.replace('/(tabs)');
         }
-      } catch {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.location.href = '/onboarding';
-        } else {
-          router.replace('/onboarding');
-        }
+      } catch (error) {
+        console.error('[Index] Navigation error:', error);
+        // Fallback - just go to tabs
+        continueAsGuest();
+        router.replace('/(tabs)');
       }
     };
 
