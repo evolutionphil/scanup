@@ -1013,45 +1013,33 @@ export default function DocumentScreen() {
           resizeMode="contain"
         />
         
-        {/* Render signature overlays */}
-        {(currentPage as any).signatures?.map((sig: any, index: number) => (
-          <Image
-            key={`sig-${index}`}
-            source={{ 
-              uri: sig.signature_base64.startsWith('data:') 
-                ? sig.signature_base64 
-                : `data:image/png;base64,${sig.signature_base64}` 
-            }}
-            style={[
-              styles.signatureOverlay,
-              {
-                left: `${sig.position_x * 100}%`,
-                top: `${sig.position_y * 100}%`,
-                width: `${sig.scale * 100}%`,
-                transform: [{ translateX: -50 }, { translateY: -50 }],
-              }
-            ] as any}
-            resizeMode="contain"
-          />
-        ))}
+        {/* Render signature overlays - Using absolute positioning based on image container */}
+        {(currentPage as any).signatures?.map((sig: any, index: number) => {
+          // Calculate actual position based on container percentage
+          // sig.position_x and sig.position_y are 0-1 normalized values
+          const sigWidth = Math.max(50, Math.min(200, (sig.scale || 0.3) * SCREEN_WIDTH));
+          return (
+            <Image
+              key={`sig-${index}`}
+              source={{ 
+                uri: sig.signature_base64.startsWith('data:') 
+                  ? sig.signature_base64 
+                  : `data:image/png;base64,${sig.signature_base64}` 
+              }}
+              style={{
+                position: 'absolute',
+                zIndex: 10,
+                left: (sig.position_x || 0.5) * SCREEN_WIDTH - sigWidth / 2,
+                top: (sig.position_y || 0.5) * 300 - 25, // Approximate height calculation
+                width: sigWidth,
+                height: sigWidth * 0.5,
+              }}
+              resizeMode="contain"
+            />
+          );
+        })}
         
-        {/* Render annotation overlays */}
-        {(currentPage as any).annotations?.map((ann: any, index: number) => (
-          <View
-            key={`ann-${index}`}
-            style={[
-              styles.annotationOverlay,
-              {
-                left: `${ann.position?.x * 100 || 0}%`,
-                top: `${ann.position?.y * 100 || 0}%`,
-              }
-            ] as any}
-          >
-            {ann.type === 'text' && (
-              <Text style={{ color: ann.color, fontSize: 14 }}>{ann.data?.text}</Text>
-            )}
-          </View>
-        ))}
+        {/* Annotation overlays are rendered by backend into the image, no need for separate overlay */}
         
         {(processing || ocrLoading || shareLoading) && (
           <View style={[styles.processingOverlay, { backgroundColor: theme.overlay }]}>
