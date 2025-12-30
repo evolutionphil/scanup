@@ -746,12 +746,24 @@ const DocumentListItem = ({
       )}
       
       {/* Export Icon */}
-      <TouchableOpacity onPress={onExport} style={styles.listActionBtn}>
+      <TouchableOpacity 
+        onPress={(e) => {
+          e.stopPropagation();
+          if (onExport) onExport();
+        }} 
+        style={styles.listActionBtn}
+      >
         <Ionicons name="share-outline" size={20} color={theme.textMuted} />
       </TouchableOpacity>
       
       {/* More Menu */}
-      <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.listActionBtn}>
+      <TouchableOpacity 
+        onPress={(e) => {
+          e.stopPropagation();
+          setShowMenu(true);
+        }} 
+        style={styles.listActionBtn}
+      >
         <Ionicons name="ellipsis-horizontal" size={20} color={theme.textMuted} />
       </TouchableOpacity>
     </TouchableOpacity>

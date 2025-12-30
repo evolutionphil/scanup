@@ -134,7 +134,10 @@ export default function DocumentCard({
             {/* Export Icon */}
             <TouchableOpacity 
               style={styles.iconButton}
-              onPress={onExport}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (onExport) onExport();
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="share-outline" size={18} color={theme.textMuted} />
@@ -142,7 +145,10 @@ export default function DocumentCard({
             {/* More Options */}
             <TouchableOpacity 
               style={styles.iconButton}
-              onPress={() => setShowOptionsMenu(true)}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowOptionsMenu(true);
+              }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="ellipsis-horizontal" size={18} color={theme.textMuted} />
