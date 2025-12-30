@@ -168,8 +168,8 @@ export default function ShareModal({
 
       if (selectedFormat === 'pdf') {
         const pdfUri = await generatePdf();
-        const newUri = `${FileSystem.cacheDirectory}${safeFileName}.pdf`;
-        await FileSystem.copyAsync({ from: pdfUri, to: newUri });
+        const newUri = `${cacheDirectory}${safeFileName}.pdf`;
+        await copyAsync({ from: pdfUri, to: newUri });
         fileUri = newUri;
         mimeType = 'application/pdf';
         
@@ -186,9 +186,9 @@ export default function ShareModal({
           throw new Error('Could not load image data');
         }
         
-        fileUri = `${FileSystem.cacheDirectory}${safeFileName}.jpg`;
-        await FileSystem.writeAsStringAsync(fileUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
+        fileUri = `${cacheDirectory}${safeFileName}.jpg`;
+        await writeAsStringAsync(fileUri, base64, {
+          encoding: EncodingType.Base64,
         });
         mimeType = 'image/jpeg';
       }
