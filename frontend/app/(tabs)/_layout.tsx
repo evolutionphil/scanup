@@ -7,9 +7,9 @@ import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import OfflineIndicator from '../../src/components/OfflineIndicator';
 
-// Original tab bar - standard height
+// Scan button configuration
 const SCAN_BUTTON_SIZE = 56;
-const SCAN_BUTTON_OFFSET = 30; // How much scan icon floats above tab bar
+const SCAN_BUTTON_OFFSET = 28;
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
@@ -18,14 +18,12 @@ export default function TabsLayout() {
   const hasRedirected = React.useRef(false);
 
   useEffect(() => {
-    // Only redirect once if not authenticated and not a guest
     if (!isLoading && !isAuthenticated && !isGuest && !hasRedirected.current) {
       hasRedirected.current = true;
       router.replace('/');
     }
   }, [isAuthenticated, isLoading, isGuest]);
 
-  // Allow guests and authenticated users
   if (isLoading) {
     return null;
   }
@@ -34,12 +32,10 @@ export default function TabsLayout() {
     return null;
   }
 
-  // Standard tab bar height with safe area
   const bottomPadding = Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 8);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Offline Mode Indicator */}
       <OfflineIndicator />
       
       <Tabs
@@ -49,7 +45,7 @@ export default function TabsLayout() {
             styles.tabBar,
             {
               backgroundColor: '#FFFFFF',
-              height: 60 + bottomPadding, // Standard tab bar height
+              height: 56 + bottomPadding,
               paddingBottom: bottomPadding,
               borderTopWidth: 0,
               shadowColor: '#000',
@@ -70,7 +66,7 @@ export default function TabsLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+              <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
             ),
           }}
         />
@@ -79,8 +75,16 @@ export default function TabsLayout() {
           options={{
             title: 'Folders',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "folder" : "folder-outline"} size={24} color={color} />
+              <Ionicons name={focused ? "folder" : "folder-outline"} size={22} color={color} />
             ),
+          }}
+          listeners={{
+            tabPress: (e) => {
+              // Navigate to home and switch to folders tab
+              e.preventDefault();
+              router.push('/(tabs)');
+              // We'll handle the tab switch in the index screen
+            },
           }}
         />
         <Tabs.Screen
@@ -89,13 +93,11 @@ export default function TabsLayout() {
             title: '',
             tabBarIcon: () => (
               <View style={styles.scanButtonContainer}>
-                <View style={styles.scanButtonWrapper}>
-                  <Image 
-                    source={require('../../assets/images/scan-icon.png')} 
-                    style={styles.scanButtonImage}
-                    resizeMode="contain"
-                  />
-                </View>
+                <Image 
+                  source={require('../../assets/images/scan-icon.png')} 
+                  style={styles.scanButtonImage}
+                  resizeMode="contain"
+                />
               </View>
             ),
           }}
@@ -111,7 +113,7 @@ export default function TabsLayout() {
           options={{
             title: 'Search',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "search" : "search-outline"} size={24} color={color} />
+              <Ionicons name={focused ? "search" : "search-outline"} size={22} color={color} />
             ),
           }}
         />
@@ -120,7 +122,7 @@ export default function TabsLayout() {
           options={{
             title: 'Settings',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "settings" : "settings-outline"} size={24} color={color} />
+              <Ionicons name={focused ? "settings" : "settings-outline"} size={22} color={color} />
             ),
           }}
         />
@@ -140,32 +142,18 @@ const styles = StyleSheet.create({
     right: 0,
   },
   tabBarLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     marginTop: 2,
   },
   scanButtonContainer: {
     position: 'absolute',
-    top: -SCAN_BUTTON_OFFSET - 5,
+    top: -SCAN_BUTTON_OFFSET,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  scanButtonWrapper: {
-    width: SCAN_BUTTON_SIZE,
-    height: SCAN_BUTTON_SIZE,
-    borderRadius: 16,
-    backgroundColor: '#3E51FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#3E51FB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   scanButtonImage: {
-    width: 28,
-    height: 28,
-    tintColor: '#FFFFFF',
+    width: SCAN_BUTTON_SIZE,
+    height: SCAN_BUTTON_SIZE,
   },
 });

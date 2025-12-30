@@ -15,7 +15,7 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,13 +31,11 @@ import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
 import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const VIEW_MODE_KEY = '@scanup_view_mode';
-const TAB_KEY = '@scanup_active_tab';
 
-type ViewMode = 'grid' | 'list';
 type TabType = 'documents' | 'folders';
 
 export default function DocumentsScreen() {
+  const insets = useSafeAreaInsets();
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
   const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
@@ -46,7 +44,6 @@ export default function DocumentsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [activeTab, setActiveTab] = useState<TabType>('documents');
   const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -150,12 +147,6 @@ export default function DocumentsScreen() {
     return [...documents]
       .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
       .slice(0, 5);
-  };
-
-  // Get all documents (excluding latest if showing sections)
-  const getAllDocuments = () => {
-    const sorted = getSortedDocuments();
-    return sorted.slice(5);
   };
 
   const handleDocumentPress = (doc: Document) => {
@@ -520,7 +511,7 @@ export default function DocumentsScreen() {
             style={styles.actionButton}
             onPress={() => handleExportDocument(item)}
           >
-            <Ionicons name="share-outline" size={22} color="#333" />
+            <Ionicons name="share-outline" size={20} color="#333" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
@@ -540,7 +531,7 @@ export default function DocumentsScreen() {
               );
             }}
           >
-            <Ionicons name="ellipsis-horizontal" size={22} color="#333" />
+            <Ionicons name="ellipsis-horizontal" size={20} color="#333" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -565,7 +556,7 @@ export default function DocumentsScreen() {
           {item.document_count || 0} documents
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={22} color="#CCC" />
+      <Ionicons name="chevron-forward" size={20} color="#CCC" />
     </TouchableOpacity>
   );
 
@@ -573,63 +564,136 @@ export default function DocumentsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconWrapper}>
-        <Ionicons name="documents-outline" size={56} color="#CCC" />
+        <Ionicons name={activeTab === 'documents' ? "documents-outline" : "folder-outline"} size={56} color="#CCC" />
       </View>
-      <Text style={styles.emptyTitle}>No Documents Yet</Text>
+      <Text style={styles.emptyTitle}>
+        {activeTab === 'documents' ? 'No Documents Yet' : 'No Folders Yet'}
+      </Text>
       <Text style={styles.emptyText}>
-        Tap the scan button to scan your first document
+        {activeTab === 'documents' 
+          ? 'Tap the scan button to scan your first document'
+          : 'Create folders to organize your documents'}
       </Text>
     </View>
   );
 
+  // Documents content with sections
+  const renderDocumentsContent = () => {
+    const latestDocs = getLatestDocuments();
+    const allDocs = getSortedDocuments();
+    const remainingDocs = allDocs.filter(d => !latestDocs.find(l => l.document_id === d.document_id));
+
+    return (
+      <FlatList
+        data={[]}
+        keyExtractor={() => 'dummy'}
+        renderItem={() => null}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={() => (
+          <>
+            {documents.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              <>
+                {/* Latest Section */}
+                <Text style={styles.sectionTitle}>Latest</Text>
+                {latestDocs.map((doc) => (
+                  <View key={`latest-${doc.document_id}`}>
+                    {renderDocumentItem({ item: doc })}
+                  </View>
+                ))}
+                
+                {/* All Section */}
+                {remainingDocs.length > 0 && (
+                  <>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All</Text>
+                    {remainingDocs.map((doc) => (
+                      <View key={`all-${doc.document_id}`}>
+                        {renderDocumentItem({ item: doc })}
+                      </View>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#3E51FB"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+    );
+  };
+
+  // Folders content
+  const renderFoldersContent = () => (
+    <FlatList
+      data={folders}
+      keyExtractor={(item) => item.folder_id}
+      renderItem={renderFolderItem}
+      contentContainerStyle={styles.listContent}
+      ListEmptyComponent={renderEmptyState}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#3E51FB"
+        />
+      }
+    />
+  );
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#3E51FB" />
       
-      {/* Blue Header - Matching Reference Design */}
-      <View style={styles.header}>
-        <SafeAreaView edges={['top']}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.headerTitle}>Your Documents</Text>
-              <TouchableOpacity 
-                style={styles.sortSelector}
-                onPress={() => setShowSortMenu(true)}
-              >
-                <Text style={styles.sortLabel}>Sort by</Text>
-                <Text style={styles.sortValue}>{sortBy === 'name' ? 'Name' : 'Date'}</Text>
-                <Ionicons name="chevron-down" size={16} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerButton}>
-                <Ionicons name="search" size={22} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={() => {
-                  if (selectionMode) {
-                    setSelectionMode(false);
-                    setSelectedDocs([]);
-                  } else {
-                    setSelectionMode(true);
-                  }
-                }}
-              >
-                <Ionicons name="checkmark-circle-outline" size={22} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={() => router.push('/create-folder')}
-              >
-                <Ionicons name="folder-outline" size={22} color="#FFF" />
-                <View style={styles.plusBadge}>
-                  <Text style={styles.plusBadgeText}>+</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+      {/* Blue Header - Extends to top including status bar */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Your Documents</Text>
+            <TouchableOpacity 
+              style={styles.sortSelector}
+              onPress={() => setShowSortMenu(true)}
+            >
+              <Text style={styles.sortLabel}>Sort by</Text>
+              <Text style={styles.sortValue}>{sortBy === 'name' ? 'Name' : 'Date'}</Text>
+              <Ionicons name="chevron-down" size={14} color="#FFF" />
+            </TouchableOpacity>
           </View>
-        </SafeAreaView>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton}>
+              <Ionicons name="search" size={18} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => {
+                if (selectionMode) {
+                  setSelectionMode(false);
+                  setSelectedDocs([]);
+                } else {
+                  setSelectionMode(true);
+                }
+              }}
+            >
+              <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => router.push('/create-folder')}
+            >
+              <Ionicons name="folder-outline" size={18} color="#FFF" />
+              <View style={styles.plusBadge}>
+                <Text style={styles.plusBadgeText}>+</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
       
       {/* Tabs - Documents / Folders */}
@@ -674,63 +738,7 @@ export default function DocumentsScreen() {
       )}
 
       {/* Content */}
-      {activeTab === 'documents' ? (
-        <FlatList
-          data={getSortedDocuments()}
-          keyExtractor={(item) => item.document_id}
-          renderItem={renderDocumentItem}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyState}
-          ListHeaderComponent={() => (
-            documents.length > 0 ? (
-              <>
-                <Text style={styles.sectionTitle}>Latest</Text>
-                {getLatestDocuments().map((doc) => (
-                  <View key={`latest-${doc.document_id}`}>
-                    {renderDocumentItem({ item: doc })}
-                  </View>
-                ))}
-                {documents.length > 5 && (
-                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>All</Text>
-                )}
-              </>
-            ) : null
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3E51FB"
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <FlatList
-          data={folders}
-          keyExtractor={(item) => item.folder_id}
-          renderItem={renderFolderItem}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrapper}>
-                <Ionicons name="folder-outline" size={56} color="#CCC" />
-              </View>
-              <Text style={styles.emptyTitle}>No Folders Yet</Text>
-              <Text style={styles.emptyText}>
-                Create folders to organize your documents
-              </Text>
-            </View>
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3E51FB"
-            />
-          }
-        />
-      )}
+      {activeTab === 'documents' ? renderDocumentsContent() : renderFoldersContent()}
 
       {/* Sort Menu Modal */}
       <Modal visible={showSortMenu} transparent animationType="fade">
@@ -885,20 +893,22 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#3E51FB',
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 8,
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFF',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   sortSelector: {
     flexDirection: 'row',
@@ -906,11 +916,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sortLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
   },
   sortValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#FFF',
   },
@@ -918,28 +928,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginLeft: 16,
   },
   headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   plusBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    top: 4,
+    right: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   plusBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#3E51FB',
     marginTop: -1,
@@ -952,16 +963,16 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
   },
   tab: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginRight: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginRight: 28,
   },
   tabActive: {
     borderBottomWidth: 3,
     borderBottomColor: '#3E51FB',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: '#9CA3AF',
   },
@@ -999,11 +1010,11 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 120,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 12,
@@ -1043,7 +1054,7 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   documentName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
@@ -1070,11 +1081,11 @@ const styles = StyleSheet.create({
   documentActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   actionButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
