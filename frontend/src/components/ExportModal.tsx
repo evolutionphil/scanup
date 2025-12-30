@@ -98,7 +98,7 @@ interface ExportModalProps {
   hasOcrText: boolean;
   isPremium: boolean;
   token: string;
-  pages?: Array<{ image_base64: string; ocr_text?: string }>;
+  pages?: Array<{ image_base64?: string; image_url?: string; image_file_uri?: string; ocr_text?: string }>;
 }
 
 export default function ExportModal({
