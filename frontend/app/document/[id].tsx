@@ -1305,20 +1305,20 @@ export default function DocumentScreen() {
                     { text: 'Cancel', style: 'cancel' },
                     { 
                       text: 'Add New', 
-                      onPress: () => setShowSignatureDrawing(true) 
+                      onPress: () => setShowSignatureSelection(true) 
                     },
                     { 
                       text: 'Start Fresh', 
                       onPress: async () => {
                         // Revert to original first, then open signature
                         await handleRevertToOriginal();
-                        setTimeout(() => setShowSignatureDrawing(true), 500);
+                        setTimeout(() => setShowSignatureSelection(true), 500);
                       }
                     },
                   ]
                 );
               } else {
-                setShowSignatureDrawing(true);
+                setShowSignatureSelection(true);
               }
             }} 
             theme={theme} 
