@@ -460,7 +460,7 @@ export default function AnnotationEditor({
           {...panResponder.panHandlers}
         >
           <Image
-            source={{ uri: imageBase64 ? (imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`) : '' }}
+            source={getImageSource()}
             style={styles.image}
             resizeMode="contain"
           />
