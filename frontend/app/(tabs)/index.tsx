@@ -220,39 +220,97 @@ export default function DocumentsScreen() {
   };
 
   const handleRenameDocument = (doc: Document) => {
-    Alert.prompt(
-      'Rename Document',
-      'Enter a new name for this document',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Rename',
-          onPress: async (newName?: string) => {
-            if (newName && newName.trim() && token) {
-              try {
-                await updateDocument(token, doc.document_id, { name: newName.trim() });
-              } catch (e) {
-                Alert.alert('Error', 'Failed to rename document');
-              }
-            }
-          },
-        },
-      ],
-      'plain-text',
-      doc.name
-    );
+    setRenameDoc(doc);
+    setRenameValue(doc.name);
+    setShowRenameModal(true);
+  };
+  
+  const confirmRename = async () => {
+    if (renameDoc && renameValue.trim() && token) {
+      try {
+        await updateDocument(token, renameDoc.document_id, { name: renameValue.trim() });
+        Alert.alert('Success', 'Document renamed successfully');
+      } catch (e) {
+        Alert.alert('Error', 'Failed to rename document');
+      }
+    }
+    setShowRenameModal(false);
+    setRenameDoc(null);
+    setRenameValue('');
   };
 
   const handleEditDocument = (doc: Document) => {
     router.push(`/document/${doc.document_id}`);
   };
 
-  const handlePrintDocument = (doc: Document) => {
-    router.push(`/document/${doc.document_id}?action=print`);
+  const handlePrintDocument = async (doc: Document) => {
+    try {
+      // Get image data
+      const page = doc.pages[0];
+      let imageUri = '';
+      
+      if (page?.image_base64 && page.image_base64.length > 100) {
+        imageUri = page.image_base64.startsWith('data:') 
+          ? page.image_base64 
+          : `data:image/jpeg;base64,${page.image_base64}`;
+      } else if (page?.image_url) {
+        imageUri = page.image_url;
+      }
+      
+      if (!imageUri) {
+        Alert.alert('Error', 'No image available to print');
+        return;
+      }
+      
+      // Build HTML for all pages
+      const pagesHtml = doc.pages.map((p, i) => {
+        let imgSrc = '';
+        if (p.image_base64 && p.image_base64.length > 100) {
+          imgSrc = p.image_base64.startsWith('data:') 
+            ? p.image_base64 
+            : `data:image/jpeg;base64,${p.image_base64}`;
+        } else if (p.image_url) {
+          imgSrc = p.image_url;
+        }
+        return imgSrc ? `<div style="page-break-after: ${i < doc.pages.length - 1 ? 'always' : 'auto'};"><img src="${imgSrc}" style="max-width: 100%; max-height: 100vh; object-fit: contain;"/></div>` : '';
+      }).join('');
+      
+      const html = `
+        <html>
+          <body style="margin: 0; padding: 0; text-align: center;">
+            ${pagesHtml}
+          </body>
+        </html>
+      `;
+      
+      await Print.printAsync({ html });
+    } catch (e) {
+      console.error('Print error:', e);
+      Alert.alert('Error', 'Failed to print document');
+    }
   };
 
   const handlePasswordDocument = (doc: Document) => {
-    router.push(`/document/${doc.document_id}?action=password`);
+    setPasswordDoc(doc);
+    setPasswordValue('');
+    setShowPasswordModal(true);
+  };
+  
+  const confirmPassword = async () => {
+    if (passwordDoc && token) {
+      try {
+        await updateDocument(token, passwordDoc.document_id, { 
+          password: passwordValue || null,
+          is_locked: !!passwordValue
+        });
+        Alert.alert('Success', passwordValue ? 'Password set successfully' : 'Password removed');
+      } catch (e) {
+        Alert.alert('Error', 'Failed to update password');
+      }
+    }
+    setShowPasswordModal(false);
+    setPasswordDoc(null);
+    setPasswordValue('');
   };
 
   const handleMoveDocument = (doc: Document) => {
