@@ -14,4 +14,7 @@ config.cacheStores = [
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
+// Force CommonJS for zustand on web to avoid import.meta issues
+config.resolver.unstable_enablePackageExports = false;
+
 module.exports = config;
