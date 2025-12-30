@@ -52,6 +52,11 @@ export default function DocumentsScreen() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordDoc, setPasswordDoc] = useState<Document | null>(null);
   const [passwordValue, setPasswordValue] = useState('');
+  
+  // Unlock password modal state
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockDoc, setUnlockDoc] = useState<Document | null>(null);
+  const [unlockPasswordValue, setUnlockPasswordValue] = useState('');
 
   // Network listener for background sync
   useEffect(() => {
