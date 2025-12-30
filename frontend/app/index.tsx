@@ -97,34 +97,37 @@ export default function Index() {
               <Text style={{ fontWeight: '300' }}>Up</Text>
             </Text>
             <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
-              Web Preview - Navigate to screens below
+              Web Preview - Click to navigate
             </Text>
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <View 
               style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={() => { window.location.href = '/onboarding'; }}
+              // @ts-ignore - Using web-specific onClick for SSR
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/onboarding'; }}
+              accessibilityRole="button"
             >
               <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
-            </TouchableOpacity>
+            </View>
             
-            <TouchableOpacity 
+            <View 
               style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={() => { window.location.href = '/premium'; }}
+              // @ts-ignore
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/premium'; }}
+              accessibilityRole="button"
             >
               <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
-            </TouchableOpacity>
+            </View>
             
-            <TouchableOpacity 
+            <View 
               style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
-              onPress={() => {
-                continueAsGuest();
-                window.location.href = '/(tabs)';
-              }}
+              // @ts-ignore
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/(tabs)'; }}
+              accessibilityRole="button"
             >
-              <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App (Tabs)</Text>
-            </TouchableOpacity>
+              <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App</Text>
+            </View>
           </View>
           
           <Text style={[styles.noteText, { color: theme.textMuted }]}>
