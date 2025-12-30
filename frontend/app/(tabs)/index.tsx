@@ -163,10 +163,13 @@ export default function DocumentsScreen() {
     if (selectionMode) {
       toggleSelection(doc.document_id);
     } else {
+      // Get the latest document data from the store
+      const latestDoc = documents.find(d => d.document_id === doc.document_id) || doc;
+      
       // Check if document has password protection
-      if (doc.password || doc.is_password_protected) {
+      if (latestDoc.password || latestDoc.is_password_protected) {
         // Show unlock modal
-        setUnlockDoc(doc);
+        setUnlockDoc(latestDoc);
         setUnlockPasswordValue('');
         setShowUnlockModal(true);
       } else {
@@ -178,8 +181,12 @@ export default function DocumentsScreen() {
   const handleUnlockDocument = () => {
     if (!unlockDoc) return;
     
-    // Check password
-    const docPassword = unlockDoc.password;
+    // Get the LATEST document from the store to ensure we have the current password
+    const latestDoc = documents.find(d => d.document_id === unlockDoc.document_id);
+    const docPassword = latestDoc?.password || unlockDoc.password;
+    
+    console.log('[handleUnlockDocument] Entered:', unlockPasswordValue, 'Stored:', docPassword);
+    
     if (unlockPasswordValue === docPassword) {
       setShowUnlockModal(false);
       router.push(`/document/${unlockDoc.document_id}`);
