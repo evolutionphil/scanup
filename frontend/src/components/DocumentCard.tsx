@@ -45,6 +45,7 @@ export default function DocumentCard({
   onPassword,
   onMoveToFolder,
   onDelete,
+  hasPendingOps,
 }: DocumentCardProps) {
   const { theme } = useThemeStore();
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
