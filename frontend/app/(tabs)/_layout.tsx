@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   scanButtonContainer: {
-    position: 'absolute',
-    top: -SCAN_BUTTON_OFFSET,
+    // Vertically centered in tab bar
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: -10, // Slight adjustment to center within tab item area
   },
   scanButton: {
     width: SCAN_BUTTON_SIZE,
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   scanIcon: {
-    width: 34,
-    height: 34,
+    width: SCAN_ICON_SIZE,
+    height: SCAN_ICON_SIZE,
     tintColor: '#FFFFFF',
   },
 });
