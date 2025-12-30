@@ -27,6 +27,7 @@ import DocumentCard from '../../src/components/DocumentCard';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 import ShareModal from '../../src/components/ShareModal';
+import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIEW_MODE_KEY = '@scanup_view_mode';
