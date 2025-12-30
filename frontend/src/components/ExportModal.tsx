@@ -145,14 +145,13 @@ export default function ExportModal({
         }
         
         const firstPage = pages[0];
-        if (!firstPage || !firstPage.image_base64) {
-          throw new Error('First page has no image data');
+        // Load image from any source
+        fileBase64 = await loadPageImageBase64(firstPage);
+        
+        if (!fileBase64 || fileBase64.length < 100) {
+          throw new Error('Could not load image data. Please try again.');
         }
         
-        fileBase64 = firstPage.image_base64;
-        if (fileBase64.includes(',')) {
-          fileBase64 = fileBase64.split(',')[1];
-        }
         const ext = selectedFormat === 'png' ? 'png' : 'jpg';
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}_page1.${ext}`;
         mimeType = selectedFormat === 'png' ? 'image/png' : 'image/jpeg';
@@ -164,17 +163,11 @@ export default function ExportModal({
         
         console.log('[ExportModal] Generating PDF locally...');
         
-        // Prepare images for PDF
-        const imagesBase64 = pages.map(page => {
-          let imgData = page.image_base64 || '';
-          if (imgData.includes(',')) {
-            imgData = imgData.split(',')[1];
-          }
-          return imgData;
-        });
+        // Prepare images for PDF - load from any source
+        const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
         
         if (!imagesBase64[0] || imagesBase64[0].length < 100) {
-          throw new Error('Page images not available. Please try again.');
+          throw new Error('Could not load page images. Please try again.');
         }
         
         // Build HTML with images for local PDF generation
