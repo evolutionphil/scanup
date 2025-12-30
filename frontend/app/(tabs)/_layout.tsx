@@ -9,8 +9,10 @@ import OfflineIndicator from '../../src/components/OfflineIndicator';
 
 // Figma design specs
 const TAB_BAR_HEIGHT = 91;
-const SCAN_BUTTON_SIZE = 56;  // Slightly larger for elevated effect
-const SCAN_BUTTON_ELEVATION = 20; // How much button sits above tab bar
+const SCAN_BUTTON_SIZE = 56;  // Button size
+const TAB_BAR_PADDING_TOP = 12; // Tab bar padding
+// Position button so its BOTTOM edge aligns with tab bar's top line
+const SCAN_BUTTON_ELEVATION = SCAN_BUTTON_SIZE - TAB_BAR_PADDING_TOP; // 56 - 12 = 44
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
