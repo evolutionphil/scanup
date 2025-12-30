@@ -11,8 +11,9 @@ import OfflineIndicator from '../../src/components/OfflineIndicator';
 const TAB_BAR_HEIGHT = 91;
 const SCAN_BUTTON_SIZE = 56;  // Button size
 const TAB_BAR_PADDING_TOP = 12; // Tab bar padding
-// Position button so its BOTTOM edge aligns with tab bar's top line
-const SCAN_BUTTON_ELEVATION = SCAN_BUTTON_SIZE - TAB_BAR_PADDING_TOP; // 56 - 12 = 44
+// Position button so the scan line in the icon aligns with tab bar top line
+// The scan line is roughly in the middle of the icon, so we elevate by half the button + padding adjustment
+const SCAN_BUTTON_ELEVATION = (SCAN_BUTTON_SIZE / 2) + 6; // 28 + 6 = 34px above baseline
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
