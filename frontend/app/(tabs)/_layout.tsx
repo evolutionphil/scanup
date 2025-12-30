@@ -1,11 +1,23 @@
 import React, { useEffect } from 'react';
-import { Tabs, router } from 'expo-router';
+import { Tabs, router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import OfflineIndicator from '../../src/components/OfflineIndicator';
+import { create } from 'zustand';
+
+// Global state for tab switching
+interface TabState {
+  activeMainTab: 'documents' | 'folders';
+  setActiveMainTab: (tab: 'documents' | 'folders') => void;
+}
+
+export const useTabStore = create<TabState>((set) => ({
+  activeMainTab: 'documents',
+  setActiveMainTab: (tab) => set({ activeMainTab: tab }),
+}));
 
 // Scan button configuration
 const SCAN_BUTTON_SIZE = 56;
@@ -14,8 +26,10 @@ const SCAN_BUTTON_OFFSET = 28;
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
+  const { setActiveMainTab } = useTabStore();
   const insets = useSafeAreaInsets();
   const hasRedirected = React.useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isGuest && !hasRedirected.current) {
@@ -69,6 +83,11 @@ export default function TabsLayout() {
               <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
             ),
           }}
+          listeners={{
+            tabPress: () => {
+              setActiveMainTab('documents');
+            },
+          }}
         />
         <Tabs.Screen
           name="folders"
@@ -80,9 +99,11 @@ export default function TabsLayout() {
           }}
           listeners={{
             tabPress: (e) => {
-              // Prevent default navigation to separate folders screen
+              // Prevent default navigation
               e.preventDefault();
-              // Will be handled by setting activeTab in the index screen
+              // Set the tab to folders
+              setActiveMainTab('folders');
+              // Navigate to home/index screen
               router.push('/(tabs)');
             },
           }}

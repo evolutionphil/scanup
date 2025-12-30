@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,24 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../src/store/themeStore';
 
 const SIGNATURES_KEY = '@scanup_saved_signatures';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SavedSignature {
   id: string;
   name: string;
-  base64: string;
+  paths: string[]; // Store paths array instead of base64
+  width: number;
+  height: number;
   createdAt: string;
 }
 
@@ -34,7 +37,8 @@ export default function SignaturesScreen() {
     try {
       const saved = await AsyncStorage.getItem(SIGNATURES_KEY);
       if (saved) {
-        setSignatures(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setSignatures(parsed);
       }
     } catch (e) {
       console.error('Failed to load signatures:', e);
@@ -103,6 +107,36 @@ export default function SignaturesScreen() {
     } else {
       setSelectedSignatures(prev => [...prev, id]);
     }
+  };
+
+  // Render signature preview using SVG
+  const renderSignaturePreview = (sig: SavedSignature) => {
+    const previewWidth = SCREEN_WIDTH - 80;
+    const previewHeight = 80;
+    const scaleX = previewWidth / sig.width;
+    const scaleY = previewHeight / sig.height;
+    const scale = Math.min(scaleX, scaleY) * 0.8;
+
+    return (
+      <Svg 
+        width={previewWidth} 
+        height={previewHeight} 
+        viewBox={`0 0 ${sig.width} ${sig.height}`}
+        style={styles.signaturePreview}
+      >
+        {sig.paths && sig.paths.map((p, i) => (
+          <Path
+            key={i}
+            d={p}
+            stroke="#000"
+            strokeWidth={3 / scale}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </Svg>
+    );
   };
 
   return (
@@ -177,11 +211,13 @@ export default function SignaturesScreen() {
                     )}
                   </View>
                 )}
-                <Image 
-                  source={{ uri: sig.base64 }} 
-                  style={styles.signaturePreview}
-                  resizeMode="contain"
-                />
+                {sig.paths && sig.paths.length > 0 ? (
+                  renderSignaturePreview(sig)
+                ) : (
+                  <View style={styles.emptySignaturePreview}>
+                    <Ionicons name="pencil-outline" size={32} color="#CCC" />
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -317,8 +353,13 @@ const styles = StyleSheet.create({
     borderColor: '#3E51FB',
   },
   signaturePreview: {
+    backgroundColor: 'transparent',
+  },
+  emptySignaturePreview: {
     width: '100%',
     height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomButtonContainer: {
     paddingHorizontal: 20,

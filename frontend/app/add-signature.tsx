@@ -16,12 +16,15 @@ import { useThemeStore } from '../src/store/themeStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SIGNATURES_KEY = '@scanup_saved_signatures';
+const CANVAS_WIDTH = SCREEN_WIDTH - 48;
 const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 interface SavedSignature {
   id: string;
   name: string;
-  base64: string;
+  paths: string[];
+  width: number;
+  height: number;
   createdAt: string;
 }
 
@@ -60,25 +63,17 @@ export default function AddSignatureScreen() {
     }
 
     try {
-      // Create SVG content
-      const svgContent = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH - 48}" height="${CANVAS_HEIGHT}" viewBox="0 0 ${SCREEN_WIDTH - 48} ${CANVAS_HEIGHT}">
-          ${paths.map(p => `<path d="${p}" stroke="#000" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}
-        </svg>
-      `;
-
-      // Convert to base64
-      const base64 = btoa(svgContent);
-      const dataUrl = `data:image/svg+xml;base64,${base64}`;
-
       // Load existing signatures
       const saved = await AsyncStorage.getItem(SIGNATURES_KEY);
       const existingSignatures: SavedSignature[] = saved ? JSON.parse(saved) : [];
 
+      // Save paths directly instead of converting to base64
       const newSignature: SavedSignature = {
         id: `sig_${Date.now()}`,
         name: `Signature ${existingSignatures.length + 1}`,
-        base64: dataUrl,
+        paths: paths,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
         createdAt: new Date().toISOString(),
       };
 
@@ -132,7 +127,7 @@ export default function AddSignatureScreen() {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <Svg width={SCREEN_WIDTH - 48} height={CANVAS_HEIGHT}>
+          <Svg width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
             {paths.map((p, i) => (
               <Path
                 key={i}
@@ -179,7 +174,7 @@ export default function AddSignatureScreen() {
       {/* Footer Info */}
       <View style={styles.footer}>
         <View style={styles.footerDivider} />
-        <Text style={styles.footerText}>Apple's native drawing tool comes here</Text>
+        <Text style={styles.footerText}>Draw your signature above</Text>
       </View>
     </SafeAreaView>
   );
@@ -235,11 +230,13 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#111827',
+    color: '#D1D5DB',
   },
   canvas: {
-    width: SCREEN_WIDTH - 48,
+    width: CANVAS_WIDTH,
     height: CANVAS_HEIGHT,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
   },
   undoContainer: {
     position: 'absolute',
@@ -275,6 +272,6 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: '#9CA3AF',
   },
 });
