@@ -674,6 +674,7 @@ export default function DocumentsScreen() {
                   onPassword={() => handlePasswordDocument(item)}
                   onMoveToFolder={() => handleMoveDocument(item)}
                   onDelete={() => handleDeleteDocument(item)}
+                  hasPendingOps={hasPending(item.document_id)}
                 />
               ) : (
                 <DocumentListItem
