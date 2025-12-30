@@ -138,17 +138,11 @@ export default function Index() {
           },
         ]}
       >
-        {Platform.OS === 'web' ? (
-          <View style={styles.webLogoBox}>
-            <Ionicons name="document-text" size={60} color="#FFFFFF" />
-          </View>
-        ) : (
-          <Image
-            source={require('../assets/images/logo.png')}
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
-        )}
+        <Image
+          source={require('../assets/images/logo.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+        />
       </Animated.View>
 
       {/* App Name */}
