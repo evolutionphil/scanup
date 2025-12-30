@@ -360,30 +360,28 @@ export default function ProfileScreen() {
         </View>
 
         {/* Signatures Section */}
-        {!isGuest && (
-          <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Signatures</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-              Create and manage your saved signatures
-            </Text>
-            
-            <TouchableOpacity 
-              style={[styles.signatureCard, { backgroundColor: theme.background, borderColor: theme.border }]}
-              onPress={() => router.push('/signatures')}
-            >
-              <View style={[styles.signatureIconBox, { backgroundColor: theme.primary + '15' }]}>
-                <Ionicons name="pencil" size={24} color={theme.primary} />
-              </View>
-              <View style={styles.signatureCardText}>
-                <Text style={[styles.signatureCardTitle, { color: theme.text }]}>Manage Signatures</Text>
-                <Text style={[styles.signatureCardSubtitle, { color: theme.textMuted }]}>
-                  Create, edit, and delete signatures
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Signatures</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
+            Create and manage your saved signatures
+          </Text>
+          
+          <TouchableOpacity 
+            style={[styles.signatureCard, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={() => router.push('/signatures')}
+          >
+            <View style={[styles.signatureIconBox, { backgroundColor: theme.primary + '15' }]}>
+              <Ionicons name="pencil" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.signatureCardText}>
+              <Text style={[styles.signatureCardTitle, { color: theme.text }]}>Manage Signatures</Text>
+              <Text style={[styles.signatureCardSubtitle, { color: theme.textMuted }]}>
+                Create, edit, and delete signatures
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
+        </View>
 
         {/* Sign In / Logout Button */}
         {isGuest ? (
