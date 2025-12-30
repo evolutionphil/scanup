@@ -3154,18 +3154,18 @@ async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
                     
             elif annotation.type == 'rectangle':
                 if annotation.width and annotation.height:
-                    x1 = min(annotation.x, annotation.endX or annotation.x)
-                    y1 = min(annotation.y, annotation.endY or annotation.y)
-                    x2 = x1 + annotation.width
-                    y2 = y1 + annotation.height
+                    x1, y1 = scale_point(min(annotation.x, annotation.endX or annotation.x), 
+                                         min(annotation.y, annotation.endY or annotation.y))
+                    x2 = x1 + int(annotation.width * scale_x)
+                    y2 = y1 + int(annotation.height * scale_y)
                     draw.rectangle([x1, y1, x2, y2], outline=color, width=stroke_width)
                     
             elif annotation.type == 'circle':
                 if annotation.width and annotation.height:
-                    x1 = min(annotation.x, annotation.endX or annotation.x)
-                    y1 = min(annotation.y, annotation.endY or annotation.y)
-                    x2 = x1 + annotation.width
-                    y2 = y1 + annotation.height
+                    x1, y1 = scale_point(min(annotation.x, annotation.endX or annotation.x), 
+                                         min(annotation.y, annotation.endY or annotation.y))
+                    x2 = x1 + int(annotation.width * scale_x)
+                    y2 = y1 + int(annotation.height * scale_y)
                     # Draw ellipse that fits the bounding box
                     draw.ellipse([x1, y1, x2, y2], outline=color, width=stroke_width)
                     
@@ -3173,12 +3173,13 @@ async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
                 if annotation.text:
                     try:
                         # Try to load a font; fallback to default
-                        font_size = max(12, int(annotation.strokeWidth))
+                        font_size = max(12, int(annotation.strokeWidth * max(scale_x, scale_y)))
                         try:
                             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
                         except:
                             font = ImageFont.load_default()
-                        draw.text((annotation.x, annotation.y), annotation.text, fill=color, font=font)
+                        text_pos = scale_point(annotation.x, annotation.y)
+                        draw.text(text_pos, annotation.text, fill=color, font=font)
                     except Exception as text_error:
                         logger.warning(f"Failed to draw text: {text_error}")
         
