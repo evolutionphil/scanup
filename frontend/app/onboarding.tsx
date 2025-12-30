@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   Image,
   Animated,
-  FlatList,
+  ScrollView,
   Platform,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -49,8 +51,7 @@ const SLIDES: GuideSlide[] = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleGetStarted = async () => {
     try {
@@ -62,17 +63,22 @@ export default function OnboardingScreen() {
     }
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    if (index !== currentIndex && index >= 0 && index < SLIDES.length) {
+      setCurrentIndex(index);
     }
-  }).current;
+  };
 
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const handleDotPress = (index: number) => {
+    scrollViewRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+    setCurrentIndex(index);
+  };
 
-  const renderSlide = ({ item, index }: { item: GuideSlide; index: number }) => {
+  const renderSlide = (item: GuideSlide, index: number) => {
     return (
-      <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
+      <View key={item.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
         {/* Image Container with decorative elements */}
         <View style={styles.imageContainer}>
           {/* Blue gradient bar at top of image container */}
@@ -107,15 +113,20 @@ export default function OnboardingScreen() {
   const renderPagination = () => (
     <View style={styles.pagination}>
       {SLIDES.map((_, index) => (
-        <View
+        <TouchableOpacity
           key={index}
-          style={[
-            styles.dot,
-            {
-              backgroundColor: index === currentIndex ? BRAND_BLUE : DOT_INACTIVE,
-            },
-          ]}
-        />
+          onPress={() => handleDotPress(index)}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.dot,
+              {
+                backgroundColor: index === currentIndex ? BRAND_BLUE : DOT_INACTIVE,
+              },
+            ]}
+          />
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -123,23 +134,18 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Slides */}
-      <Animated.FlatList
-        ref={flatListRef}
-        data={SLIDES}
-        renderItem={renderSlide}
-        keyExtractor={(item) => item.id}
+      <ScrollView
+        ref={scrollViewRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
-      />
+        contentContainerStyle={styles.scrollContent}
+      >
+        {SLIDES.map((slide, index) => renderSlide(slide, index))}
+      </ScrollView>
 
       {/* Pagination dots */}
       {renderPagination()}
@@ -163,23 +169,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   slide: {
-    flex: 1,
+    height: SCREEN_HEIGHT * 0.7,
     alignItems: 'center',
-    paddingTop: 60,
+    justifyContent: 'center',
+    paddingTop: 20,
   },
   imageContainer: {
     width: 209,
-    height: 320,
+    height: 280,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     position: 'relative',
-    marginTop: 80,
   },
   topBar: {
     position: 'absolute',
-    top: 76,
-    left: 0,
+    top: 56,
+    left: 10,
     width: 189,
     height: 7,
     borderRadius: 20,
@@ -187,8 +196,8 @@ const styles = StyleSheet.create({
   },
   gradientShadow: {
     position: 'absolute',
-    top: 83,
-    left: 14,
+    top: 63,
+    left: 24,
     width: 161,
     height: 145,
     zIndex: 1,
@@ -196,13 +205,12 @@ const styles = StyleSheet.create({
   slideImage: {
     width: 142,
     height: 166,
-    marginTop: 0,
     zIndex: 3,
   },
   textContainer: {
     alignItems: 'center',
     paddingHorizontal: 40,
-    marginTop: 20,
+    marginTop: 40,
   },
   title: {
     fontSize: 24,
@@ -225,7 +233,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
-    bottom: 249,
+    bottom: 180,
     left: 0,
     right: 0,
   },
@@ -237,7 +245,7 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     position: 'absolute',
-    bottom: 112,
+    bottom: 80,
     left: 0,
     right: 0,
     alignItems: 'center',
