@@ -58,7 +58,10 @@ export default function DocumentsScreen() {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockDoc, setUnlockDoc] = useState<Document | null>(null);
   const [unlockPasswordValue, setUnlockPasswordValue] = useState('');
-
+  
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareDoc, setShareDoc] = useState<Document | null>(null);
   // Network listener for background sync
   useEffect(() => {
     // Load local cache first for instant display
