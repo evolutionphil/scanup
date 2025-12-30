@@ -81,7 +81,7 @@ interface ShareModalProps {
   visible: boolean;
   onClose: () => void;
   documentName: string;
-  pageCount: number;
+  pageCount?: number;
   fileSize?: string;
   pages?: Array<{ image_base64?: string; image_url?: string; image_file_uri?: string; ocr_text?: string }>;
 }
@@ -100,6 +100,9 @@ export default function ShareModal({
   const [passwordProtect, setPasswordProtect] = useState(false);
   const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Calculate actual page count from pages array or use provided pageCount
+  const actualPageCount = pageCount ?? pages.length;
 
   // Calculate file size from pages
   const calculateFileSize = () => {
