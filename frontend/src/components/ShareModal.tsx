@@ -228,8 +228,8 @@ export default function ShareModal({
 
       const pdfUri = await generatePdf();
       const safeFileName = documentName.replace(/[^a-z0-9]/gi, '_');
-      const newUri = `${FileSystem.cacheDirectory}${safeFileName}.pdf`;
-      await FileSystem.copyAsync({ from: pdfUri, to: newUri });
+      const newUri = `${cacheDirectory}${safeFileName}.pdf`;
+      await copyAsync({ from: pdfUri, to: newUri });
 
       await MailComposer.composeAsync({
         subject: documentName,
