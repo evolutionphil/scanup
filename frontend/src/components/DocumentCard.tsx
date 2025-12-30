@@ -334,9 +334,15 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
   },
+  lockBadge: {
+    padding: 4,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
   ocrBadge: {
     padding: 4,
     borderRadius: 4,
+    marginLeft: 6,
   },
   // Options Modal Styles
   modalOverlay: {
