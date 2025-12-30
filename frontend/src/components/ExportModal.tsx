@@ -70,8 +70,6 @@ const loadPageImageBase64 = async (page: { image_base64?: string; image_url?: st
   return '';
 };
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-
 interface ExportFormat {
   id: string;
   name: string;
