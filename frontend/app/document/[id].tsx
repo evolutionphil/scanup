@@ -1010,6 +1010,47 @@ export default function DocumentScreen() {
           style={styles.mainImage}
           resizeMode="contain"
         />
+        
+        {/* Render signature overlays */}
+        {(currentPage as any).signatures?.map((sig: any, index: number) => (
+          <Image
+            key={`sig-${index}`}
+            source={{ 
+              uri: sig.signature_base64.startsWith('data:') 
+                ? sig.signature_base64 
+                : `data:image/png;base64,${sig.signature_base64}` 
+            }}
+            style={[
+              styles.signatureOverlay,
+              {
+                left: `${sig.position_x * 100}%`,
+                top: `${sig.position_y * 100}%`,
+                width: `${sig.scale * 100}%`,
+                transform: [{ translateX: -50 }, { translateY: -50 }],
+              }
+            ] as any}
+            resizeMode="contain"
+          />
+        ))}
+        
+        {/* Render annotation overlays */}
+        {(currentPage as any).annotations?.map((ann: any, index: number) => (
+          <View
+            key={`ann-${index}`}
+            style={[
+              styles.annotationOverlay,
+              {
+                left: `${ann.position?.x * 100 || 0}%`,
+                top: `${ann.position?.y * 100 || 0}%`,
+              }
+            ] as any}
+          >
+            {ann.type === 'text' && (
+              <Text style={{ color: ann.color, fontSize: 14 }}>{ann.data?.text}</Text>
+            )}
+          </View>
+        ))}
+        
         {(processing || ocrLoading || shareLoading) && (
           <View style={[styles.processingOverlay, { backgroundColor: theme.overlay }]}>
             <ActivityIndicator size="large" color={theme.primary} />
