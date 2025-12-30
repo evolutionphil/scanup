@@ -136,6 +136,8 @@ export interface Document {
   document_type?: string;
   ocr_full_text?: string;
   is_password_protected: boolean;
+  password?: string;  // Local password for document protection
+  is_locked?: boolean;
   storage_type?: string;  // 's3', 'mongodb', or 'local'
   sync_status?: SyncStatus;  // Sync status for UI
   created_at: string;
