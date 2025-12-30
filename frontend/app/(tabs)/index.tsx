@@ -999,18 +999,18 @@ export default function DocumentsScreen() {
       {/* Tabs - Documents / Folders */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
-          onPress={() => setActiveTab('documents')}
+          style={[styles.tab, activeMainTab === 'documents' && styles.tabActive]}
+          onPress={() => setActiveMainTab('documents')}
         >
-          <Text style={[styles.tabText, activeTab === 'documents' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeMainTab === 'documents' && styles.tabTextActive]}>
             Documents
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'folders' && styles.tabActive]}
-          onPress={() => setActiveTab('folders')}
+          style={[styles.tab, activeMainTab === 'folders' && styles.tabActive]}
+          onPress={() => setActiveMainTab('folders')}
         >
-          <Text style={[styles.tabText, activeTab === 'folders' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeMainTab === 'folders' && styles.tabTextActive]}>
             Folders
           </Text>
         </TouchableOpacity>
