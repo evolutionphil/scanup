@@ -3359,6 +3359,66 @@ async def apply_filter_to_image(request: ApplyFilterRequest):
         }
 
 
+# ==================== PDF PASSWORD PROTECTION ====================
+
+class PDFPasswordRequest(BaseModel):
+    pdf_base64: str
+    password: str
+
+@api_router.post("/pdf/protect")
+async def protect_pdf_with_password(request: PDFPasswordRequest):
+    """Add password protection to a PDF using pypdf"""
+    try:
+        from pypdf import PdfReader, PdfWriter
+        import io
+        
+        # Decode base64 PDF
+        pdf_data = request.pdf_base64
+        if ',' in pdf_data:
+            pdf_data = pdf_data.split(',')[1]
+        
+        pdf_bytes = base64.b64decode(pdf_data)
+        
+        # Read the PDF
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        writer = PdfWriter()
+        
+        # Copy all pages to writer
+        for page in reader.pages:
+            writer.add_page(page)
+        
+        # Add password protection (AES-256)
+        writer.encrypt(
+            user_password=request.password,
+            owner_password=request.password,
+            permissions_flag=0b11110100,  # Allow printing, filling forms
+        )
+        
+        # Save to bytes
+        output = io.BytesIO()
+        writer.write(output)
+        
+        # Convert to base64
+        result_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
+        
+        logger.info("PDF encrypted with password successfully")
+        
+        return {
+            "success": True,
+            "pdf_base64": result_base64,
+            "message": "PDF protected with password successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"PDF protection error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Failed to protect PDF: {str(e)}"
+        }
+
+
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
