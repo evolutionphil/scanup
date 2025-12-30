@@ -79,53 +79,30 @@ export default function Index() {
     }
   }, []);
 
-  // WEB: Show navigation menu with direct links
+  // WEB: Show splash briefly then navigate
   if (IS_WEB) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
-        <View style={styles.content}>
-          {/* App Logo */}
-          <View style={styles.webLogoWrapper}>
-            <View style={styles.webLogoBox}>
-              <Ionicons name="document-text" size={60} color="#FFFFFF" />
-            </View>
+      <View style={styles.splashContainer}>
+        {/* Logo Icon */}
+        <View style={styles.splashLogoContainer}>
+          <View style={styles.webLogoBox}>
+            <Ionicons name="document-text" size={60} color="#FFFFFF" />
           </View>
-          
-          <View style={styles.welcomeHeader}>
-            <Text style={[styles.welcomeTitle, { color: theme.text }]}>
-              <Text style={{ fontWeight: '700' }}>Scan</Text>
-              <Text style={{ fontWeight: '300' }}>Up</Text>
-            </Text>
-            <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
-              Web Preview - Click to navigate
-            </Text>
-          </View>
+        </View>
 
-          <View style={styles.buttonContainer}>
-            <Link href="/onboarding" asChild>
-              <Pressable style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}>
-                <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
-              </Pressable>
-            </Link>
-            
-            <Link href="/premium" asChild>
-              <Pressable style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}>
-                <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
-              </Pressable>
-            </Link>
-            
-            <Link href="/(tabs)" asChild>
-              <Pressable style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
-                <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App</Text>
-              </Pressable>
-            </Link>
-          </View>
-          
-          <Text style={[styles.noteText, { color: theme.textMuted }]}>
-            Use Expo Go for full experience
+        {/* App Name */}
+        <View style={styles.splashTextContainer}>
+          <Text style={styles.splashAppName}>
+            <Text style={styles.scanText}>Scan</Text>
+            <Text style={styles.upText}>Up</Text>
           </Text>
         </View>
-      </SafeAreaView>
+
+        {/* Loading indicator */}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        </View>
+      </View>
     );
   }
 
