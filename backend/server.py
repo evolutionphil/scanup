@@ -3271,6 +3271,94 @@ async def apply_signature_to_image(request: ApplySignatureRequest):
         }
 
 
+class ApplyFilterRequest(BaseModel):
+    image_base64: str
+    filter_type: str  # original, grayscale, bw, enhanced, document
+    brightness: float = 0  # -50 to 50
+    contrast: float = 0    # -50 to 50
+    saturation: float = 0  # -50 to 50
+
+@api_router.post("/images/apply-filter")
+async def apply_filter_to_image(request: ApplyFilterRequest):
+    """Apply filter and adjustments to an image"""
+    try:
+        from PIL import Image, ImageEnhance, ImageFilter
+        import io
+        
+        # Decode base image
+        img_data = request.image_base64
+        if ',' in img_data:
+            img_data = img_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        
+        # Apply filter based on type
+        if request.filter_type == 'grayscale':
+            image = image.convert('L').convert('RGB')
+        elif request.filter_type == 'bw':
+            # Black and white (high contrast grayscale)
+            image = image.convert('L')
+            # Apply threshold for B&W effect
+            threshold = 128
+            image = image.point(lambda x: 255 if x > threshold else 0, mode='1')
+            image = image.convert('RGB')
+        elif request.filter_type == 'enhanced':
+            # Auto enhance
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(1.2)
+            enhancer = ImageEnhance.Sharpness(image)
+            image = enhancer.enhance(1.3)
+        elif request.filter_type == 'document':
+            # Document mode - increase contrast and brightness
+            image = image.convert('L')  # Grayscale first
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(1.5)
+            enhancer = ImageEnhance.Brightness(image)
+            image = enhancer.enhance(1.1)
+            image = image.convert('RGB')
+        
+        # Apply brightness adjustment (-50 to 50 -> 0.5 to 1.5)
+        if request.brightness != 0:
+            factor = 1 + (request.brightness / 50)  # -50 -> 0, 0 -> 1, 50 -> 2
+            enhancer = ImageEnhance.Brightness(image)
+            image = enhancer.enhance(factor)
+        
+        # Apply contrast adjustment (-50 to 50 -> 0.5 to 1.5)
+        if request.contrast != 0:
+            factor = 1 + (request.contrast / 50)
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(factor)
+        
+        # Apply saturation adjustment (-50 to 50 -> 0 to 2)
+        if request.saturation != 0:
+            factor = 1 + (request.saturation / 50)
+            enhancer = ImageEnhance.Color(image)
+            image = enhancer.enhance(factor)
+        
+        # Convert back to base64
+        buffer = io.BytesIO()
+        image.save(buffer, format='JPEG', quality=90)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        logger.info(f"Applied filter '{request.filter_type}' with adjustments B:{request.brightness} C:{request.contrast} S:{request.saturation}")
+        
+        return {
+            "success": True,
+            "image_base64": result_base64,
+            "message": f"Filter '{request.filter_type}' applied successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Filter error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Failed to apply filter: {str(e)}"
+        }
+
+
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
