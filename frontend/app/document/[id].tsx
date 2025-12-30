@@ -1068,6 +1068,13 @@ export default function DocumentScreen() {
           resizeMode="contain"
         />
         
+        {/* Watermark overlay for free users */}
+        {!isGuest && user && user.subscription_type !== 'premium' && user.subscription_type !== 'trial' && (
+          <View style={styles.watermarkOverlay} pointerEvents="none">
+            <Text style={styles.watermarkText}>ScanUp</Text>
+          </View>
+        )}
+        
         {/* Render signature overlays - Using absolute positioning based on image container */}
         {(currentPage as any).signatures?.map((sig: any, index: number) => {
           // Calculate actual position based on container percentage
