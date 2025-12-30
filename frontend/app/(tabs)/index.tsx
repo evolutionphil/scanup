@@ -248,7 +248,9 @@ export default function DocumentsScreen() {
 
   // Document card action handlers
   const handleExportDocument = (doc: Document) => {
-    router.push(`/document/${doc.document_id}?action=export`);
+    // Open share modal instead of navigating
+    setShareDoc(doc);
+    setShowShareModal(true);
   };
 
   const handleRenameDocument = (doc: Document) => {
