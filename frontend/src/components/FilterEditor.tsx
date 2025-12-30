@@ -164,18 +164,18 @@ export default function FilterEditor({
       if (base64Image.startsWith('data:')) {
         // Extract raw base64
         const rawBase64 = base64Image.split(',')[1];
-        const tempPath = `${cacheDirectory}temp_filter_${Date.now()}.jpg`;
-        await writeAsStringAsync(tempPath, rawBase64, {
-          encoding: EncodingType.Base64,
+        const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
+        await FileSystem.writeAsStringAsync(tempPath, rawBase64, {
+          encoding: FileSystem.EncodingType.Base64,
         });
         uri = tempPath;
       } else if (base64Image.startsWith('file://') || base64Image.startsWith('http')) {
         uri = base64Image;
       } else {
         // Raw base64 string
-        const tempPath = `${cacheDirectory}temp_filter_${Date.now()}.jpg`;
-        await writeAsStringAsync(tempPath, base64Image, {
-          encoding: EncodingType.Base64,
+        const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
+        await FileSystem.writeAsStringAsync(tempPath, base64Image, {
+          encoding: FileSystem.EncodingType.Base64,
         });
         uri = tempPath;
       }
@@ -199,9 +199,12 @@ export default function FilterEditor({
       );
 
       // Clean up temp file
-      if (uri.startsWith(cacheDirectory || '')) {
-        // Note: deleteAsync not imported from legacy API, skip cleanup
-        // The file will be cleaned up by the system
+      if (uri.startsWith(FileSystem.cacheDirectory || '')) {
+        try {
+          await FileSystem.deleteAsync(uri, { idempotent: true });
+        } catch (e) {
+          // Ignore cleanup errors
+        }
       }
 
       return result.base64 || '';
