@@ -276,9 +276,32 @@ export default function DocumentsScreen() {
 
   // Document card action handlers
   const handleExportDocument = (doc: Document) => {
-    // Open share modal instead of navigating
-    setShareDoc(doc);
-    setShowShareModal(true);
+    // Check if document is password protected - require password before sharing
+    const latestDoc = documents.find(d => d.document_id === doc.document_id) || doc;
+    
+    if (latestDoc.password || latestDoc.is_password_protected) {
+      Alert.alert(
+        'Protected Document',
+        'This document is password protected. Enter the password to share.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Enter Password',
+            onPress: () => {
+              setUnlockDoc(latestDoc);
+              setUnlockPasswordValue('');
+              setShowUnlockModal(true);
+              // Set flag to open share after unlock
+              setShareAfterUnlock(true);
+            },
+          },
+        ]
+      );
+    } else {
+      // Open share modal directly
+      setShareDoc(doc);
+      setShowShareModal(true);
+    }
   };
 
   const handleRenameDocument = (doc: Document) => {
