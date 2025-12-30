@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as Print from 'expo-print';
+import { getInfoAsync, readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, getImageSource } from '../../src/store/documentStore';
