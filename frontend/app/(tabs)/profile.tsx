@@ -619,4 +619,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 20,
   },
+  sectionSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  signatureCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  signatureIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  signatureCardText: {
+    flex: 1,
+  },
+  signatureCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signatureCardSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
 });
