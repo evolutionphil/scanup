@@ -1,15 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
-
-// Polyfill for import.meta on web to fix zustand compatibility
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  // @ts-ignore
-  if (typeof import.meta === 'undefined') {
-    // @ts-ignore
-    (globalThis as any).import = { meta: { env: { MODE: 'production' } } };
-  }
-}
-
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
