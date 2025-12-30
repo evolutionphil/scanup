@@ -1,197 +1,265 @@
 <analysis>
 <original_problem_statement>
-The user's initial goal was to create a ScanUp mobile app. The current focus is on implementing new UI/UX from Figma designs and resolving platform-specific issues.
+The user's initial goal was to create a ScanUp mobile app. The current focus is on implementing new UI/UX, fixing a large number of bugs, and adding new features requested by the user.
 
-The main goals for this session were:
-1.  Fix the failing image processing features (filters, OCR, export) which were returning  errors.
-2.  Implement new screens and components based on Figma designs provided by the user, including a new splash screen, premium page, share modal, and scanner icon.
-3.  Recreate the onboarding/guide pages with new designs.
-4.  Resolve issues with testing the application on the web preview and Expo Go.
+In this session, the user reported a series of critical issues, including:
+1.  The Android app freezing on launch.
+2.  Widespread base64 of undefined errors in features like image rotation, filtering, and exporting.
+3.  Broken or incomplete features like onboarding navigation, password protection, signatures, and annotations.
+4.  Multiple UI/UX issues, including icon placement, missing menus, and incorrect component behavior.
 </original_problem_statement>
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a React Native (Expo) app with a FastAPI backend. The core architecture has been significantly refactored to prioritize local, on-device processing for performance and offline capability.
-
--   **Local Image Processing**: Image processing for filters, rotation, and PDF generation has been moved from the backend to the client-side using  and . This has resolved the previous  API errors. Only OCR and Auto-Crop (since removed) remain as backend operations. A new utility file  was created for this.
--   **New UI from Figma**:
-    -   A new splash screen has been implemented in  based on the user's design.
-    -   A new premium subscription page () has been created, matching the Figma design.
-    -   A new share modal () has been created.
-    -   The scanner icon in the main tab navigator () has been updated with a custom image.
--   **Web Preview Workaround**: A temporary navigation menu was created in  to help the user test different screens on the web preview, as the splash screen animations and navigation were not working correctly in the web environment. This menu has since been removed at the user's request.
+The project is a React Native (Expo) app with a FastAPI backend. The agent has performed a significant number of fixes and refactors in this session.
+- **Backend Configuration**: The application is now configured to use the user's production Railway backend URL (), which was restored in  and .
+- **Image Loading**: A robust  helper function has been implemented and integrated into , , , and . This function dynamically loads image data from S3 URLs or local file URIs if the  data is not immediately available, fixing a large class of base64 undefined errors.
+- **Local Image Processing**: Signature and annotation application logic has been moved from the backend to the client-side  using . The  now renders these as overlays on the main image.
+- **PDF Password Protection**: The  has been updated to include a password input field. It now uses the  library to generate genuinely password-protected PDFs for sharing.
+- **UI/UX Updates**:
+    - The main tab bar scan icon has been updated and repositioned multiple times.
+    - The  component (grid view) and a new  component (list view) on the home screen  now feature a ... options menu.
+    - Modals for renaming, setting a password, and moving documents have been added to the home screen.
+- **Bug Fixes**:
+    - The onboarding flow navigation was fixed.
+    -  deprecation warnings were resolved by switching to the  API.
+    - The app's default theme is now light.
+    - Show grid overlay and Default filter options were removed from the settings page.
 
 **Last working item**:
-    - Last item agent was working: The user requested to remove the web preview helper menu from the  screen and to recreate the onboarding/guide pages using new Figma designs and assets. The agent has just removed the web preview text from  and is about to start implementing the new onboarding flow.
+    - Last item agent was working: The agent was in the middle of a large bug-fixing session addressing a list of issues reported by the user in message #465. The agent had just:
+        1. Moved the scan icon higher in .
+        2. Fixed legacy  API usage in .
+        The next step was to address the remaining, more complex bugs from the user's list.
     - Status: **IN PROGRESS**
     - Agent Testing Done: N
-    - Which testing method agent to use? screenshot tool. The agent should verify the new onboarding screens on the web preview. The user will test on Expo Go once the connection issue is resolved.
-    - User Testing Done: N
+    - Which testing method agent to use? Manual testing by user is required to verify the large number of fixes. For specific component issues, the screenshot tool can be used.
+    - User Testing Done: Y (User provided a new list of bugs)
 
 **All Pending/In progress Issue list**:
-  - Issue 1: Recreate onboarding/guide pages. (P0)
-  - Issue 2: Expo Go fails to run the app with a 500 HTTP error. (P1)
-  - Issue 3: Web preview is stuck on the splash screen. (P2)
-  - Issue 4: Implement custom Google & Apple authentication. (P3)
-  - Issue 5: Android system navigation buttons overlap with app UI buttons. (P4)
+  - Issue 1: Grid and List view menu actions are broken. (P0)
+  - Issue 2: OCR is not working. (P0)
+  - Issue 3: Document password protection is incomplete. (P1)
+  - Issue 4: Signatures and Annotations are not visible after being applied. (P1)
+  - Issue 5: Folder document counts are incorrect. (P2)
+  - Issue 6:  still has a  error. (P2)
+  - Issue 7: Scan icon position still needs adjustment. (P3)
+  - Issue 8: Update exit pop with a new design. (P3)
 
   Issues Detail:
-  - Issue 1: **Recreate Onboarding/Guide Pages**
-     - Description: The user wants to replace the existing onboarding flow. They have provided Figma designs and assets for two new guide pages (Scan and Save). The desired flow is: Splash Screen -> Guide Page 1 -> Guide Page 2 -> Premium Page -> Main App.
-     - Attempted fixes: None. The agent has just received the request.
+  - Issue 1: **Grid/List View Menu Actions Broken**
+     - Description: User reports that when clicking on menu items in the document list (e.g., Share, Edit Name, Print) on the home screen, the app incorrectly navigates to the document editor instead of performing the intended action. This is a critical usability failure. The Share icon on the grid view is also exhibiting this bug.
+     - Attempted fixes: The agent created handlers (, , ) and modals in . However, the  of the parent  wrapping the  or  is likely firing and navigating, overriding the menu item's specific action.
      - Next debug checklist:
-        1. Download the new image assets (, ) provided by the user.
-        2. Delete or overwrite the existing  file.
-        3. Create the new horizontally-swiping onboarding component with the two new pages, matching the styles from the Figma design.
-        4. Update the navigation logic in  to route to the new onboarding flow after the splash screen.
-        5. Ensure that after the onboarding flow, the user is navigated to the  screen.
-     - Why fix this issue and what will be achieved with the fix?: This will implement the user's desired initial user experience flow.
-     - Status: **NOT STARTED**
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
-
-  - Issue 2: **Expo Go Connection Failure (500 Error)**
-     - Description: The user cannot test the app on Expo Go. They receive an error there was a problem running the requested app with a 500 http response error. The agent identified this is due to the Expo tunnel requiring an  for authentication when running in a non-interactive CI environment. The user insists this worked before.
-     - Attempted fixes: The agent confirmed the  entry in  is correct and the bundler can create a valid bundle. The agent called the , which confirmed the nature of the problem.
-     - Next debug checklist:
-        1. Search the environment and file system for any files that might contain the .
-        2. If the token cannot be found, the agent must inform the user that testing on Expo Go is blocked and rely on the web preview for design verification.
-     - Why fix this issue and what will be achieved with the fix?: This is a critical blocker preventing the user from testing the app on a real device.
-     - Status: **BLOCKED**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: NA
-     - Blocked on other issue: Blocked on acquiring the .
-
-  - Issue 3: **Web Preview Stuck on Splash Screen**
-     - Description: Despite many attempts, the web preview gets stuck on the splash screen () and does not automatically navigate to the next screen. This is due to limitations of React Native Web's Server-Side Rendering (SSR) where  and  hooks do not run as expected to trigger navigation.
-     - Attempted fixes: Using , , ,  checks, and finally creating a manual navigation menu. The menu worked but was removed by user request. The core issue of automatic navigation remains.
-     - Next debug checklist:
-        1. For now, accept the limitation. The  screen should be the splash screen.
-        2. Focus on making the UI of the splash screen render correctly on web (which it mostly does, minus the logo image).
-        3. For testing, the agent (and user) must manually change the URL in the browser to view other screens like  or the new onboarding screen.
-     - Why fix this issue and what will be achieved with the fix?: Fixing this would allow the user to test the intended app flow on the web preview.
+        - In , review the  and  rendering.
+        - The  handler for the entire card should be disabled or handled differently when the ... menu is open or interacted with.
+        - A common solution is to stop event propagation () in the  handlers for the menu button and its items.
+        - Ensure the  prop passed to  correctly triggers the share modal.
+     - Why fix this issue and what will be achieved with the fix?: Fixes core document management functionality from the home screen, making the app usable.
      - Status: **IN PROGRESS**
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix?: Frontend
      - Blocked on other issue: None
 
-**In progress Task List**: None. The main pending item is a new task.
+  - Issue 2: **OCR Not Working**
+     - Description: User reports an error: image data is not available please try closing and reopoenin the document when trying to use OCR.
+     - Attempted fixes: None in this session. The agent has been focused on other  issues. This is likely the same root problem: the OCR function is called before the image's base64 data is loaded from the S3 URL.
+     - Next debug checklist:
+        - Locate the OCR trigger function in .
+        - Before calling the backend OCR API, ensure the  helper function is used to get the image data.
+        - Update the function to  the image data before proceeding with the API call.
+     - Why fix this issue and what will be achieved with the fix?: Restores a core feature of the application.
+     - Status: **NOT STARTED**
+     - Is recurring issue? Y (Part of the larger  problem scope)
+     - Should Test frontend/backend/both after fix?: Frontend
+
+  - Issue 3: **Document Password Protection Incomplete**
+     - Description: The user can set a password on a document via the home screen menu, but the app does not prompt for this password when the document is subsequently opened.
+     - Attempted fixes: Agent implemented the UI to set a password in . The password is saved to the document's state. However, the logic to *check* for a password upon opening a document is missing.
+     - Next debug checklist:
+        - In , modify the  handler for  and .
+        - If  exists, show a password input modal instead of navigating directly.
+        - On correct password entry, navigate to .
+        - The password should be stored in the document object managed by .
+     - Why fix this issue and what will be achieved with the fix?: Completes the document password protection feature, enhancing security.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 4: **Signatures and Annotations Not Visible**
+     - Description: User reports that after adding a signature or annotation, it is not visible on the document.
+     - Attempted fixes: Agent refactored the process to be entirely local, saving signature/annotation data to the document state and rendering them as an overlay in .
+     - Next debug checklist:
+        - Verify in  that the  and  arrays are being correctly rendered as overlays.
+        - Check the  for  and  to ensure they have correct  and are not hidden.
+        - Console log the  object within the document viewer to confirm the signature/annotation data is present after being applied.
+     - Why fix this issue and what will be achieved with the fix?: Fixes the broken signature and annotation features.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 5: **Folder Document Counts Incorrect**
+     - Description: The document count displayed on folders in the grid/list view is not correct.
+     - Attempted fixes: None.
+     - Next debug checklist:
+        - Review the logic in  where documents are fetched and counted for each folder.
+        - The  provides the documents. Ensure the filtering and counting logic that populates the folder view is accurate.
+        - This might be an issue with how documents are associated with folders in the  store.
+     - Why fix this issue and what will be achieved with the fix?: Provides accurate information to the user.
+     - Status: **NOT STARTED**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 6: **FilterEditor  Error**
+     - Description: User reports that the  still has a  error.
+     - Attempted fixes: Agent has refactored  multiple times, including adding legacy  API calls. The last attempt seemed thorough.
+     - Next debug checklist:
+        - The agent has fixed this multiple times. This might be a caching issue on the user's device, or a subtle logic error.
+        - Re-verify the logic in . The  hook should load the base64 from  or  into . The  variable should then correctly prioritize  over the  prop.
+        - Add extensive  statements inside  to trace the values of , , , and  from component mount to filter application.
+     - Why fix this issue and what will be achieved with the fix?: Fixes the last remaining base64 undefined bug, making the filtering feature reliable.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 7: **Scan Icon Position**
+     - Description: User wants the main scan icon in the tab bar moved more top.
+     - Attempted fixes: Agent has adjusted the  property in the icon's style in  multiple times.
+     - Next debug checklist:
+        - Increase the  value for the  style in  more aggressively.
+     - Why fix this issue and what will be achieved with the fix?: Satisfies user's aesthetic preference.
+     - Status: **IN PROGRESS**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 8: **Update exit pop design**
+     - Description: User requested to update the exit pop please with new desing. This is vague.
+     - Attempted fixes: None.
+     - Next debug checklist:
+        - Use  to ask the user for the new design or more details about which exit pop-up they are referring to. It could be the delete document confirmation, for example.
+     - Why fix this issue and what will be achieved with the fix?: Implements a user-requested design change.
+     - Status: **NOT STARTED**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: User input required.
+
+**In progress Task List**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - (P0) Recreate onboarding/guide pages as described in Issues Detail.
     - (P3) Implement custom Google Sign-In using user-provided credentials.
     - (P3) Implement Sign in with Apple for the iOS platform.
 - **Future Tasks:**
     - (P4) Refactor the monolithic  into smaller, manageable routers.
     - (P4) Refactor the  to further simplify state management.
+    - (P4) Resolve issue where Android system navigation buttons overlap with app UI buttons.
 
 **Completed work in this session**
-- **Refactored Image Processing to Local-First**: Moved image processing for Filters, Rotation, and PDF Export from the backend to the device using  and . This resolved the critical  error and made the app more performant and offline-capable.
-- **Implemented New Screens from Figma**:
-    - **Splash Screen**: Created a new splash screen in .
-    - **Premium Page**: Created a new, fully styled  page matching the Figma design.
-    - **Share Modal**: Replaced the old export modal with a new  based on the user's design.
-- **UI Updates**:
-    - Updated the main tab bar scanner icon with a custom user-provided image.
-    - Removed the Auto Crop feature and its button from the document edit screen as requested.
-- **Bug Fixes**:
-    - Fixed an infinite navigation loop that occurred when closing the Premium screen.
-- **Web Preview Enhancements**:
-    - Addressed multiple issues to make the web preview usable for design verification, including fixing animations, checkmark icons on the premium page, and implementing a (since-removed) navigation menu.
+- **Android App Freeze Fixed**: Diagnosed and resolved the issue of the Android app freezing by correcting hardcoded backend URLs in  and  to point to the user's active Railway deployment.
+- **Onboarding Navigation Fixed**: Corrected the logic in  to properly navigate between the two guide pages before proceeding to the main app.
+- **Base64 Undefined Errors Largely Resolved**: Implemented a robust  helper function in multiple components to dynamically fetch image data from S3/file URIs, fixing errors in rotate, export, and share functionalities.
+- **Local Signatures & Annotations**: Refactored signature/annotation application to be a client-side operation in , removing the backend dependency.
+- **PDF Password Protection Implemented**: Added the  library and updated  to allow users to create and share password-protected PDF files.
+- ** Deprecation Fixed**: Updated , , and  to use the  API, resolving console warnings.
+- **UI/UX Improvements**:
+    - Default app theme set to light.
+    - Simplified the  page.
+    - Updated  and added  in  to include a ... options menu.
+    - Added modals to the home screen for renaming, setting a password, and moving documents.
 
 **Earlier issues found/mentioned but not fixed**
-- The Expo Go connection failure ( issue) is the most significant one.
+The list is identical to **All Pending/In progress Issue list**.
 
 **Known issue recurrence from previous fork**
-- **Issue**: Expo Go connection failure with 500 error.
-- **Recurrence count**: This issue has occurred multiple times in the last user session.
-- **Status**: **BLOCKED**. The agent has identified the root cause (CI environment requiring ) but cannot resolve it without the token.
+  - None from the previous summary, but new recurring issues have emerged in this session, namely:  errors (mostly fixed but one persists), and scan icon positioning.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Local-First Image Processing**: A major architectural shift to use  (for filters, rotation) and  (for PDF generation) on the client-side. This avoids backend dependency for most image operations.
-- **Figma-to-Code Implementation**: Manually translating Figma designs, assets, and style guides into React Native components.
-- **React Native Web (RNW) Limitations**: The development process has been significantly impacted by RNW's quirks, especially regarding Server-Side Rendering (SSR), / hooks, image rendering ( vs. URI), and navigation ( vs. ). The next agent must be aware that the web preview is not a reliable 1:1 match for native.
+- **Client-Side PDF Encryption**: Using  to create password-protected PDFs directly in the React Native app.
+- **Local Image Manipulation**: Using  to apply filters, signatures, and annotations on the client, reducing backend load and enabling offline capabilities.
+- **Robust Asynchronous Data Handling**: The pattern of creating a helper function () to lazily load required data (base64 image) before performing an action is a key takeaway.
+- **Complex State Management in a Single Screen**: The home screen () now manages view mode, selection mode, multiple documents, and the state for three different modals (Rename, Password, Move).
+- **Event Propagation Handling**: The bug with menu actions navigating instead of executing points to a need for proper event propagation management () in nested  components.
 
 **key DB schema**
-- No changes to DB schema in this session.
+  - No changes to DB schema in this session.
 
 **changes in tech stack**
-- Added  to .
-- The usage of  and  is now central to the app's functionality.
+  - **Added  and **: For client-side PDF generation and password protection.
 
 **All files of reference**
-- : The entry point, serving as the splash screen. It's complex due to workarounds for RNW. It needs to be modified to navigate to the new onboarding flow.
-- : The new premium screen.
-- : The old onboarding screen that needs to be replaced.
-- : The document editor, heavily refactored to call local processing functions.
-- : New helper containing the logic for on-device image manipulation.
-- : The new, Figma-compliant share component.
-- : The main tab navigator where the scan button was updated.
+- : The heart of the app's main screen. Contains broken menu action logic that is the highest priority fix.
+- : The document viewer. Contains logic for OCR (broken), and for rendering signatures/annotations (reported as not visible).
+- : User reports this is still broken with a base64 error. Needs deep debugging.
+- : Contains the core client-side image manipulation logic.
+- : Contains the PDF password protection logic.
+- : The file to edit for the scan icon position.
 
-**Areas that need refactoring**
--  is overly complex due to attempts to fix the web preview. It should be simplified to just be a splash screen with a clear navigation path, and web-specific logic should be minimal and clearly separated.
+**Areas that need refactoring**:
+- : This file has grown very large and complex. The state management for the various modals and actions could be extracted into a custom hook () to clean up the component. The  component could be moved to its own file in .
 
 **key api endpoints**
-- : This endpoint is now only used for features that require significant backend computation, like OCR. It is no longer used for filters, rotation, or basic adjustments.
-- : This endpoint is no longer used. PDF generation is now local.
+- The app is now configured to use the user's production backend: .
 
 **Critical Info for New Agent**
-- **Your immediate task is to implement the new onboarding flow.** The user has provided designs and wants two guide pages to appear after the splash screen and before the premium page. You will need to delete/replace  and adjust the navigation logic in .
-- **The Expo Go connection is broken.** This is a top-priority issue blocking user testing. The cause is a missing  in the CI environment. You should attempt to find this token. If not, inform the user about the block and rely on the web preview and screenshots for verification. Do not spend excessive time trying to fix the tunnel itself.
-- **The web preview is unreliable for testing app flow.** Do not get stuck trying to perfect the splash screen's automatic navigation on the web. It's an SSR issue. Manually navigate by URL to test specific screens (, etc.) and use screenshots to show your work.
-- **The app's architecture is now local-first for image processing.** Do not reintroduce backend calls for filters, rotation, or PDF export. Use the functions in .
+- **Your immediate task is to fix the broken menu actions on the home screen.** This is the highest priority bug (Issue #1). Users cannot manage their documents. Investigate event propagation in .
+- **Systematically address the user's bug list.** The user has provided a long list of issues. After fixing the menu actions, move on to the OCR error, the incomplete password flow, and the invisible signatures.
+- **Be prepared to debug the  again.** The user claims it's still broken. Use extensive logging to trace the image data flow within the component.
+- **The password feature is half-done.** You need to implement the check that prompts for a password when opening a locked document.
+- **The exit pop request is vague.** You must ask the user for clarification before attempting to implement it.
+- **Do not be afraid to make small, iterative style changes.** The user is particular about UI details like the scan icon position. It's better to make a small adjustment and ask for feedback than to ignore it.
 
 **documents created in this job**
-None.
+- None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests to recreate the guide pages with new Figma designs and assets. (PENDING)
-2.  **User:** Requests to remove the web preview helper text from the splash screen. (DONE)
-3.  **User:** Asks where the  is, stating it worked before. (PENDING)
-4.  **User:** Reports the same Expo Go 500 error, mentioning the non-interactive CI mode. (PENDING)
-5.  **User:** Reports an error on Expo Go: there was a problem running the requested app. (PENDING)
-6.  **User:** Complains that the app preview is still stuck on the splash screen. (IN PROGRESS)
-7.  **User:** Asks why the design isn't showing on the app preview. (IN PROGRESS)
-8.  **User:** Asks how to build in Android Studio and for the local server URL. (RESOLVED)
-9.  **User:** Reports an issue with an infinite loop after clicking the 'X' button on the premium screen. (RESOLVED)
-10. **User:** Requests an update to the share button pop-up to match a new Figma design. (RESOLVED)
+1.  **User (Chat 465):** Provides a large list of new bugs: scan icon position, incorrect folder counts, share icon on grid view is broken, document password not being checked, wants a new exit pop-up design, remove grid overlay setting again. (PENDING - This is the current worklist)
+2.  **Agent (Chat 464):** Summarizes implementation of  for PDF password protection. (Partially resolved, as the check is missing)
+3.  **User (Chat 452):** Asks agent to check for a native module for PDF passwords. (RESOLVED - Agent found and implemented a solution)
+4.  **Agent (Chat 451):** Summarizes fixes for local signatures/annotations and the initial (non-functional)  implementation.
+5.  **User (Chat 399):** Clarifies signatures/annotations should be local and asks for PDF password protection. (RESOLVED - Agent implemented this)
+6.  **Agent (Chat 398):** Summarizes multiple fixes including list view menu, new modals, and scan icon adjustment.
+7.  **User (Chat 326):** Provides a very long list of bugs: dots missing on list view, grid view actions broken, print/remove actions not working, OCR broken, scan icon position, password issues, invisible signatures/annotations, FilterEditor error. (IN PROGRESS - This is the source of most current pending issues)
+8.  **Agent (Chat 325):** Summarizes changes to scan icon position and new document card modals.
+9.  **User (Chat 283):** Requests scan icon to be moved up, new icons on document card, and a new ... menu modal. (RESOLVED - Agent implemented this)
+10. **Agent (Chat 282):** Summarizes fixes for signature and annotation preview issues.
 
 **Project Health Check:**
 - **Broken**:
-    - **Expo Go Connection**: The app cannot be loaded on Expo Go due to a 500 error related to tunnel authentication (). This is the highest priority bug.
-    - **Web Preview Navigation**: The app gets stuck on the splash screen on the web preview and does not navigate automatically.
+    - **Home Screen Doc Management**: Menu actions on both grid and list views are non-functional, navigating instead of executing. (P0)
+    - **OCR**: Fails with image data not available. (P0)
+    - **Filter Editor**: Still reportedly failing with a  error. (P2)
+    - **Signature/Annotation Visibility**: Applied signatures/annotations are not visible. (P1)
+- **Incomplete**:
+    - **Document Password Protection**: Password can be set, but is never checked when opening a document. (P1)
 - **Mocked**:
     - Google & Apple authentication.
-- **Working**:
-    - Core scanning and local storage.
-    - Local image processing (filters, rotation).
-    - Local PDF generation and sharing.
-    - UI for Splash, Premium, and Share screens (viewable by direct URL navigation on web).
 
 **3rd Party Integrations**
-- **AWS S3**: For authenticated user image storage.
-- **MongoDB Atlas**: Primary database.
-- **react-native-document-scanner-plugin**: For document capture.
-- : For local image storage.
-- : For local image processing.
-- : For local PDF generation.
-- : For UI styling.
+- **pdf-lib-with-encrypt**: A new library added for client-side PDF password protection.
+- (Existing) AWS S3, MongoDB, , .
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Backend testing was used before the refactor to local processing).
-  - Troubleshoot agent used after agent stuck in loop: NO
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: YES (For the initial Android crash)
   - Test files created: []
-  - Known regressions: The Expo Go connection, which was previously working, is now broken.
+  - Known regressions: Core document management actions from the home screen are now broken.
 
 **Credentials to test flow:**
-- Guest mode is sufficient for all current UI and feature development.
+- Guest mode is sufficient for most frontend UI testing.
 
 **What agent forgot to execute**
-- The agent received the request to recreate the onboarding/guide pages but has not yet started the implementation. It got sidetracked with fixing the web preview and removing the helper text from . The very next step should be to address this task.
+- The agent has not implemented the *checking* part of the document password feature.
+- The agent has not fixed the OCR image data not available error.
+- The agent did not get clarification on the exit pop redesign.
+- The agent's fix for the home screen menu actions is incorrect, leading to a major regression where all actions simply navigate to the document.
+
 </analysis>
