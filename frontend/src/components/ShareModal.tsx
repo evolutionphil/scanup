@@ -366,7 +366,7 @@ export default function ShareModal({
             <View>
               <Text style={styles.title}>Share</Text>
               <Text style={styles.subtitle}>
-                {documentName} - {calculateFileSize()} - {pageCount} {pageCount === 1 ? 'Page' : 'Pages'}
+                {documentName} - {calculateFileSize()} - {actualPageCount} {actualPageCount === 1 ? 'Page' : 'Pages'}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
