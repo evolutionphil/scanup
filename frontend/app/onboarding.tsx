@@ -6,9 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-  Animated,
   ScrollView,
-  Platform,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
@@ -17,7 +15,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ONBOARDING_KEY = '@scanup_onboarding_complete';
 
 // Brand colors from Figma
@@ -76,82 +74,78 @@ export default function OnboardingScreen() {
     setCurrentIndex(index);
   };
 
-  const renderSlide = (item: GuideSlide, index: number) => {
-    return (
-      <View key={item.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
-        {/* Image Container with decorative elements */}
-        <View style={styles.imageContainer}>
-          {/* Blue gradient bar at top of image container */}
-          <LinearGradient
-            colors={[BRAND_BLUE, BRAND_BLUE_DARK]}
-            style={styles.topBar}
-          />
-          
-          {/* Gradient shadow below bar */}
-          <LinearGradient
-            colors={['rgba(76, 94, 255, 0.186)', 'rgba(76, 94, 255, 0)']}
-            style={styles.gradientShadow}
-          />
-          
-          {/* Main illustration image */}
-          <Image
-            source={item.image}
-            style={styles.slideImage}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const renderPagination = () => (
-    <View style={styles.pagination}>
-      {SLIDES.map((_, index) => (
-        <TouchableOpacity
-          key={index}
-          onPress={() => handleDotPress(index)}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.dot,
-              {
-                backgroundColor: index === currentIndex ? BRAND_BLUE : DOT_INACTIVE,
-              },
-            ]}
-          />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Slides */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        bounces={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {SLIDES.map((slide, index) => renderSlide(slide, index))}
-      </ScrollView>
+      {/* Main Content Area */}
+      <View style={styles.contentArea}>
+        {/* Slides */}
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={styles.scrollView}
+        >
+          {SLIDES.map((item) => (
+            <View key={item.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
+              {/* Image Container with decorative elements */}
+              <View style={styles.imageContainer}>
+                {/* Blue gradient bar at top of image container */}
+                <LinearGradient
+                  colors={[BRAND_BLUE, BRAND_BLUE_DARK]}
+                  style={styles.topBar}
+                />
+                
+                {/* Gradient shadow below bar */}
+                <LinearGradient
+                  colors={['rgba(76, 94, 255, 0.186)', 'rgba(76, 94, 255, 0)']}
+                  style={styles.gradientShadow}
+                />
+                
+                {/* Main illustration image */}
+                <Image
+                  source={item.image}
+                  style={styles.slideImage}
+                  resizeMode="contain"
+                />
+              </View>
 
-      {/* Pagination dots */}
-      {renderPagination()}
+              {/* Text Content */}
+              <View style={styles.textContainer}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
 
-      {/* Get Started Button */}
-      <View style={styles.bottomContainer}>
+      {/* Bottom Fixed Area */}
+      <View style={styles.bottomArea}>
+        {/* Pagination dots */}
+        <View style={styles.pagination}>
+          {SLIDES.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => handleDotPress(index)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: index === currentIndex ? BRAND_BLUE : DOT_INACTIVE,
+                  },
+                ]}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Get Started Button */}
         <TouchableOpacity
           style={styles.getStartedButton}
           onPress={handleGetStarted}
@@ -169,14 +163,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  scrollContent: {
-    flexGrow: 1,
+  contentArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
   },
   slide: {
-    height: SCREEN_HEIGHT * 0.7,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 20,
+    paddingTop: 60,
   },
   imageContainer: {
     width: 209,
@@ -228,27 +225,21 @@ const styles = StyleSheet.create({
     color: SUB_TEXT,
     maxWidth: 209,
   },
+  bottomArea: {
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    bottom: 180,
-    left: 0,
-    right: 0,
+    marginBottom: 30,
   },
   dot: {
     width: 12,
     height: 12,
     borderRadius: 16,
     marginHorizontal: 4,
-  },
-  bottomContainer: {
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
   },
   getStartedButton: {
     width: 172,
