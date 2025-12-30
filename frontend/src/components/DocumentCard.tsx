@@ -294,6 +294,11 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
   },
+  pendingBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 36,
+  },
   syncBadge: {
     position: 'absolute',
     top: 8,
