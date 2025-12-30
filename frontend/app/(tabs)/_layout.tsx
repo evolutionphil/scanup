@@ -9,11 +9,11 @@ import OfflineIndicator from '../../src/components/OfflineIndicator';
 
 // Figma design specs
 const TAB_BAR_HEIGHT = 91;
-const SCAN_BUTTON_SIZE = 56;  // Button size
+const SCAN_BUTTON_SIZE = 50;  // Figma: 50x50px
 const TAB_BAR_PADDING_TOP = 12; // Tab bar padding
-// Position button so the scan line in the icon aligns with tab bar top line
-// The scan line is roughly in the middle of the icon, so we elevate by half the button + padding adjustment
-const SCAN_BUTTON_ELEVATION = (SCAN_BUTTON_SIZE / 2) + 6; // 28 + 6 = 34px above baseline
+// Figma CSS: top: 0px - button's top aligns with tab bar container top
+// This means the button sits ON the tab bar, with its bottom inside the tab bar
+const SCAN_BUTTON_OFFSET = SCAN_BUTTON_SIZE - TAB_BAR_PADDING_TOP; // 50 - 12 = 38px above the icon baseline
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
