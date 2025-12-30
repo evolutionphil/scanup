@@ -845,8 +845,6 @@ export default function DocumentsScreen() {
   // Documents content with sections
   const renderDocumentsContent = () => {
     const sortedDocs = getSortedDocuments();
-    const latestDocs = getLatestDocuments();
-    const remainingDocs = sortedDocs.filter(d => !latestDocs.find(l => l.document_id === d.document_id));
 
     if (viewMode === 'grid') {
       return (
@@ -871,40 +869,15 @@ export default function DocumentsScreen() {
       );
     }
 
+    // In list view, show documents sorted by the selected sort option
     return (
       <FlatList
         key="list"
-        data={[]}
-        keyExtractor={() => 'dummy'}
-        renderItem={() => null}
+        data={sortedDocs}
+        keyExtractor={(item) => item.document_id}
+        renderItem={renderDocumentItem}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={() => (
-          <>
-            {documents.length === 0 ? (
-              renderEmptyState()
-            ) : (
-              <>
-                <Text style={styles.sectionTitle}>Latest</Text>
-                {latestDocs.map((doc) => (
-                  <View key={`latest-${doc.document_id}`}>
-                    {renderDocumentItem({ item: doc })}
-                  </View>
-                ))}
-                
-                {remainingDocs.length > 0 && (
-                  <>
-                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All</Text>
-                    {remainingDocs.map((doc) => (
-                      <View key={`all-${doc.document_id}`}>
-                        {renderDocumentItem({ item: doc })}
-                      </View>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-          </>
-        )}
+        ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
