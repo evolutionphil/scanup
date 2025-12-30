@@ -279,7 +279,7 @@ export default function DocumentsScreen() {
   
   const handleCreateFolderInModal = async (name: string, color: string): Promise<Folder | null> => {
     try {
-      const newFolder = await createFolder(token || null, name, color);
+      const newFolder = await createFolder(token || null, { name, color });
       return newFolder;
     } catch (e) {
       Alert.alert('Error', 'Failed to create folder');
