@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Document, getImageSource } from '../store/documentStore';
 import { useThemeStore } from '../store/themeStore';
 import { format } from 'date-fns';
+import PendingBadge from './PendingBadge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -29,6 +30,7 @@ interface DocumentCardProps {
   onPassword?: () => void;
   onMoveToFolder?: () => void;
   onDelete?: () => void;
+  hasPendingOps?: boolean;  // New prop for offline queue status
 }
 
 export default function DocumentCard({
