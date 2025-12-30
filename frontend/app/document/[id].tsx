@@ -555,17 +555,19 @@ export default function DocumentScreen() {
 
     setOcrLoading(true);
     try {
-      // Strip data: prefix if present - API expects raw base64
-      let imageData = currentPage.image_base64;
-      if (imageData && imageData.startsWith('data:')) {
-        imageData = imageData.split(',')[1];
-      }
+      // Load image from any available source (base64, S3 URL, or file)
+      let imageData = await loadImageBase64(currentPage);
       
       // Validate image data
       if (!imageData || imageData.length < 100) {
         Alert.alert('Error', 'Image data is not available. Please try closing and reopening the document.');
         setOcrLoading(false);
         return;
+      }
+      
+      // Strip data: prefix if present - API expects raw base64
+      if (imageData.startsWith('data:')) {
+        imageData = imageData.split(',')[1];
       }
       
       const response = await fetch(`${BACKEND_URL}/api/ocr/extract`, {
