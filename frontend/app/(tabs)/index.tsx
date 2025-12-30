@@ -591,6 +591,60 @@ export default function DocumentsScreen() {
         folders={folders}
         onSelectFolder={handleMoveToFolder}
       />
+      
+      {/* Rename Modal */}
+      <Modal visible={showRenameModal} transparent animationType="fade" onRequestClose={() => setShowRenameModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Rename Document</Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              value={renameValue}
+              onChangeText={setRenameValue}
+              placeholder="Enter new name"
+              placeholderTextColor={theme.textMuted}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowRenameModal(false)}>
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={confirmRename}>
+                <Text style={styles.modalBtnConfirmText}>Rename</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      
+      {/* Password Modal */}
+      <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPasswordModal(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Set Password</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
+              Enter a password to protect this document. Leave empty to remove password.
+            </Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              value={passwordValue}
+              onChangeText={setPasswordValue}
+              placeholder="Enter password (optional)"
+              placeholderTextColor={theme.textMuted}
+              secureTextEntry
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowPasswordModal(false)}>
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={confirmPassword}>
+                <Text style={styles.modalBtnConfirmText}>{passwordValue ? 'Set Password' : 'Remove Password'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
