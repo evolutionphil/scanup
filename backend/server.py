@@ -3101,9 +3101,20 @@ async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
             return (0, 0, 0, alpha)  # Default to black
         
         # The annotations are in screen coordinates, we need to scale to image coordinates
-        # The frontend displays the image in a container, so we need to figure out the scale
-        # For simplicity, we'll assume the coordinates are relative to the display size
-        # and the image might be displayed at a different size than its actual pixels
+        # The frontend displays the image in a container, so we need to scale based on display size
+        img_width, img_height = base_image.size
+        
+        # Calculate scale factor if display dimensions are provided
+        scale_x = 1.0
+        scale_y = 1.0
+        if request.display_width and request.display_height and request.display_width > 0 and request.display_height > 0:
+            scale_x = img_width / request.display_width
+            scale_y = img_height / request.display_height
+            logger.info(f"Scaling annotations: display({request.display_width}x{request.display_height}) -> image({img_width}x{img_height}), scale({scale_x:.2f}x{scale_y:.2f})")
+        
+        # Helper function to scale coordinates
+        def scale_point(x, y):
+            return (int(x * scale_x), int(y * scale_y))
         
         # Process each annotation
         for annotation in request.annotations:
