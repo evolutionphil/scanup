@@ -147,27 +147,19 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   scanButtonContainer: {
-    // Vertically centered in tab bar - no offset
+    // Elevated above the tab bar
+    position: 'absolute',
+    top: -SCAN_BUTTON_ELEVATION,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scanButton: {
+  scanButtonImage: {
     width: SCAN_BUTTON_SIZE,
     height: SCAN_BUTTON_SIZE,
-    borderRadius: 8,
-    backgroundColor: '#3E51FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Figma shadow: 0px 4px 4px rgba(62, 81, 251, 0.21)
+    // Add shadow for elevation effect
     shadowColor: '#3E51FB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.21,
     shadowRadius: 4,
-    elevation: 6,
-  },
-  scanIcon: {
-    width: SCAN_ICON_SIZE,
-    height: SCAN_ICON_SIZE,
-    tintColor: '#FFFFFF',
   },
 });
