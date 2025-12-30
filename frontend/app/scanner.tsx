@@ -142,8 +142,13 @@ export default function ScannerScreen() {
         return;
       }
       
+      // Format: Scanup_YYYY-MM-DD_HH-MM
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-'); // HH-MM
+      
       const documentData = {
-        name: `Scan ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        name: `Scanup_${dateStr}_${timeStr}`,
         pages: validImages.map((img, index) => ({
           page_number: index + 1,
           image_base64: img.base64,
