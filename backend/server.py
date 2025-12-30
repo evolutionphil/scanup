@@ -3123,13 +3123,14 @@ async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
             
             if annotation.type in ['freehand', 'highlight']:
                 if annotation.points and len(annotation.points) >= 2:
-                    points = [(p['x'], p['y']) for p in annotation.points]
+                    # Scale all points
+                    points = [scale_point(p['x'], p['y']) for p in annotation.points]
                     draw.line(points, fill=color, width=stroke_width, joint='curve')
                     
             elif annotation.type == 'arrow':
                 if annotation.endX is not None and annotation.endY is not None:
-                    start = (annotation.x, annotation.y)
-                    end = (annotation.endX, annotation.endY)
+                    start = scale_point(annotation.x, annotation.y)
+                    end = scale_point(annotation.endX, annotation.endY)
                     
                     # Draw the main line
                     draw.line([start, end], fill=color, width=stroke_width)
