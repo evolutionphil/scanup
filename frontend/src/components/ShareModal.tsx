@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Switch,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
@@ -24,13 +25,63 @@ const TEXT_DARK = '#1B1B1B';
 const TEXT_MUTED = '#A4A4A4';
 const BORDER_GRAY = '#DADADA';
 
+// Helper to load image base64 from any source
+const loadPageImageBase64 = async (page: { image_base64?: string; image_url?: string; image_file_uri?: string }): Promise<string> => {
+  // Priority 1: Already have base64
+  if (page.image_base64 && page.image_base64.length > 100) {
+    if (page.image_base64.startsWith('data:')) {
+      return page.image_base64.split(',')[1];
+    }
+    return page.image_base64;
+  }
+  
+  // Priority 2: Load from file URI
+  if (page.image_file_uri) {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(page.image_file_uri);
+      if (fileInfo.exists) {
+        const base64 = await FileSystem.readAsStringAsync(page.image_file_uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        return base64;
+      }
+    } catch (e) {
+      console.error('[ShareModal] Failed to load from file:', e);
+    }
+  }
+  
+  // Priority 3: Download from S3 URL
+  if (page.image_url) {
+    try {
+      console.log('[ShareModal] Downloading from S3...');
+      const response = await fetch(page.image_url);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          const base64 = dataUrl.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('[ShareModal] Failed to download from S3:', e);
+    }
+  }
+  
+  return '';
+};
+
 interface ShareModalProps {
   visible: boolean;
   onClose: () => void;
   documentName: string;
   pageCount: number;
   fileSize?: string;
-  pages?: Array<{ image_base64: string; ocr_text?: string }>;
+  pages?: Array<{ image_base64?: string; image_url?: string; image_file_uri?: string; ocr_text?: string }>;
 }
 
 export default function ShareModal({
