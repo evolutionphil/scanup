@@ -47,12 +47,18 @@ class OfflineQueueService {
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    this.loadFromStorage();
-    this.setupNetworkListener();
+    // Don't initialize storage/network listeners during SSR
+    if (!isSSR) {
+      this.loadFromStorage();
+      this.setupNetworkListener();
+    }
   }
 
   // Load queue from AsyncStorage
   async loadFromStorage(): Promise<void> {
+    // Skip on SSR
+    if (isSSR) return;
+    
     try {
       const [queueData, overlaysData] = await Promise.all([
         AsyncStorage.getItem(QUEUE_KEY),
