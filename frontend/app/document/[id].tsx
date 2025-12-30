@@ -29,8 +29,11 @@ import ExportModal from '../../src/components/ExportModal';
 import ShareModal from '../../src/components/ShareModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
+import PendingBadge from '../../src/components/PendingBadge';
 // Local image processing - no backend needed!
 import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile, getImageBase64, loadImageAsBase64 } from '../../src/utils/localImageProcessor';
+// Offline queue for pending operations
+import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
