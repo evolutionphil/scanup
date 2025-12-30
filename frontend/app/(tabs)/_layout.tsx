@@ -10,7 +10,7 @@ import OfflineIndicator from '../../src/components/OfflineIndicator';
 // Figma design specs
 const TAB_BAR_HEIGHT = 91;
 const SCAN_BUTTON_SIZE = 50;
-const SCAN_BUTTON_OFFSET = 25; // How much button sits above tab bar
+const SCAN_ICON_SIZE = 34;
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
