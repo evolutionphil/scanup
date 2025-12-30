@@ -403,26 +403,22 @@ export default function DocumentsScreen() {
   };
 
   const handleDeleteDocument = (doc: Document) => {
-    Alert.alert(
-      'Delete Document',
-      `Are you sure you want to delete "${doc.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (token) {
-              try {
-                await deleteDocument(token, doc.document_id);
-              } catch (e) {
-                Alert.alert('Error', 'Failed to delete document');
-              }
-            }
-          },
-        },
-      ]
-    );
+    setDeleteDoc(doc);
+    setShowDeleteModal(true);
+  };
+  
+  const confirmDeleteDocument = async () => {
+    if (!deleteDoc) return;
+    
+    try {
+      const isLocalDoc = deleteDoc.document_id.startsWith('local_');
+      await deleteDocument(isLocalDoc ? null : token, deleteDoc.document_id);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete document');
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteDoc(null);
+    }
   };
 
   const renderEmptyState = () => (
