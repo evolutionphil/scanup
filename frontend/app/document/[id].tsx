@@ -157,6 +157,17 @@ export default function DocumentScreen() {
   // Annotation states
   const [showAnnotationEditor, setShowAnnotationEditor] = useState(false);
 
+  // Offline queue for pending operations
+  const { 
+    isOnline, 
+    pendingCount, 
+    hasPending, 
+    queueSignature, 
+    queueAnnotation, 
+    queueFilter,
+    getPageOverlays,
+  } = useOfflineQueue();
+
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = React.useRef(true);
   const isNavigatingRef = React.useRef(false);
