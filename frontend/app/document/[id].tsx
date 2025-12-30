@@ -891,46 +891,69 @@ export default function DocumentScreen() {
       // Store original before annotating if not already stored
       const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
       
-      // If we have annotations, render them onto the image via backend
-      if (annotations.length > 0) {
-        const endpoint = `${BACKEND_URL}/api/images/apply-annotations`;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token && !isLocalDoc) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            image_base64: currentPage.image_base64,
-            annotations: annotations,
-          }),
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.annotated_image_base64) {
-            const updatedPages = [...currentDocument.pages];
-            updatedPages[selectedPageIndex] = {
-              ...updatedPages[selectedPageIndex],
-              image_base64: result.annotated_image_base64,
-              original_image_base64: originalImage,
-              annotations: annotations, // Store annotations data for future editing
-            };
-            
-            await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-            Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
-          } else {
-            throw new Error('Failed to apply annotations');
-          }
-        } else {
-          throw new Error('Backend error');
-        }
+      // If no annotations, just close
+      if (!annotations || annotations.length === 0) {
+        setProcessing(false);
+        setShowAnnotationEditor(false);
+        return;
       }
-    } catch (e) {
+      
+      // Load image from any source
+      let imageData = currentPage.image_base64;
+      if (!imageData || imageData.length < 100) {
+        imageData = await loadImageBase64(currentPage);
+      }
+      
+      if (!imageData || imageData.length < 100) {
+        Alert.alert('Error', 'Could not load document image');
+        setProcessing(false);
+        setShowAnnotationEditor(false);
+        return;
+      }
+      
+      // Clean up base64
+      const cleanImageBase64 = imageData.startsWith('data:') 
+        ? imageData.split(',')[1] 
+        : imageData;
+      
+      // Render annotations onto the image via backend
+      const endpoint = `${BACKEND_URL}/api/images/apply-annotations`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && !isLocalDoc) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          image_base64: cleanImageBase64,
+          annotations: annotations,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.annotated_image_base64) {
+          const updatedPages = [...currentDocument.pages];
+          updatedPages[selectedPageIndex] = {
+            ...updatedPages[selectedPageIndex],
+            image_base64: result.annotated_image_base64,
+            original_image_base64: originalImage,
+            annotations: annotations, // Store annotations data for reference
+          };
+          
+          await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+          Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
+        } else {
+          throw new Error(result.message || 'Failed to apply annotations');
+        }
+      } else {
+        throw new Error('Backend error');
+      }
+    } catch (e: any) {
       console.error('Annotation error:', e);
-      Alert.alert('Error', 'Failed to save annotations. The annotations data will not be saved.');
+      Alert.alert('Error', `Failed to save annotations: ${e.message || 'Unknown error'}`);
     } finally {
       setProcessing(false);
       setShowAnnotationEditor(false);
