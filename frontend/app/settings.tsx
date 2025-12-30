@@ -332,6 +332,13 @@ export default function SettingsScreen() {
         />
         
         <SettingRow
+          icon="pencil-outline"
+          label="Signatures"
+          subtitle="Manage your saved signatures"
+          onPress={() => router.push('/signatures')}
+        />
+        
+        <SettingRow
           icon="flash-outline"
           label="Auto Enhance"
           subtitle="Automatically enhance scanned images"
