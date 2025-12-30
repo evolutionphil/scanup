@@ -829,13 +829,13 @@ export default function DocumentsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconWrapper}>
-        <Ionicons name={activeTab === 'documents' ? "documents-outline" : "folder-outline"} size={56} color="#CCC" />
+        <Ionicons name={activeMainTab === 'documents' ? "documents-outline" : "folder-outline"} size={56} color="#CCC" />
       </View>
       <Text style={styles.emptyTitle}>
-        {activeTab === 'documents' ? 'No Documents Yet' : 'No Folders Yet'}
+        {activeMainTab === 'documents' ? 'No Documents Yet' : 'No Folders Yet'}
       </Text>
       <Text style={styles.emptyText}>
-        {activeTab === 'documents' 
+        {activeMainTab === 'documents' 
           ? 'Tap the scan button to scan your first document'
           : 'Create folders to organize your documents'}
       </Text>
