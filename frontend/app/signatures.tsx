@@ -35,6 +35,8 @@ export default function SignaturesScreen() {
   const [showDrawModal, setShowDrawModal] = useState(false);
   const [paths, setPaths] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState('');
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedSignatures, setSelectedSignatures] = useState<string[]>([]);
 
   // Load saved signatures
   useEffect(() => {
@@ -77,6 +79,36 @@ export default function SignaturesScreen() {
         },
       ]
     );
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedSignatures.length === 0) return;
+    
+    Alert.alert(
+      'Delete Selected',
+      `Are you sure you want to delete ${selectedSignatures.length} signature(s)?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const updated = signatures.filter(s => !selectedSignatures.includes(s.id));
+            saveSignatures(updated);
+            setSelectedSignatures([]);
+            setIsSelectMode(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const toggleSignatureSelection = (id: string) => {
+    if (selectedSignatures.includes(id)) {
+      setSelectedSignatures(prev => prev.filter(s => s !== id));
+    } else {
+      setSelectedSignatures(prev => [...prev, id]);
+    }
   };
 
   const handleTouchStart = (e: any) => {
@@ -136,18 +168,29 @@ export default function SignaturesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* Header */}
+      {/* Header - Matches Figma design */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>My Signatures</Text>
-        <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: theme.primary }]}
-          onPress={() => setShowDrawModal(true)}
-        >
-          <Ionicons name="add" size={24} color="#FFF" />
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Signatures</Text>
+        {signatures.length > 0 && (
+          <TouchableOpacity 
+            onPress={() => {
+              if (isSelectMode) {
+                setIsSelectMode(false);
+                setSelectedSignatures([]);
+              } else {
+                setIsSelectMode(true);
+              }
+            }}
+          >
+            <Text style={[styles.selectText, { color: theme.primary }]}>
+              {isSelectMode ? 'Cancel' : 'Select'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {signatures.length === 0 && <View style={{ width: 50 }} />}
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -160,40 +203,72 @@ export default function SignaturesScreen() {
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               Create your first signature to use when signing documents
             </Text>
-            <TouchableOpacity 
-              style={[styles.createButton, { backgroundColor: theme.primary }]}
-              onPress={() => setShowDrawModal(true)}
-            >
-              <Ionicons name="add" size={20} color="#FFF" />
-              <Text style={styles.createButtonText}>Create Signature</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.signaturesGrid}>
             {signatures.map((sig) => (
-              <View key={sig.id} style={[styles.signatureCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <TouchableOpacity 
+                key={sig.id} 
+                style={[
+                  styles.signatureCard, 
+                  { backgroundColor: '#FFF', borderColor: theme.border },
+                  isSelectMode && selectedSignatures.includes(sig.id) && { borderColor: theme.primary, borderWidth: 2 }
+                ]}
+                onPress={() => {
+                  if (isSelectMode) {
+                    toggleSignatureSelection(sig.id);
+                  }
+                }}
+                onLongPress={() => {
+                  if (!isSelectMode) {
+                    handleDeleteSignature(sig.id);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                {isSelectMode && (
+                  <View style={[
+                    styles.checkbox,
+                    selectedSignatures.includes(sig.id) && { backgroundColor: theme.primary, borderColor: theme.primary }
+                  ]}>
+                    {selectedSignatures.includes(sig.id) && (
+                      <Ionicons name="checkmark" size={16} color="#FFF" />
+                    )}
+                  </View>
+                )}
                 <Image 
                   source={{ uri: sig.base64 }} 
                   style={styles.signaturePreview}
                   resizeMode="contain"
                 />
-                <View style={styles.signatureInfo}>
-                  <Text style={[styles.signatureName, { color: theme.text }]}>{sig.name}</Text>
-                  <Text style={[styles.signatureDate, { color: theme.textMuted }]}>
-                    {new Date(sig.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <TouchableOpacity 
-                  style={[styles.deleteButton, { backgroundColor: theme.danger + '15' }]}
-                  onPress={() => handleDeleteSignature(sig.id)}
-                >
-                  <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
       </ScrollView>
+
+      {/* Bottom Button - Matches Figma design */}
+      {isSelectMode && selectedSignatures.length > 0 ? (
+        <View style={styles.bottomButtonContainer}>
+          <TouchableOpacity 
+            style={[styles.addNewButton, { backgroundColor: theme.danger }]}
+            onPress={handleDeleteSelected}
+          >
+            <Ionicons name="trash-outline" size={22} color="#FFF" />
+            <Text style={styles.addNewButtonText}>Delete ({selectedSignatures.length})</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.bottomButtonContainer}>
+          <TouchableOpacity 
+            style={[styles.addNewButton, { backgroundColor: theme.primary }]}
+            onPress={() => setShowDrawModal(true)}
+          >
+            <Ionicons name="add" size={22} color="#FFF" />
+            <Text style={styles.addNewButtonText}>Add new</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Draw Signature Modal */}
       <Modal visible={showDrawModal} animationType="slide" presentationStyle="pageSheet">
@@ -275,20 +350,16 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
   },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  selectText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
@@ -323,51 +394,51 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 20,
   },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    gap: 8,
-  },
-  createButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   signaturesGrid: {
     gap: 16,
   },
   signatureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 12,
     borderWidth: 1,
-  },
-  signaturePreview: {
-    width: 100,
-    height: 50,
-    marginRight: 16,
-  },
-  signatureInfo: {
-    flex: 1,
-  },
-  signatureName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  signatureDate: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    minHeight: 100,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkbox: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#DDD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  signaturePreview: {
+    width: '100%',
+    height: 80,
+  },
+  bottomButtonContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 32,
+  },
+  addNewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 30,
+    gap: 8,
+  },
+  addNewButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   modalContainer: {
     flex: 1,
