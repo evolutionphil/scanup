@@ -107,6 +107,12 @@ export default function DocumentCard({
             <Ionicons name="lock-closed" size={12} color="#FFF" />
           </View>
         )}
+        {/* Pending operations badge */}
+        {hasPendingOps && (
+          <View style={styles.pendingBadge}>
+            <PendingBadge size="small" />
+          </View>
+        )}
         {/* Sync status indicator */}
         {syncStatus && syncStatus !== 'synced' && (
           <View style={[styles.syncBadge, { 
