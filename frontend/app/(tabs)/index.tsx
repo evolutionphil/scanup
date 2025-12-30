@@ -231,18 +231,29 @@ export default function DocumentsScreen() {
   };
 
   const handleMoveToFolder = async (folderId: string | null) => {
-    if (token) {
+    if (selectedDocs.length === 0) return;
+    
+    try {
       for (const docId of selectedDocs) {
-        try {
-          await updateDocument(token, docId, { folder_id: folderId });
-        } catch (e) {
-          console.error('Error moving document:', e);
-        }
+        await updateDocument(token || null, docId, { folder_id: folderId });
       }
       setShowMoveModal(false);
       setSelectionMode(false);
       setSelectedDocs([]);
       Alert.alert('Success', `Moved ${selectedDocs.length} document(s) to ${folderId ? 'folder' : 'main library'}`);
+    } catch (e) {
+      console.error('Error moving document:', e);
+      Alert.alert('Error', 'Failed to move document');
+    }
+  };
+  
+  const handleCreateFolderInModal = async (name: string, color: string): Promise<Folder | null> => {
+    try {
+      const newFolder = await createFolder(token || null, name, color);
+      return newFolder;
+    } catch (e) {
+      Alert.alert('Error', 'Failed to create folder');
+      return null;
     }
   };
 
