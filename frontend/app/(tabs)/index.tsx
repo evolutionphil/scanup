@@ -192,7 +192,17 @@ export default function DocumentsScreen() {
     
     if (unlockPasswordValue === docPassword) {
       setShowUnlockModal(false);
-      router.push(`/document/${unlockDoc.document_id}`);
+      
+      // Check if we should open share modal after unlock
+      if (shareAfterUnlock) {
+        setShareDoc(latestDoc || unlockDoc);
+        setShowShareModal(true);
+        setShareAfterUnlock(false);
+      } else {
+        // Navigate to document
+        router.push(`/document/${unlockDoc.document_id}`);
+      }
+      
       setUnlockDoc(null);
       setUnlockPasswordValue('');
     } else {
