@@ -11,7 +11,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { cacheDirectory, writeAsStringAsync, readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
 
 // Filter types supported
 export type FilterType = 'original' | 'enhanced' | 'grayscale' | 'bw' | 'document';
