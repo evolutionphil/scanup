@@ -1355,4 +1355,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
+  unlockHeader: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
 });
