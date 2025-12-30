@@ -237,6 +237,10 @@ export default function DocumentsScreen() {
       for (const docId of selectedDocs) {
         await updateDocument(token || null, docId, { folder_id: folderId });
       }
+      
+      // Refresh folders to update document counts
+      await fetchFolders(token || null);
+      
       setShowMoveModal(false);
       setSelectionMode(false);
       setSelectedDocs([]);
