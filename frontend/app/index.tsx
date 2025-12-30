@@ -73,7 +73,22 @@ export default function Index() {
 
     const navigate = async () => {
       try {
-        const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+        // Add timeout for AsyncStorage to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AsyncStorage timeout')), 2000)
+        );
+        
+        let completed = null;
+        try {
+          completed = await Promise.race([
+            AsyncStorage.getItem(ONBOARDING_KEY),
+            timeoutPromise
+          ]);
+        } catch (e) {
+          console.log('[Index] AsyncStorage failed or timed out, defaulting to onboarding');
+          completed = null;
+        }
+        
         if (!completed) {
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
             window.location.href = '/onboarding';
