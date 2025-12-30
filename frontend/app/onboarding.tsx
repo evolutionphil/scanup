@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-  PanResponder,
-  Animated,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,9 +13,8 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ONBOARDING_KEY = '@scanup_onboarding_complete';
-const SWIPE_THRESHOLD = 50;
 
 // Brand colors from Figma
 const BRAND_BLUE = '#3E51FB';
@@ -50,43 +47,6 @@ const SLIDES: GuideSlide[] = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const translateX = useRef(new Animated.Value(0)).current;
-  const gestureX = useRef(0);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-      },
-      onPanResponderGrant: () => {
-        gestureX.current = 0;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        gestureX.current = gestureState.dx;
-        const newTranslateX = -currentIndex * SCREEN_WIDTH + gestureState.dx;
-        translateX.setValue(newTranslateX);
-      },
-      onPanResponderRelease: () => {
-        let newIndex = currentIndex;
-        
-        if (gestureX.current < -SWIPE_THRESHOLD && currentIndex < SLIDES.length - 1) {
-          newIndex = currentIndex + 1;
-        } else if (gestureX.current > SWIPE_THRESHOLD && currentIndex > 0) {
-          newIndex = currentIndex - 1;
-        }
-        
-        Animated.spring(translateX, {
-          toValue: -newIndex * SCREEN_WIDTH,
-          useNativeDriver: true,
-          friction: 10,
-          tension: 50,
-        }).start();
-        
-        setCurrentIndex(newIndex);
-      },
-    })
-  ).current;
 
   const handleGetStarted = async () => {
     try {
@@ -99,60 +59,68 @@ export default function OnboardingScreen() {
   };
 
   const handleDotPress = (index: number) => {
-    Animated.spring(translateX, {
-      toValue: -index * SCREEN_WIDTH,
-      useNativeDriver: true,
-      friction: 10,
-      tension: 50,
-    }).start();
     setCurrentIndex(index);
   };
 
+  const handleNext = () => {
+    if (currentIndex < SLIDES.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const currentSlide = SLIDES[currentIndex];
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Main Content Area with Pan Responder */}
-      <View style={styles.contentArea} {...panResponder.panHandlers}>
-        <Animated.View
-          style={[
-            styles.slidesContainer,
-            {
-              width: SCREEN_WIDTH * SLIDES.length,
-              transform: [{ translateX }],
-            },
-          ]}
-        >
-          {SLIDES.map((item) => (
-            <View key={item.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
-              {/* Image Container with decorative elements */}
-              <View style={styles.imageContainer}>
-                {/* Blue gradient bar at top of image container */}
-                <LinearGradient
-                  colors={[BRAND_BLUE, BRAND_BLUE_DARK]}
-                  style={styles.topBar}
-                />
-                
-                {/* Gradient shadow below bar */}
-                <LinearGradient
-                  colors={['rgba(76, 94, 255, 0.186)', 'rgba(76, 94, 255, 0)']}
-                  style={styles.gradientShadow}
-                />
-                
-                {/* Main illustration image */}
-                <Image
-                  source={item.image}
-                  style={styles.slideImage}
-                  resizeMode="contain"
-                />
-              </View>
+      {/* Swipe areas for navigation */}
+      <TouchableOpacity 
+        style={styles.swipeAreaLeft} 
+        onPress={handlePrev}
+        activeOpacity={1}
+      />
+      <TouchableOpacity 
+        style={styles.swipeAreaRight} 
+        onPress={handleNext}
+        activeOpacity={1}
+      />
 
-              {/* Text Content */}
-              <View style={styles.textContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.description}>{item.description}</Text>
-              </View>
-            </View>
-          ))}
-        </Animated.View>
+      {/* Main Content Area */}
+      <View style={styles.contentArea}>
+        <View style={styles.slide}>
+          {/* Image Container with decorative elements */}
+          <View style={styles.imageContainer}>
+            {/* Blue gradient bar at top of image container */}
+            <LinearGradient
+              colors={[BRAND_BLUE, BRAND_BLUE_DARK]}
+              style={styles.topBar}
+            />
+            
+            {/* Gradient shadow below bar */}
+            <LinearGradient
+              colors={['rgba(76, 94, 255, 0.186)', 'rgba(76, 94, 255, 0)']}
+              style={styles.gradientShadow}
+            />
+            
+            {/* Main illustration image */}
+            <Image
+              source={currentSlide.image}
+              style={styles.slideImage}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Text Content */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>{currentSlide.title}</Text>
+            <Text style={styles.description}>{currentSlide.description}</Text>
+          </View>
+        </View>
       </View>
 
       {/* Bottom Fixed Area */}
@@ -195,16 +163,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  swipeAreaLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 200,
+    width: 80,
+    zIndex: 10,
+  },
+  swipeAreaRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 200,
+    width: 80,
+    zIndex: 10,
+  },
   contentArea: {
     flex: 1,
-    overflow: 'hidden',
-  },
-  slidesContainer: {
-    flexDirection: 'row',
-    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   slide: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 20,
