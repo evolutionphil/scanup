@@ -3031,8 +3031,8 @@ class AnnotationItem(BaseModel):
     type: str  # freehand, text, arrow, rectangle, circle, highlight
     color: str
     strokeWidth: float
-    x: float
-    y: float
+    x: Optional[float] = 0  # Optional for freehand/highlight that use points array
+    y: Optional[float] = 0
     width: Optional[float] = None
     height: Optional[float] = None
     endX: Optional[float] = None
