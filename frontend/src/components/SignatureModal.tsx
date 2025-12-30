@@ -30,6 +30,7 @@ interface SignatureModalProps {
 interface SignaturePlacementProps {
   visible: boolean;
   documentImage: string;
+  documentImageUrl?: string;
   signatureImage: string;
   onClose: () => void;
   onApply: (signatureBase64: string, position: { x: number; y: number }, scale: number) => void;
