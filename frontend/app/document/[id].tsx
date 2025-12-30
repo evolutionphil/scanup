@@ -788,16 +788,20 @@ export default function DocumentScreen() {
         }),
       });
       
-      let finalImage = imageBase64;
+      let finalImage = cleanImageBase64; // Use cleaned base64
       
       if (response.ok) {
         const result = await response.json();
+        console.log('[handleApplySignature] Response:', result.success, result.message);
         if (result.success && result.image_base64) {
           finalImage = result.image_base64;
-          console.log('[handleApplySignature] Signature burned into image successfully');
+          console.log('[handleApplySignature] Signature burned into image successfully, length:', finalImage.length);
+        } else {
+          console.warn('[handleApplySignature] Backend returned:', result.message);
         }
       } else {
-        console.warn('[handleApplySignature] Backend failed, storing as overlay');
+        const errorText = await response.text();
+        console.warn('[handleApplySignature] Backend failed:', response.status, errorText);
       }
       
       // Store signature metadata for reference
