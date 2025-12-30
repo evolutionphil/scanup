@@ -79,10 +79,28 @@ export default function Index() {
     }
   }, []);
 
-  // WEB: Show splash briefly then navigate
+  // WEB: Show splash with tap to continue
   if (IS_WEB) {
+    const handleWebNavigation = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+        if (!completed) {
+          router.replace('/onboarding');
+        } else {
+          continueAsGuest();
+          router.replace('/(tabs)');
+        }
+      } catch {
+        router.replace('/onboarding');
+      }
+    };
+
     return (
-      <View style={styles.splashContainer}>
+      <TouchableOpacity 
+        style={styles.splashContainer}
+        onPress={handleWebNavigation}
+        activeOpacity={0.95}
+      >
         {/* Logo Icon */}
         <View style={styles.splashLogoContainer}>
           <View style={styles.webLogoBox}>
@@ -98,11 +116,11 @@ export default function Index() {
           </Text>
         </View>
 
-        {/* Loading indicator */}
+        {/* Tap to continue text */}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <Text style={styles.tapToContinueText}>Tap anywhere to continue</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
