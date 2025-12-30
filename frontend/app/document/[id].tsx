@@ -28,6 +28,7 @@ import FilterEditor from '../../src/components/FilterEditor';
 import ExportModal from '../../src/components/ExportModal';
 import ShareModal from '../../src/components/ShareModal';
 import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/components/SignatureModal';
+import SignatureSelectionModal from '../../src/components/SignatureSelectionModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
 import PendingBadge from '../../src/components/PendingBadge';
 // Local image processing - no backend needed!
