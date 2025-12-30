@@ -743,29 +743,32 @@ export default function DocumentScreen() {
       const currentPage = currentDocument.pages[selectedPageIndex];
       const isLocalDoc = currentDocument.document_id.startsWith('local_');
       
-      // Ensure we have the image base64
-      let imageBase64 = currentPage.image_base64;
-      if (!imageBase64 || imageBase64.length < 100) {
-        imageBase64 = await loadImageBase64(currentPage);
+      // Use CURRENT image (with any filters/edits already applied), NOT original
+      let currentImage = currentPage.image_base64;
+      if (!currentImage || currentImage.length < 100) {
+        currentImage = await loadImageBase64(currentPage);
       }
       
-      if (!imageBase64 || imageBase64.length < 100) {
+      if (!currentImage || currentImage.length < 100) {
         Alert.alert('Error', 'Could not load document image');
         setProcessing(false);
         setPendingSignature(null);
         return;
       }
       
-      // Store original before signing if not already stored
-      const originalImage = currentPage.original_image_base64 || imageBase64;
+      // Preserve existing original - only set if not already present
+      // This keeps the FIRST original for proper revert functionality
+      const originalImage = currentPage.original_image_base64 && currentPage.original_image_base64.length > 100
+        ? currentPage.original_image_base64 
+        : currentImage;
       
-      // BURN signature into image using backend API
-      console.log('[handleApplySignature] Burning signature into image');
+      // BURN signature into CURRENT image (preserving filters/edits)
+      console.log('[handleApplySignature] Adding signature to current image (preserving filters)');
       
       // Clean up base64 data
-      const cleanImageBase64 = imageBase64.startsWith('data:') 
-        ? imageBase64.split(',')[1] 
-        : imageBase64;
+      const cleanImageBase64 = currentImage.startsWith('data:') 
+        ? currentImage.split(',')[1] 
+        : currentImage;
       const cleanSigBase64 = signatureBase64.startsWith('data:') 
         ? signatureBase64.split(',')[1] 
         : signatureBase64;
@@ -788,20 +791,28 @@ export default function DocumentScreen() {
         }),
       });
       
-      let finalImage = cleanImageBase64; // Use cleaned base64
+      let finalImage = cleanImageBase64;
       
       if (response.ok) {
         const result = await response.json();
         console.log('[handleApplySignature] Response:', result.success, result.message);
         if (result.success && result.image_base64) {
           finalImage = result.image_base64;
-          console.log('[handleApplySignature] Signature burned into image successfully, length:', finalImage.length);
+          console.log('[handleApplySignature] Signature added successfully, length:', finalImage.length);
         } else {
           console.warn('[handleApplySignature] Backend returned:', result.message);
+          Alert.alert('Error', 'Failed to add signature to image');
+          setProcessing(false);
+          setPendingSignature(null);
+          return;
         }
       } else {
         const errorText = await response.text();
         console.warn('[handleApplySignature] Backend failed:', response.status, errorText);
+        Alert.alert('Error', 'Failed to add signature');
+        setProcessing(false);
+        setPendingSignature(null);
+        return;
       }
       
       // Store signature metadata for reference
@@ -815,16 +826,20 @@ export default function DocumentScreen() {
       
       const existingSignatures = (currentPage as any).signatures || [];
       
+      // Update page with new image (signature burned in) but preserve original and filters
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: finalImage,
-        original_image_base64: originalImage,
+        original_image_base64: originalImage, // Keep original for revert
+        // Preserve existing filter settings
+        filter_applied: currentPage.filter_applied,
+        adjustments: currentPage.adjustments,
         signatures: [...existingSignatures, signatureOverlay],
       };
 
       await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-      Alert.alert('Success', 'Signature added to document. Use "Revert" to undo.');
+      Alert.alert('Success', 'Signature added to document!');
     } catch (e) {
       console.error('Signature error:', e);
       Alert.alert('Error', 'Failed to add signature');
