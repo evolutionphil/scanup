@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Document, getImageSource } from '../store/documentStore';
@@ -21,6 +22,13 @@ interface DocumentCardProps {
   onPress: () => void;
   onLongPress?: () => void;
   selected?: boolean;
+  onExport?: () => void;
+  onRename?: () => void;
+  onEdit?: () => void;
+  onPrint?: () => void;
+  onPassword?: () => void;
+  onMoveToFolder?: () => void;
+  onDelete?: () => void;
 }
 
 export default function DocumentCard({
