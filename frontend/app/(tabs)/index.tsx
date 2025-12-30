@@ -1086,6 +1086,13 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: 'space-between',
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
