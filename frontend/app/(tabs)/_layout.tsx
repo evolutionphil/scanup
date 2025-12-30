@@ -92,13 +92,11 @@ export default function TabsLayout() {
             title: '',
             tabBarIcon: () => (
               <View style={styles.scanButtonContainer}>
-                <View style={styles.scanButton}>
-                  <Image 
-                    source={require('../../assets/images/scan-icon-new.png')} 
-                    style={styles.scanIcon}
-                    resizeMode="contain"
-                  />
-                </View>
+                <Image 
+                  source={require('../../assets/images/scan-icon.png')} 
+                  style={styles.scanButtonImage}
+                  resizeMode="contain"
+                />
               </View>
             ),
           }}
