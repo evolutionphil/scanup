@@ -16,7 +16,7 @@ from PIL import Image
 import time
 
 # Test configuration
-BASE_URL = "https://docscanner-17.preview.emergentagent.com/api"
+BASE_URL = "https://scanup-fixes.preview.emergentagent.com/api"
 TEST_USER_EMAIL = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
 TEST_USER_PASSWORD = "TestPassword123!"
 TEST_USER_NAME = "Test User"
