@@ -205,37 +205,37 @@ export default function FilterEditor({
     // Use original image as base for preview, or loaded base64
     const baseImage = originalImageBase64 || effectiveImageBase64;
     
-    // If no image data, can't preview
+    // Skip if no image data, can't preview
     if (!baseImage || baseImage.length < 100) {
-      console.warn('[FilterEditor] No valid image data for preview');
+      console.log('[FilterEditor] No image data, can\'t preview');
       return;
     }
     
-    // For "original" filter with no adjustments, show original
+    // If "original" filter with no adjustments, show original
     if (filter === 'original' && b === 50 && c === 50 && s === 50) {
       setPreviewImage(baseImage);
       return;
     }
 
     setIsLoadingPreview(true);
+    
     try {
-      // Process locally - no network needed!
-      console.log('[FilterEditor] Processing locally, filter:', filter);
-      const processedBase64 = await processImageLocally(baseImage, filter);
+      // Use backend API to process filter
+      const processed = await processImageWithBackend(baseImage, filter, {
+        brightness: b - 50,
+        contrast: c - 50,
+        saturation: s - 50,
+      });
       
-      if (processedBase64) {
-        // Add data URI prefix for display
-        const processedWithPrefix = `data:image/jpeg;base64,${processedBase64}`;
-        setPreviewImage(processedWithPrefix);
+      if (processed && processed.length > 100) {
+        setPreviewImage(processed);
       }
-    } catch (e) {
-      console.error('[FilterEditor] Preview error:', e);
-      // Fall back to original image on error
-      setPreviewImage(baseImage);
+    } catch (error) {
+      console.error('[FilterEditor] Preview error:', error);
     } finally {
       setIsLoadingPreview(false);
     }
-  }, [effectiveImageBase64, originalImageBase64, processImageLocally]);
+  }, [effectiveImageBase64, originalImageBase64, processImageWithBackend]);
 
   // Debounced preview update
   useEffect(() => {
