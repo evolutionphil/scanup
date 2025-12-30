@@ -40,6 +40,7 @@ export default function DocumentsScreen() {
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
   const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
+  const { hasPending, pendingDocIds } = useOfflineQueue();
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
