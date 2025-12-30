@@ -712,6 +712,19 @@ export default function DocumentsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      
+      {/* Share Modal */}
+      {shareDoc && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => {
+            setShowShareModal(false);
+            setShareDoc(null);
+          }}
+          documentName={shareDoc.name}
+          pages={shareDoc.pages}
+        />
+      )}
     </SafeAreaView>
   );
 }
