@@ -654,6 +654,7 @@ export default function DocumentsScreen() {
         onClose={() => setShowMoveModal(false)}
         folders={folders}
         onSelectFolder={handleMoveToFolder}
+        onCreateFolder={handleCreateFolderInModal}
       />
       
       {/* Rename Modal */}
