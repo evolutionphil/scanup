@@ -159,6 +159,11 @@ export default function DocumentCard({
           <Text style={[styles.date, { color: theme.textMuted }]}>
             {format(new Date(document.updated_at), 'MMM d')}
           </Text>
+          {(document.password || document.is_password_protected) && (
+            <View style={[styles.lockBadge, { backgroundColor: theme.warning + '20' }]}>
+              <Ionicons name="lock-closed" size={10} color={theme.warning} />
+            </View>
+          )}
           {hasOCR && (
             <View style={[styles.ocrBadge, { backgroundColor: theme.primary + '20' }]}>
               <Ionicons name="text" size={10} color={theme.primary} />
