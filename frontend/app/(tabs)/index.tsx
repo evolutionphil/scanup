@@ -14,6 +14,7 @@ import {
   Platform,
   TextInput,
   StatusBar,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -31,8 +32,13 @@ import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
 import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const FOLDER_COLORS = [
+  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
+];
 
 type TabType = 'documents' | 'folders';
+type SortType = 'a-z' | 'z-a' | 'newest' | 'oldest';
+type ViewType = 'list' | 'grid';
 
 export default function DocumentsScreen() {
   const insets = useSafeAreaInsets();
@@ -45,8 +51,15 @@ export default function DocumentsScreen() {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('documents');
-  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+  const [sortBy, setSortBy] = useState<SortType>('a-z');
+  const [viewMode, setViewMode] = useState<ViewType>('list');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  
+  // Create folder modal
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [selectedColor, setSelectedColor] = useState(FOLDER_COLORS[0]);
+  const [creating, setCreating] = useState(false);
   
   // Rename modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -73,6 +86,10 @@ export default function DocumentsScreen() {
   
   // Share after unlock flag
   const [shareAfterUnlock, setShareAfterUnlock] = useState(false);
+  
+  // Temp sort values for modal
+  const [tempSortBy, setTempSortBy] = useState<SortType>('a-z');
+  const [tempViewMode, setTempViewMode] = useState<ViewType>('list');
   
   // Network listener for background sync
   useEffect(() => {
@@ -135,10 +152,17 @@ export default function DocumentsScreen() {
   // Get sorted documents
   const getSortedDocuments = () => {
     const docs = [...documents];
-    if (sortBy === 'name') {
-      return docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    } else {
-      return docs.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+    switch (sortBy) {
+      case 'a-z':
+        return docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      case 'z-a':
+        return docs.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+      case 'newest':
+        return docs.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+      case 'oldest':
+        return docs.sort((a, b) => new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime());
+      default:
+        return docs;
     }
   };
 
@@ -147,6 +171,16 @@ export default function DocumentsScreen() {
     return [...documents]
       .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
       .slice(0, 5);
+  };
+
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case 'a-z': return 'A-Z';
+      case 'z-a': return 'Z-A';
+      case 'newest': return 'Newest';
+      case 'oldest': return 'Oldest';
+      default: return 'Name';
+    }
   };
 
   const handleDocumentPress = (doc: Document) => {
@@ -262,6 +296,28 @@ export default function DocumentsScreen() {
     } catch (e) {
       Alert.alert('Error', 'Failed to create folder');
       return null;
+    }
+  };
+
+  // Create folder handler
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      Alert.alert('Error', 'Please enter a folder name');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await createFolder(token || null, { name: newFolderName.trim(), color: selectedColor });
+      setShowCreateFolderModal(false);
+      setNewFolderName('');
+      setSelectedColor(FOLDER_COLORS[0]);
+      await fetchFolders(token || null);
+    } catch (e) {
+      console.error('Folder creation error:', e);
+      Alert.alert('Error', 'Failed to create folder. Please try again.');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -456,11 +512,59 @@ export default function DocumentsScreen() {
     });
   };
 
-  // Render document list item matching reference design
+  // Open sort menu
+  const openSortMenu = () => {
+    setTempSortBy(sortBy);
+    setTempViewMode(viewMode);
+    setShowSortMenu(true);
+  };
+
+  // Apply sort settings
+  const applySortSettings = () => {
+    setSortBy(tempSortBy);
+    setViewMode(tempViewMode);
+    setShowSortMenu(false);
+  };
+
+  // Render document list item
   const renderDocumentItem = ({ item }: { item: Document }) => {
     const page = item.pages?.[0];
     const thumbnailSource = page ? getImageSource(page, true) : null;
     const isSelected = selectedDocs.includes(item.document_id);
+    
+    if (viewMode === 'grid') {
+      return (
+        <TouchableOpacity
+          style={[
+            styles.documentCardGrid,
+            isSelected && styles.documentCardSelected
+          ]}
+          onPress={() => handleDocumentPress(item)}
+          onLongPress={() => handleDocumentLongPress(item)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.gridThumbnail}>
+            {thumbnailSource && thumbnailSource.uri ? (
+              <Image
+                source={thumbnailSource}
+                style={styles.gridThumbnailImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Ionicons name="document-text-outline" size={40} color="#CCC" />
+              </View>
+            )}
+          </View>
+          <Text style={styles.gridDocName} numberOfLines={2}>
+            {item.name || 'Untitled'}
+          </Text>
+          <Text style={styles.gridDocDate}>
+            {formatDate(item.updated_at || item.created_at)}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
     
     return (
       <TouchableOpacity
@@ -472,7 +576,6 @@ export default function DocumentsScreen() {
         onLongPress={() => handleDocumentLongPress(item)}
         activeOpacity={0.7}
       >
-        {/* Thumbnail */}
         <View style={styles.documentThumbnail}>
           {thumbnailSource && thumbnailSource.uri ? (
             <Image
@@ -487,7 +590,6 @@ export default function DocumentsScreen() {
           )}
         </View>
         
-        {/* Document Info */}
         <View style={styles.documentInfo}>
           <Text style={styles.documentName} numberOfLines={1}>
             {item.name || 'Untitled Document'}
@@ -505,7 +607,6 @@ export default function DocumentsScreen() {
           </View>
         </View>
         
-        {/* Actions */}
         <View style={styles.documentActions}>
           <TouchableOpacity 
             style={styles.actionButton}
@@ -579,9 +680,32 @@ export default function DocumentsScreen() {
 
   // Documents content with sections
   const renderDocumentsContent = () => {
+    const sortedDocs = getSortedDocuments();
+
+    if (viewMode === 'grid') {
+      return (
+        <FlatList
+          data={sortedDocs}
+          keyExtractor={(item) => item.document_id}
+          renderItem={renderDocumentItem}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmptyState}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3E51FB"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      );
+    }
+
     const latestDocs = getLatestDocuments();
-    const allDocs = getSortedDocuments();
-    const remainingDocs = allDocs.filter(d => !latestDocs.find(l => l.document_id === d.document_id));
+    const remainingDocs = sortedDocs.filter(d => !latestDocs.find(l => l.document_id === d.document_id));
 
     return (
       <FlatList
@@ -595,7 +719,6 @@ export default function DocumentsScreen() {
               renderEmptyState()
             ) : (
               <>
-                {/* Latest Section */}
                 <Text style={styles.sectionTitle}>Latest</Text>
                 {latestDocs.map((doc) => (
                   <View key={`latest-${doc.document_id}`}>
@@ -603,7 +726,6 @@ export default function DocumentsScreen() {
                   </View>
                 ))}
                 
-                {/* All Section */}
                 {remainingDocs.length > 0 && (
                   <>
                     <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All</Text>
@@ -652,22 +774,25 @@ export default function DocumentsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#3E51FB" />
       
-      {/* Blue Header - Extends to top including status bar */}
+      {/* Blue Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Your Documents</Text>
             <TouchableOpacity 
               style={styles.sortSelector}
-              onPress={() => setShowSortMenu(true)}
+              onPress={openSortMenu}
             >
               <Text style={styles.sortLabel}>Sort by</Text>
-              <Text style={styles.sortValue}>{sortBy === 'name' ? 'Name' : 'Date'}</Text>
+              <Text style={styles.sortValue}>{getSortLabel()}</Text>
               <Ionicons name="chevron-down" size={14} color="#FFF" />
             </TouchableOpacity>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => router.push('/(tabs)/search')}
+            >
               <Ionicons name="search" size={18} color="#FFF" />
             </TouchableOpacity>
             <TouchableOpacity 
@@ -685,7 +810,7 @@ export default function DocumentsScreen() {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.headerButton}
-              onPress={() => router.push('/create-folder')}
+              onPress={() => setShowCreateFolderModal(true)}
             >
               <Ionicons name="folder-outline" size={18} color="#FFF" />
               <View style={styles.plusBadge}>
@@ -740,26 +865,142 @@ export default function DocumentsScreen() {
       {/* Content */}
       {activeTab === 'documents' ? renderDocumentsContent() : renderFoldersContent()}
 
-      {/* Sort Menu Modal */}
+      {/* Sort Menu Modal - Matching Figma Design */}
       <Modal visible={showSortMenu} transparent animationType="fade">
-        <Pressable style={styles.menuOverlay} onPress={() => setShowSortMenu(false)}>
-          <View style={styles.sortMenuContainer}>
-            <Text style={styles.sortMenuTitle}>Sort By</Text>
+        <Pressable style={styles.sortModalOverlay} onPress={() => setShowSortMenu(false)}>
+          <Pressable style={styles.sortModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sortModalHeader}>
+              <Text style={styles.sortModalTitle}>Sort by</Text>
+              <TouchableOpacity onPress={() => setShowSortMenu(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Sort Options */}
             <TouchableOpacity 
-              style={[styles.sortOption, sortBy === 'name' && styles.sortOptionActive]}
-              onPress={() => { setSortBy('name'); setShowSortMenu(false); }}
+              style={styles.sortOptionRow}
+              onPress={() => setTempSortBy('a-z')}
             >
-              <Text style={[styles.sortOptionText, sortBy === 'name' && styles.sortOptionTextActive]}>Name</Text>
-              {sortBy === 'name' && <Ionicons name="checkmark" size={20} color="#3E51FB" />}
+              <Text style={styles.sortOptionLabel}>A-Z</Text>
+              <View style={[styles.radioOuter, tempSortBy === 'a-z' && styles.radioOuterActive]}>
+                {tempSortBy === 'a-z' && <View style={styles.radioInner} />}
+              </View>
             </TouchableOpacity>
+            
             <TouchableOpacity 
-              style={[styles.sortOption, sortBy === 'date' && styles.sortOptionActive]}
-              onPress={() => { setSortBy('date'); setShowSortMenu(false); }}
+              style={styles.sortOptionRow}
+              onPress={() => setTempSortBy('z-a')}
             >
-              <Text style={[styles.sortOptionText, sortBy === 'date' && styles.sortOptionTextActive]}>Date</Text>
-              {sortBy === 'date' && <Ionicons name="checkmark" size={20} color="#3E51FB" />}
+              <Text style={styles.sortOptionLabel}>Z-A</Text>
+              <View style={[styles.radioOuter, tempSortBy === 'z-a' && styles.radioOuterActive]}>
+                {tempSortBy === 'z-a' && <View style={styles.radioInner} />}
+              </View>
             </TouchableOpacity>
-          </View>
+            
+            <TouchableOpacity 
+              style={styles.sortOptionRow}
+              onPress={() => setTempSortBy('newest')}
+            >
+              <Text style={styles.sortOptionLabel}>Newest First</Text>
+              <View style={[styles.radioOuter, tempSortBy === 'newest' && styles.radioOuterActive]}>
+                {tempSortBy === 'newest' && <View style={styles.radioInner} />}
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.sortOptionRow}
+              onPress={() => setTempSortBy('oldest')}
+            >
+              <Text style={styles.sortOptionLabel}>Oldest First</Text>
+              <View style={[styles.radioOuter, tempSortBy === 'oldest' && styles.radioOuterActive]}>
+                {tempSortBy === 'oldest' && <View style={styles.radioInner} />}
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.sortDivider} />
+            
+            {/* View Options */}
+            <TouchableOpacity 
+              style={styles.sortOptionRow}
+              onPress={() => setTempViewMode('list')}
+            >
+              <Text style={styles.sortOptionLabel}>List</Text>
+              <View style={[styles.radioOuter, tempViewMode === 'list' && styles.radioOuterActive]}>
+                {tempViewMode === 'list' && <View style={styles.radioInner} />}
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.sortOptionRow}
+              onPress={() => setTempViewMode('grid')}
+            >
+              <Text style={styles.sortOptionLabel}>Grid</Text>
+              <View style={[styles.radioOuter, tempViewMode === 'grid' && styles.radioOuterActive]}>
+                {tempViewMode === 'grid' && <View style={styles.radioInner} />}
+              </View>
+            </TouchableOpacity>
+            
+            {/* Done Button */}
+            <TouchableOpacity 
+              style={styles.sortDoneButton}
+              onPress={applySortSettings}
+            >
+              <Text style={styles.sortDoneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Create Folder Modal */}
+      <Modal visible={showCreateFolderModal} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowCreateFolderModal(false)}>
+          <Pressable style={styles.createFolderModalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>New Folder</Text>
+            
+            <TextInput
+              style={styles.folderInput}
+              placeholder="Folder name"
+              placeholderTextColor="#999"
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              autoFocus
+            />
+            
+            <Text style={styles.colorLabel}>Color</Text>
+            <View style={styles.colorGrid}>
+              {FOLDER_COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: color },
+                    selectedColor === color && styles.colorSelected,
+                  ]}
+                  onPress={() => setSelectedColor(color)}
+                >
+                  {selectedColor === color && (
+                    <Ionicons name="checkmark" size={20} color="#FFF" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalBtnCancel} 
+                onPress={() => setShowCreateFolderModal(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalBtnConfirm} 
+                onPress={handleCreateFolder}
+                disabled={creating}
+              >
+                <Text style={styles.modalBtnConfirmText}>{creating ? 'Creating...' : 'Create'}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1033,6 +1274,38 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#3E51FB',
   },
+  documentCardGrid: {
+    width: (SCREEN_WIDTH - 48) / 2,
+    backgroundColor: '#E8F4F8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+  },
+  gridThumbnail: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  gridThumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gridDocName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  gridDocDate: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
   documentThumbnail: {
     width: 60,
     height: 75,
@@ -1123,43 +1396,119 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 40,
   },
-  menuOverlay: {
+  // Sort Modal Styles
+  sortModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-start',
-    paddingTop: 180,
-    paddingHorizontal: 20,
-  },
-  sortMenuContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-  },
-  sortMenuTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  sortOption: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
+  },
+  sortModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+  },
+  sortModalHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  sortOptionActive: {
-    backgroundColor: '#EEF2FF',
+  sortModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
   },
-  sortOptionText: {
+  sortOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  sortOptionLabel: {
     fontSize: 16,
     color: '#111827',
   },
-  sortOptionTextActive: {
-    color: '#3E51FB',
-    fontWeight: '600',
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  radioOuterActive: {
+    borderColor: '#3E51FB',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3E51FB',
+  },
+  sortDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 8,
+  },
+  sortDoneButton: {
+    backgroundColor: '#3E51FB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  sortDoneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  // Create Folder Modal
+  createFolderModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+  },
+  folderInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
+    marginBottom: 20,
+  },
+  colorLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  colorOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorSelected: {
+    borderWidth: 3,
+    borderColor: '#FFF',
+  },
+  // General Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
