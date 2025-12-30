@@ -149,4 +149,13 @@ const styles = StyleSheet.create({
     height: 28,
     tintColor: '#FFFFFF',
   },
+  scanButtonContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Platform.OS === 'ios' ? 20 : 8,
+  },
+  scanIconExact: {
+    width: 48,
+    height: 48,
+  },
 });
