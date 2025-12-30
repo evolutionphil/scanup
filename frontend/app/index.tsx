@@ -81,13 +81,6 @@ export default function Index() {
 
   // WEB: Show navigation menu with direct links
   if (IS_WEB) {
-    // Use Linking for web navigation
-    const navigateWeb = (path: string) => {
-      if (typeof window !== 'undefined') {
-        window.location.href = path;
-      }
-    };
-    
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
@@ -109,26 +102,23 @@ export default function Index() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={() => navigateWeb('/onboarding')}
-            >
-              <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
-            </TouchableOpacity>
+            <Link href="/onboarding" asChild>
+              <Pressable style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}>
+                <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
+              </Pressable>
+            </Link>
             
-            <TouchableOpacity 
-              style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={() => navigateWeb('/premium')}
-            >
-              <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
-            </TouchableOpacity>
+            <Link href="/premium" asChild>
+              <Pressable style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}>
+                <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
+              </Pressable>
+            </Link>
             
-            <TouchableOpacity 
-              style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
-              onPress={() => navigateWeb('/(tabs)')}
-            >
-              <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App</Text>
-            </TouchableOpacity>
+            <Link href="/(tabs)" asChild>
+              <Pressable style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
+                <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App</Text>
+              </Pressable>
+            </Link>
           </View>
           
           <Text style={[styles.noteText, { color: theme.textMuted }]}>
