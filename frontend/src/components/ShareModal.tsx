@@ -120,13 +120,8 @@ export default function ShareModal({
   };
 
   const generatePdf = async (): Promise<string> => {
-    const imagesBase64 = pages.map(page => {
-      let imgData = page.image_base64 || '';
-      if (imgData.includes(',')) {
-        imgData = imgData.split(',')[1];
-      }
-      return imgData;
-    });
+    // Load images from any source
+    const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
 
     const imageHtml = imagesBase64.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
