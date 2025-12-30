@@ -5,11 +5,15 @@
  * Operations are queued locally and processed when back online.
  */
 
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
 const QUEUE_KEY = '@scanup_offline_queue';
 const OVERLAYS_KEY = '@scanup_pending_overlays';
+
+// Check if we're running in a browser/SSR environment
+const isSSR = typeof window === 'undefined';
 
 export type OperationType = 
   | 'apply_signature'
