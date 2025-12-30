@@ -1810,7 +1810,7 @@ async def create_folder(
     folder.pop("_id", None)
     return Folder(**folder)
 
-@api_router.get("/folders", response_model=List[Folder])
+@api_router.get("/folders")
 async def get_folders(current_user: User = Depends(get_current_user)):
     """Get all folders for current user with document counts"""
     folders = await db.folders.find(
