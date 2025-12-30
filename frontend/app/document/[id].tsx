@@ -431,10 +431,10 @@ export default function DocumentScreen() {
       const currentPage = currentDocument.pages[selectedPageIndex];
       const isLocalDoc = currentDocument.document_id.startsWith('local_');
       
-      // Get the image data to rotate
-      let imageToRotate = currentPage.image_base64;
+      // Get the image data to rotate - load from any available source
+      let imageToRotate = await loadImageBase64(currentPage);
       if (!imageToRotate || imageToRotate.length < 100) {
-        Alert.alert('Error', 'No image data available to rotate');
+        Alert.alert('Error', 'No image data available to rotate. Please try again.');
         setProcessing(false);
         return;
       }
