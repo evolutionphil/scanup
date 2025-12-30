@@ -292,31 +292,6 @@ export default function DocumentsScreen() {
     router.push(`/document/${doc.document_id}`);
   };
 
-  // Helper to load page image
-  const loadPageImage = async (page: any): Promise<string> => {
-    if (page?.image_base64 && page.image_base64.length > 100) {
-      return page.image_base64.startsWith('data:') 
-        ? page.image_base64 
-        : `data:image/jpeg;base64,${page.image_base64}`;
-    }
-    
-    if (page?.image_url) {
-      try {
-        const response = await fetch(page.image_url);
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.error('Failed to fetch image:', e);
-      }
-    }
-    
-    return '';
-  };
-
   const handlePrintDocument = async (doc: Document) => {
     try {
       // Use same approach as ShareModal - load all images
