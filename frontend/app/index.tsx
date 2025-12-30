@@ -14,40 +14,21 @@ const ONBOARDING_KEY = '@scanup_onboarding_complete';
 // Brand color from Figma design
 const BRAND_BLUE = '#3366FF';
 
-// Logo image URL for web compatibility
-const LOGO_URL = 'https://customer-assets.emergentagent.com/job_f61c01c3-3d34-442e-9c76-6cdad5808a35/artifacts/vjga57ci_Frame%20147.png';
-
-// Check if we're on web using browser-safe check
-const checkIsWeb = () => {
-  try {
-    return Platform.OS === 'web';
-  } catch {
-    return false;
-  }
-};
+// Check platform at module level - this runs during SSR too
+const IS_WEB = Platform.OS === 'web';
 
 export default function Index() {
   const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
   const { theme, loadTheme } = useThemeStore();
   const hasLoaded = useRef(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [showMenu, setShowMenu] = useState(false);
+  // On web, start with splash hidden to show menu immediately
+  const [showSplash, setShowSplash] = useState(!IS_WEB);
   const [navigating, setNavigating] = useState(false);
 
-  // Use useLayoutEffect for earlier execution
-  React.useLayoutEffect(() => {
-    // On web, show navigation menu quickly
-    if (checkIsWeb()) {
-      setShowSplash(false);
-      setShowMenu(true);
-    }
-  }, []);
-
-  // Animations
+  // Animations for native
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!hasLoaded.current) {
@@ -55,8 +36,9 @@ export default function Index() {
       loadTheme();
       loadStoredAuth();
 
-      // Start splash animations (only on native)
-      if (Platform.OS !== 'web') {
+      // Only run splash animation and navigation on native
+      if (!IS_WEB) {
+        // Start splash animations
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
@@ -76,45 +58,35 @@ export default function Index() {
             useNativeDriver: true,
           }),
         ]).start();
-      }
 
-      // Navigate after splash delay
-      const timer = setTimeout(() => {
-        if (navigating) return;
-        setNavigating(true);
-        setShowSplash(false);
-        
-        // For web, always go to onboarding for design testing
-        if (Platform.OS === 'web') {
-          router.replace('/onboarding');
-          return;
-        }
-        
-        // For native, check onboarding status
-        AsyncStorage.getItem(ONBOARDING_KEY).then((completed) => {
-          if (!completed) {
+        // Navigate after splash delay (native only)
+        setTimeout(() => {
+          if (navigating) return;
+          setNavigating(true);
+          
+          AsyncStorage.getItem(ONBOARDING_KEY).then((completed) => {
+            if (!completed) {
+              router.replace('/onboarding');
+            } else {
+              continueAsGuest();
+              router.replace('/(tabs)');
+            }
+          }).catch(() => {
             router.replace('/onboarding');
-          } else {
-            continueAsGuest();
-            router.replace('/(tabs)');
-          }
-        }).catch(() => {
-          router.replace('/onboarding');
-        });
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+          });
+        }, 2000);
+      }
     }
   }, []);
 
-  // On web, show a simple welcome screen with navigation buttons
-  if (showMenu) {
+  // WEB: Show navigation menu directly (no splash)
+  if (IS_WEB) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
           {/* App Logo */}
-          <View style={[styles.splashLogoContainer, { marginBottom: 16 }]}>
-            <View style={[styles.webLogoContainer, { backgroundColor: BRAND_BLUE }]}>
+          <View style={styles.webLogoWrapper}>
+            <View style={styles.webLogoBox}>
               <Ionicons name="document-text" size={60} color="#FFFFFF" />
             </View>
           </View>
@@ -125,127 +97,92 @@ export default function Index() {
               <Text style={{ fontWeight: '300' }}>Up</Text>
             </Text>
             <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
-              Smart Document Scanner
+              Web Preview - Navigate to screens below
             </Text>
           </View>
 
           <View style={styles.buttonContainer}>
             <Button
-              title="View Onboarding"
+              title="📱 Onboarding Screen"
               onPress={() => router.push('/onboarding')}
-              style={styles.getStartedButton}
+              style={styles.navButton}
             />
             
             <Button
-              title="View Premium Screen"
+              title="⭐ Premium Screen"
               onPress={() => router.push('/premium')}
-              variant="secondary"
-              style={styles.getStartedButton}
+              style={styles.navButton}
             />
             
-            <TouchableOpacity 
-              style={styles.loginLink}
+            <Button
+              title="🏠 Main App (Tabs)"
+              variant="secondary"
               onPress={() => {
                 continueAsGuest();
                 router.push('/(tabs)');
               }}
-            >
-              <Text style={[styles.loginText, { color: theme.primary }]}>
-                Enter App as Guest →
-              </Text>
-            </TouchableOpacity>
+              style={styles.navButton}
+            />
           </View>
+          
+          <Text style={[styles.noteText, { color: theme.textMuted }]}>
+            Use Expo Go for full experience
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Splash Screen with navigation buttons for web
-  if (showSplash && !showMenu) {
+  // NATIVE: Show animated splash screen
+  if (showSplash) {
     return (
       <View style={styles.splashContainer}>
         {/* Logo Icon */}
-        <TouchableOpacity 
-          style={styles.splashLogoContainer}
-          onPress={() => {
-            setShowSplash(false);
-            setShowMenu(true);
-          }}
+        <Animated.View
+          style={[
+            styles.splashLogoContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
         >
-          {checkIsWeb() ? (
-            <View style={styles.webLogoContainer}>
-              <Ionicons name="document-text" size={60} color="#FFFFFF" />
-            </View>
-          ) : (
-            <Image
-              source={require('../assets/images/logo.png')}
-              style={styles.splashLogo}
-              resizeMode="contain"
-            />
-          )}
-        </TouchableOpacity>
+          <Image
+            source={require('../assets/images/logo.png')}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
+        </Animated.View>
 
         {/* App Name */}
-        <View style={styles.splashTextContainer}>
+        <Animated.View
+          style={[
+            styles.splashTextContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           <Text style={styles.splashAppName}>
             <Text style={styles.scanText}>Scan</Text>
             <Text style={styles.upText}>Up</Text>
           </Text>
-        </View>
+        </Animated.View>
 
-        {/* Tap to continue (web only) */}
-        {checkIsWeb() && (
-          <TouchableOpacity 
-            style={styles.tapToContinue}
-            onPress={() => {
-              setShowSplash(false);
-              setShowMenu(true);
-            }}
-          >
-            <Text style={styles.tapText}>Tap to continue →</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Loading indicator (native only) */}
-        {!checkIsWeb() && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          </View>
-        )}
+        {/* Loading indicator */}
+        <Animated.View style={[styles.loadingContainer, { opacity: fadeAnim }]}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        </Animated.View>
       </View>
     );
   }
 
-  // After splash - show welcome screen (fallback)
+  // Fallback welcome screen (shouldn't normally be seen)
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <View style={styles.content}>
-        <View style={styles.welcomeHeader}>
-          <Text style={[styles.welcomeTitle, { color: theme.text }]}>Welcome to ScanUp</Text>
-          <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
-            Your smart document scanner
-          </Text>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Get Started"
-            onPress={() => {
-              continueAsGuest();
-              router.replace('/(tabs)');
-            }}
-            style={styles.getStartedButton}
-          />
-          
-          <TouchableOpacity 
-            style={styles.loginLink}
-            onPress={() => router.push('/(auth)/login')}
-          >
-            <Text style={[styles.loginText, { color: theme.primary }]}>
-              Already have an account? Sign In
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     </SafeAreaView>
   );
@@ -269,14 +206,6 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
   },
-  webLogoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   splashTextContainer: {
     alignItems: 'center',
     marginTop: 24,
@@ -297,20 +226,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 80,
   },
-  tapToContinue: {
-    position: 'absolute',
-    bottom: 80,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-  },
-  tapText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  // Welcome Screen Styles
+  // Web Navigation Menu Styles
   container: {
     flex: 1,
   },
@@ -320,32 +236,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
+  webLogoWrapper: {
+    marginBottom: 24,
+  },
+  webLogoBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: BRAND_BLUE,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   welcomeHeader: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 36,
     marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
   },
   buttonContainer: {
     width: '100%',
     maxWidth: 300,
-    gap: 16,
+    gap: 12,
   },
-  getStartedButton: {
+  navButton: {
     width: '100%',
   },
-  loginLink: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  loginText: {
-    fontSize: 14,
-    fontWeight: '500',
+  noteText: {
+    fontSize: 12,
+    marginTop: 24,
   },
 });
