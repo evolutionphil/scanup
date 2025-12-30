@@ -374,11 +374,14 @@ export default function DocumentScreen() {
     try {
       const currentPage = currentDocument.pages[selectedPageIndex];
       
-      // Use original image as base for non-destructive editing
-      let baseImage = currentPage.original_image_base64 || currentPage.image_base64;
+      // Use original image as base for non-destructive editing - load from any source
+      let baseImage = currentPage.original_image_base64;
+      if (!baseImage || baseImage.length < 100) {
+        baseImage = await loadImageBase64(currentPage);
+      }
       
       if (!baseImage || baseImage.length < 100) {
-        Alert.alert('Error', 'No image found to apply filter');
+        Alert.alert('Error', 'No image found to apply filter. Please try again.');
         setProcessing(false);
         return;
       }
@@ -388,7 +391,7 @@ export default function DocumentScreen() {
         const updatedPages = [...currentDocument.pages];
         updatedPages[selectedPageIndex] = {
           ...updatedPages[selectedPageIndex],
-          image_base64: currentPage.original_image_base64 || currentPage.image_base64,
+          image_base64: baseImage,
           filter_applied: 'original',
           adjustments: undefined,
         };
@@ -407,8 +410,8 @@ export default function DocumentScreen() {
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         // Keep the current image (filter will be re-applied on display if needed)
-        image_base64: currentPage.image_base64,
-        original_image_base64: currentPage.original_image_base64 || currentPage.image_base64,
+        image_base64: baseImage,
+        original_image_base64: baseImage,
         filter_applied: filterType,
         adjustments: adjustments,
       };
