@@ -540,21 +540,19 @@ export default function DocumentsScreen() {
         data={documents}
         keyExtractor={(item, index) => `${item.document_id}-${index}`}
         renderItem={({ item, index }) => {
-          // Get latest 5 documents
-          const latestDocs = documents.slice(0, 5);
-          const isInLatest = index < 5;
+          // Only show section headers in list view, not grid view
           const isFirstLatest = index === 0;
           const isFirstAll = index === 5;
           
           return (
             <>
-              {/* Latest Section Header */}
-              {isFirstLatest && documents.length > 0 && (
+              {/* Latest Section Header - Only in List View */}
+              {viewMode === 'list' && isFirstLatest && documents.length > 0 && (
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Latest</Text>
               )}
               
-              {/* All Section Header */}
-              {isFirstAll && (
+              {/* All Section Header - Only in List View */}
+              {viewMode === 'list' && isFirstAll && documents.length > 5 && (
                 <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 16 }]}>All</Text>
               )}
               
