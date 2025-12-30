@@ -79,19 +79,22 @@ export default function Index() {
     }
   }, []);
 
+  // WEB: Auto-navigate after delay
+  useEffect(() => {
+    if (IS_WEB && typeof window !== 'undefined') {
+      const timer = setTimeout(() => {
+        // Use window.location for reliable web navigation
+        window.location.href = '/onboarding';
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // WEB: Show splash with tap to continue
   if (IS_WEB) {
-    const handleWebNavigation = async () => {
-      try {
-        const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
-        if (!completed) {
-          router.replace('/onboarding');
-        } else {
-          continueAsGuest();
-          router.replace('/(tabs)');
-        }
-      } catch {
-        router.replace('/onboarding');
+    const handleWebNavigation = () => {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/onboarding';
       }
     };
 
