@@ -755,29 +755,64 @@ export default function DocumentScreen() {
       // Store original before signing if not already stored
       const originalImage = currentPage.original_image_base64 || imageBase64;
       
-      // LOCAL SIGNATURE PROCESSING - Store signature as overlay metadata
-      // The signature will be rendered on top of the image in the viewer
-      // This is non-destructive - original image is preserved
-      console.log('[handleApplySignature] Applying signature locally');
+      // BURN signature into image using backend API
+      console.log('[handleApplySignature] Burning signature into image');
       
-      // Create signature overlay data
+      // Clean up base64 data
+      const cleanImageBase64 = imageBase64.startsWith('data:') 
+        ? imageBase64.split(',')[1] 
+        : imageBase64;
+      const cleanSigBase64 = signatureBase64.startsWith('data:') 
+        ? signatureBase64.split(',')[1] 
+        : signatureBase64;
+      
+      const endpoint = `${BACKEND_URL}/api/images/apply-signature`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && !isLocalDoc) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          image_base64: cleanImageBase64,
+          signature_base64: cleanSigBase64,
+          position_x: position.x,
+          position_y: position.y,
+          scale: scale,
+        }),
+      });
+      
+      let finalImage = imageBase64;
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.image_base64) {
+          finalImage = result.image_base64;
+          console.log('[handleApplySignature] Signature burned into image successfully');
+        }
+      } else {
+        console.warn('[handleApplySignature] Backend failed, storing as overlay');
+      }
+      
+      // Store signature metadata for reference
       const signatureOverlay = {
-        signature_base64: signatureBase64,
+        signature_base64: cleanSigBase64,
         position_x: position.x,
         position_y: position.y,
         scale: scale,
         timestamp: Date.now(),
       };
       
-      // Get existing signatures or create new array
       const existingSignatures = (currentPage as any).signatures || [];
       
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
-        image_base64: imageBase64,
+        image_base64: finalImage,
         original_image_base64: originalImage,
-        signatures: [...existingSignatures, signatureOverlay], // Store signature as metadata
+        signatures: [...existingSignatures, signatureOverlay],
       };
 
       await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
