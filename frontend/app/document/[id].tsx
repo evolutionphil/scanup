@@ -694,7 +694,36 @@ export default function DocumentScreen() {
   };
 
   // Step 1: User draws signature
-  const handleSignatureCreated = (signatureBase64: string) => {
+  const handleSignatureCreated = async (signatureBase64: string) => {
+    if (!currentDocument) return;
+    
+    const currentPage = currentDocument.pages[selectedPageIndex];
+    
+    // Ensure image is loaded before showing placement modal
+    let imageBase64 = currentPage.image_base64;
+    if (!imageBase64 || imageBase64.length < 100) {
+      setProcessing(true);
+      try {
+        imageBase64 = await loadImageBase64(currentPage);
+        if (imageBase64 && imageBase64.length > 100) {
+          // Store the loaded image back to the document
+          const updatedPages = [...currentDocument.pages];
+          updatedPages[selectedPageIndex] = {
+            ...updatedPages[selectedPageIndex],
+            image_base64: imageBase64,
+          };
+          const isLocalDoc = currentDocument.document_id.startsWith('local_');
+          await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+        }
+      } catch (e) {
+        console.error('[handleSignatureCreated] Failed to load image:', e);
+        Alert.alert('Error', 'Failed to load document image');
+        setProcessing(false);
+        return;
+      }
+      setProcessing(false);
+    }
+    
     setPendingSignature(signatureBase64);
     setShowSignatureDrawing(false);
     setShowSignaturePlacement(true);
