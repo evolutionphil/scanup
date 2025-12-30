@@ -3200,6 +3200,77 @@ async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
         }
 
 
+class ApplySignatureRequest(BaseModel):
+    image_base64: str
+    signature_base64: str
+    position_x: float  # 0-1 normalized position
+    position_y: float  # 0-1 normalized position
+    scale: float = 0.3  # Size relative to image width
+
+@api_router.post("/images/apply-signature")
+async def apply_signature_to_image(request: ApplySignatureRequest):
+    """Burn a signature image onto the document image"""
+    try:
+        from PIL import Image
+        import io
+        
+        # Decode base image
+        img_data = request.image_base64
+        if ',' in img_data:
+            img_data = img_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(img_data)
+        base_image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+        img_width, img_height = base_image.size
+        
+        # Decode signature image
+        sig_data = request.signature_base64
+        if ',' in sig_data:
+            sig_data = sig_data.split(',')[1]
+        
+        sig_bytes = base64.b64decode(sig_data)
+        signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
+        
+        # Calculate signature size based on scale
+        sig_width = int(img_width * request.scale)
+        sig_height = int(sig_width * (signature.height / signature.width))
+        signature = signature.resize((sig_width, sig_height), Image.Resampling.LANCZOS)
+        
+        # Calculate position (position is center point in 0-1 normalized coords)
+        x = int(request.position_x * img_width - sig_width / 2)
+        y = int(request.position_y * img_height - sig_height / 2)
+        
+        # Clamp to image bounds
+        x = max(0, min(x, img_width - sig_width))
+        y = max(0, min(y, img_height - sig_height))
+        
+        # Paste signature onto image
+        base_image.paste(signature, (x, y), signature)
+        
+        # Convert back to JPEG
+        rgb_image = base_image.convert('RGB')
+        buffer = io.BytesIO()
+        rgb_image.save(buffer, format='JPEG', quality=95)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        logger.info(f"Applied signature at ({request.position_x:.2f}, {request.position_y:.2f})")
+        
+        return {
+            "success": True,
+            "image_base64": result_base64,
+            "message": "Signature applied successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Signature error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Failed to apply signature: {str(e)}"
+        }
+
+
 # ==================== EXPORT ENDPOINTS ====================
 
 class ExportRequest(BaseModel):
