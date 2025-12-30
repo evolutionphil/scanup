@@ -11,9 +11,8 @@ import OfflineIndicator from '../../src/components/OfflineIndicator';
 const TAB_BAR_HEIGHT = 91;
 const SCAN_BUTTON_SIZE = 50;  // Figma: 50x50px
 const TAB_BAR_PADDING_TOP = 12; // Tab bar padding
-// Figma CSS: top: 0px - button's top edge aligns with tab bar's top edge
-// So button is positioned at the very top of the tab bar area
-const SCAN_BUTTON_OFFSET = TAB_BAR_PADDING_TOP; // Just offset by the padding (12px)
+// Figma CSS: top: -30px as per user request
+const SCAN_BUTTON_OFFSET = 30;
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
