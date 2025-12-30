@@ -30,10 +30,34 @@ const FILTER_PRESETS = [
   { id: 'document', name: 'Doc', icon: 'document-text' },
 ];
 
+// Helper to load image base64 from URL
+const loadImageFromUrl = async (url: string): Promise<string> => {
+  try {
+    console.log('[FilterEditor] Loading image from URL...');
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error('[FilterEditor] Failed to load from URL:', e);
+    return '';
+  }
+};
+
 interface FilterEditorProps {
   visible: boolean;
   onClose: () => void;
   imageBase64: string;
+  imageUrl?: string;
+  imageFileUri?: string;
   originalImageBase64?: string;
   currentFilter: string;
   onApply: (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => void;
@@ -45,6 +69,8 @@ export default function FilterEditor({
   visible,
   onClose,
   imageBase64,
+  imageUrl,
+  imageFileUri,
   originalImageBase64,
   currentFilter,
   onApply,
@@ -58,6 +84,7 @@ export default function FilterEditor({
   const [contrast, setContrast] = useState(50);
   const [saturation, setSaturation] = useState(50);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [loadedBase64, setLoadedBase64] = useState<string>('');
   
   // Live preview state
   const [previewImage, setPreviewImage] = useState<string>(imageBase64);
