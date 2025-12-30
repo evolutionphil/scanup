@@ -270,4 +270,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 24,
   },
+  tapToContinueText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
