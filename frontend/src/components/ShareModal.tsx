@@ -18,7 +18,8 @@ import * as Print from 'expo-print';
 import * as MailComposer from 'expo-mail-composer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+// Using pdf-lib-with-encrypt for actual PDF password protection
+import { PDFDocument } from 'pdf-lib-with-encrypt';
 
 // Brand colors from Figma
 const BRAND_BLUE = '#3E51FB';
