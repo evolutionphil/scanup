@@ -523,14 +523,30 @@ const DocumentListItem = ({
   onPress, 
   onLongPress, 
   selected, 
-  theme 
+  theme,
+  onExport,
+  onRename,
+  onEdit,
+  onPrint,
+  onPassword,
+  onMoveToFolder,
+  onDelete,
 }: { 
   document: Document; 
   onPress: () => void; 
   onLongPress: () => void; 
   selected: boolean; 
   theme: any;
+  onExport?: () => void;
+  onRename?: () => void;
+  onEdit?: () => void;
+  onPrint?: () => void;
+  onPassword?: () => void;
+  onMoveToFolder?: () => void;
+  onDelete?: () => void;
 }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -543,8 +559,14 @@ const DocumentListItem = ({
   // Get thumbnail using the same logic as DocumentCard
   const page = document.pages?.[0];
   const thumbnailSource = page ? getImageSource(page, true) : null;
+  
+  const handleMenuOption = (action: (() => void) | undefined) => {
+    setShowMenu(false);
+    if (action) action();
+  };
 
   return (
+    <>
     <TouchableOpacity
       style={[
         styles.listItem,
@@ -591,9 +613,61 @@ const DocumentListItem = ({
         </View>
       )}
       
-      {/* Chevron */}
-      <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+      {/* Export Icon */}
+      <TouchableOpacity onPress={onExport} style={styles.listActionBtn}>
+        <Ionicons name="share-outline" size={20} color={theme.textMuted} />
+      </TouchableOpacity>
+      
+      {/* More Menu */}
+      <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.listActionBtn}>
+        <Ionicons name="ellipsis-horizontal" size={20} color={theme.textMuted} />
+      </TouchableOpacity>
     </TouchableOpacity>
+    
+    {/* Options Menu Modal */}
+    <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
+      <TouchableOpacity style={styles.listMenuOverlay} activeOpacity={1} onPress={() => setShowMenu(false)}>
+        <View style={[styles.listMenuContainer, { backgroundColor: theme.surface }]}>
+          <View style={styles.listMenuHeader}>
+            <Text style={[styles.listMenuTitle, { color: theme.text }]}>{document.name}</Text>
+            <TouchableOpacity onPress={() => setShowMenu(false)}>
+              <Ionicons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onRename)}>
+            <Ionicons name="pencil-outline" size={22} color={theme.text} />
+            <Text style={[styles.listMenuText, { color: theme.text }]}>Name</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onEdit)}>
+            <Ionicons name="options-outline" size={22} color={theme.text} />
+            <Text style={[styles.listMenuText, { color: theme.text }]}>Edit</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onPrint)}>
+            <Ionicons name="print-outline" size={22} color={theme.text} />
+            <Text style={[styles.listMenuText, { color: theme.text }]}>Print</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onPassword)}>
+            <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
+            <Text style={[styles.listMenuText, { color: theme.text }]}>Password</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onMoveToFolder)}>
+            <Ionicons name="folder-outline" size={22} color={theme.text} />
+            <Text style={[styles.listMenuText, { color: theme.text }]}>Move to Folder</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onDelete)}>
+            <Ionicons name="trash-outline" size={22} color="#EF4444" />
+            <Text style={[styles.listMenuText, { color: '#EF4444' }]}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+    </>
   );
 };
 
