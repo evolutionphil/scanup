@@ -13,6 +13,7 @@ import {
   Image,
   Platform,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -24,8 +25,6 @@ import { getInfoAsync, readAsStringAsync, EncodingType } from 'expo-file-system/
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, getImageSource } from '../../src/store/documentStore';
-import DocumentCard from '../../src/components/DocumentCard';
-import LoadingScreen from '../../src/components/LoadingScreen';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 import ShareModal from '../../src/components/ShareModal';
 import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
@@ -33,8 +32,10 @@ import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIEW_MODE_KEY = '@scanup_view_mode';
+const TAB_KEY = '@scanup_active_tab';
 
 type ViewMode = 'grid' | 'list';
+type TabType = 'documents' | 'folders';
 
 export default function DocumentsScreen() {
   const { user, token, isGuest } = useAuthStore();
@@ -45,8 +46,10 @@ export default function DocumentsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [showViewMenu, setShowViewMenu] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [activeTab, setActiveTab] = useState<TabType>('documents');
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+  const [showSortMenu, setShowSortMenu] = useState(false);
   
   // Rename modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -76,14 +79,10 @@ export default function DocumentsScreen() {
   
   // Network listener for background sync
   useEffect(() => {
-    // Load local cache first for instant display
     loadLocalCache();
     
-    // Set up network listener
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (state.isConnected && token && !isGuest) {
-        // Network came online, trigger sync
-        console.log('Network online - syncing pending documents...');
         syncPendingDocuments(token);
       }
     });
@@ -95,7 +94,6 @@ export default function DocumentsScreen() {
   useEffect(() => {
     const migrateIfNeeded = async () => {
       if (token && !isGuest && user && user.user_id) {
-        // User just logged in - check for local documents to migrate
         const { migrateGuestDocumentsToAccount } = useDocumentStore.getState();
         const migratedCount = await migrateGuestDocumentsToAccount(token, user.user_id);
         if (migratedCount > 0) {
@@ -104,7 +102,6 @@ export default function DocumentsScreen() {
             `${migratedCount} document${migratedCount > 1 ? 's' : ''} from guest mode ${migratedCount > 1 ? 'have' : 'has'} been added to your account.`,
             [{ text: 'OK' }]
           );
-          // Refresh documents list
           fetchDocuments(token);
         }
       }
@@ -112,38 +109,11 @@ export default function DocumentsScreen() {
     migrateIfNeeded();
   }, [token, isGuest, user]);
 
-  // Load saved view mode preference
-  useEffect(() => {
-    const loadViewMode = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(VIEW_MODE_KEY);
-        if (saved === 'grid' || saved === 'list') {
-          setViewMode(saved);
-        }
-      } catch (e) {
-        console.log('Could not load view mode preference');
-      }
-    };
-    loadViewMode();
-  }, []);
-
-  // Save view mode preference
-  const changeViewMode = async (mode: ViewMode) => {
-    setViewMode(mode);
-    setShowViewMenu(false);
-    try {
-      await AsyncStorage.setItem(VIEW_MODE_KEY, mode);
-    } catch (e) {
-      console.log('Could not save view mode preference');
-    }
-  };
-
   const loadDocuments = async () => {
     try {
       if (token && !isGuest) {
         await Promise.all([fetchDocuments(token), fetchFolders(token)]);
       } else {
-        // For guests, load from local storage
         await fetchDocuments(null);
       }
     } catch (e) {
@@ -165,16 +135,36 @@ export default function DocumentsScreen() {
     setRefreshing(false);
   };
 
+  // Get sorted documents
+  const getSortedDocuments = () => {
+    const docs = [...documents];
+    if (sortBy === 'name') {
+      return docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else {
+      return docs.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+    }
+  };
+
+  // Get latest 5 documents
+  const getLatestDocuments = () => {
+    return [...documents]
+      .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+      .slice(0, 5);
+  };
+
+  // Get all documents (excluding latest if showing sections)
+  const getAllDocuments = () => {
+    const sorted = getSortedDocuments();
+    return sorted.slice(5);
+  };
+
   const handleDocumentPress = (doc: Document) => {
     if (selectionMode) {
       toggleSelection(doc.document_id);
     } else {
-      // Get the latest document data from the store
       const latestDoc = documents.find(d => d.document_id === doc.document_id) || doc;
       
-      // Check if document has password protection
       if (latestDoc.password || latestDoc.is_password_protected) {
-        // Show unlock modal
         setUnlockDoc(latestDoc);
         setUnlockPasswordValue('');
         setShowUnlockModal(true);
@@ -187,22 +177,17 @@ export default function DocumentsScreen() {
   const handleUnlockDocument = () => {
     if (!unlockDoc) return;
     
-    // Get the LATEST document from the store to ensure we have the current password
     const latestDoc = documents.find(d => d.document_id === unlockDoc.document_id);
     const docPassword = latestDoc?.password || unlockDoc.password;
-    
-    console.log('[handleUnlockDocument] Entered:', unlockPasswordValue, 'Stored:', docPassword);
     
     if (unlockPasswordValue === docPassword) {
       setShowUnlockModal(false);
       
-      // Check if we should open share modal after unlock
       if (shareAfterUnlock) {
         setShareDoc(latestDoc || unlockDoc);
         setShowShareModal(true);
         setShareAfterUnlock(false);
       } else {
-        // Navigate to document
         router.push(`/document/${unlockDoc.document_id}`);
       }
       
@@ -267,7 +252,6 @@ export default function DocumentsScreen() {
         await updateDocument(token || null, docId, { folder_id: folderId });
       }
       
-      // Refresh folders to update document counts
       await fetchFolders(token || null);
       
       setShowMoveModal(false);
@@ -280,7 +264,7 @@ export default function DocumentsScreen() {
     }
   };
   
-  const handleCreateFolderInModal = async (name: string, color: string): Promise<Folder | null> => {
+  const handleCreateFolderInModal = async (name: string, color: string): Promise<any> => {
     try {
       const newFolder = await createFolder(token || null, { name, color });
       return newFolder;
@@ -292,7 +276,6 @@ export default function DocumentsScreen() {
 
   // Document card action handlers
   const handleExportDocument = (doc: Document) => {
-    // Check if document is password protected - require password before sharing
     const latestDoc = documents.find(d => d.document_id === doc.document_id) || doc;
     
     if (latestDoc.password || latestDoc.is_password_protected) {
@@ -307,14 +290,12 @@ export default function DocumentsScreen() {
               setUnlockDoc(latestDoc);
               setUnlockPasswordValue('');
               setShowUnlockModal(true);
-              // Set flag to open share after unlock
               setShareAfterUnlock(true);
             },
           },
         ]
       );
     } else {
-      // Open share modal directly
       setShareDoc(doc);
       setShowShareModal(true);
     }
@@ -346,19 +327,16 @@ export default function DocumentsScreen() {
 
   const handlePrintDocument = async (doc: Document) => {
     try {
-      // Use same approach as ShareModal - load all images
       const pageImages: string[] = [];
       
       for (const page of doc.pages) {
         let imgSrc = '';
         
-        // Try base64 first
         if (page.image_base64 && page.image_base64.length > 100) {
           imgSrc = page.image_base64.startsWith('data:') 
             ? page.image_base64 
             : `data:image/jpeg;base64,${page.image_base64}`;
         }
-        // Then try file URI (for local/guest documents)
         else if (page.image_file_uri) {
           try {
             const fileInfo = await getInfoAsync(page.image_file_uri);
@@ -372,7 +350,6 @@ export default function DocumentsScreen() {
             console.error('Failed to load image from file:', e);
           }
         }
-        // Then try URL
         else if (page.image_url) {
           try {
             const response = await fetch(page.image_url);
@@ -398,7 +375,6 @@ export default function DocumentsScreen() {
         return;
       }
       
-      // Build HTML for all pages
       const pagesHtml = pageImages.map((imgSrc, i) => {
         return `<div style="page-break-after: ${i < pageImages.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 10mm;">
           <img src="${imgSrc}" style="max-width: 100%; max-height: 90vh; object-fit: contain;"/>
@@ -439,7 +415,6 @@ export default function DocumentsScreen() {
   const confirmPassword = async () => {
     if (passwordDoc) {
       try {
-        // Works for both guest mode (token=null) and authenticated users
         const isLocalDoc = passwordDoc.document_id.startsWith('local_');
         await updateDocument(isLocalDoc ? null : token, passwordDoc.document_id, { 
           password: passwordValue || null,
@@ -481,267 +456,304 @@ export default function DocumentsScreen() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      day: 'numeric',
+      month: 'short', 
+      year: 'numeric'
+    });
+  };
+
+  // Render document list item matching reference design
+  const renderDocumentItem = ({ item }: { item: Document }) => {
+    const page = item.pages?.[0];
+    const thumbnailSource = page ? getImageSource(page, true) : null;
+    const isSelected = selectedDocs.includes(item.document_id);
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.documentCard,
+          isSelected && styles.documentCardSelected
+        ]}
+        onPress={() => handleDocumentPress(item)}
+        onLongPress={() => handleDocumentLongPress(item)}
+        activeOpacity={0.7}
+      >
+        {/* Thumbnail */}
+        <View style={styles.documentThumbnail}>
+          {thumbnailSource && thumbnailSource.uri ? (
+            <Image
+              source={thumbnailSource}
+              style={styles.thumbnailImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.thumbnailPlaceholder}>
+              <Ionicons name="document-text-outline" size={32} color="#CCC" />
+            </View>
+          )}
+        </View>
+        
+        {/* Document Info */}
+        <View style={styles.documentInfo}>
+          <Text style={styles.documentName} numberOfLines={1}>
+            {item.name || 'Untitled Document'}
+          </Text>
+          <Text style={styles.documentDate}>
+            {formatDate(item.updated_at || item.created_at)}
+          </Text>
+          <View style={styles.documentMeta}>
+            <Ionicons name="document-outline" size={12} color="#999" />
+            <Text style={styles.documentMetaText}>
+              {item.pages?.length || 1}
+            </Text>
+            <Text style={styles.documentMetaDot}>•</Text>
+            <Text style={styles.documentMetaText}>PDF</Text>
+          </View>
+        </View>
+        
+        {/* Actions */}
+        <View style={styles.documentActions}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => handleExportDocument(item)}
+          >
+            <Ionicons name="share-outline" size={22} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => {
+              Alert.alert(
+                item.name || 'Document',
+                'Choose an action',
+                [
+                  { text: 'Rename', onPress: () => handleRenameDocument(item) },
+                  { text: 'Edit', onPress: () => handleEditDocument(item) },
+                  { text: 'Print', onPress: () => handlePrintDocument(item) },
+                  { text: 'Password', onPress: () => handlePasswordDocument(item) },
+                  { text: 'Move to Folder', onPress: () => handleMoveDocument(item) },
+                  { text: 'Delete', style: 'destructive', onPress: () => handleDeleteDocument(item) },
+                  { text: 'Cancel', style: 'cancel' },
+                ]
+              );
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={22} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render folder item
+  const renderFolderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.documentCard}
+      onPress={() => router.push(`/folder/${item.folder_id}`)}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.folderIcon, { backgroundColor: item.color || '#3E51FB' }]}>
+        <Ionicons name="folder" size={28} color="#FFF" />
+      </View>
+      <View style={styles.documentInfo}>
+        <Text style={styles.documentName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.documentDate}>
+          {item.document_count || 0} documents
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={22} color="#CCC" />
+    </TouchableOpacity>
+  );
+
+  // Empty state
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={[styles.emptyIconWrapper, { backgroundColor: theme.surface }]}>
-        <Ionicons name="documents-outline" size={56} color={theme.textMuted} />
+      <View style={styles.emptyIconWrapper}>
+        <Ionicons name="documents-outline" size={56} color="#CCC" />
       </View>
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>No Documents Yet</Text>
-      <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-        {isGuest 
-          ? 'Sign in to save documents to the cloud'
-          : 'Tap the scan button below to scan your first document'}
+      <Text style={styles.emptyTitle}>No Documents Yet</Text>
+      <Text style={styles.emptyText}>
+        Tap the scan button to scan your first document
       </Text>
-      {isGuest && (
-        <TouchableOpacity 
-          style={[styles.signInButton, { backgroundColor: theme.primary }]}
-          onPress={() => router.push('/(auth)/login')}
-        >
-          <Text style={styles.signInButtonText}>Sign In</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
-  if (isLoading && documents.length === 0 && !isGuest) {
-    return <LoadingScreen message="Loading documents..." />;
-  }
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* Header */}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* Blue Header - Matching Reference Design */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.appName, { color: theme.primary }]}>ScanUp</Text>
-          <Text style={[styles.greeting, { color: theme.textSecondary }]}>
-            Hello, {user?.name?.split(' ')[0] || 'Guest'}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          {!user?.is_premium && !isGuest && (
-            <TouchableOpacity
-              style={[styles.premiumBadge, { backgroundColor: theme.warning + '20' }]}
-              onPress={() => router.push('/(tabs)/profile')}
-            >
-              <Ionicons name="star" size={14} color={theme.warning} />
-              <Text style={[styles.premiumText, { color: theme.warning }]}>Pro</Text>
-            </TouchableOpacity>
-          )}
-          {/* View Mode Menu Button */}
-          <TouchableOpacity
-            style={[styles.menuButton, { backgroundColor: theme.surface }]}
-            onPress={() => setShowViewMenu(true)}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color={theme.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* View Mode Menu Modal */}
-      <Modal
-        visible={showViewMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowViewMenu(false)}
-      >
-        <Pressable style={styles.menuOverlay} onPress={() => setShowViewMenu(false)}>
-          <View style={[styles.menuContainer, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.menuTitle, { color: theme.textSecondary }]}>View Mode</Text>
-            
-            <TouchableOpacity
-              style={[styles.menuOption, viewMode === 'grid' && { backgroundColor: theme.primary + '15' }]}
-              onPress={() => changeViewMode('grid')}
-            >
-              <Ionicons 
-                name="grid-outline" 
-                size={22} 
-                color={viewMode === 'grid' ? theme.primary : theme.text} 
-              />
-              <Text style={[
-                styles.menuOptionText, 
-                { color: viewMode === 'grid' ? theme.primary : theme.text }
-              ]}>
-                Grid View
-              </Text>
-              {viewMode === 'grid' && (
-                <Ionicons name="checkmark" size={20} color={theme.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.menuOption, viewMode === 'list' && { backgroundColor: theme.primary + '15' }]}
-              onPress={() => changeViewMode('list')}
-            >
-              <Ionicons 
-                name="list-outline" 
-                size={22} 
-                color={viewMode === 'list' ? theme.primary : theme.text} 
-              />
-              <Text style={[
-                styles.menuOptionText, 
-                { color: viewMode === 'list' ? theme.primary : theme.text }
-              ]}>
-                List View
-              </Text>
-              {viewMode === 'list' && (
-                <Ionicons name="checkmark" size={20} color={theme.primary} />
-              )}
-            </TouchableOpacity>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.headerTitle}>Your Documents</Text>
+              <TouchableOpacity 
+                style={styles.sortSelector}
+                onPress={() => setShowSortMenu(true)}
+              >
+                <Text style={styles.sortLabel}>Sort by</Text>
+                <Text style={styles.sortValue}>{sortBy === 'name' ? 'Name' : 'Date'}</Text>
+                <Ionicons name="chevron-down" size={16} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerButton}>
+                <Ionicons name="search" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => {
+                  if (selectionMode) {
+                    setSelectionMode(false);
+                    setSelectedDocs([]);
+                  } else {
+                    setSelectionMode(true);
+                  }
+                }}
+              >
+                <Ionicons name="checkmark-circle-outline" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => router.push('/create-folder')}
+              >
+                <Ionicons name="folder-outline" size={22} color="#FFF" />
+                <View style={styles.plusBadge}>
+                  <Text style={styles.plusBadgeText}>+</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </Pressable>
-      </Modal>
-
-      {/* Selection Mode Header */}
+        </SafeAreaView>
+      </View>
+      
+      {/* Tabs - Documents / Folders */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
+          onPress={() => setActiveTab('documents')}
+        >
+          <Text style={[styles.tabText, activeTab === 'documents' && styles.tabTextActive]}>
+            Documents
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'folders' && styles.tabActive]}
+          onPress={() => setActiveTab('folders')}
+        >
+          <Text style={[styles.tabText, activeTab === 'folders' && styles.tabTextActive]}>
+            Folders
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Selection Header */}
       {selectionMode && (
-        <View style={[styles.selectionHeader, { backgroundColor: theme.surface }]}>
+        <View style={styles.selectionHeader}>
           <TouchableOpacity onPress={() => {
             setSelectionMode(false);
             setSelectedDocs([]);
           }}>
-            <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.selectedCount, { color: theme.text }]}>
-            {selectedDocs.length} selected
-          </Text>
+          <Text style={styles.selectedCount}>{selectedDocs.length} selected</Text>
           <View style={styles.selectionActions}>
             <TouchableOpacity onPress={() => setShowMoveModal(true)} style={styles.selectionAction}>
-              <Ionicons name="folder-outline" size={22} color={theme.primary} />
+              <Ionicons name="folder-outline" size={22} color="#3E51FB" />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDeleteSelected} style={styles.selectionAction}>
-              <Ionicons name="trash-outline" size={22} color={theme.danger} />
+              <Ionicons name="trash-outline" size={22} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* OCR Banner for Free Users */}
-      {user && !user.is_premium && !isGuest && (
-        <View style={[styles.ocrBanner, { backgroundColor: theme.primary + '15' }]}>
-          <Ionicons name="text" size={16} color={theme.primary} />
-          <Text style={[styles.ocrBannerText, { color: theme.primary }]}>
-            {user.ocr_remaining_today} OCR scans remaining today
-          </Text>
-        </View>
-      )}
-
-      {/* Sync Status Banner */}
-      {(isSyncing || pendingSyncCount > 0) && !isGuest && (
-        <View style={[styles.syncBanner, { backgroundColor: isSyncing ? theme.primary + '15' : theme.warning + '15' }]}>
-          <Ionicons 
-            name={isSyncing ? "cloud-upload" : "cloud-offline-outline"} 
-            size={16} 
-            color={isSyncing ? theme.primary : theme.warning} 
-          />
-          <Text style={[styles.syncBannerText, { color: isSyncing ? theme.primary : theme.warning }]}>
-            {isSyncing 
-              ? 'Syncing documents to cloud...' 
-              : `${pendingSyncCount} document${pendingSyncCount > 1 ? 's' : ''} waiting to sync`}
-          </Text>
-        </View>
-      )}
-
-      {/* Documents with Latest and All sections */}
-      <FlatList
-        data={documents}
-        keyExtractor={(item, index) => `${item.document_id}-${index}`}
-        renderItem={({ item, index }) => {
-          // Only show section headers in list view, not grid view
-          const isFirstLatest = index === 0;
-          const isFirstAll = index === 5;
-          
-          return (
-            <>
-              {/* Latest Section Header - Only in List View */}
-              {viewMode === 'list' && isFirstLatest && documents.length > 0 && (
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Latest</Text>
-              )}
-              
-              {/* All Section Header - Only in List View */}
-              {viewMode === 'list' && isFirstAll && documents.length > 5 && (
-                <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 16 }]}>All</Text>
-              )}
-              
-              {viewMode === 'grid' ? (
-                <DocumentCard
-                  document={item}
-                  onPress={() => handleDocumentPress(item)}
-                  onLongPress={() => handleDocumentLongPress(item)}
-                  selected={selectedDocs.includes(item.document_id)}
-                  onExport={() => handleExportDocument(item)}
-                  onRename={() => handleRenameDocument(item)}
-                  onEdit={() => handleEditDocument(item)}
-                  onPrint={() => handlePrintDocument(item)}
-                  onPassword={() => handlePasswordDocument(item)}
-                  onMoveToFolder={() => handleMoveDocument(item)}
-                  onDelete={() => handleDeleteDocument(item)}
-                  hasPendingOps={hasPending(item.document_id)}
-                />
-              ) : (
-                <DocumentListItem
-                  document={item}
-                  onPress={() => handleDocumentPress(item)}
-                  onLongPress={() => handleDocumentLongPress(item)}
-                  selected={selectedDocs.includes(item.document_id)}
-                  theme={theme}
-                  onExport={() => handleExportDocument(item)}
-                  onRename={() => handleRenameDocument(item)}
-                  onEdit={() => handleEditDocument(item)}
-                  onPrint={() => handlePrintDocument(item)}
-                  onPassword={() => handlePasswordDocument(item)}
-                  onMoveToFolder={() => handleMoveDocument(item)}
-                  onDelete={() => handleDeleteDocument(item)}
-                />
-              )}
-            </>
-          );
-        }}
-        contentContainerStyle={styles.listContent}
-        numColumns={viewMode === 'grid' ? 2 : 1}
-        key={viewMode} // Force re-render when view mode changes
-        columnWrapperStyle={viewMode === 'grid' ? styles.row : undefined}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={() => (
-          folders.length > 0 ? (
-            <View style={styles.foldersSection}>
-              <Text style={[styles.foldersSectionTitle, { color: theme.textSecondary }]}>
-                Folders
+      {/* Content */}
+      {activeTab === 'documents' ? (
+        <FlatList
+          data={getSortedDocuments()}
+          keyExtractor={(item) => item.document_id}
+          renderItem={renderDocumentItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmptyState}
+          ListHeaderComponent={() => (
+            documents.length > 0 ? (
+              <>
+                <Text style={styles.sectionTitle}>Latest</Text>
+                {getLatestDocuments().map((doc) => (
+                  <View key={`latest-${doc.document_id}`}>
+                    {renderDocumentItem({ item: doc })}
+                  </View>
+                ))}
+                {documents.length > 5 && (
+                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>All</Text>
+                )}
+              </>
+            ) : null
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3E51FB"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={folders}
+          keyExtractor={(item) => item.folder_id}
+          renderItem={renderFolderItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconWrapper}>
+                <Ionicons name="folder-outline" size={56} color="#CCC" />
+              </View>
+              <Text style={styles.emptyTitle}>No Folders Yet</Text>
+              <Text style={styles.emptyText}>
+                Create folders to organize your documents
               </Text>
-              {viewMode === 'grid' ? (
-                // Grid view folders
-                <View style={styles.foldersGrid}>
-                  {folders.map((folder) => (
-                    <FolderGridItem
-                      key={folder.folder_id}
-                      folder={folder}
-                      onPress={() => router.push(`/folder/${folder.folder_id}`)}
-                      theme={theme}
-                    />
-                  ))}
-                </View>
-              ) : (
-                // List view folders
-                folders.map((folder) => (
-                  <FolderListItem
-                    key={folder.folder_id}
-                    folder={folder}
-                    onPress={() => router.push(`/folder/${folder.folder_id}`)}
-                    theme={theme}
-                  />
-                ))
-              )}
             </View>
-          ) : null
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3E51FB"
+            />
+          }
+        />
+      )}
+
+      {/* Sort Menu Modal */}
+      <Modal visible={showSortMenu} transparent animationType="fade">
+        <Pressable style={styles.menuOverlay} onPress={() => setShowSortMenu(false)}>
+          <View style={styles.sortMenuContainer}>
+            <Text style={styles.sortMenuTitle}>Sort By</Text>
+            <TouchableOpacity 
+              style={[styles.sortOption, sortBy === 'name' && styles.sortOptionActive]}
+              onPress={() => { setSortBy('name'); setShowSortMenu(false); }}
+            >
+              <Text style={[styles.sortOptionText, sortBy === 'name' && styles.sortOptionTextActive]}>Name</Text>
+              {sortBy === 'name' && <Ionicons name="checkmark" size={20} color="#3E51FB" />}
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortOption, sortBy === 'date' && styles.sortOptionActive]}
+              onPress={() => { setSortBy('date'); setShowSortMenu(false); }}
+            >
+              <Text style={[styles.sortOptionText, sortBy === 'date' && styles.sortOptionTextActive]}>Date</Text>
+              {sortBy === 'date' && <Ionicons name="checkmark" size={20} color="#3E51FB" />}
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Move to Folder Modal */}
       <MoveToFolderModal
@@ -753,23 +765,23 @@ export default function DocumentsScreen() {
       />
       
       {/* Rename Modal */}
-      <Modal visible={showRenameModal} transparent animationType="fade" onRequestClose={() => setShowRenameModal(false)}>
+      <Modal visible={showRenameModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Rename Document</Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Rename Document</Text>
             <TextInput
-              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              style={styles.modalInput}
               value={renameValue}
               onChangeText={setRenameValue}
               placeholder="Enter new name"
-              placeholderTextColor={theme.textMuted}
+              placeholderTextColor="#999"
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowRenameModal(false)}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowRenameModal(false)}>
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={confirmRename}>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmRename}>
                 <Text style={styles.modalBtnConfirmText}>Rename</Text>
               </TouchableOpacity>
             </View>
@@ -778,27 +790,27 @@ export default function DocumentsScreen() {
       </Modal>
       
       {/* Password Modal */}
-      <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+      <Modal visible={showPasswordModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPasswordModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Set Password</Text>
-            <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Set Password</Text>
+            <Text style={styles.modalSubtitle}>
               Enter a password to protect this document. Leave empty to remove password.
             </Text>
             <TextInput
-              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              style={styles.modalInput}
               value={passwordValue}
               onChangeText={setPasswordValue}
               placeholder="Enter password (optional)"
-              placeholderTextColor={theme.textMuted}
+              placeholderTextColor="#999"
               secureTextEntry
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowPasswordModal(false)}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowPasswordModal(false)}>
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={confirmPassword}>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmPassword}>
                 <Text style={styles.modalBtnConfirmText}>{passwordValue ? 'Set Password' : 'Remove Password'}</Text>
               </TouchableOpacity>
             </View>
@@ -807,31 +819,31 @@ export default function DocumentsScreen() {
       </Modal>
       
       {/* Unlock Password Modal */}
-      <Modal visible={showUnlockModal} transparent animationType="fade" onRequestClose={() => setShowUnlockModal(false)}>
+      <Modal visible={showUnlockModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUnlockModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+          <View style={styles.modalContent}>
             <View style={styles.unlockHeader}>
-              <Ionicons name="lock-closed" size={40} color={theme.primary} />
-              <Text style={[styles.modalTitle, { color: theme.text, marginTop: 12 }]}>Document Protected</Text>
+              <Ionicons name="lock-closed" size={40} color="#3E51FB" />
+              <Text style={[styles.modalTitle, { marginTop: 12 }]}>Document Protected</Text>
             </View>
-            <Text style={[styles.modalSubtitle, { color: theme.textMuted, textAlign: 'center' }]}>
+            <Text style={[styles.modalSubtitle, { textAlign: 'center' }]}>
               Enter the password to view this document.
             </Text>
             <TextInput
-              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              style={styles.modalInput}
               value={unlockPasswordValue}
               onChangeText={setUnlockPasswordValue}
               placeholder="Enter password"
-              placeholderTextColor={theme.textMuted}
+              placeholderTextColor="#999"
               secureTextEntry
               autoFocus
               onSubmitEditing={handleUnlockDocument}
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowUnlockModal(false)}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowUnlockModal(false)}>
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: theme.primary }]} onPress={handleUnlockDocument}>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleUnlockDocument}>
                 <Text style={styles.modalBtnConfirmText}>Unlock</Text>
               </TouchableOpacity>
             </View>
@@ -862,282 +874,99 @@ export default function DocumentsScreen() {
         onConfirm={confirmDeleteDocument}
         itemName={deleteDoc?.name}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-// List view item component
-const DocumentListItem = ({ 
-  document, 
-  onPress, 
-  onLongPress, 
-  selected, 
-  theme,
-  onExport,
-  onRename,
-  onEdit,
-  onPrint,
-  onPassword,
-  onMoveToFolder,
-  onDelete,
-}: { 
-  document: Document; 
-  onPress: () => void; 
-  onLongPress: () => void; 
-  selected: boolean; 
-  theme: any;
-  onExport?: () => void;
-  onRename?: () => void;
-  onEdit?: () => void;
-  onPrint?: () => void;
-  onPassword?: () => void;
-  onMoveToFolder?: () => void;
-  onDelete?: () => void;
-}) => {
-  const [showMenu, setShowMenu] = useState(false);
-  
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  // Get thumbnail using the same logic as DocumentCard
-  const page = document.pages?.[0];
-  const thumbnailSource = page ? getImageSource(page, true) : null;
-  
-  const handleMenuOption = (action: (() => void) | undefined) => {
-    setShowMenu(false);
-    if (action) action();
-  };
-
-  return (
-    <>
-    <TouchableOpacity
-      style={[
-        styles.listItem,
-        { backgroundColor: theme.surface },
-        selected && { backgroundColor: theme.primary + '20', borderColor: theme.primary }
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      activeOpacity={0.7}
-    >
-      {/* Thumbnail */}
-      <View style={[styles.listThumbnail, { backgroundColor: theme.background }]}>
-        {thumbnailSource && thumbnailSource.uri ? (
-          <Image
-            source={thumbnailSource}
-            style={styles.listThumbnailImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Ionicons name="document-outline" size={24} color={theme.textMuted} />
-        )}
-      </View>
-      
-      {/* Document Info */}
-      <View style={styles.listItemContent}>
-        <Text style={[styles.listItemTitle, { color: theme.text }]} numberOfLines={1}>
-          {document.name || 'Untitled Document'}
-        </Text>
-        <View style={styles.listItemMeta}>
-          <Text style={[styles.listItemDate, { color: theme.textMuted }]}>
-            {formatDate(document.updated_at || document.created_at)}
-          </Text>
-          <View style={styles.listItemDot} />
-          <Text style={[styles.listItemPages, { color: theme.textMuted }]}>
-            {document.pages?.length || 1} page{(document.pages?.length || 1) !== 1 ? 's' : ''}
-          </Text>
-        </View>
-      </View>
-      
-      {/* Selection indicator */}
-      {selected && (
-        <View style={[styles.listCheckmark, { backgroundColor: theme.primary }]}>
-          <Ionicons name="checkmark" size={14} color="#FFF" />
-        </View>
-      )}
-      
-      {/* Export Icon */}
-      <TouchableOpacity 
-        onPress={(e) => {
-          e.stopPropagation();
-          if (onExport) onExport();
-        }} 
-        style={styles.listActionBtn}
-      >
-        <Ionicons name="share-outline" size={20} color={theme.textMuted} />
-      </TouchableOpacity>
-      
-      {/* More Menu */}
-      <TouchableOpacity 
-        onPress={(e) => {
-          e.stopPropagation();
-          setShowMenu(true);
-        }} 
-        style={styles.listActionBtn}
-      >
-        <Ionicons name="ellipsis-horizontal" size={20} color={theme.textMuted} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-    
-    {/* Options Menu Modal */}
-    <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
-      <TouchableOpacity style={styles.listMenuOverlay} activeOpacity={1} onPress={() => setShowMenu(false)}>
-        <View style={[styles.listMenuContainer, { backgroundColor: theme.surface }]}>
-          <View style={styles.listMenuHeader}>
-            <Text style={[styles.listMenuTitle, { color: theme.text }]}>{document.name}</Text>
-            <TouchableOpacity onPress={() => setShowMenu(false)}>
-              <Ionicons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onRename)}>
-            <Ionicons name="pencil-outline" size={22} color={theme.text} />
-            <Text style={[styles.listMenuText, { color: theme.text }]}>Name</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onEdit)}>
-            <Ionicons name="options-outline" size={22} color={theme.text} />
-            <Text style={[styles.listMenuText, { color: theme.text }]}>Edit</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onPrint)}>
-            <Ionicons name="print-outline" size={22} color={theme.text} />
-            <Text style={[styles.listMenuText, { color: theme.text }]}>Print</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onPassword)}>
-            <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
-            <Text style={[styles.listMenuText, { color: theme.text }]}>Password</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onMoveToFolder)}>
-            <Ionicons name="folder-outline" size={22} color={theme.text} />
-            <Text style={[styles.listMenuText, { color: theme.text }]}>Move to Folder</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.listMenuItem} onPress={() => handleMenuOption(onDelete)}>
-            <Ionicons name="trash-outline" size={22} color="#EF4444" />
-            <Text style={[styles.listMenuText, { color: '#EF4444' }]}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-    </>
-  );
-};
-
-// Folder list item component
-const FolderListItem = ({ 
-  folder, 
-  onPress, 
-  theme 
-}: { 
-  folder: any; 
-  onPress: () => void; 
-  theme: any;
-}) => {
-  return (
-    <TouchableOpacity
-      style={[styles.listItem, { backgroundColor: theme.surface }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.folderIcon, { backgroundColor: theme.primary + '15' }]}>
-        <Ionicons name="folder" size={26} color={theme.primary} />
-      </View>
-      <View style={styles.listItemContent}>
-        <Text style={[styles.listItemTitle, { color: theme.text }]} numberOfLines={1}>
-          {folder.name}
-        </Text>
-        <Text style={[styles.listItemDate, { color: theme.textMuted }]}>
-          {folder.document_count || 0} documents
-        </Text>
-      </View>
-      {folder.is_protected && (
-        <Ionicons name="lock-closed" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
-      )}
-      <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
-    </TouchableOpacity>
-  );
-};
-
-// Folder grid item component
-const FolderGridItem = ({ 
-  folder, 
-  onPress, 
-  theme 
-}: { 
-  folder: any; 
-  onPress: () => void; 
-  theme: any;
-}) => {
-  return (
-    <TouchableOpacity
-      style={[styles.folderGridItem, { backgroundColor: theme.surface }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.folderGridIcon, { backgroundColor: theme.primary + '15' }]}>
-        <Ionicons name="folder" size={32} color={theme.primary} />
-        {folder.is_protected && (
-          <View style={[styles.folderLockBadge, { backgroundColor: theme.surface }]}>
-            <Ionicons name="lock-closed" size={10} color={theme.textMuted} />
-          </View>
-        )}
-      </View>
-      <Text style={[styles.folderGridName, { color: theme.text }]} numberOfLines={1}>
-        {folder.name}
-      </Text>
-      <Text style={[styles.folderGridCount, { color: theme.textMuted }]}>
-        {folder.document_count || 0} docs
-      </Text>
-    </TouchableOpacity>
-  );
-};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FA',
   },
   header: {
+    backgroundColor: '#3E51FB',
+    paddingBottom: 16,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 8,
   },
-  headerLeft: {},
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  appName: {
+  headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    letterSpacing: -0.5,
+    color: '#FFF',
+    marginBottom: 4,
   },
-  greeting: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  premiumBadge: {
+  sortSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
+    gap: 6,
   },
-  premiumText: {
+  sortLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  sortValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusBadgeText: {
     fontSize: 12,
+    fontWeight: '700',
+    color: '#3E51FB',
+    marginTop: -1,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  tab: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginRight: 24,
+  },
+  tabActive: {
+    borderBottomWidth: 3,
+    borderBottomColor: '#3E51FB',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  tabTextActive: {
+    color: '#111827',
     fontWeight: '600',
   },
   selectionHeader: {
@@ -1146,17 +975,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 12,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   cancelText: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#3E51FB',
   },
   selectedCount: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#111827',
   },
   selectionActions: {
     flexDirection: 'row',
@@ -1166,60 +997,105 @@ const styles = StyleSheet.create({
   selectionAction: {
     padding: 4,
   },
-  ocrBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 8,
-  },
-  ocrBannerText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  syncBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 8,
-  },
-  syncBannerText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
-    flexGrow: 1,
-  },
-  row: {
-    justifyContent: 'space-between',
+    paddingTop: 12,
+    paddingBottom: 120,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
+    color: '#111827',
     marginBottom: 12,
-    marginTop: 8,
-    paddingHorizontal: 4,
+    marginLeft: 4,
+  },
+  documentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F4F8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  documentCardSelected: {
+    backgroundColor: '#DBEAFE',
+    borderWidth: 2,
+    borderColor: '#3E51FB',
+  },
+  documentThumbnail: {
+    width: 60,
+    height: 75,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  documentInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  documentName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  documentDate: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  documentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  documentMetaText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  documentMetaDot: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginHorizontal: 4,
+  },
+  documentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  folderIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   emptyIconWrapper: {
     width: 100,
     height: 100,
     borderRadius: 50,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -1227,237 +1103,52 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#111827',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
+    color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 20,
-  },
-  signInButton: {
-    marginTop: 20,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  signInButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Menu button and modal styles
-  menuButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 40,
   },
   menuOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 100,
-    paddingRight: 20,
+    paddingTop: 180,
+    paddingHorizontal: 20,
   },
-  menuContainer: {
+  sortMenuContainer: {
+    backgroundColor: '#FFF',
     borderRadius: 12,
-    padding: 8,
-    minWidth: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    padding: 16,
   },
-  menuTitle: {
-    fontSize: 12,
+  sortMenuTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    color: '#6B7280',
+    marginBottom: 12,
   },
-  menuOption: {
+  sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 12,
-  },
-  menuOptionText: {
-    fontSize: 15,
-    fontWeight: '500',
-    flex: 1,
-  },
-  // List view styles
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 4,
-    marginVertical: 4,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  listThumbnail: {
-    width: 50,
-    height: 65,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  listThumbnailImage: {
-    width: '100%',
-    height: '100%',
-  },
-  listItemContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  listItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  listItemMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  listItemDate: {
-    fontSize: 13,
-  },
-  listItemDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#999',
-    marginHorizontal: 8,
-  },
-  listItemPages: {
-    fontSize: 13,
-  },
-  listCheckmark: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  // Folder styles
-  folderIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  foldersSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-  },
-  foldersSectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  // Folder grid styles
-  foldersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  folderGridItem: {
-    width: (SCREEN_WIDTH - 48) / 2,
-    margin: 4,
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  folderGridIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    position: 'relative',
-  },
-  folderLockBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  folderGridName: {
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  folderGridCount: {
-    fontSize: 11,
-  },
-  // List action button styles
-  listActionBtn: {
-    padding: 8,
-  },
-  // List menu modal styles
-  listMenuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  listMenuContainer: {
-    width: '100%',
-    maxWidth: 320,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  listMenuHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
-  listMenuTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+  sortOptionActive: {
+    backgroundColor: '#EEF2FF',
   },
-  listMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 16,
-  },
-  listMenuText: {
+  sortOptionText: {
     fontSize: 16,
-    fontWeight: '500',
+    color: '#111827',
   },
-  // General modal styles for rename/password
+  sortOptionTextActive: {
+    color: '#3E51FB',
+    fontWeight: '600',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1468,49 +1159,52 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 340,
+    backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#111827',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 14,
+    color: '#6B7280',
     marginBottom: 16,
   },
   modalInput: {
     borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
     marginBottom: 20,
   },
   modalButtons: {
     flexDirection: 'row',
     gap: 12,
   },
-  modalBtn: {
+  modalBtnCancel: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-  },
-  modalBtnCancel: {
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#F3F4F6',
   },
   modalBtnCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#6B7280',
   },
   modalBtnConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
     backgroundColor: '#3E51FB',
   },
   modalBtnConfirmText: {
