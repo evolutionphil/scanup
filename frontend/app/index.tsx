@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity, Image, Platform, Pressable } from 'react-native';
-import { router, Link } from 'expo-router';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, Dimensions, TouchableOpacity, Image, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
-import Button from '../src/components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,176 +13,158 @@ const ONBOARDING_KEY = '@scanup_onboarding_complete';
 // Brand color from Figma design
 const BRAND_BLUE = '#3366FF';
 
-// Check platform at module level - this runs during SSR too
-const IS_WEB = Platform.OS === 'web';
-
 export default function Index() {
-  const { isAuthenticated, isLoading, loadStoredAuth, continueAsGuest } = useAuthStore();
-  const { theme, loadTheme } = useThemeStore();
-  const hasLoaded = useRef(false);
-  // On web, start with splash hidden to show menu immediately
-  const [showSplash, setShowSplash] = useState(!IS_WEB);
-  const [navigating, setNavigating] = useState(false);
+  const { loadStoredAuth, continueAsGuest } = useAuthStore();
+  const { loadTheme } = useThemeStore();
+  const [isClient, setIsClient] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+  const hasNavigated = useRef(false);
 
-  // Animations for native
+  // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
+  // Mark as client-side rendered
   useEffect(() => {
-    if (!hasLoaded.current) {
-      hasLoaded.current = true;
-      loadTheme();
-      loadStoredAuth();
+    setIsClient(true);
+    loadTheme();
+    loadStoredAuth();
+  }, []);
 
-      // Only run splash animation and navigation on native
-      if (!IS_WEB) {
-        // Start splash animations
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            friction: 8,
-            tension: 40,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 600,
-            delay: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
+  // Handle navigation after client is ready
+  useEffect(() => {
+    if (!isClient || hasNavigated.current) return;
 
-        // Navigate after splash delay (native only)
-        setTimeout(() => {
-          if (navigating) return;
-          setNavigating(true);
-          
-          AsyncStorage.getItem(ONBOARDING_KEY).then((completed) => {
-            if (!completed) {
-              router.replace('/onboarding');
-            } else {
-              continueAsGuest();
-              router.replace('/(tabs)');
-            }
-          }).catch(() => {
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Navigate after delay
+    const timer = setTimeout(() => {
+      if (hasNavigated.current) return;
+      hasNavigated.current = true;
+      setShouldNavigate(true);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [isClient]);
+
+  // Perform navigation
+  useEffect(() => {
+    if (!shouldNavigate) return;
+
+    const navigate = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+        if (!completed) {
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.location.href = '/onboarding';
+          } else {
             router.replace('/onboarding');
-          });
-        }, 2000);
-      }
-    }
-  }, []);
-
-  // WEB: Auto-navigate after delay
-  useEffect(() => {
-    if (IS_WEB && typeof window !== 'undefined') {
-      const timer = setTimeout(() => {
-        // Use window.location for reliable web navigation
-        window.location.href = '/onboarding';
-      }, 2500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  // WEB: Show splash with tap to continue
-  if (IS_WEB) {
-    const handleWebNavigation = () => {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/onboarding';
+          }
+        } else {
+          continueAsGuest();
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.location.href = '/(tabs)';
+          } else {
+            router.replace('/(tabs)');
+          }
+        }
+      } catch {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.location.href = '/onboarding';
+        } else {
+          router.replace('/onboarding');
+        }
       }
     };
 
-    return (
-      <TouchableOpacity 
-        style={styles.splashContainer}
-        onPress={handleWebNavigation}
-        activeOpacity={0.95}
+    navigate();
+  }, [shouldNavigate]);
+
+  const handleTap = () => {
+    if (hasNavigated.current) return;
+    hasNavigated.current = true;
+    setShouldNavigate(true);
+  };
+
+  // Show splash screen
+  return (
+    <TouchableOpacity 
+      style={styles.splashContainer}
+      onPress={handleTap}
+      activeOpacity={0.95}
+    >
+      {/* Logo Icon */}
+      <Animated.View
+        style={[
+          styles.splashLogoContainer,
+          isClient && {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
       >
-        {/* Logo Icon */}
-        <View style={styles.splashLogoContainer}>
+        {Platform.OS === 'web' ? (
           <View style={styles.webLogoBox}>
             <Ionicons name="document-text" size={60} color="#FFFFFF" />
           </View>
-        </View>
-
-        {/* App Name */}
-        <View style={styles.splashTextContainer}>
-          <Text style={styles.splashAppName}>
-            <Text style={styles.scanText}>Scan</Text>
-            <Text style={styles.upText}>Up</Text>
-          </Text>
-        </View>
-
-        {/* Tap to continue text */}
-        <View style={styles.loadingContainer}>
-          <Text style={styles.tapToContinueText}>Tap anywhere to continue</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
-  // NATIVE: Show animated splash screen
-  if (showSplash) {
-    return (
-      <View style={styles.splashContainer}>
-        {/* Logo Icon */}
-        <Animated.View
-          style={[
-            styles.splashLogoContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
+        ) : (
           <Image
             source={require('../assets/images/logo.png')}
             style={styles.splashLogo}
             resizeMode="contain"
           />
-        </Animated.View>
+        )}
+      </Animated.View>
 
-        {/* App Name */}
-        <Animated.View
-          style={[
-            styles.splashTextContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.splashAppName}>
-            <Text style={styles.scanText}>Scan</Text>
-            <Text style={styles.upText}>Up</Text>
-          </Text>
-        </Animated.View>
+      {/* App Name */}
+      <Animated.View
+        style={[
+          styles.splashTextContainer,
+          isClient && {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        <Text style={styles.splashAppName}>
+          <Text style={styles.scanText}>Scan</Text>
+          <Text style={styles.upText}>Up</Text>
+        </Text>
+      </Animated.View>
 
-        {/* Loading indicator */}
-        <Animated.View style={[styles.loadingContainer, { opacity: fadeAnim }]}>
+      {/* Loading indicator / Tap text */}
+      <Animated.View style={[styles.loadingContainer, isClient && { opacity: fadeAnim }]}>
+        {Platform.OS === 'web' ? (
+          <Text style={styles.tapToContinueText}>Tap anywhere to continue</Text>
+        ) : (
           <ActivityIndicator size="small" color="#FFFFFF" />
-        </Animated.View>
-      </View>
-    );
-  }
-
-  // Fallback welcome screen (shouldn't normally be seen)
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <ActivityIndicator size="large" color={theme.primary} />
-      </View>
-    </SafeAreaView>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  // Splash Screen Styles - Figma Design
   splashContainer: {
     flex: 1,
     backgroundColor: BRAND_BLUE,
@@ -199,6 +180,14 @@ const styles = StyleSheet.create({
   splashLogo: {
     width: 160,
     height: 160,
+  },
+  webLogoBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   splashTextContainer: {
     alignItems: 'center',
@@ -219,59 +208,6 @@ const styles = StyleSheet.create({
   loadingContainer: {
     position: 'absolute',
     bottom: 80,
-  },
-  // Web Navigation Menu Styles
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  webLogoWrapper: {
-    marginBottom: 24,
-  },
-  webLogoBox: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    backgroundColor: BRAND_BLUE,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  welcomeHeader: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  welcomeTitle: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 14,
-  },
-  buttonContainer: {
-    width: '100%',
-    maxWidth: 300,
-    gap: 12,
-  },
-  navButton: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  noteText: {
-    fontSize: 12,
-    marginTop: 24,
   },
   tapToContinueText: {
     color: 'rgba(255, 255, 255, 0.8)',
