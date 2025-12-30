@@ -344,20 +344,6 @@ export default function SettingsScreen() {
             />
           }
         />
-        
-        <SettingRow
-          icon="grid-outline"
-          label="Show Grid Overlay"
-          subtitle="Display alignment grid on camera"
-          rightElement={
-            <Switch
-              value={settings.showGrid}
-              onValueChange={(v) => updateSetting('showGrid', v)}
-              trackColor={{ false: theme.border, true: theme.primary + '50' }}
-              thumbColor={settings.showGrid ? theme.primary : theme.textMuted}
-            />
-          }
-        />
 
         {/* Appearance */}
         <SectionHeader title="APPEARANCE" />
