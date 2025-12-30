@@ -126,9 +126,29 @@ export default function DocumentCard({
         )}
       </View>
       <View style={styles.info}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-          {document.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+            {document.name}
+          </Text>
+          <View style={styles.actionButtons}>
+            {/* Export Icon */}
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={onExport}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="share-outline" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+            {/* More Options */}
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => setShowOptionsMenu(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
         <View style={styles.meta}>
           <Text style={[styles.date, { color: theme.textMuted }]}>
             {format(new Date(document.updated_at), 'MMM d')}
@@ -140,6 +160,66 @@ export default function DocumentCard({
           )}
         </View>
       </View>
+      
+      {/* Options Menu Modal */}
+      <Modal
+        visible={showOptionsMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOptionsMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsMenu(false)}
+        >
+          <View style={[styles.optionsMenu, { backgroundColor: theme.surface }]}>
+            {/* Header */}
+            <View style={styles.optionsHeader}>
+              <View>
+                <Text style={[styles.optionsTitle, { color: theme.text }]}>{document.name}</Text>
+                <Text style={[styles.optionsMeta, { color: theme.textMuted }]}>
+                  {fileSizeFormatted} - {pageCount} {pageCount === 1 ? 'Page' : 'Pages'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowOptionsMenu(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Menu Options */}
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onRename)}>
+              <Ionicons name="pencil-outline" size={22} color={theme.text} />
+              <Text style={[styles.optionText, { color: theme.text }]}>Name</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onEdit)}>
+              <Ionicons name="options-outline" size={22} color={theme.text} />
+              <Text style={[styles.optionText, { color: theme.text }]}>Edit</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onPrint)}>
+              <Ionicons name="print-outline" size={22} color={theme.text} />
+              <Text style={[styles.optionText, { color: theme.text }]}>Print</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onPassword)}>
+              <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
+              <Text style={[styles.optionText, { color: theme.text }]}>Password</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onMoveToFolder)}>
+              <Ionicons name="folder-outline" size={22} color={theme.text} />
+              <Text style={[styles.optionText, { color: theme.text }]}>Move to Folder</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption(onDelete)}>
+              <Ionicons name="trash-outline" size={22} color="#EF4444" />
+              <Text style={[styles.optionText, { color: '#EF4444' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </TouchableOpacity>
   );
 }
