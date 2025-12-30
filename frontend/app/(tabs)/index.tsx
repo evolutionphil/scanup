@@ -26,6 +26,7 @@ import { useDocumentStore, Document, getImageSource } from '../../src/store/docu
 import DocumentCard from '../../src/components/DocumentCard';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
+import ShareModal from '../../src/components/ShareModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIEW_MODE_KEY = '@scanup_view_mode';
