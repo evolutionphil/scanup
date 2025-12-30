@@ -153,6 +153,7 @@ export default function DocumentScreen() {
   // Signature states
   const [showSignatureDrawing, setShowSignatureDrawing] = useState(false);
   const [showSignaturePlacement, setShowSignaturePlacement] = useState(false);
+  const [showSignatureSelection, setShowSignatureSelection] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   
   // Annotation states
