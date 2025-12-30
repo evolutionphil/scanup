@@ -6,9 +6,9 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-  ScrollView,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  PanResponder,
+  Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ONBOARDING_KEY = '@scanup_onboarding_complete';
+const SWIPE_THRESHOLD = 50;
 
 // Brand colors from Figma
 const BRAND_BLUE = '#3E51FB';
@@ -49,7 +50,43 @@ const SLIDES: GuideSlide[] = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const translateX = useRef(new Animated.Value(0)).current;
+  const gestureX = useRef(0);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
+      onPanResponderGrant: () => {
+        gestureX.current = 0;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        gestureX.current = gestureState.dx;
+        const newTranslateX = -currentIndex * SCREEN_WIDTH + gestureState.dx;
+        translateX.setValue(newTranslateX);
+      },
+      onPanResponderRelease: () => {
+        let newIndex = currentIndex;
+        
+        if (gestureX.current < -SWIPE_THRESHOLD && currentIndex < SLIDES.length - 1) {
+          newIndex = currentIndex + 1;
+        } else if (gestureX.current > SWIPE_THRESHOLD && currentIndex > 0) {
+          newIndex = currentIndex - 1;
+        }
+        
+        Animated.spring(translateX, {
+          toValue: -newIndex * SCREEN_WIDTH,
+          useNativeDriver: true,
+          friction: 10,
+          tension: 50,
+        }).start();
+        
+        setCurrentIndex(newIndex);
+      },
+    })
+  ).current;
 
   const handleGetStarted = async () => {
     try {
@@ -61,33 +98,28 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / SCREEN_WIDTH);
-    if (index !== currentIndex && index >= 0 && index < SLIDES.length) {
-      setCurrentIndex(index);
-    }
-  };
-
   const handleDotPress = (index: number) => {
-    scrollViewRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+    Animated.spring(translateX, {
+      toValue: -index * SCREEN_WIDTH,
+      useNativeDriver: true,
+      friction: 10,
+      tension: 50,
+    }).start();
     setCurrentIndex(index);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Main Content Area */}
-      <View style={styles.contentArea}>
-        {/* Slides */}
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          bounces={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          style={styles.scrollView}
+      {/* Main Content Area with Pan Responder */}
+      <View style={styles.contentArea} {...panResponder.panHandlers}>
+        <Animated.View
+          style={[
+            styles.slidesContainer,
+            {
+              width: SCREEN_WIDTH * SLIDES.length,
+              transform: [{ translateX }],
+            },
+          ]}
         >
           {SLIDES.map((item) => (
             <View key={item.id} style={[styles.slide, { width: SCREEN_WIDTH }]}>
@@ -120,7 +152,7 @@ export default function OnboardingScreen() {
               </View>
             </View>
           ))}
-        </ScrollView>
+        </Animated.View>
       </View>
 
       {/* Bottom Fixed Area */}
@@ -165,15 +197,17 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
+    overflow: 'hidden',
   },
-  scrollView: {
+  slidesContainer: {
+    flexDirection: 'row',
     flex: 1,
   },
   slide: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: 20,
   },
   imageContainer: {
     width: 209,
