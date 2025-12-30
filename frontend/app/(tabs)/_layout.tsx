@@ -146,13 +146,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabBarIcon: {
-    marginTop: 4,
+    marginTop: 0,
   },
   scanButtonContainer: {
-    // Vertically centered in tab bar
+    // Vertically centered in tab bar - no offset
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -10, // Slight adjustment to center within tab item area
   },
   scanButton: {
     width: SCAN_BUTTON_SIZE,
