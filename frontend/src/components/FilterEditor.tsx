@@ -60,7 +60,7 @@ interface FilterEditorProps {
   imageFileUri?: string;
   originalImageBase64?: string;
   currentFilter: string;
-  onApply: (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }) => void;
+  onApply: (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }, processedImage?: string) => void;
   isProcessing?: boolean;
   token?: string | null;
 }
