@@ -172,13 +172,20 @@ export default function ShareModal({
         await FileSystem.copyAsync({ from: pdfUri, to: newUri });
         fileUri = newUri;
         mimeType = 'application/pdf';
-      } else {
-        // JPG - export first page
-        const firstPage = pages[0];
-        let base64 = firstPage.image_base64;
-        if (base64.includes(',')) {
-          base64 = base64.split(',')[1];
+        
+        // Note: Password protection requires additional library (pdf-lib)
+        if (passwordProtect) {
+          Alert.alert('Info', 'Password protection for PDFs requires premium features. PDF shared without password.');
         }
+      } else {
+        // JPG - export first page, load from any source
+        const firstPage = pages[0];
+        const base64 = await loadPageImageBase64(firstPage);
+        
+        if (!base64 || base64.length < 100) {
+          throw new Error('Could not load image data');
+        }
+        
         fileUri = `${FileSystem.cacheDirectory}${safeFileName}.jpg`;
         await FileSystem.writeAsStringAsync(fileUri, base64, {
           encoding: FileSystem.EncodingType.Base64,
