@@ -434,22 +434,19 @@ export default function DocumentScreen() {
       const currentPage = currentDocument.pages[selectedPageIndex];
       const isLocalDoc = currentDocument.document_id.startsWith('local_');
       
-      // Get the image data to rotate - load from any available source
-      let imageToRotate = await loadImageBase64(currentPage);
-      if (!imageToRotate || imageToRotate.length < 100) {
-        Alert.alert('Error', 'No image data available to rotate. Please try again.');
-        setProcessing(false);
-        return;
-      }
-      
-      // Use LOCAL processing - no backend needed!
+      // Use LOCAL processing with all available image sources
       console.log('[handleRotate] Using local image processing');
-      const processedImage = await rotateImageLocal(imageToRotate, 90);
+      const processedImage = await rotateImageLocal(
+        currentPage.image_base64,
+        currentPage.image_url,
+        currentPage.image_file_uri,
+        90
+      );
 
       // Also rotate the original if it exists
       let rotatedOriginal = currentPage.original_image_base64;
       if (rotatedOriginal && rotatedOriginal.length > 100) {
-        rotatedOriginal = await rotateImageLocal(rotatedOriginal, 90);
+        rotatedOriginal = await rotateImageLocal(rotatedOriginal, undefined, undefined, 90);
       }
 
       const updatedPages = [...currentDocument.pages];
@@ -461,9 +458,9 @@ export default function DocumentScreen() {
       };
 
       await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-    } catch (e) {
+    } catch (e: any) {
       console.error('[handleRotate] Error:', e);
-      Alert.alert('Error', 'Failed to rotate image');
+      Alert.alert('Error', `Failed to rotate image: ${e.message || 'Unknown error'}`);
     } finally {
       setProcessing(false);
     }
