@@ -216,8 +216,8 @@ export default function FilterEditor({
 
   // Live preview - debounced (now using local processing)
   const updatePreview = useCallback(async (filter: string, b: number, c: number, s: number) => {
-    // Use original image as base for preview
-    const baseImage = originalImageBase64 || imageBase64;
+    // Use original image as base for preview, or loaded base64
+    const baseImage = originalImageBase64 || effectiveImageBase64;
     
     // If no image data, can't preview
     if (!baseImage || baseImage.length < 100) {
