@@ -38,10 +38,10 @@ const loadPageImageBase64 = async (page: { image_base64?: string; image_url?: st
   // Priority 2: Load from file URI
   if (page.image_file_uri) {
     try {
-      const fileInfo = await FileSystem.getInfoAsync(page.image_file_uri);
+      const fileInfo = await getInfoAsync(page.image_file_uri);
       if (fileInfo.exists) {
-        const base64 = await FileSystem.readAsStringAsync(page.image_file_uri, {
-          encoding: FileSystem.EncodingType.Base64,
+        const base64 = await readAsStringAsync(page.image_file_uri, {
+          encoding: EncodingType.Base64,
         });
         return base64;
       }
