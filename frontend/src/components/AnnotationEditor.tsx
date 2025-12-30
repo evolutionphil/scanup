@@ -61,11 +61,26 @@ export default function AnnotationEditor({
   visible,
   onClose,
   imageBase64,
+  imageUrl,
   onSave,
   existingAnnotations = [],
 }: AnnotationEditorProps) {
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
+  
+  // Get the image source - prefer base64, fallback to URL
+  const getImageSource = () => {
+    if (imageBase64 && imageBase64.length > 100) {
+      if (imageBase64.startsWith('data:')) {
+        return { uri: imageBase64 };
+      }
+      return { uri: `data:image/jpeg;base64,${imageBase64}` };
+    }
+    if (imageUrl) {
+      return { uri: imageUrl };
+    }
+    return { uri: '' };
+  };
   const [annotations, setAnnotations] = useState<Annotation[]>(existingAnnotations);
   const [selectedTool, setSelectedTool] = useState<string>('freehand');
   const [selectedColor, setSelectedColor] = useState<string>('#EF4444');
