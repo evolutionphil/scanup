@@ -102,27 +102,29 @@ export default function Index() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <Button
-              title="📱 Onboarding Screen"
-              onPress={() => router.push('/onboarding')}
-              style={styles.navButton}
-            />
+            <TouchableOpacity 
+              style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
+              onPress={() => { window.location.href = '/onboarding'; }}
+            >
+              <Text style={styles.navButtonText}>📱 Onboarding Screen</Text>
+            </TouchableOpacity>
             
-            <Button
-              title="⭐ Premium Screen"
-              onPress={() => router.push('/premium')}
-              style={styles.navButton}
-            />
+            <TouchableOpacity 
+              style={[styles.navButton, { backgroundColor: BRAND_BLUE }]}
+              onPress={() => { window.location.href = '/premium'; }}
+            >
+              <Text style={styles.navButtonText}>⭐ Premium Screen</Text>
+            </TouchableOpacity>
             
-            <Button
-              title="🏠 Main App (Tabs)"
-              variant="secondary"
+            <TouchableOpacity 
+              style={[styles.navButton, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
               onPress={() => {
                 continueAsGuest();
-                router.push('/(tabs)');
+                window.location.href = '/(tabs)';
               }}
-              style={styles.navButton}
-            />
+            >
+              <Text style={[styles.navButtonText, { color: theme.text }]}>🏠 Main App (Tabs)</Text>
+            </TouchableOpacity>
           </View>
           
           <Text style={[styles.noteText, { color: theme.textMuted }]}>
