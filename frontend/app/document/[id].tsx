@@ -1309,7 +1309,8 @@ export default function DocumentScreen() {
       {pendingSignature && currentDocument && (
         <SignaturePlacementModal
           visible={showSignaturePlacement}
-          documentImage={currentDocument.pages[selectedPageIndex].image_base64}
+          documentImage={currentDocument.pages[selectedPageIndex].image_base64 || ''}
+          documentImageUrl={currentDocument.pages[selectedPageIndex].image_url}
           signatureImage={pendingSignature}
           onClose={() => {
             setShowSignaturePlacement(false);
