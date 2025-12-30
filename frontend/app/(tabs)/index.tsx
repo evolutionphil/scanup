@@ -31,6 +31,7 @@ import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 import ShareModal from '../../src/components/ShareModal';
 import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
 import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
+import { useTabStore } from './_layout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FOLDER_COLORS = [
@@ -45,13 +46,13 @@ export default function DocumentsScreen() {
   const insets = useSafeAreaInsets();
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
+  const { activeMainTab, setActiveMainTab } = useTabStore();
   const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, deleteFolder, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
   const { hasPending, pendingDocIds } = useOfflineQueue();
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('documents');
   const [sortBy, setSortBy] = useState<SortType>('a-z');
   const [viewMode, setViewMode] = useState<ViewType>('list');
   const [showSortMenu, setShowSortMenu] = useState(false);
