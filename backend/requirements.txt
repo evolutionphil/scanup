@@ -18,7 +18,7 @@ distro==1.9.0
 dnspython==2.8.0
 ecdsa==0.19.1
 email-validator==2.3.0
-pytesseract==0.3.13
+emergentintegrations==0.1.0
 et_xmlfile==2.0.0
 fastapi==0.110.1
 fastuuid==0.14.0
@@ -90,6 +90,8 @@ Pygments==2.19.2
 PyJWT==2.10.1
 pymongo==4.5.0
 pyparsing==3.3.1
+pypdf==6.5.0
+pytesseract==0.3.13
 pytest==9.0.2
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
