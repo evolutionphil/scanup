@@ -237,29 +237,35 @@ export async function applyFilter(
 
 /**
  * Rotate an image locally
- * @param imageUri - The image URI or base64 string
+ * @param imageBase64 - The image base64 string (with or without data: prefix)
+ * @param imageUrl - Optional URL to fetch image from if base64 not available
+ * @param imageFileUri - Optional local file URI
  * @param degrees - Degrees to rotate (90, 180, 270)
  * @returns Base64 string of rotated image (without data: prefix)
  */
 export async function rotateImage(
-  imageUri: string,
+  imageBase64?: string,
+  imageUrl?: string,
+  imageFileUri?: string,
   degrees: number = 90
 ): Promise<string> {
   try {
-    let uri = imageUri;
+    // Load image from any available source
+    let uri: string;
     
-    // If it's a base64 string, save to temp file first
-    if (imageUri.startsWith('data:') || (!imageUri.startsWith('file://') && !imageUri.startsWith('http'))) {
-      const base64Data = imageUri.startsWith('data:') 
-        ? imageUri.split(',')[1] 
-        : imageUri;
-      
-      const tempPath = `${FileSystem.cacheDirectory}temp_rotate_${Date.now()}.jpg`;
-      await FileSystem.writeAsStringAsync(tempPath, base64Data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      uri = tempPath;
+    // Try to get image from sources
+    const base64 = await loadImageAsBase64(imageBase64, imageUrl, imageFileUri);
+    
+    if (!base64 || base64.length < 100) {
+      throw new Error('No valid image data available');
     }
+    
+    // Save to temp file for manipulation
+    const tempPath = `${FileSystem.cacheDirectory}temp_rotate_${Date.now()}.jpg`;
+    await FileSystem.writeAsStringAsync(tempPath, base64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    uri = tempPath;
 
     const result = await ImageManipulator.manipulateAsync(
       uri,
@@ -272,12 +278,10 @@ export async function rotateImage(
     );
 
     // Clean up temp file
-    if (uri.startsWith(FileSystem.cacheDirectory || '')) {
-      try {
-        await FileSystem.deleteAsync(uri, { idempotent: true });
-      } catch (e) {
-        // Ignore cleanup errors
-      }
+    try {
+      await FileSystem.deleteAsync(uri, { idempotent: true });
+    } catch (e) {
+      // Ignore cleanup errors
     }
 
     return result.base64 || '';
