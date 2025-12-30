@@ -601,4 +601,8 @@ const styles = StyleSheet.create({
   applyButton: {
     flex: 1,
   },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
