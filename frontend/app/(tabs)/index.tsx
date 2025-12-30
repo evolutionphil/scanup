@@ -371,15 +371,18 @@ export default function DocumentsScreen() {
   };
   
   const confirmPassword = async () => {
-    if (passwordDoc && token) {
+    if (passwordDoc) {
       try {
-        await updateDocument(token, passwordDoc.document_id, { 
+        // Works for both guest mode (token=null) and authenticated users
+        const isLocalDoc = passwordDoc.document_id.startsWith('local_');
+        await updateDocument(isLocalDoc ? null : token, passwordDoc.document_id, { 
           password: passwordValue || null,
           is_password_protected: !!passwordValue,
           is_locked: !!passwordValue
         });
         Alert.alert('Success', passwordValue ? 'Password set successfully' : 'Password removed');
       } catch (e) {
+        console.error('Password update error:', e);
         Alert.alert('Error', 'Failed to update password');
       }
     }
