@@ -18,7 +18,7 @@ import { useThemeStore } from '../store/themeStore';
 import Slider from './Slider';
 import Button from './Button';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { cacheDirectory, writeAsStringAsync, readAsStringAsync, getInfoAsync, EncodingType } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
