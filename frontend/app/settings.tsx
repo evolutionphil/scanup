@@ -48,7 +48,7 @@ const DEFAULT_SETTINGS: Settings = {
   defaultFilter: 'original',
   autoSave: false,
   autoEnhance: true,
-  showGrid: true,
+  showGrid: false,
   soundEnabled: true,
   hapticFeedback: true,
   language: 'en',
