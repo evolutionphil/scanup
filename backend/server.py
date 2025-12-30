@@ -3043,6 +3043,8 @@ class AnnotationItem(BaseModel):
 class ApplyAnnotationsRequest(BaseModel):
     image_base64: str
     annotations: List[AnnotationItem]
+    display_width: Optional[float] = None  # Width of the image as displayed on screen
+    display_height: Optional[float] = None  # Height of the image as displayed on screen
 
 @api_router.post("/images/apply-annotations")
 async def apply_annotations_to_image(request: ApplyAnnotationsRequest):
