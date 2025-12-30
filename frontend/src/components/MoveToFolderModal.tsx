@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../store/themeStore';
@@ -38,6 +39,7 @@ export default function MoveToFolderModal({
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedColor, setSelectedColor] = useState(FOLDER_COLORS[0]);
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
@@ -45,15 +47,34 @@ export default function MoveToFolderModal({
       return;
     }
     
-    if (onCreateFolder) {
+    if (!onCreateFolder) {
+      Alert.alert('Error', 'Create folder not available');
+      return;
+    }
+    
+    setIsCreating(true);
+    try {
       const newFolder = await onCreateFolder(newFolderName.trim(), selectedColor);
       if (newFolder) {
         setShowCreateFolder(false);
         setNewFolderName('');
         // Automatically select the new folder
         onSelectFolder(newFolder.folder_id);
+      } else {
+        Alert.alert('Error', 'Failed to create folder');
       }
+    } catch (e: any) {
+      console.error('Create folder error:', e);
+      Alert.alert('Error', e.message || 'Failed to create folder');
+    } finally {
+      setIsCreating(false);
     }
+  };
+
+  const handleClose = () => {
+    setShowCreateFolder(false);
+    setNewFolderName('');
+    onClose();
   };
 
   return (
@@ -61,122 +82,132 @@ export default function MoveToFolderModal({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-        <View style={[styles.content, { backgroundColor: theme.surface, paddingBottom: Platform.OS === 'android' ? 40 : 24 }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Move to Folder</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Create New Folder Section */}
-          {showCreateFolder ? (
-            <View style={[styles.createFolderSection, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}
-                value={newFolderName}
-                onChangeText={setNewFolderName}
-                placeholder="Folder name"
-                placeholderTextColor={theme.textMuted}
-                autoFocus
-              />
-              <View style={styles.colorPicker}>
-                {FOLDER_COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorOption,
-                      { backgroundColor: color },
-                      selectedColor === color && styles.colorSelected,
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  />
-                ))}
-              </View>
-              <View style={styles.createButtonsRow}>
-                <TouchableOpacity 
-                  style={[styles.createBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                  onPress={() => {
-                    setShowCreateFolder(false);
-                    setNewFolderName('');
-                  }}
-                >
-                  <Text style={{ color: theme.text }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.createBtn, { backgroundColor: theme.primary }]}
-                  onPress={handleCreateFolder}
-                >
-                  <Text style={{ color: '#FFF', fontWeight: '600' }}>Create & Move</Text>
-                </TouchableOpacity>
-              </View>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.content, { backgroundColor: theme.surface, paddingBottom: Platform.OS === 'android' ? 50 : 34 }]}>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: theme.text }]}>Move to Folder</Text>
+              <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.addFolderBtn, { borderColor: theme.primary }]}
-              onPress={() => setShowCreateFolder(true)}
-            >
-              <Ionicons name="add-circle-outline" size={22} color={theme.primary} />
-              <Text style={[styles.addFolderText, { color: theme.primary }]}>Create New Folder</Text>
-            </TouchableOpacity>
-          )}
 
-          {/* Remove from folder option */}
-          {currentFolderId && (
-            <TouchableOpacity
-              style={[styles.folderItem, { backgroundColor: theme.background }]}
-              onPress={() => onSelectFolder(null)}
-            >
-              <View style={[styles.folderIcon, { backgroundColor: theme.danger + '20' }]}>
-                <Ionicons name="close-circle" size={24} color={theme.danger} />
-              </View>
-              <Text style={[styles.folderName, { color: theme.danger }]}>Remove from folder</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Folder list */}
-          <FlatList
-            data={folders.filter((f) => f.folder_id !== currentFolderId)}
-            keyExtractor={(item) => item.folder_id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.folderItem, { backgroundColor: theme.background }]}
-                onPress={() => onSelectFolder(item.folder_id)}
-              >
-                <View style={[styles.folderIcon, { backgroundColor: item.color + '20' }]}>
-                  <Ionicons name="folder" size={24} color={item.color} />
+            {/* Create New Folder Section */}
+            {showCreateFolder ? (
+              <View style={[styles.createFolderSection, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}
+                  value={newFolderName}
+                  onChangeText={setNewFolderName}
+                  placeholder="Folder name"
+                  placeholderTextColor={theme.textMuted}
+                  autoFocus
+                />
+                <View style={styles.colorPicker}>
+                  {FOLDER_COLORS.map((color) => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorOption,
+                        { backgroundColor: color },
+                        selectedColor === color && styles.colorSelected,
+                      ]}
+                      onPress={() => setSelectedColor(color)}
+                    />
+                  ))}
                 </View>
-                <Text style={[styles.folderName, { color: theme.text }]}>{item.name}</Text>
-                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+                <View style={styles.createButtonsRow}>
+                  <TouchableOpacity 
+                    style={[styles.createBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                    onPress={() => {
+                      setShowCreateFolder(false);
+                      setNewFolderName('');
+                    }}
+                    disabled={isCreating}
+                  >
+                    <Text style={{ color: theme.text }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.createBtn, { backgroundColor: theme.primary, opacity: isCreating ? 0.7 : 1 }]}
+                    onPress={handleCreateFolder}
+                    disabled={isCreating}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '600' }}>
+                      {isCreating ? 'Creating...' : 'Create & Move'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.addFolderBtn, { borderColor: theme.primary }]}
+                onPress={() => setShowCreateFolder(true)}
+              >
+                <Ionicons name="add-circle-outline" size={22} color={theme.primary} />
+                <Text style={[styles.addFolderText, { color: theme.primary }]}>Create New Folder</Text>
               </TouchableOpacity>
             )}
-            ListEmptyComponent={
-              !showCreateFolder ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="folder-open-outline" size={48} color={theme.textMuted} />
-                  <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-                    No folders yet
-                  </Text>
-                  <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>
-                    Create a folder to organize your documents
-                  </Text>
-                </View>
-              ) : null
-            }
-            style={styles.list}
-          />
 
-          <Button
-            title="Cancel"
-            variant="secondary"
-            onPress={onClose}
-            style={{ marginTop: 16 }}
-          />
+            {/* Remove from folder option */}
+            {currentFolderId && (
+              <TouchableOpacity
+                style={[styles.folderItem, { backgroundColor: theme.background }]}
+                onPress={() => onSelectFolder(null)}
+              >
+                <View style={[styles.folderIcon, { backgroundColor: theme.danger + '20' }]}>
+                  <Ionicons name="close-circle" size={24} color={theme.danger} />
+                </View>
+                <Text style={[styles.folderName, { color: theme.danger }]}>Remove from folder</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Folder list */}
+            <FlatList
+              data={folders.filter((f) => f.folder_id !== currentFolderId)}
+              keyExtractor={(item) => item.folder_id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.folderItem, { backgroundColor: theme.background }]}
+                  onPress={() => onSelectFolder(item.folder_id)}
+                >
+                  <View style={[styles.folderIcon, { backgroundColor: item.color + '20' }]}>
+                    <Ionicons name="folder" size={24} color={item.color} />
+                  </View>
+                  <Text style={[styles.folderName, { color: theme.text }]}>{item.name}</Text>
+                  <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                !showCreateFolder ? (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="folder-open-outline" size={48} color={theme.textMuted} />
+                    <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+                      No folders yet
+                    </Text>
+                    <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>
+                      Create a folder to organize your documents
+                    </Text>
+                  </View>
+                ) : null
+              }
+              style={styles.list}
+              keyboardShouldPersistTaps="handled"
+            />
+
+            <Button
+              title="Cancel"
+              variant="secondary"
+              onPress={handleClose}
+              style={{ marginTop: 16 }}
+            />
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
