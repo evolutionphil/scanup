@@ -81,6 +81,9 @@ class OfflineQueueService {
 
   // Save queue to AsyncStorage
   async saveToStorage(): Promise<void> {
+    // Skip on SSR
+    if (isSSR) return;
+    
     try {
       await Promise.all([
         AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue)),
@@ -93,6 +96,9 @@ class OfflineQueueService {
 
   // Setup network listener for auto-sync
   setupNetworkListener(): void {
+    // Skip on SSR
+    if (isSSR) return;
+    
     NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable) {
         console.log('[OfflineQueue] Network available - processing queue');
