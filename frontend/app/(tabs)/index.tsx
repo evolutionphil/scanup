@@ -158,7 +158,7 @@ export default function DocumentsScreen() {
       toggleSelection(doc.document_id);
     } else {
       // Check if document has password protection
-      if ((doc as any).password || doc.is_password_protected) {
+      if (doc.password || doc.is_password_protected) {
         // Show unlock modal
         setUnlockDoc(doc);
         setUnlockPasswordValue('');
@@ -173,7 +173,7 @@ export default function DocumentsScreen() {
     if (!unlockDoc) return;
     
     // Check password
-    const docPassword = (unlockDoc as any).password;
+    const docPassword = unlockDoc.password;
     if (unlockPasswordValue === docPassword) {
       setShowUnlockModal(false);
       router.push(`/document/${unlockDoc.document_id}`);
