@@ -293,7 +293,7 @@ export default function FilterEditor({
     setSaturation(50);
     setSelectedFilter('original');
     // Update preview to original
-    setPreviewImage(originalImageBase64 || imageBase64);
+    setPreviewImage(originalImageBase64 || effectiveImageBase64);
   };
 
   // Ensure image has proper prefix
@@ -304,6 +304,20 @@ export default function FilterEditor({
     if (base64.startsWith('file://')) return base64;
     return `data:image/jpeg;base64,${base64}`;
   };
+
+  // Show loading if image is being loaded
+  if (visible && isLoadingImage) {
+    return (
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.content, { backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.text, marginTop: 16 }]}>Loading image...</Text>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
