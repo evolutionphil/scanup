@@ -11,7 +11,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { cacheDirectory, writeAsStringAsync, readAsStringAsync, deleteAsync, EncodingType } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Filter types supported
 export type FilterType = 'original' | 'enhanced' | 'grayscale' | 'bw' | 'document';
@@ -20,6 +20,151 @@ export interface ImageAdjustments {
   brightness: number; // -50 to 50
   contrast: number;   // -50 to 50
   saturation: number; // -50 to 50
+}
+
+/**
+ * Helper to download image from URL and save locally
+ */
+export async function downloadAndCacheImage(url: string, cacheKey: string): Promise<string> {
+  try {
+    const cacheDir = `${FileSystem.cacheDirectory}scanup_images/`;
+    const filePath = `${cacheDir}${cacheKey}.jpg`;
+    
+    // Check if already cached
+    const fileInfo = await FileSystem.getInfoAsync(filePath);
+    if (fileInfo.exists) {
+      console.log('[localImageProcessor] Image already cached:', cacheKey);
+      return filePath;
+    }
+    
+    // Create cache directory if needed
+    const dirInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
+    }
+    
+    // Download the file
+    console.log('[localImageProcessor] Downloading image from:', url);
+    const downloadResult = await FileSystem.downloadAsync(url, filePath);
+    
+    if (downloadResult.status === 200) {
+      console.log('[localImageProcessor] Image cached successfully:', cacheKey);
+      return filePath;
+    } else {
+      throw new Error(`Download failed with status ${downloadResult.status}`);
+    }
+  } catch (error) {
+    console.error('[localImageProcessor] downloadAndCacheImage error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get local image path - downloads from URL if needed
+ */
+export async function ensureLocalImage(
+  imageBase64?: string,
+  imageUrl?: string,
+  imageFileUri?: string,
+  cacheKey?: string
+): Promise<string> {
+  // Priority 1: Local file URI
+  if (imageFileUri) {
+    const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
+    if (fileInfo.exists) {
+      console.log('[localImageProcessor] Using local file:', imageFileUri);
+      return imageFileUri;
+    }
+  }
+  
+  // Priority 2: Base64 data - save to cache
+  if (imageBase64 && imageBase64.length > 100) {
+    const rawBase64 = imageBase64.startsWith('data:') 
+      ? imageBase64.split(',')[1] 
+      : imageBase64;
+    
+    const key = cacheKey || `img_${Date.now()}`;
+    const cacheDir = `${FileSystem.cacheDirectory}scanup_images/`;
+    const filePath = `${cacheDir}${key}.jpg`;
+    
+    // Create cache directory if needed
+    const dirInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
+    }
+    
+    await FileSystem.writeAsStringAsync(filePath, rawBase64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log('[localImageProcessor] Saved base64 to cache:', key);
+    return filePath;
+  }
+  
+  // Priority 3: Download from URL
+  if (imageUrl) {
+    const key = cacheKey || `img_${Date.now()}`;
+    return await downloadAndCacheImage(imageUrl, key);
+  }
+  
+  throw new Error('No valid image source provided');
+}
+
+/**
+ * Load image as base64 from any source
+ */
+export async function loadImageAsBase64(
+  imageBase64?: string,
+  imageUrl?: string,
+  imageFileUri?: string
+): Promise<string> {
+  // Priority 1: Already have base64
+  if (imageBase64 && imageBase64.length > 100) {
+    const rawBase64 = imageBase64.startsWith('data:') 
+      ? imageBase64.split(',')[1] 
+      : imageBase64;
+    return rawBase64;
+  }
+  
+  // Priority 2: Read from file URI
+  if (imageFileUri) {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
+      if (fileInfo.exists) {
+        const base64 = await FileSystem.readAsStringAsync(imageFileUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        console.log('[localImageProcessor] Loaded from file URI');
+        return base64;
+      }
+    } catch (e) {
+      console.error('[localImageProcessor] Failed to read file:', e);
+    }
+  }
+  
+  // Priority 3: Download from URL
+  if (imageUrl) {
+    try {
+      console.log('[localImageProcessor] Fetching from URL...');
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          const base64 = dataUrl.split(',')[1];
+          console.log('[localImageProcessor] Fetched from URL');
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('[localImageProcessor] Failed to fetch from URL:', e);
+    }
+  }
+  
+  throw new Error('Could not load image from any source');
 }
 
 /**
