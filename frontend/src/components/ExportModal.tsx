@@ -200,8 +200,8 @@ export default function ExportModal({
         const { uri } = await Print.printToFileAsync({ html });
         
         // Read the PDF file as base64
-        fileBase64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: FileSystem.EncodingType.Base64,
+        fileBase64 = await readAsStringAsync(uri, {
+          encoding: EncodingType.Base64,
         });
         
         fileName = `${documentName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
@@ -242,22 +242,22 @@ export default function ExportModal({
       }
 
       // Get the cache directory
-      const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      const cacheDirPath = cacheDirectory || documentDirectory;
       
-      if (!cacheDir) {
+      if (!cacheDirPath) {
         Alert.alert('Error', 'File system not available.');
         return;
       }
       
-      const fileUri = `${cacheDir}${fileName}`;
+      const fileUri = `${cacheDirPath}${fileName}`;
       
       if (!fileBase64 || fileBase64.length === 0) {
         throw new Error('File data is empty');
       }
       
       // Write file
-      await FileSystem.writeAsStringAsync(fileUri, fileBase64, {
-        encoding: FileSystem.EncodingType.Base64,
+      await writeAsStringAsync(fileUri, fileBase64, {
+        encoding: EncodingType.Base64,
       });
       
       // Check if sharing is available
