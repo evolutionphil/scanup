@@ -68,6 +68,9 @@ export default function DocumentsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
   
+  // Share after unlock flag
+  const [shareAfterUnlock, setShareAfterUnlock] = useState(false);
+  
   // Network listener for background sync
   useEffect(() => {
     // Load local cache first for instant display
