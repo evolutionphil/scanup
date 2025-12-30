@@ -63,6 +63,11 @@ export default function DocumentsScreen() {
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareDoc, setShareDoc] = useState<Document | null>(null);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
+  
   // Network listener for background sync
   useEffect(() => {
     // Load local cache first for instant display
