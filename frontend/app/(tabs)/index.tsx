@@ -319,24 +319,48 @@ export default function DocumentsScreen() {
 
   const handlePrintDocument = async (doc: Document) => {
     try {
-      Alert.alert('Preparing', 'Loading document for printing...');
+      // Use same approach as ShareModal - load all images
+      const pageImages: string[] = [];
       
-      // Load all page images
-      const pageImages = await Promise.all(
-        doc.pages.map(async (page) => await loadPageImage(page))
-      );
+      for (const page of doc.pages) {
+        let imgSrc = '';
+        
+        // Try base64 first
+        if (page.image_base64 && page.image_base64.length > 100) {
+          imgSrc = page.image_base64.startsWith('data:') 
+            ? page.image_base64 
+            : `data:image/jpeg;base64,${page.image_base64}`;
+        }
+        // Then try URL
+        else if (page.image_url) {
+          try {
+            const response = await fetch(page.image_url);
+            const blob = await response.blob();
+            const dataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            imgSrc = dataUrl;
+          } catch (e) {
+            console.error('Failed to load image from URL:', e);
+          }
+        }
+        
+        if (imgSrc) {
+          pageImages.push(imgSrc);
+        }
+      }
       
-      const validImages = pageImages.filter(img => img.length > 0);
-      
-      if (validImages.length === 0) {
+      if (pageImages.length === 0) {
         Alert.alert('Error', 'No images available to print');
         return;
       }
       
       // Build HTML for all pages
-      const pagesHtml = validImages.map((imgSrc, i) => {
-        return `<div style="page-break-after: ${i < validImages.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
-          <img src="${imgSrc}" style="max-width: 100%; max-height: 100vh; object-fit: contain;"/>
+      const pagesHtml = pageImages.map((imgSrc, i) => {
+        return `<div style="page-break-after: ${i < pageImages.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 10mm;">
+          <img src="${imgSrc}" style="max-width: 100%; max-height: 90vh; object-fit: contain;"/>
         </div>`;
       }).join('');
       
@@ -348,7 +372,8 @@ export default function DocumentsScreen() {
             <title>${doc.name}</title>
             <style>
               @page { margin: 10mm; }
-              body { margin: 0; padding: 0; }
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: sans-serif; }
             </style>
           </head>
           <body>
