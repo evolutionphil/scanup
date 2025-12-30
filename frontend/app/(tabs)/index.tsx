@@ -355,6 +355,20 @@ export default function DocumentsScreen() {
             ? page.image_base64 
             : `data:image/jpeg;base64,${page.image_base64}`;
         }
+        // Then try file URI (for local/guest documents)
+        else if (page.image_file_uri) {
+          try {
+            const fileInfo = await getInfoAsync(page.image_file_uri);
+            if (fileInfo.exists) {
+              const base64 = await readAsStringAsync(page.image_file_uri, {
+                encoding: EncodingType.Base64,
+              });
+              imgSrc = `data:image/jpeg;base64,${base64}`;
+            }
+          } catch (e) {
+            console.error('Failed to load image from file:', e);
+          }
+        }
         // Then try URL
         else if (page.image_url) {
           try {
