@@ -790,6 +790,17 @@ export default function DocumentsScreen() {
           pages={shareDoc.pages}
         />
       )}
+      
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        visible={showDeleteModal}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          setDeleteDoc(null);
+        }}
+        onConfirm={confirmDeleteDocument}
+        itemName={deleteDoc?.name}
+      />
     </SafeAreaView>
   );
 }
