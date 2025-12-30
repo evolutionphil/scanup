@@ -153,7 +153,30 @@ export default function DocumentsScreen() {
     if (selectionMode) {
       toggleSelection(doc.document_id);
     } else {
-      router.push(`/document/${doc.document_id}`);
+      // Check if document has password protection
+      if ((doc as any).password || doc.is_password_protected) {
+        // Show unlock modal
+        setUnlockDoc(doc);
+        setUnlockPasswordValue('');
+        setShowUnlockModal(true);
+      } else {
+        router.push(`/document/${doc.document_id}`);
+      }
+    }
+  };
+  
+  const handleUnlockDocument = () => {
+    if (!unlockDoc) return;
+    
+    // Check password
+    const docPassword = (unlockDoc as any).password;
+    if (unlockPasswordValue === docPassword) {
+      setShowUnlockModal(false);
+      router.push(`/document/${unlockDoc.document_id}`);
+      setUnlockDoc(null);
+      setUnlockPasswordValue('');
+    } else {
+      Alert.alert('Incorrect Password', 'Please try again.');
     }
   };
 
