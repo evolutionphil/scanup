@@ -1710,4 +1710,21 @@ const styles = StyleSheet.create({
   copyButton: {
     marginTop: 8,
   },
+  watermarkOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  watermarkText: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: 'rgba(0, 0, 0, 0.15)',
+    transform: [{ rotate: '-30deg' }],
+    letterSpacing: 8,
+  },
 });
