@@ -152,69 +152,55 @@ export default function FilterEditor({
     }
   }, [visible, currentFilter, effectiveImageBase64, originalImageBase64]);
 
-  // Local image processing function
-  const processImageLocally = useCallback(async (
+  // Process image using backend API (expo-image-manipulator doesn't support color filters)
+  const processImageWithBackend = useCallback(async (
     base64Image: string,
-    filter: string
+    filter: string,
+    adjustments: { brightness: number; contrast: number; saturation: number }
   ): Promise<string> => {
     try {
-      // Prepare the image URI
-      let uri: string;
+      // Clean up base64
+      const cleanBase64 = base64Image.startsWith('data:') 
+        ? base64Image.split(',')[1] 
+        : base64Image;
       
-      if (base64Image.startsWith('data:')) {
-        // Extract raw base64
-        const rawBase64 = base64Image.split(',')[1];
-        const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
-        await FileSystem.writeAsStringAsync(tempPath, rawBase64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        uri = tempPath;
-      } else if (base64Image.startsWith('file://') || base64Image.startsWith('http')) {
-        uri = base64Image;
-      } else {
-        // Raw base64 string
-        const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
-        await FileSystem.writeAsStringAsync(tempPath, base64Image, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        uri = tempPath;
+      const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://scanup-production.up.railway.app';
+      const endpoint = `${BACKEND_URL}/api/images/apply-filter`;
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-
-      // Build manipulation actions based on filter
-      // Note: expo-image-manipulator doesn't support color filters natively
-      // We apply what we can and simulate others through image properties
-      const actions: ImageManipulator.Action[] = [];
       
-      // For now, we'll process the image as-is
-      // Future enhancement: Use a library like gl-react for advanced filters
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          image_base64: cleanBase64,
+          filter_type: filter,
+          brightness: adjustments.brightness,
+          contrast: adjustments.contrast,
+          saturation: adjustments.saturation,
+        }),
+      });
       
-      const result = await ImageManipulator.manipulateAsync(
-        uri,
-        actions,
-        {
-          compress: 0.9,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
-        }
-      );
-
-      // Clean up temp file
-      if (uri.startsWith(FileSystem.cacheDirectory || '')) {
-        try {
-          await FileSystem.deleteAsync(uri, { idempotent: true });
-        } catch (e) {
-          // Ignore cleanup errors
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.image_base64) {
+          console.log('[FilterEditor] Filter applied via backend:', filter);
+          return result.image_base64;
         }
       }
-
-      return result.base64 || '';
+      
+      console.warn('[FilterEditor] Backend filter failed, returning original');
+      return cleanBase64;
     } catch (error) {
-      console.error('[FilterEditor] Local processing error:', error);
-      throw error;
+      console.error('[FilterEditor] Backend processing error:', error);
+      return base64Image.startsWith('data:') ? base64Image.split(',')[1] : base64Image;
     }
-  }, []);
+  }, [token]);
 
-  // Live preview - debounced (now using local processing)
+  // Live preview - debounced (now using backend processing)
   const updatePreview = useCallback(async (filter: string, b: number, c: number, s: number) => {
     // Use original image as base for preview, or loaded base64
     const baseImage = originalImageBase64 || effectiveImageBase64;
