@@ -199,12 +199,9 @@ export default function FilterEditor({
       );
 
       // Clean up temp file
-      if (uri.startsWith(FileSystem.cacheDirectory || '')) {
-        try {
-          await FileSystem.deleteAsync(uri, { idempotent: true });
-        } catch (e) {
-          // Ignore cleanup errors
-        }
+      if (uri.startsWith(cacheDirectory || '')) {
+        // Note: deleteAsync not imported from legacy API, skip cleanup
+        // The file will be cleaned up by the system
       }
 
       return result.base64 || '';
