@@ -49,6 +49,13 @@ export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleGetStarted = async () => {
+    // If on first slide, go to second slide
+    if (currentIndex < SLIDES.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      return;
+    }
+    
+    // If on last slide, go to premium page
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
       router.replace('/premium');
