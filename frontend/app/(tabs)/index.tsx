@@ -535,42 +535,62 @@ export default function DocumentsScreen() {
         </View>
       )}
 
-      {/* Documents Grid/List */}
+      {/* Documents with Latest and All sections */}
       <FlatList
         data={documents}
-        keyExtractor={(item) => item.document_id}
-        renderItem={({ item }) => (
-          viewMode === 'grid' ? (
-            <DocumentCard
-              document={item}
-              onPress={() => handleDocumentPress(item)}
-              onLongPress={() => handleDocumentLongPress(item)}
-              selected={selectedDocs.includes(item.document_id)}
-              onExport={() => handleExportDocument(item)}
-              onRename={() => handleRenameDocument(item)}
-              onEdit={() => handleEditDocument(item)}
-              onPrint={() => handlePrintDocument(item)}
-              onPassword={() => handlePasswordDocument(item)}
-              onMoveToFolder={() => handleMoveDocument(item)}
-              onDelete={() => handleDeleteDocument(item)}
-            />
-          ) : (
-            <DocumentListItem
-              document={item}
-              onPress={() => handleDocumentPress(item)}
-              onLongPress={() => handleDocumentLongPress(item)}
-              selected={selectedDocs.includes(item.document_id)}
-              theme={theme}
-              onExport={() => handleExportDocument(item)}
-              onRename={() => handleRenameDocument(item)}
-              onEdit={() => handleEditDocument(item)}
-              onPrint={() => handlePrintDocument(item)}
-              onPassword={() => handlePasswordDocument(item)}
-              onMoveToFolder={() => handleMoveDocument(item)}
-              onDelete={() => handleDeleteDocument(item)}
-            />
-          )
-        )}
+        keyExtractor={(item, index) => `${item.document_id}-${index}`}
+        renderItem={({ item, index }) => {
+          // Get latest 5 documents
+          const latestDocs = documents.slice(0, 5);
+          const isInLatest = index < 5;
+          const isFirstLatest = index === 0;
+          const isFirstAll = index === 5;
+          
+          return (
+            <>
+              {/* Latest Section Header */}
+              {isFirstLatest && documents.length > 0 && (
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Latest</Text>
+              )}
+              
+              {/* All Section Header */}
+              {isFirstAll && (
+                <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 16 }]}>All</Text>
+              )}
+              
+              {viewMode === 'grid' ? (
+                <DocumentCard
+                  document={item}
+                  onPress={() => handleDocumentPress(item)}
+                  onLongPress={() => handleDocumentLongPress(item)}
+                  selected={selectedDocs.includes(item.document_id)}
+                  onExport={() => handleExportDocument(item)}
+                  onRename={() => handleRenameDocument(item)}
+                  onEdit={() => handleEditDocument(item)}
+                  onPrint={() => handlePrintDocument(item)}
+                  onPassword={() => handlePasswordDocument(item)}
+                  onMoveToFolder={() => handleMoveDocument(item)}
+                  onDelete={() => handleDeleteDocument(item)}
+                />
+              ) : (
+                <DocumentListItem
+                  document={item}
+                  onPress={() => handleDocumentPress(item)}
+                  onLongPress={() => handleDocumentLongPress(item)}
+                  selected={selectedDocs.includes(item.document_id)}
+                  theme={theme}
+                  onExport={() => handleExportDocument(item)}
+                  onRename={() => handleRenameDocument(item)}
+                  onEdit={() => handleEditDocument(item)}
+                  onPrint={() => handlePrintDocument(item)}
+                  onPassword={() => handlePasswordDocument(item)}
+                  onMoveToFolder={() => handleMoveDocument(item)}
+                  onDelete={() => handleDeleteDocument(item)}
+                />
+              )}
+            </>
+          );
+        }}
         contentContainerStyle={styles.listContent}
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Force re-render when view mode changes
