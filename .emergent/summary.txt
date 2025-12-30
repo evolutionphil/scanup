@@ -1,151 +1,197 @@
 <analysis>
 <original_problem_statement>
-The user's initial goal was to create a ScanUp mobile app. The current focus is on fixing a list of critical bugs. The main goals of this session were to permanently resolve the  crash caused by storing large images in , and fix the black screen bug that appeared when reloading a document. The user also reported several other issues, including a UI flash on the scanner screen, failing document migration, missing React keys, and non-functional image processing features (filters, OCR, export). The user has been very clear they want to completely move away from storing anything large in the  (SQLite) layer.
+The user's initial goal was to create a ScanUp mobile app. The current focus is on implementing new UI/UX from Figma designs and resolving platform-specific issues.
+
+The main goals for this session were:
+1.  Fix the failing image processing features (filters, OCR, export) which were returning  errors.
+2.  Implement new screens and components based on Figma designs provided by the user, including a new splash screen, premium page, share modal, and scanner icon.
+3.  Recreate the onboarding/guide pages with new designs.
+4.  Resolve issues with testing the application on the web preview and Expo Go.
 </original_problem_statement>
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a React Native (Expo) app with a FastAPI backend. The core storage architecture has been successfully refactored to address the primary stability issues.
+The project is a React Native (Expo) app with a FastAPI backend. The core architecture has been significantly refactored to prioritize local, on-device processing for performance and offline capability.
 
-- **New Storage Architecture (Implemented & Working):**
-    - Images are now saved to the device's file system using  via the  helper.
-    -  now correctly stores only small document *metadata* objects, containing file URIs () that point to the images on the file system. Base64 data is no longer written to .
-    - An automatic cleanup mechanism has been added to  that detects storage-full errors and clears corrupted legacy data from .
-- **Frontend:**  for navigation,  for state. The  has been extensively modified to handle the new file-system-based storage and state hydration. The document edit screen  now correctly loads image data from file URIs. The  has been refactored to provide a seamless, invisible transition.
-- **Backend:**  has had logging added to debug an image processing issue.
+-   **Local Image Processing**: Image processing for filters, rotation, and PDF generation has been moved from the backend to the client-side using  and . This has resolved the previous  API errors. Only OCR and Auto-Crop (since removed) remain as backend operations. A new utility file  was created for this.
+-   **New UI from Figma**:
+    -   A new splash screen has been implemented in  based on the user's design.
+    -   A new premium subscription page () has been created, matching the Figma design.
+    -   A new share modal () has been created.
+    -   The scanner icon in the main tab navigator () has been updated with a custom image.
+-   **Web Preview Workaround**: A temporary navigation menu was created in  to help the user test different screens on the web preview, as the splash screen animations and navigation were not working correctly in the web environment. This menu has since been removed at the user's request.
 
 **Last working item**:
-    - Last item agent was working: The agent was debugging why image processing features (filters, adjustments, OCR, export) were failing. The user reported a black screen for previews, and logs showed the backend  endpoint was returning a  error.
+    - Last item agent was working: The user requested to remove the web preview helper menu from the  screen and to recreate the onboarding/guide pages using new Figma designs and assets. The agent has just removed the web preview text from  and is about to start implementing the new onboarding flow.
     - Status: **IN PROGRESS**
     - Agent Testing Done: N
-    - Which testing method agent to use? backend testing agent. The agent must first restart the backend to enable new logging, then reproduce the issue by applying a filter in the UI. The primary task is to inspect the backend logs to see the malformed request that is causing the 422 error.
-    - User Testing Done: Y (User confirmed the features are not working)
+    - Which testing method agent to use? screenshot tool. The agent should verify the new onboarding screens on the web preview. The user will test on Expo Go once the connection issue is resolved.
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: Edit screen features (Filters, Adjustments, OCR, PDF Export) are not working. (P0)
-  - Issue 2: Custom Google & Apple authentication implementation is pending. (P1)
-  - Issue 3: Android system navigation buttons overlap with app UI buttons. (P2)
-  - Issue 4: User session is not persisted after an app restart. (P3)
-  
+  - Issue 1: Recreate onboarding/guide pages. (P0)
+  - Issue 2: Expo Go fails to run the app with a 500 HTTP error. (P1)
+  - Issue 3: Web preview is stuck on the splash screen. (P2)
+  - Issue 4: Implement custom Google & Apple authentication. (P3)
+  - Issue 5: Android system navigation buttons overlap with app UI buttons. (P4)
+
   Issues Detail:
-  - Issue 1: **Edit Screen Features Failing with 422 Error**
-     - Description: Features on the edit screen that require backend processing, such as applying filters, OCR, or exporting to PDF, are failing. The API call to  (and likely others) returns a  error, which indicates a Pydantic validation failure on the request body. This is preventing all server-side image manipulation.
-     - Attempted fixes: The agent added  to the  endpoint in  to log the exact request body being received. This change has not been tested yet.
+  - Issue 1: **Recreate Onboarding/Guide Pages**
+     - Description: The user wants to replace the existing onboarding flow. They have provided Figma designs and assets for two new guide pages (Scan and Save). The desired flow is: Splash Screen -> Guide Page 1 -> Guide Page 2 -> Premium Page -> Main App.
+     - Attempted fixes: None. The agent has just received the request.
      - Next debug checklist:
-        1. **Restart the backend service** to apply the logging change: backend: ERROR (not running)
-backend: ERROR (abnormal termination).
-        2. In the app, navigate to a document's edit screen and attempt to apply a filter.
-        3. **Examine the backend logs**: .
-        4. Look for the JSON output from the new  statement. Analyze the  field. Is it ? Is it an empty string? Does it contain an invalid format?
-        5. The  Pydantic model in  requires . The failure is likely that the frontend is sending an invalid or missing value for this field.
-        6. **Fix the frontend payload**: Based on the log analysis, adjust the frontend code in  (and other relevant modals) to ensure a valid, non-empty, raw base64 string is always sent.
-     - Why fix this issue and what will be achieved with the fix?: This is the last major functional bug. Fixing it will restore the app's core image editing and export capabilities.
+        1. Download the new image assets (, ) provided by the user.
+        2. Delete or overwrite the existing  file.
+        3. Create the new horizontally-swiping onboarding component with the two new pages, matching the styles from the Figma design.
+        4. Update the navigation logic in  to route to the new onboarding flow after the splash screen.
+        5. Ensure that after the onboarding flow, the user is navigated to the  screen.
+     - Why fix this issue and what will be achieved with the fix?: This will implement the user's desired initial user experience flow.
+     - Status: **NOT STARTED**
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
+
+  - Issue 2: **Expo Go Connection Failure (500 Error)**
+     - Description: The user cannot test the app on Expo Go. They receive an error there was a problem running the requested app with a 500 http response error. The agent identified this is due to the Expo tunnel requiring an  for authentication when running in a non-interactive CI environment. The user insists this worked before.
+     - Attempted fixes: The agent confirmed the  entry in  is correct and the bundler can create a valid bundle. The agent called the , which confirmed the nature of the problem.
+     - Next debug checklist:
+        1. Search the environment and file system for any files that might contain the .
+        2. If the token cannot be found, the agent must inform the user that testing on Expo Go is blocked and rely on the web preview for design verification.
+     - Why fix this issue and what will be achieved with the fix?: This is a critical blocker preventing the user from testing the app on a real device.
+     - Status: **BLOCKED**
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: NA
+     - Blocked on other issue: Blocked on acquiring the .
+
+  - Issue 3: **Web Preview Stuck on Splash Screen**
+     - Description: Despite many attempts, the web preview gets stuck on the splash screen () and does not automatically navigate to the next screen. This is due to limitations of React Native Web's Server-Side Rendering (SSR) where  and  hooks do not run as expected to trigger navigation.
+     - Attempted fixes: Using , , ,  checks, and finally creating a manual navigation menu. The menu worked but was removed by user request. The core issue of automatic navigation remains.
+     - Next debug checklist:
+        1. For now, accept the limitation. The  screen should be the splash screen.
+        2. Focus on making the UI of the splash screen render correctly on web (which it mostly does, minus the logo image).
+        3. For testing, the agent (and user) must manually change the URL in the browser to view other screens like  or the new onboarding screen.
+     - Why fix this issue and what will be achieved with the fix?: Fixing this would allow the user to test the intended app flow on the web preview.
      - Status: **IN PROGRESS**
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Both. First backend to confirm the 422 is gone, then frontend to confirm the feature works.
-     - Blocked on other issue: None.
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
 
-**In progress Task List**: None.
+**In progress Task List**: None. The main pending item is a new task.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - (P1) Implement custom Google Sign-In using user-provided credentials.
-    - (P1) Implement Sign in with Apple for the iOS platform.
+    - (P0) Recreate onboarding/guide pages as described in Issues Detail.
+    - (P3) Implement custom Google Sign-In using user-provided credentials.
+    - (P3) Implement Sign in with Apple for the iOS platform.
 - **Future Tasks:**
-    - (P2) Refactor the monolithic  into smaller, manageable routers.
-    - (P2) Refactor the  to further simplify state management now that storage logic is stable.
+    - (P4) Refactor the monolithic  into smaller, manageable routers.
+    - (P4) Refactor the  to further simplify state management.
 
 **Completed work in this session**
-- **Fixed  Crash (Major):** Completely resolved the database or disk is full crash by refactoring all storage operations. The agent meticulously went through , , and  in  to ensure no base64 data is ever written to . Images are now correctly saved to the file system.
-- **Implemented Storage Auto-Recovery:** Added a robust mechanism to  that catches  errors, assumes the storage is corrupted with old data, and automatically clears it to allow the app to self-heal.
-- **Fixed Black Screen Bug (Major):** Correctly implemented the state hydration logic in . The  function now properly reads the image from its  on the file system and sets it into the component's state, making previously scanned documents viewable again.
-- **Fixed Scanner UI Flashing:** The intermediate UI that flashed before and after a scan was removed by refactoring  to render  during loading and saving, providing a seamless user experience as requested.
-- **Fixed Missing Unique Key Warning:** Resolved React warnings by adding a unique  (using ) to new pages created in  when adding pages to an existing document.
-- **Fixed Document Migration Failures:** Made the  function in  more resilient by adding checks to skip migrating corrupted pages that lack an , preventing crashes on login.
-- **Provided User Connection Support:** Successfully guided the user to reconnect their development build to the new Metro bundler tunnel URL.
+- **Refactored Image Processing to Local-First**: Moved image processing for Filters, Rotation, and PDF Export from the backend to the device using  and . This resolved the critical  error and made the app more performant and offline-capable.
+- **Implemented New Screens from Figma**:
+    - **Splash Screen**: Created a new splash screen in .
+    - **Premium Page**: Created a new, fully styled  page matching the Figma design.
+    - **Share Modal**: Replaced the old export modal with a new  based on the user's design.
+- **UI Updates**:
+    - Updated the main tab bar scanner icon with a custom user-provided image.
+    - Removed the Auto Crop feature and its button from the document edit screen as requested.
+- **Bug Fixes**:
+    - Fixed an infinite navigation loop that occurred when closing the Premium screen.
+- **Web Preview Enhancements**:
+    - Addressed multiple issues to make the web preview usable for design verification, including fixing animations, checkmark icons on the premium page, and implementing a (since-removed) navigation menu.
 
 **Earlier issues found/mentioned but not fixed**
-All known issues are captured in the Pending/In progress Issue list.
+- The Expo Go connection failure ( issue) is the most significant one.
 
 **Known issue recurrence from previous fork**
-- The  crash and White/Black Screen bugs were the primary recurring issues from the previous fork. **They are now considered fixed** due to the complete architectural refactor of the storage system.
+- **Issue**: Expo Go connection failure with 500 error.
+- **Recurrence count**: This issue has occurred multiple times in the last user session.
+- **Status**: **BLOCKED**. The agent has identified the root cause (CI environment requiring ) but cannot resolve it without the token.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **File System Storage:** The app now correctly uses  to store large image data, avoiding  limitations. This is the new standard for the app.
-- **State Hydration:** When loading documents, the app first reads metadata (with file URIs) from , then reads the image file content into component state () for rendering and processing. This two-step process is crucial.
-- **Defensive Programming:** The store now includes logic to automatically clear corrupted  data, making the app more resilient to past data format issues.
-- **API Request Validation:** The current  error highlights the strict validation enforced by the FastAPI (Pydantic) backend. Request payloads must exactly match the defined models.
+- **Local-First Image Processing**: A major architectural shift to use  (for filters, rotation) and  (for PDF generation) on the client-side. This avoids backend dependency for most image operations.
+- **Figma-to-Code Implementation**: Manually translating Figma designs, assets, and style guides into React Native components.
+- **React Native Web (RNW) Limitations**: The development process has been significantly impacted by RNW's quirks, especially regarding Server-Side Rendering (SSR), / hooks, image rendering ( vs. URI), and navigation ( vs. ). The next agent must be aware that the web preview is not a reliable 1:1 match for native.
 
 **key DB schema**
-No changes were made to the database schema.
+- No changes to DB schema in this session.
 
 **changes in tech stack**
-No changes to  or . The primary change is the architectural shift in how client-side data is stored.
+- Added  to .
+- The usage of  and  is now central to the app's functionality.
 
 **All files of reference**
-- : The heart of the application's client-side logic. All storage and state changes were made here.
-- : The document editing screen. Source of the current bug; this is where image data is passed to child components like .
-- : The scanning transition screen. Was heavily modified to improve UX.
-- : The FastAPI backend. Recently modified to add logging to debug the 422 error.
+- : The entry point, serving as the splash screen. It's complex due to workarounds for RNW. It needs to be modified to navigate to the new onboarding flow.
+- : The new premium screen.
+- : The old onboarding screen that needs to be replaced.
+- : The document editor, heavily refactored to call local processing functions.
+- : New helper containing the logic for on-device image manipulation.
+- : The new, Figma-compliant share component.
+- : The main tab navigator where the scan button was updated.
 
 **Areas that need refactoring**
--  has become very large and complex. Now that the storage logic is stable, it could be a candidate for future refactoring into smaller, more focused Zustand stores or hooks.
+-  is overly complex due to attempts to fix the web preview. It should be simplified to just be a splash screen with a clear navigation path, and web-specific logic should be minimal and clearly separated.
 
 **key api endpoints**
-- : This is the failing endpoint. It's used for applying filters and other adjustments. It expects a JSON body with an  string.
+- : This endpoint is now only used for features that require significant backend computation, like OCR. It is no longer used for filters, rotation, or basic adjustments.
+- : This endpoint is no longer used. PDF generation is now local.
 
 **Critical Info for New Agent**
-- **Your immediate task is to solve the  error.** The previous agent has already added logging to the backend. You must restart the backend service (backend: ERROR (not running)
-backend: started), reproduce the error, and check the logs () to see the malformed request. The fix will likely be in the frontend, ensuring a valid base64 string is sent.
-- The  and black screen bugs are **fixed**. The core storage and loading logic is now correct. Do not get sidetracked trying to re-fix these.
-- The user wants a seamless experience. The scanner screen () is now invisible, acting only as a controller. Do not re-introduce any UI to it.
-- The user has mentioned other broken features like **OCR and PDF export**. They likely fail for the same reason as the filters (the 422 error). Solving the filter issue will likely provide the pattern to fix the others.
+- **Your immediate task is to implement the new onboarding flow.** The user has provided designs and wants two guide pages to appear after the splash screen and before the premium page. You will need to delete/replace  and adjust the navigation logic in .
+- **The Expo Go connection is broken.** This is a top-priority issue blocking user testing. The cause is a missing  in the CI environment. You should attempt to find this token. If not, inform the user about the block and rely on the web preview and screenshots for verification. Do not spend excessive time trying to fix the tunnel itself.
+- **The web preview is unreliable for testing app flow.** Do not get stuck trying to perfect the splash screen's automatic navigation on the web. It's an SSR issue. Manually navigate by URL to test specific screens (, etc.) and use screenshots to show your work.
+- **The app's architecture is now local-first for image processing.** Do not reintroduce backend calls for filters, rotation, or PDF export. Use the functions in .
 
 **documents created in this job**
 None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Msg 227):** Asks if edit screen issues (adjust/preview black, export pdf, ocr) are fixed. (PENDING - This is the current task)
-2.  **User (Msg 178):** Reports unique key warning when adding a page. (RESOLVED)
-3.  **User (Msg 167):** do we need this black screen? Wants the scanner transition to be completely invisible. (RESOLVED)
-4.  **User (Msg 158):** Reports the intermediate scanner UI also shows *after* scanning. (RESOLVED)
-5.  **User (Msg 131/132):** Reports a migration issue after login and a UI flash on the scanner screen. (RESOLVED)
-6.  **User (Msg 127):** Asks for the new tunnel URL. (RESOLVED)
-7.  **User (Msg 115):** Reports now i cant test the app! with a screenshot of a connection error. (RESOLVED)
-8.  **User (Msg 94):** Reports the  issue is *still* happening on the second scan. (RESOLVED - by implementing auto-cleanup)
-9.  **User (Msg 75):** Reports the edit screen is now black after the first round of fixes. (RESOLVED)
-10. **User (Msg 46):** Reports that the  issue persists after the initial fix attempt. (RESOLVED)
+1.  **User:** Requests to recreate the guide pages with new Figma designs and assets. (PENDING)
+2.  **User:** Requests to remove the web preview helper text from the splash screen. (DONE)
+3.  **User:** Asks where the  is, stating it worked before. (PENDING)
+4.  **User:** Reports the same Expo Go 500 error, mentioning the non-interactive CI mode. (PENDING)
+5.  **User:** Reports an error on Expo Go: there was a problem running the requested app. (PENDING)
+6.  **User:** Complains that the app preview is still stuck on the splash screen. (IN PROGRESS)
+7.  **User:** Asks why the design isn't showing on the app preview. (IN PROGRESS)
+8.  **User:** Asks how to build in Android Studio and for the local server URL. (RESOLVED)
+9.  **User:** Reports an issue with an infinite loop after clicking the 'X' button on the premium screen. (RESOLVED)
+10. **User:** Requests an update to the share button pop-up to match a new Figma design. (RESOLVED)
 
 **Project Health Check:**
-- **Working**:
-    - Core scanning workflow (scanning multiple documents).
-    - Saving documents locally as a guest.
-    - Viewing/re-opening previously scanned local documents.
-    - Login and syncing of *newly created* documents.
 - **Broken**:
-    - All backend-dependent image processing features on the edit screen (Filters, Adjustments, OCR, Export PDF) are broken due to a  API error.
+    - **Expo Go Connection**: The app cannot be loaded on Expo Go due to a 500 error related to tunnel authentication (). This is the highest priority bug.
+    - **Web Preview Navigation**: The app gets stuck on the splash screen on the web preview and does not navigate automatically.
 - **Mocked**:
-    - Google Sign-In still uses a generic Emergent service.
+    - Google & Apple authentication.
+- **Working**:
+    - Core scanning and local storage.
+    - Local image processing (filters, rotation).
+    - Local PDF generation and sharing.
+    - UI for Splash, Premium, and Share screens (viewable by direct URL navigation on web).
 
 **3rd Party Integrations**
-- **AWS S3**: For image storage for authenticated users.
+- **AWS S3**: For authenticated user image storage.
 - **MongoDB Atlas**: Primary database.
 - **react-native-document-scanner-plugin**: For document capture.
 - : For local image storage.
+- : For local image processing.
+- : For local PDF generation.
+- : For UI styling.
 
 **Testing status**
-  - Testing agent used after significant changes: NO
+  - Testing agent used after significant changes: YES (Backend testing was used before the refactor to local processing).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: None. The previous regressions ( and black screen) have been fixed. The current bug is pre-existing functionality that broke due to the storage refactor.
+  - Known regressions: The Expo Go connection, which was previously working, is now broken.
 
 **Credentials to test flow:**
-- Guest mode is sufficient to reproduce the  bug when using the filter/adjust feature.
+- Guest mode is sufficient for all current UI and feature development.
 
 **What agent forgot to execute**
-- The previous agent did not restart the backend service after adding new logging, so the last action taken has not yet produced any useful output. The next agent must do this as its first step.
+- The agent received the request to recreate the onboarding/guide pages but has not yet started the implementation. It got sidetracked with fixing the web preview and removing the helper text from . The very next step should be to address this task.
 </analysis>
