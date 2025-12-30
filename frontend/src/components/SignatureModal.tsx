@@ -329,7 +329,7 @@ export function SignaturePlacementModal({ visible, documentImage, documentImageU
 
         <View style={styles.documentContainer}>
           <Image
-            source={{ uri: `data:image/jpeg;base64,${documentImage}` }}
+            source={getImageSource()}
             style={styles.documentImage}
             resizeMode="contain"
             onLayout={(e) => {
