@@ -40,7 +40,7 @@ interface AnnotationEditorProps {
   onClose: () => void;
   imageBase64: string;
   imageUrl?: string;
-  onSave: (annotations: Annotation[], annotatedImageBase64: string) => void;
+  onSave: (annotations: Annotation[], annotatedImageBase64: string, displayDimensions?: { width: number; height: number }) => void;
   existingAnnotations?: Annotation[];
 }
 
