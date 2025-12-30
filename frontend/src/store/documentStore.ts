@@ -152,6 +152,7 @@ export interface Folder {
   parent_id?: string;
   is_protected?: boolean;
   password_hash?: string;
+  document_count?: number;  // Added for folder document count display
   created_at: string;
 }
 
