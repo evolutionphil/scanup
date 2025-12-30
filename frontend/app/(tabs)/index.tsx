@@ -455,6 +455,13 @@ export default function DocumentsScreen() {
               onLongPress={() => handleDocumentLongPress(item)}
               selected={selectedDocs.includes(item.document_id)}
               theme={theme}
+              onExport={() => handleExportDocument(item)}
+              onRename={() => handleRenameDocument(item)}
+              onEdit={() => handleEditDocument(item)}
+              onPrint={() => handlePrintDocument(item)}
+              onPassword={() => handlePasswordDocument(item)}
+              onMoveToFolder={() => handleMoveDocument(item)}
+              onDelete={() => handleDeleteDocument(item)}
             />
           )
         )}
