@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeStore } from '../src/store/themeStore';
@@ -30,14 +30,6 @@ export default function SignaturesScreen() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedSignatures, setSelectedSignatures] = useState<string[]>([]);
 
-  // Load saved signatures
-  useEffect(() => {
-    loadSignatures();
-  }, []);
-
-  // Reload signatures when navigation changes
-  const { useFocusEffect } = require('expo-router');
-
   const loadSignatures = async () => {
     try {
       const saved = await AsyncStorage.getItem(SIGNATURES_KEY);
@@ -48,6 +40,13 @@ export default function SignaturesScreen() {
       console.error('Failed to load signatures:', e);
     }
   };
+
+  // Reload signatures when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadSignatures();
+    }, [])
+  );
 
   const saveSignatures = async (newSignatures: SavedSignature[]) => {
     try {
