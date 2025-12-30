@@ -248,7 +248,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const storedFolders = await AsyncStorage.getItem(GUEST_FOLDERS_KEY);
       
       const metaDocs = storedDocs ? JSON.parse(storedDocs) : [];
-      const folders = storedFolders ? JSON.parse(storedFolders) : [];
+      const foldersRaw = storedFolders ? JSON.parse(storedFolders) : [];
+      
+      // Calculate document count for each folder (for guest mode)
+      const folders = foldersRaw.map((folder: Folder) => ({
+        ...folder,
+        document_count: metaDocs.filter((doc: Document) => doc.folder_id === folder.folder_id).length,
+      }));
       
       console.log(`[loadGuestDocuments] Loaded ${metaDocs.length} docs, ${folders.length} folders`);
       
