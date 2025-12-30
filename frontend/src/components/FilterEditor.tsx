@@ -108,10 +108,10 @@ export default function FilterEditor({
       // Try to load from file URI first
       if (imageFileUri) {
         try {
-          const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
+          const fileInfo = await getInfoAsync(imageFileUri);
           if (fileInfo.exists) {
-            const base64 = await FileSystem.readAsStringAsync(imageFileUri, {
-              encoding: FileSystem.EncodingType.Base64,
+            const base64 = await readAsStringAsync(imageFileUri, {
+              encoding: EncodingType.Base64,
             });
             console.log('[FilterEditor] Loaded from file URI');
             setLoadedBase64(base64);
