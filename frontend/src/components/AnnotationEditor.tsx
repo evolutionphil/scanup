@@ -335,9 +335,11 @@ export default function AnnotationEditor({
   };
 
   const handleSave = () => {
-    // For now, just pass the annotations back
-    // In a full implementation, we'd render annotations onto the image
-    onSave(annotations, imageBase64);
+    // Pass annotations back with display dimensions for proper scaling
+    const displayDimensions = imageLayout.width > 0 && imageLayout.height > 0 
+      ? { width: imageLayout.width, height: imageLayout.height }
+      : undefined;
+    onSave(annotations, imageBase64, displayDimensions);
     onClose();
   };
 
