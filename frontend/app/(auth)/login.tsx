@@ -67,94 +67,55 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      // Check if running on native platform (not web)
-      if (Platform.OS !== 'web') {
-        // Use native Google Sign-In
-        await GoogleSignin.hasPlayServices();
-        const response = await GoogleSignin.signIn();
+      // Use WebBrowser-based authentication for all platforms (consistent with Emergent Auth)
+      // This works better across platforms and doesn't require native Google Sign-In configuration
+      const redirectUrl = Platform.OS === 'web'
+        ? `${window.location.origin}/`
+        : Linking.createURL('/');
+      
+      console.log('Google login redirect URL:', redirectUrl);
+      const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+      
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      console.log('WebBrowser result:', JSON.stringify(result, null, 2));
+      
+      if (result.type === 'success' && result.url) {
+        let sessionId = '';
+        const url = result.url;
+        console.log('Return URL:', url);
         
-        if (isSuccessResponse(response)) {
-          const { data } = response;
-          console.log('Google Sign-In success:', data.user.email);
-          
-          // Get ID token for backend authentication
-          const tokens = await GoogleSignin.getTokens();
-          
-          // Send to backend for authentication
-          if (googleLoginNative) {
-            await googleLoginNative(tokens.idToken, data.user);
-          } else {
-            // Fallback: create/login user with Google data
-            const backendResponse = await fetch(`${BACKEND_URL}/api/auth/google/native`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id_token: tokens.idToken,
-                email: data.user.email,
-                name: data.user.name,
-                photo: data.user.photo,
-              }),
-            });
-            
-            if (backendResponse.ok) {
-              const userData = await backendResponse.json();
-              // Store auth data and navigate
-              router.replace('/(tabs)');
-            } else {
-              throw new Error('Backend authentication failed');
-            }
+        // Try multiple patterns to extract session_id
+        const patterns = [
+          /[#?&]session_id=([^&]+)/,
+          /session_id=([^&\s]+)/,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match && match[1]) {
+            sessionId = match[1];
+            break;
           }
-          
+        }
+        
+        console.log('Parsed session_id:', sessionId ? 'found' : 'not found');
+        
+        if (sessionId) {
+          await googleLogin(sessionId);
           router.replace('/(tabs)');
+        } else {
+          Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
         }
+      } else if (result.type === 'dismiss') {
+        console.log('User dismissed the login');
+        // Don't show error for user-initiated cancellation
       } else {
-        // Web platform - use existing WebBrowser auth
-        const redirectUrl = `${window.location.origin}/`;
-        const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-        
-        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-        
-        if (result.type === 'success' && result.url) {
-          let sessionId = '';
-          const url = result.url;
-          
-          const patterns = [/[#?&]session_id=([^&]+)/, /session_id=([^&\s]+)/];
-          for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-              sessionId = match[1];
-              break;
-            }
-          }
-          
-          if (sessionId) {
-            await googleLogin(sessionId);
-            router.replace('/(tabs)');
-          } else {
-            Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
-          }
-        }
+        console.log('Auth result type:', result.type);
+        Alert.alert(t('login_cancelled', 'Login Cancelled'), t('please_try_signing_in_again', 'Please try signing in again'));
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      
-      if (isErrorWithCode(error)) {
-        switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
-            console.log('User cancelled the login');
-            break;
-          case statusCodes.IN_PROGRESS:
-            Alert.alert(t('error', 'Error'), 'Sign in already in progress');
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            Alert.alert(t('error', 'Error'), 'Google Play Services not available');
-            break;
-          default:
-            Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
-        }
-      } else {
-        Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
-      }
+      Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
     } finally {
       setGoogleLoading(false);
     }
