@@ -27,7 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, googleLogin, googleLoginNative } = useAuthStore();
+  const { login, googleLogin } = useAuthStore();
 
   const handleLogin = async () => {
     console.log('Login button pressed', { email, password: !!password });
