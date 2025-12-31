@@ -4292,6 +4292,20 @@ DEFAULT_TRANSLATIONS_DE = {
     "reset_settings": "Einstellungen zurücksetzen",
     "reset_settings_desc": "Standardeinstellungen wiederherstellen",
     "select_language": "Sprache auswählen",
+    
+    # Additional Keys for UI
+    "deleting": "Löschen...",
+    "selected": "ausgewählt",
+    "untitled_document": "Unbenanntes Dokument",
+    "create": "Erstellen",
+    "name_placeholder": "Name",
+    "color": "Farbe",
+    "list_view": "Liste",
+    "grid_view": "Raster",
+    "view_mode": "Ansicht",
+    "profile": "Profil",
+    "guest_user": "Gastbenutzer",
+    "sign_in_to_sync": "Melden Sie sich an, um Ihre Dokumente zu synchronisieren",
 }
 
 # Default Legal Pages Content (Markdown format)
