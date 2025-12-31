@@ -351,11 +351,36 @@ export default function SignatureSelectionModal({
                 ]}
                 onPress={() => setSelectedSignature(sig)}
               >
-                <Image
-                  source={{ uri: sig.base64 }}
-                  style={styles.signatureThumbImage}
-                  resizeMode="contain"
-                />
+                {sig.base64 ? (
+                  <Image
+                    source={{ uri: sig.base64 }}
+                    style={styles.signatureThumbImage}
+                    resizeMode="contain"
+                  />
+                ) : sig.paths && sig.paths.length > 0 ? (
+                  <Svg 
+                    width="100%" 
+                    height="100%" 
+                    viewBox={`0 0 ${sig.width || 300} ${sig.height || 200}`}
+                    style={styles.signatureThumbImage}
+                  >
+                    {sig.paths.map((p, i) => (
+                      <Path
+                        key={i}
+                        d={p}
+                        stroke="#000"
+                        strokeWidth={3}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+                  </Svg>
+                ) : (
+                  <View style={styles.emptySignatureThumb}>
+                    <Ionicons name="pencil-outline" size={20} color="#CCC" />
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </ScrollView>
