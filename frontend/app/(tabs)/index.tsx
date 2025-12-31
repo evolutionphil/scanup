@@ -1279,23 +1279,23 @@ export default function DocumentsScreen() {
       {/* Folder Password Modal */}
       <Modal visible={showFolderPasswordModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowFolderPasswordModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('set_folder_password', 'Set Folder Password')}</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('set_folder_password', 'Set Folder Password')}</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
               {t('enter_password_protect_folder', 'Enter a password to protect this folder. Leave empty to remove password.')}
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={folderPasswordValue}
               onChangeText={setFolderPasswordValue}
               placeholder={t('enter_password_optional', 'Enter password (optional)')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               secureTextEntry
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowFolderPasswordModal(false)}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+              <TouchableOpacity style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} onPress={() => setShowFolderPasswordModal(false)}>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmFolderPassword}>
                 <Text style={styles.modalBtnConfirmText}>{folderPasswordValue ? t('set_password', 'Set Password') : t('remove_password', 'Remove Password')}</Text>
@@ -1308,23 +1308,23 @@ export default function DocumentsScreen() {
       {/* Password Modal */}
       <Modal visible={showPasswordModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPasswordModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('set_password', 'Set Password')}</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('set_password', 'Set Password')}</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
               {t('enter_password_protect_document', 'Enter a password to protect this document. Leave empty to remove password.')}
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={passwordValue}
               onChangeText={setPasswordValue}
               placeholder={t('enter_password_optional', 'Enter password (optional)')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               secureTextEntry
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowPasswordModal(false)}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+              <TouchableOpacity style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} onPress={() => setShowPasswordModal(false)}>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmPassword}>
                 <Text style={styles.modalBtnConfirmText}>{passwordValue ? t('set_password', 'Set Password') : t('remove_password', 'Remove Password')}</Text>
@@ -1337,27 +1337,27 @@ export default function DocumentsScreen() {
       {/* Unlock Password Modal */}
       <Modal visible={showUnlockModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUnlockModal(false)}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.unlockHeader}>
-              <Ionicons name="lock-closed" size={40} color="#3E51FB" />
-              <Text style={[styles.modalTitle, { marginTop: 12 }]}>{t('document_protected', 'Document Protected')}</Text>
+              <Ionicons name="lock-closed" size={40} color={theme.primary} />
+              <Text style={[styles.modalTitle, { marginTop: 12, color: theme.text }]}>{t('document_protected', 'Document Protected')}</Text>
             </View>
-            <Text style={[styles.modalSubtitle, { textAlign: 'center' }]}>
+            <Text style={[styles.modalSubtitle, { textAlign: 'center', color: theme.textSecondary }]}>
               {t('enter_password_to_view', 'Enter the password to view this document.')}
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={unlockPasswordValue}
               onChangeText={setUnlockPasswordValue}
               placeholder={t('enter_password', 'Enter password')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               secureTextEntry
               autoFocus
               onSubmitEditing={handleUnlockDocument}
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowUnlockModal(false)}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+              <TouchableOpacity style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} onPress={() => setShowUnlockModal(false)}>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleUnlockDocument}>
                 <Text style={styles.modalBtnConfirmText}>{t('unlock', 'Unlock')}</Text>
