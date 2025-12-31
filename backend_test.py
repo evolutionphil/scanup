@@ -16,7 +16,7 @@ import sys
 import os
 
 # Backend URL from frontend environment
-BACKEND_URL = "https://localize-scanup.preview.emergentagent.com"
+BACKEND_URL = "https://mobile-translation.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class BackendTester:

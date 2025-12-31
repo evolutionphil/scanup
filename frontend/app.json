@@ -113,7 +113,7 @@
       "router": {
         "origin": false
       },
-      "EXPO_PUBLIC_BACKEND_URL": "https://localize-scanup.preview.emergentagent.com",
+      "EXPO_PUBLIC_BACKEND_URL": "https://mobile-translation.preview.emergentagent.com",
       "eas": {
         "projectId": "4c3b5675-c4ad-42eb-9b9b-e3410dae2f85"
       }

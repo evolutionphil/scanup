@@ -934,7 +934,7 @@ agent_communication:
     ### Root Cause Analysis:
     🔍 **Configuration Issue Identified**: 
     - Frontend is trying to fetch from `https://scanup-production.up.railway.app` (404 error)
-    - Should be fetching from `https://localize-scanup.preview.emergentagent.com`
+    - Should be fetching from `https://mobile-translation.preview.emergentagent.com`
     - Backend APIs are working correctly (verified via direct curl tests)
     - Issue is in frontend configuration not picking up correct EXPO_PUBLIC_BACKEND_URL
     
@@ -1004,7 +1004,7 @@ agent_communication:
     message: "SCANUP MOBILE APP FRONTEND TESTING COMPLETED ✅
     
     ## Test Environment:
-    - **Frontend URL**: https://localize-scanup.preview.emergentagent.com
+    - **Frontend URL**: https://mobile-translation.preview.emergentagent.com
     - **Mobile Viewport**: 390x844 (iPhone-like)
     - **Testing Mode**: Guest mode (no authentication required)
     
@@ -1064,7 +1064,7 @@ agent_communication:
     - **State Management**: Zustand stores for auth, theme, documents, i18n
     - **Styling**: Custom StyleSheet with theme support
     - **Navigation**: Tab-based with modal overlays for actions
-    - **Backend Integration**: REST API calls to https://localize-scanup.preview.emergentagent.com
+    - **Backend Integration**: REST API calls to https://mobile-translation.preview.emergentagent.com
     
     ## Testing Limitations:
     1. **Document Creation**: Requires camera/scanner functionality not testable in browser automation

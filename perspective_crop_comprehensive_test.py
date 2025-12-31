@@ -15,7 +15,7 @@ import numpy as np
 import uuid
 
 # Test configuration
-BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://localize-scanup.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://mobile-translation.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class PerspectiveCropTester:
