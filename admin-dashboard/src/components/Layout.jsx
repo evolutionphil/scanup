@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  ScanLine
+  ScanLine,
+  Shield
 } from 'lucide-react';
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { path: '/documents', icon: FileText, label: 'Documents' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   { path: '/localization', icon: Globe, label: 'Localization' },
+  { path: '/legal-pages', icon: Shield, label: 'Legal Pages' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
