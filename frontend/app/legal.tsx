@@ -14,15 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useLegalContent, useTranslation } from '../src/store/translationStore';
+import { useI18n } from '../src/store/i18nStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import Markdown from 'react-native-markdown-display';
 
 const BRAND_BLUE = '#3E51FB';
 
+// Get backend URL
+const getBackendUrl = () => {
+  const backendUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
+    || process.env.EXPO_PUBLIC_BACKEND_URL 
+    || '';
+  return backendUrl.replace(/\/$/, '');
+};
+
 export default function LegalPageScreen() {
   const { type } = useLocalSearchParams<{ type: string }>();
-  const { fetchLegalPage } = useLegalContent();
-  const { t } = useTranslation();
+  const { currentLanguage, t } = useI18n();
   
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -30,9 +39,9 @@ export default function LegalPageScreen() {
 
   // Page titles
   const pageTitles: Record<string, string> = {
-    terms: t('terms_conditions'),
-    privacy: t('privacy_policy'),
-    support: t('help_support'),
+    terms: t('terms_conditions', 'Terms & Conditions'),
+    privacy: t('privacy_policy', 'Privacy Policy'),
+    support: t('help_support', 'Help & Support'),
   };
 
   useEffect(() => {
@@ -42,11 +51,31 @@ export default function LegalPageScreen() {
         setError(null);
         
         const pageType = type as 'terms' | 'privacy' | 'support';
-        const pageContent = await fetchLegalPage(pageType);
-        setContent(pageContent);
+        
+        // Check cache first
+        const cacheKey = `@scanup_legal_${pageType}_${currentLanguage}`;
+        const cached = await AsyncStorage.getItem(cacheKey);
+        
+        // Fetch from backend
+        const backendUrl = getBackendUrl();
+        const response = await fetch(`${backendUrl}/api/content/legal/${pageType}?language_code=${currentLanguage}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          const pageContent = data.content || '';
+          setContent(pageContent);
+          
+          // Cache the content
+          await AsyncStorage.setItem(cacheKey, pageContent);
+        } else if (cached) {
+          // Use cached if fetch fails
+          setContent(cached);
+        } else {
+          throw new Error('Failed to load content');
+        }
       } catch (err) {
         console.error('Error loading legal page:', err);
-        setError('Failed to load content. Please try again.');
+        setError(t('error', 'Failed to load content. Please try again.'));
       } finally {
         setIsLoading(false);
       }
@@ -55,7 +84,7 @@ export default function LegalPageScreen() {
     if (type) {
       loadContent();
     }
-  }, [type]);
+  }, [type, currentLanguage]);
 
   const markdownStyles = {
     body: {
@@ -115,7 +144,7 @@ export default function LegalPageScreen() {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={BRAND_BLUE} />
-          <Text style={styles.loadingText}>{t('loading')}</Text>
+          <Text style={styles.loadingText}>{t('loading', 'Loading...')}</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
