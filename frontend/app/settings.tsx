@@ -180,26 +180,58 @@ export default function SettingsScreen() {
 
   const handleClearCache = () => {
     Alert.alert(
-      'Clear Cache',
-      'This will clear ALL local documents and cached data. This cannot be undone!',
+      t('clear_cache', 'Clear Cache'),
+      t('clear_cache_warning', 'This will clear ALL local documents and cached data. This cannot be undone!'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Clear All',
+          text: t('clear_all', 'Clear All'),
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear guest documents
-              await AsyncStorage.removeItem('@scanup_guest_documents');
-              await AsyncStorage.removeItem('@scanup_guest_folders');
-              // Clear local cache
-              await AsyncStorage.removeItem('@scanup_local_documents');
-              // Clear pending sync
-              await AsyncStorage.removeItem('@scanup_pending_sync');
+              // Clear all document-related AsyncStorage keys
+              const keysToRemove = [
+                // New key format (from documentStore.ts)
+                'guest_documents_meta',
+                'guest_folders',
+                'local_documents_meta',
+                'pending_sync_documents',
+                // Old key format (legacy)
+                '@scanup_guest_documents',
+                '@scanup_guest_folders',
+                '@scanup_local_documents',
+                '@scanup_pending_sync',
+                // Migration keys
+                'migrated_to_account_',
+              ];
               
-              Alert.alert('Done', 'All local data has been cleared. Please restart the app.');
+              // Get all keys and remove document-related ones
+              const allKeys = await AsyncStorage.getAllKeys();
+              const keysToDelete = allKeys.filter(key => 
+                keysToRemove.some(k => key.includes(k) || key.startsWith(k))
+              );
+              
+              if (keysToDelete.length > 0) {
+                await AsyncStorage.multiRemove(keysToDelete);
+              }
+              
+              // Clear file system image cache
+              const FileSystem = require('expo-file-system/legacy');
+              const imageDir = `${FileSystem.documentDirectory}scanup_images/`;
+              const dirInfo = await FileSystem.getInfoAsync(imageDir);
+              if (dirInfo.exists) {
+                await FileSystem.deleteAsync(imageDir, { idempotent: true });
+                console.log('[Settings] Cleared image cache directory');
+              }
+              
+              // Reset the document store state
+              const { useDocumentStore } = require('../src/store/documentStore');
+              useDocumentStore.setState({ documents: [], folders: [] });
+              
+              Alert.alert(t('done', 'Done'), t('cache_cleared_restart', 'All local data has been cleared. Please restart the app.'));
             } catch (e) {
-              Alert.alert('Error', 'Failed to clear cache');
+              console.error('Failed to clear cache:', e);
+              Alert.alert(t('error', 'Error'), t('failed_to_clear_cache', 'Failed to clear cache'));
             }
           },
         },
