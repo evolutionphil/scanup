@@ -560,23 +560,14 @@ export default function DocumentsScreen() {
   const confirmRenameFolder = async () => {
     if (renameFolder && renameFolderValue.trim()) {
       try {
-        // Update folder name via API
-        const response = await fetch(`${BACKEND_URL}/api/folders/${renameFolder.folder_id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ name: renameFolderValue.trim() }),
-        });
-        
-        if (response.ok) {
-          await fetchFolders(token || null);
-          Alert.alert(t('success', 'Success'), t('folder_renamed', 'Folder renamed successfully'));
-        } else {
-          throw new Error('Failed to rename folder');
-        }
+        // Use the store's updateFolder function which handles both local and cloud folders
+        const isLocalFolder = renameFolder.folder_id.startsWith('local_');
+        const { updateFolder } = useDocumentStore.getState();
+        await updateFolder(isLocalFolder ? null : token, renameFolder.folder_id, { name: renameFolderValue.trim() });
+        await fetchFolders(token || null);
+        Alert.alert(t('success', 'Success'), t('folder_renamed', 'Folder renamed successfully'));
       } catch (e) {
+        console.error('Folder rename error:', e);
         Alert.alert(t('error', 'Error'), t('failed_to_rename_folder', 'Failed to rename folder'));
       }
     }
