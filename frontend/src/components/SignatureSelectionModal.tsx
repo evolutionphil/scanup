@@ -320,11 +320,32 @@ export default function SignatureSelectionModal({
                 onResponderRelease={handleSignatureTouchEnd}
                 onResponderTerminate={handleSignatureTouchEnd}
               >
-                <Image
-                  source={{ uri: selectedSignature.base64 }}
-                  style={styles.signatureImage}
-                  resizeMode="contain"
-                />
+                {selectedSignature.base64 ? (
+                  <Image
+                    source={{ uri: selectedSignature.base64 }}
+                    style={styles.signatureImage}
+                    resizeMode="contain"
+                  />
+                ) : selectedSignature.paths && selectedSignature.paths.length > 0 ? (
+                  <Svg 
+                    width="100%" 
+                    height="100%" 
+                    viewBox={`0 0 ${selectedSignature.width || 300} ${selectedSignature.height || 200}`}
+                    style={styles.signatureImage}
+                  >
+                    {selectedSignature.paths.map((p, i) => (
+                      <Path
+                        key={i}
+                        d={p}
+                        stroke="#000"
+                        strokeWidth={3}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+                  </Svg>
+                ) : null}
                 {/* Delete button */}
                 <TouchableOpacity style={styles.deleteSignatureBtn} onPress={handleRemoveSignature}>
                   <Ionicons name="trash" size={16} color="#FFF" />
