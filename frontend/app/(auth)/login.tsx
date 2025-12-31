@@ -23,6 +23,30 @@ import { useI18n } from '../../src/store/i18nStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+// Import Google Sign-In only on native platforms
+let GoogleSignin: any = null;
+let statusCodes: any = null;
+let isSuccessResponse: any = null;
+let isErrorWithCode: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const googleSignInModule = require('@react-native-google-signin/google-signin');
+    GoogleSignin = googleSignInModule.GoogleSignin;
+    statusCodes = googleSignInModule.statusCodes;
+    isSuccessResponse = googleSignInModule.isSuccessResponse;
+    isErrorWithCode = googleSignInModule.isErrorWithCode;
+    
+    // Configure Google Sign-In
+    GoogleSignin.configure({
+      webClientId: '215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o.apps.googleusercontent.com',
+      offlineAccess: true,
+    });
+  } catch (e) {
+    console.log('Google Sign-In not available:', e);
+  }
+}
+
 export default function LoginScreen() {
   const { theme, mode } = useThemeStore();
   const { t } = useI18n();
@@ -32,7 +56,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
-  const { login, googleLogin, appleLogin } = useAuthStore();
+  const { login, googleLogin, googleLoginNative, appleLogin } = useAuthStore();
 
   useEffect(() => {
     // Check if Apple Sign-In is available
@@ -72,11 +96,85 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      // Use WebBrowser-based authentication for all platforms (consistent with Emergent Auth)
-      // This works better across platforms and doesn't require native Google Sign-In configuration
-      const redirectUrl = Platform.OS === 'web'
-        ? `${window.location.origin}/`
-        : Linking.createURL('/');
+      // Use native Google Sign-In on mobile platforms
+      if (Platform.OS !== 'web' && GoogleSignin) {
+        console.log('[GoogleLogin] Using native Google Sign-In');
+        
+        await GoogleSignin.hasPlayServices();
+        const response = await GoogleSignin.signIn();
+        
+        if (isSuccessResponse && isSuccessResponse(response)) {
+          const { data } = response;
+          console.log('[GoogleLogin] Native sign-in success:', data.user.email);
+          
+          // Get ID token for backend authentication
+          const tokens = await GoogleSignin.getTokens();
+          
+          // Send to backend for authentication
+          await googleLoginNative(tokens.idToken, data.user);
+          router.replace('/(tabs)');
+        } else {
+          throw new Error('Google sign-in did not return success response');
+        }
+      } else {
+        // Web platform - use WebBrowser auth (Emergent Auth)
+        console.log('[GoogleLogin] Using WebBrowser auth for web');
+        const redirectUrl = Platform.OS === 'web'
+          ? `${window.location.origin}/`
+          : Linking.createURL('/');
+        
+        const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+        
+        if (result.type === 'success' && result.url) {
+          let sessionId = '';
+          const url = result.url;
+          
+          const patterns = [/[#?&]session_id=([^&]+)/, /session_id=([^&\s]+)/];
+          for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+              sessionId = match[1];
+              break;
+            }
+          }
+          
+          if (sessionId) {
+            await googleLogin(sessionId);
+            router.replace('/(tabs)');
+          } else {
+            Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
+          }
+        } else if (result.type !== 'dismiss') {
+          Alert.alert(t('login_cancelled', 'Login Cancelled'), t('please_try_signing_in_again', 'Please try signing in again'));
+        }
+      }
+    } catch (error: any) {
+      console.error('[GoogleLogin] Error:', error);
+      
+      // Handle native Google Sign-In errors
+      if (isErrorWithCode && isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes?.SIGN_IN_CANCELLED:
+            console.log('[GoogleLogin] User cancelled');
+            // Don't show error for user cancellation
+            break;
+          case statusCodes?.IN_PROGRESS:
+            Alert.alert(t('error', 'Error'), t('sign_in_in_progress', 'Sign in already in progress'));
+            break;
+          case statusCodes?.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert(t('error', 'Error'), t('play_services_not_available', 'Google Play Services not available'));
+            break;
+          default:
+            Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
+        }
+      } else {
+        Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
       
       console.log('Google login redirect URL:', redirectUrl);
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
