@@ -81,41 +81,36 @@ export default function Localization() {
 
   const fetchLocalization = async () => {
     try {
-      // First, fetch the default translations from the public endpoint
-      const defaultRes = await fetch(`${API_URL}/translations`);
-      let defaultData = {};
-      
-      if (defaultRes.ok) {
-        const data = await defaultRes.json();
-        defaultData = data.translations || {};
-        setDefaultTranslations(defaultData);
-      }
-
-      // Then fetch any custom translations from admin endpoint
+      // Fetch from the new admin localization endpoint
       const res = await fetch(`${API_URL}/admin/localization`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
         const data = await res.json();
-        const customLangs = data.languages || ['en'];
-        const customTranslations = data.translations || {};
+        const langs = data.languages || [];
+        const trans = data.translations || {};
+        const defaultKeys = data.default_keys || [];
         
-        // Merge default with custom (custom overrides defaults)
-        const mergedTranslations = { ...defaultData };
-        Object.keys(customTranslations).forEach(lang => {
-          mergedTranslations[lang] = {
-            ...(defaultData[lang] || defaultData.en || {}),
-            ...customTranslations[lang]
-          };
-        });
+        // Extract language codes from language objects
+        const langCodes = langs.map(l => typeof l === 'string' ? l : l.code);
         
-        setLanguages(customLangs.length > 0 ? customLangs : ['en']);
-        setTranslations(mergedTranslations);
+        setLanguages(langCodes.length > 0 ? langCodes : ['en']);
+        setTranslations(trans);
+        
+        // Use English translations as default reference
+        if (trans.en) {
+          setDefaultTranslations({ en: trans.en });
+        }
       } else {
-        // Use defaults
+        // Fallback: fetch from public endpoint
+        const publicRes = await fetch(`${API_URL}/content/translations/en`);
+        if (publicRes.ok) {
+          const data = await publicRes.json();
+          setDefaultTranslations({ en: data.translations || {} });
+          setTranslations({ en: data.translations || {} });
+        }
         setLanguages(['en']);
-        setTranslations(defaultData);
       }
     } catch (e) {
       console.error('Failed to fetch localization:', e);
