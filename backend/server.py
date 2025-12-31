@@ -5748,6 +5748,17 @@ DEFAULT_TRANSLATIONS = {
         "create_manage_signatures": "Create and manage your saved signatures",
         "manage_signatures": "Manage Signatures",
         "create_edit_delete_signatures": "Create, edit, and delete signatures",
+        "no_signatures_yet": "No Signatures Yet",
+        "create_first_signature": "Create your first signature to use when signing documents",
+        "delete_signature": "Delete Signature",
+        "delete_signature_confirm": "Are you sure you want to delete this signature?",
+        "delete_selected": "Delete Selected",
+        "delete_confirm_multiple": "Are you sure you want to delete",
+        "signature_s": "signature(s)",
+        "new_signature": "New Signature",
+        "create_new_signature": "Create New Signature",
+        "long_press_to_delete": "Long press to delete",
+        "upgrade_now": "Upgrade Now",
         "continue_with_apple": "Continue with Apple",
         
         # Errors & Messages
