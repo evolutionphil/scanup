@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,25 +14,11 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import {
-  GoogleSignin,
-  statusCodes,
-  isSuccessResponse,
-  isErrorWithCode,
-} from '@react-native-google-signin/google-signin';
 import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useI18n } from '../../src/store/i18nStore';
-
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: '215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o.apps.googleusercontent.com',
-  offlineAccess: true,
-});
 
 export default function LoginScreen() {
   const { theme } = useThemeStore();
