@@ -7,6 +7,7 @@ import Users from './pages/Users';
 import Documents from './pages/Documents';
 import Analytics from './pages/Analytics';
 import Localization from './pages/Localization';
+import LegalPages from './pages/LegalPages';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
