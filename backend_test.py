@@ -74,6 +74,7 @@ class BackendTester:
                 print(f"   ⚠️ Expected status {expect_status}, got {response.status_code}")
                 print(f"   Response: {response.text[:200]}")
             
+            # Always return the response object, regardless of status code
             return response
         except requests.exceptions.RequestException as e:
             print(f"   ❌ Request failed: {e}")
