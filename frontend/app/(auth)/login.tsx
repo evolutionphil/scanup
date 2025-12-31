@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,12 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import {
+  GoogleSignin,
+  statusCodes,
+  isSuccessResponse,
+  isErrorWithCode,
+} from '@react-native-google-signin/google-signin';
 import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
@@ -22,6 +28,12 @@ import { useI18n } from '../../src/store/i18nStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+// Configure Google Sign-In
+GoogleSignin.configure({
+  webClientId: '215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o.apps.googleusercontent.com',
+  offlineAccess: true,
+});
+
 export default function LoginScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
@@ -29,7 +41,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, googleLogin } = useAuthStore();
+  const { login, googleLogin, googleLoginNative } = useAuthStore();
 
   const handleLogin = async () => {
     console.log('Login button pressed', { email, password: !!password });
@@ -55,9 +67,98 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      // Create the redirect URL based on platform
-      const redirectUrl = Platform.OS === 'web'
-        ? `${window.location.origin}/`
+      // Check if running on native platform (not web)
+      if (Platform.OS !== 'web') {
+        // Use native Google Sign-In
+        await GoogleSignin.hasPlayServices();
+        const response = await GoogleSignin.signIn();
+        
+        if (isSuccessResponse(response)) {
+          const { data } = response;
+          console.log('Google Sign-In success:', data.user.email);
+          
+          // Get ID token for backend authentication
+          const tokens = await GoogleSignin.getTokens();
+          
+          // Send to backend for authentication
+          if (googleLoginNative) {
+            await googleLoginNative(tokens.idToken, data.user);
+          } else {
+            // Fallback: create/login user with Google data
+            const backendResponse = await fetch(`${BACKEND_URL}/api/auth/google/native`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id_token: tokens.idToken,
+                email: data.user.email,
+                name: data.user.name,
+                photo: data.user.photo,
+              }),
+            });
+            
+            if (backendResponse.ok) {
+              const userData = await backendResponse.json();
+              // Store auth data and navigate
+              router.replace('/(tabs)');
+            } else {
+              throw new Error('Backend authentication failed');
+            }
+          }
+          
+          router.replace('/(tabs)');
+        }
+      } else {
+        // Web platform - use existing WebBrowser auth
+        const redirectUrl = `${window.location.origin}/`;
+        const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+        
+        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+        
+        if (result.type === 'success' && result.url) {
+          let sessionId = '';
+          const url = result.url;
+          
+          const patterns = [/[#?&]session_id=([^&]+)/, /session_id=([^&\s]+)/];
+          for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+              sessionId = match[1];
+              break;
+            }
+          }
+          
+          if (sessionId) {
+            await googleLogin(sessionId);
+            router.replace('/(tabs)');
+          } else {
+            Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log('User cancelled the login');
+            break;
+          case statusCodes.IN_PROGRESS:
+            Alert.alert(t('error', 'Error'), 'Sign in already in progress');
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert(t('error', 'Error'), 'Google Play Services not available');
+            break;
+          default:
+            Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
+        }
+      } else {
+        Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
         : Linking.createURL('auth-callback');
       
       console.log('Google login redirect URL:', redirectUrl);
