@@ -232,6 +232,28 @@ export function SignaturePlacementModal({ visible, documentImage, documentImageU
   const [scale, setScale] = useState(0.3);
   const [imageLayout, setImageLayout] = useState({ width: 0, height: 0, x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [signatureAspectRatio, setSignatureAspectRatio] = useState(0.35); // Default ratio, will update from actual image
+  
+  // Get actual signature dimensions when image loads
+  useEffect(() => {
+    if (signatureImage && signatureImage.length > 100) {
+      // Decode base64 and get image dimensions
+      Image.getSize(
+        `data:image/png;base64,${signatureImage}`,
+        (width, height) => {
+          if (width > 0 && height > 0) {
+            // Calculate aspect ratio (height/width)
+            const ratio = height / width;
+            setSignatureAspectRatio(ratio);
+            console.log('[SignaturePlacement] Signature aspect ratio:', ratio);
+          }
+        },
+        (error) => {
+          console.log('[SignaturePlacement] Could not get signature dimensions, using default');
+        }
+      );
+    }
+  }, [signatureImage]);
   
   // Get the image source - prefer base64, fallback to URL
   const getImageSource = () => {
@@ -255,8 +277,9 @@ export function SignaturePlacementModal({ visible, documentImage, documentImageU
   const initialPinchDistance = useRef(0);
   const initialPinchScale = useRef(0.3);
 
+  // Use actual signature aspect ratio for height calculation
   const signatureWidth = imageLayout.width * scale;
-  const signatureHeight = signatureWidth * 0.35;
+  const signatureHeight = signatureWidth * signatureAspectRatio;
   const signatureX = position.x * imageLayout.width - signatureWidth / 2;
   const signatureY = position.y * imageLayout.height - signatureHeight / 2;
 
