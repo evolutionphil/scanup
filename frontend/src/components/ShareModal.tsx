@@ -94,6 +94,7 @@ export default function ShareModal({
   pages = [],
 }: ShareModalProps) {
   const { theme, isDark } = useThemeStore();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
   const [passwordProtect, setPasswordProtect] = useState(false);
