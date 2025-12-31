@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useI18n } from '../../src/store/i18nStore';
 import Button from '../../src/components/Button';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -26,17 +27,18 @@ const FREE_OCR_PER_DAY = 3;
 export default function ProfileScreen() {
   const { user, token, isGuest, logout, updateUser, startTrial } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
+  const { t } = useI18n();
   const [upgrading, setUpgrading] = useState(false);
   const [startingTrial, setStartingTrial] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
-      isGuest ? 'Exit Guest Mode' : 'Logout',
-      isGuest ? 'Are you sure you want to exit?' : 'Are you sure you want to logout?',
+      isGuest ? t('exit_guest_mode', 'Exit Guest Mode') : t('logout', 'Logout'),
+      isGuest ? t('exit_guest_confirm', 'Are you sure you want to exit?') : t('logout_confirm', 'Are you sure you want to logout?'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: isGuest ? 'Exit' : 'Logout',
+          text: isGuest ? t('exit', 'Exit') : t('logout', 'Logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -57,27 +59,27 @@ export default function ProfileScreen() {
 
   const handleStartTrial = async () => {
     if (isGuest) {
-      Alert.alert('Sign In Required', 'Please sign in to start your free trial.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
+      Alert.alert(t('sign_in_required', 'Sign In Required'), t('sign_in_to_start_trial', 'Please sign in to start your free trial.'), [
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
+        { text: t('sign_in', 'Sign In'), onPress: () => router.push('/(auth)/login') },
       ]);
       return;
     }
 
     Alert.alert(
-      'Start 7-Day Free Trial',
-      'Unlock all premium features for 7 days:\n\n• Unlimited scans\n• Unlimited OCR\n• No watermarks\n• All premium features',
+      t('start_7_day_trial', 'Start 7-Day Free Trial'),
+      `${t('unlock_premium_features', 'Unlock all premium features for 7 days')}:\n\n• ${t('unlimited_scans', 'Unlimited scans')}\n• ${t('unlimited_ocr', 'Unlimited OCR')}\n• ${t('no_watermarks', 'No watermarks')}\n• ${t('all_premium_features', 'All premium features')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Start Trial',
+          text: t('start_trial', 'Start Trial'),
           onPress: async () => {
             setStartingTrial(true);
             try {
               await startTrial();
-              Alert.alert('🎉 Trial Started!', 'Enjoy 7 days of premium features!');
+              Alert.alert(`🎉 ${t('trial_started', 'Trial Started!')}`, t('enjoy_premium', 'Enjoy 7 days of premium features!'));
             } catch (e) {
-              Alert.alert('Error', String(e) || 'Failed to start trial');
+              Alert.alert(t('error', 'Error'), String(e) || t('something_went_wrong', 'Something went wrong'));
             } finally {
               setStartingTrial(false);
             }
@@ -89,21 +91,21 @@ export default function ProfileScreen() {
 
   const handleUpgrade = async () => {
     if (isGuest) {
-      Alert.alert('Sign In Required', 'Please sign in to upgrade to premium.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/(auth)/login') },
+      Alert.alert(t('sign_in_required', 'Sign In Required'), t('sign_in_to_upgrade', 'Please sign in to upgrade to premium.'), [
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
+        { text: t('sign_in', 'Sign In'), onPress: () => router.push('/(auth)/login') },
       ]);
       return;
     }
 
     if (user?.is_premium) {
       Alert.alert(
-        'Cancel Premium',
-        'Are you sure you want to cancel your premium subscription?',
+        t('cancel_premium', 'Cancel Premium'),
+        t('cancel_premium_confirm', 'Are you sure you want to cancel your premium subscription?'),
         [
-          { text: 'No', style: 'cancel' },
+          { text: t('no', 'No'), style: 'cancel' },
           {
-            text: 'Yes, Cancel',
+            text: t('yes_cancel', 'Yes, Cancel'),
             style: 'destructive',
             onPress: async () => {
               setUpgrading(true);
