@@ -725,6 +725,24 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontWeight: '600',
   },
+  resizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resizeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resizeLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
   // Draw modal styles
   drawContainer: {
     flex: 1,
