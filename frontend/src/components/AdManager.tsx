@@ -6,22 +6,6 @@ import { useAuthStore } from '../store/authStore';
 // Flag to check if we're in a native environment
 const isNativeEnvironment = Platform.OS !== 'web';
 
-// Dynamically import mobile ads only on native platforms
-let mobileAds: any = null;
-let InterstitialAd: any = null;
-let AdEventType: any = null;
-
-if (isNativeEnvironment) {
-  try {
-    const mobileAdsModule = require('react-native-google-mobile-ads');
-    mobileAds = mobileAdsModule.default;
-    InterstitialAd = mobileAdsModule.InterstitialAd;
-    AdEventType = mobileAdsModule.AdEventType;
-  } catch (e) {
-    console.log('[AdManager] Mobile ads not available:', e);
-  }
-}
-
 // Use test ads in development
 const USE_TEST_ADS = __DEV__;
 
@@ -29,36 +13,42 @@ interface AdManagerProps {
   children: React.ReactNode;
 }
 
+// Global interstitial reference
+let globalInterstitial: any = null;
+let mobileAds: any = null;
+let InterstitialAd: any = null;
+let AdEventType: any = null;
+
 export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
-  const interstitialRef = useRef<any>(null);
   const { setAdLoaded, setAdShowing, setAdsEnabled, recordAdShown } = useAdStore();
   const { user } = useAuthStore();
   
-  // Initialize mobile ads SDK
+  // Initialize mobile ads SDK on native platforms only
   useEffect(() => {
     const initializeAds = async () => {
-      if (!isNativeEnvironment || !mobileAds) {
-        console.log('[AdManager] Skipping ads initialization (web or not available)');
+      if (!isNativeEnvironment) {
+        console.log('[AdManager] Skipping ads initialization (web platform)');
         return;
       }
       
       try {
+        // Dynamically require mobile ads only on native
+        const mobileAdsModule = require('react-native-google-mobile-ads');
+        mobileAds = mobileAdsModule.default;
+        InterstitialAd = mobileAdsModule.InterstitialAd;
+        AdEventType = mobileAdsModule.AdEventType;
+        
         await mobileAds().initialize();
         console.log('[AdManager] Mobile ads initialized successfully');
-        loadInterstitialAd();
+        
+        // Initialize global interstitial
+        initializeGlobalInterstitialInternal();
       } catch (error) {
-        console.error('[AdManager] Failed to initialize mobile ads:', error);
+        console.log('[AdManager] Mobile ads not available:', error);
       }
     };
     
     initializeAds();
-    
-    return () => {
-      // Cleanup
-      if (interstitialRef.current) {
-        interstitialRef.current = null;
-      }
-    };
   }, []);
   
   // Update ads enabled based on user premium status
@@ -68,48 +58,52 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     console.log('[AdManager] Ads enabled:', !isPremium);
   }, [user?.is_premium, user?.is_trial, setAdsEnabled]);
   
-  // Load interstitial ad
-  const loadInterstitialAd = useCallback(() => {
-    if (!isNativeEnvironment || !InterstitialAd) {
-      console.log('[AdManager] Cannot load ad (web or not available)');
+  // Initialize global interstitial
+  const initializeGlobalInterstitialInternal = useCallback(() => {
+    if (!isNativeEnvironment || !InterstitialAd || !AdEventType) {
       return;
     }
     
     try {
       const adUnitId = getInterstitialAdUnitId(USE_TEST_ADS);
-      console.log('[AdManager] Loading interstitial ad:', adUnitId);
+      console.log('[AdManager] Creating interstitial with ID:', adUnitId);
       
-      const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+      globalInterstitial = InterstitialAd.createForAdRequest(adUnitId, {
         requestNonPersonalizedAdsOnly: true,
       });
       
-      interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      globalInterstitial.addAdEventListener(AdEventType.LOADED, () => {
         console.log('[AdManager] Interstitial ad loaded');
         setAdLoaded(true);
       });
       
-      interstitial.addAdEventListener(AdEventType.ERROR, (error: any) => {
+      globalInterstitial.addAdEventListener(AdEventType.ERROR, (error: any) => {
         console.log('[AdManager] Interstitial ad error:', error);
         setAdLoaded(false);
-        // Retry loading after error (with delay)
-        setTimeout(loadInterstitialAd, 30000);
+        // Retry loading after error
+        setTimeout(() => {
+          if (globalInterstitial) {
+            globalInterstitial.load();
+          }
+        }, 30000);
       });
       
-      interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      globalInterstitial.addAdEventListener(AdEventType.CLOSED, () => {
         console.log('[AdManager] Interstitial ad closed');
         setAdShowing(false);
         recordAdShown();
-        // Load the next ad
-        loadInterstitialAd();
+        // Reload for next time
+        if (globalInterstitial) {
+          globalInterstitial.load();
+        }
       });
       
-      interstitial.addAdEventListener(AdEventType.OPENED, () => {
+      globalInterstitial.addAdEventListener(AdEventType.OPENED, () => {
         console.log('[AdManager] Interstitial ad opened');
         setAdShowing(true);
       });
       
-      interstitialRef.current = interstitial;
-      interstitial.load();
+      globalInterstitial.load();
     } catch (error) {
       console.error('[AdManager] Error creating interstitial:', error);
     }
@@ -118,66 +112,15 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Hook to show interstitial ad
-export const useShowInterstitialAd = () => {
-  const { shouldShowAd, isAdLoaded } = useAdStore();
-  
-  const showAd = useCallback(async (): Promise<boolean> => {
-    if (!isNativeEnvironment) {
-      console.log('[useShowInterstitialAd] Skipping ad on web');
-      return false;
-    }
-    
-    if (!shouldShowAd()) {
-      console.log('[useShowInterstitialAd] Should not show ad');
-      return false;
-    }
-    
-    if (!isAdLoaded) {
-      console.log('[useShowInterstitialAd] Ad not loaded');
-      return false;
-    }
-    
-    try {
-      // Get the interstitial from the global ref
-      // This is a simplified approach - in production you might want to use a more robust solution
-      console.log('[useShowInterstitialAd] Attempting to show ad');
-      return true;
-    } catch (error) {
-      console.error('[useShowInterstitialAd] Error showing ad:', error);
-      return false;
-    }
-  }, [shouldShowAd, isAdLoaded]);
-  
-  return { showAd };
-};
-
-// Export a function to show ad that can be called from anywhere
-let globalInterstitial: any = null;
-
-export const initializeGlobalInterstitial = () => {
-  if (!isNativeEnvironment || !InterstitialAd) return;
-  
-  const adUnitId = getInterstitialAdUnitId(USE_TEST_ADS);
-  globalInterstitial = InterstitialAd.createForAdRequest(adUnitId, {
-    requestNonPersonalizedAdsOnly: true,
-  });
-  
-  globalInterstitial.addAdEventListener(AdEventType.LOADED, () => {
-    console.log('[Global] Interstitial loaded');
-  });
-  
-  globalInterstitial.addAdEventListener(AdEventType.CLOSED, () => {
-    console.log('[Global] Interstitial closed, reloading...');
-    globalInterstitial.load();
-  });
-  
-  globalInterstitial.load();
-};
-
+// Export function to show interstitial ad
 export const showGlobalInterstitial = async (): Promise<boolean> => {
+  if (!isNativeEnvironment) {
+    console.log('[showGlobalInterstitial] Skipping on web');
+    return false;
+  }
+  
   if (!globalInterstitial) {
-    console.log('[Global] No interstitial available');
+    console.log('[showGlobalInterstitial] No interstitial available');
     return false;
   }
   
@@ -185,9 +128,15 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
     await globalInterstitial.show();
     return true;
   } catch (error) {
-    console.log('[Global] Could not show interstitial:', error);
+    console.log('[showGlobalInterstitial] Could not show:', error);
     return false;
   }
+};
+
+// Export function to initialize global interstitial (called from native code if needed)
+export const initializeGlobalInterstitial = () => {
+  // This is now handled internally by AdManager
+  console.log('[initializeGlobalInterstitial] Called - handled by AdManager');
 };
 
 export default AdManager;
