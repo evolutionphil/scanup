@@ -4287,6 +4287,16 @@ DEFAULT_TRANSLATIONS = {
     
     # Tab Bar
     "home": "Home",
+    
+    # Settings - Clear Cache & Reset
+    "clear_cache_warning": "This will clear ALL local documents and cached data. This cannot be undone!",
+    "clear_all": "Clear All",
+    "cache_cleared_restart": "All local data has been cleared. Please restart the app.",
+    "failed_to_clear_cache": "Failed to clear cache",
+    "reset_settings_confirm": "Are you sure you want to reset all settings to default?",
+    "reset": "Reset",
+    "settings_reset_success": "Settings have been reset",
+    "failed_to_reset_settings": "Failed to reset settings",
 }
 
 # Default German translations
