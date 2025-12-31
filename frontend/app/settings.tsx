@@ -310,38 +310,38 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('settings', 'Settings')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Scan Settings */}
-        <SectionHeader title="SCAN SETTINGS" />
+        <SectionHeader title={t('scan_settings', 'SCAN SETTINGS').toUpperCase()} />
         
         <SettingRow
           icon="camera-outline"
-          label="Default Scan Quality"
+          label={t('default_scan_quality', 'Default Scan Quality')}
           value={QUALITY_OPTIONS.find(q => q.value === settings.defaultScanQuality)?.label}
           onPress={() => setShowQualityPicker(true)}
         />
         
         <SettingRow
           icon="color-palette-outline"
-          label="Default Filter"
+          label={t('default_filter', 'Default Filter')}
           value={FILTER_OPTIONS.find(f => f.value === settings.defaultFilter)?.label}
           onPress={() => setShowFilterPicker(true)}
         />
         
         <SettingRow
           icon="pencil-outline"
-          label="Signatures"
-          subtitle="Manage your saved signatures"
+          label={t('signature', 'Signatures')}
+          subtitle={t('manage_signatures', 'Manage your saved signatures')}
           onPress={() => router.push('/signatures')}
         />
         
         <SettingRow
           icon="flash-outline"
-          label="Auto Enhance"
-          subtitle="Automatically enhance scanned images"
+          label={t('auto_enhance', 'Auto Enhance')}
+          subtitle={t('auto_enhance_desc', 'Automatically enhance scanned images')}
           rightElement={
             <Switch
               value={settings.autoEnhance}
@@ -353,11 +353,11 @@ export default function SettingsScreen() {
         />
 
         {/* Appearance */}
-        <SectionHeader title="APPEARANCE" />
+        <SectionHeader title={t('appearance', 'APPEARANCE').toUpperCase()} />
         
         <SettingRow
           icon="moon-outline"
-          label="Dark Mode"
+          label={t('dark_mode', 'Dark Mode')}
           rightElement={
             <Switch
               value={isDark}
@@ -370,17 +370,17 @@ export default function SettingsScreen() {
         
         <SettingRow
           icon="language-outline"
-          label="Language"
+          label={t('language', 'Language')}
           value={LANGUAGE_OPTIONS.find(l => l.value === settings.language)?.label}
           onPress={() => setShowLanguagePicker(true)}
         />
 
         {/* Feedback */}
-        <SectionHeader title="FEEDBACK" />
+        <SectionHeader title={t('feedback', 'FEEDBACK').toUpperCase()} />
         
         <SettingRow
           icon="volume-high-outline"
-          label="Sound Effects"
+          label={t('sound_effects', 'Sound Effects')}
           rightElement={
             <Switch
               value={settings.soundEnabled}
@@ -393,7 +393,7 @@ export default function SettingsScreen() {
         
         <SettingRow
           icon="phone-portrait-outline"
-          label="Haptic Feedback"
+          label={t('haptic_feedback', 'Haptic Feedback')}
           rightElement={
             <Switch
               value={settings.hapticFeedback}
@@ -405,28 +405,28 @@ export default function SettingsScreen() {
         />
 
         {/* Storage & Data */}
-        <SectionHeader title="STORAGE & DATA" />
+        <SectionHeader title={t('storage_data', 'STORAGE & DATA').toUpperCase()} />
         
         <SettingRow
           icon="trash-outline"
-          label="Clear Cache"
-          subtitle="Free up storage space"
+          label={t('clear_cache', 'Clear Cache')}
+          subtitle={t('clear_cache_desc', 'Free up storage space')}
           onPress={handleClearCache}
         />
         
         <SettingRow
           icon="refresh-outline"
-          label="Reset Settings"
-          subtitle="Restore default settings"
+          label={t('reset_settings', 'Reset Settings')}
+          subtitle={t('reset_settings_desc', 'Restore default settings')}
           onPress={handleResetSettings}
         />
 
         {/* About */}
-        <SectionHeader title="ABOUT" />
+        <SectionHeader title={t('about', 'ABOUT').toUpperCase()} />
         
         <SettingRow
           icon="information-circle-outline"
-          label="Version"
+          label={t('version', 'Version')}
           value="1.0.0"
         />
         
