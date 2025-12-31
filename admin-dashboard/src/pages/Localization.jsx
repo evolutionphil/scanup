@@ -92,8 +92,8 @@ export default function Localization() {
         const trans = data.translations || {};
         const defaultKeys = data.default_keys || [];
         
-        // Extract language codes from language objects
-        const langCodes = langs.map(l => typeof l === 'string' ? l : l.code);
+        // Extract language codes from language objects (handle both string and object formats)
+        const langCodes = langs.map(l => typeof l === 'string' ? l : l.code).filter(Boolean);
         
         setLanguages(langCodes.length > 0 ? langCodes : ['en']);
         setTranslations(trans);
