@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Support - ScanUp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #3E51FB;
+            --primary-light: #6B7BFF;
+            --secondary: #10B981;
+            --dark: #111827;
+            --gray-700: #374151;
+            --gray-500: #6B7280;
+            --gray-300: #D1D5DB;
+            --gray-100: #F3F4F6;
+            --white: #FFFFFF;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--dark);
+            line-height: 1.7;
+            background: var(--gray-100);
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-100);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--gray-700);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .back-btn:hover { color: var(--primary); }
+        .support-page {
+            padding: 8rem 2rem 4rem;
+            min-height: 100vh;
+        }
+        .support-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .support-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .support-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        .support-header p {
+            font-size: 1.125rem;
+            color: var(--gray-500);
+        }
+        .contact-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .contact-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+        }
+        .contact-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .contact-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        .contact-card p {
+            color: var(--gray-500);
+            margin-bottom: 1rem;
+        }
+        .contact-card a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .contact-card a:hover {
+            text-decoration: underline;
+        }
+        .faq-section {
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+        .faq-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 2rem;
+            color: var(--dark);
+            text-align: center;
+        }
+        .faq-item {
+            border-bottom: 1px solid var(--gray-100);
+            padding: 1.5rem 0;
+        }
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+        .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--dark);
+        }
+        .faq-question i {
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            color: var(--gray-700);
+        }
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding-top: 1rem;
+        }
+        .faq-answer p {
+            margin-bottom: 0.75rem;
+        }
+        .faq-answer ol, .faq-answer ul {
+            margin-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .faq-answer li {
+            margin-bottom: 0.5rem;
+        }
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+        .footer p {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .footer-links a {
+            color: var(--gray-300);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .footer-links a:hover { color: white; }
+        @media (max-width: 768px) {
+            .contact-cards { grid-template-columns: 1fr; }
+            .faq-section { padding: 2rem 1.5rem; }
+            .support-header h1 { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo">
+                <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                ScanUp
+            </a>
+            <a href="/landing" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
+        </div>
+    </nav>
+
+    <section class="support-page">
+        <div class="support-container">
+            <div class="support-header">
+                <h1>Help & Support</h1>
+                <p>Get help with ScanUp. We're here to assist you.</p>
+            </div>
+
+            <div class="contact-cards">
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email Support</h3>
+                    <p>Get help from our support team</p>
+                    <a href="mailto:support@scanup.app">support@scanup.app</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Live Chat</h3>
+                    <p>Chat with us in the app</p>
+                    <a href="#">Open Chat</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Response Time</h3>
+                    <p>We typically respond within</p>
+                    <strong style="color: var(--secondary);">24-48 hours</strong>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h2>Frequently Asked Questions</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I scan a document?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Open ScanUp and tap the blue scan button at the bottom</li>
+                            <li>Point your camera at the document you want to scan</li>
+                            <li>The app will automatically detect the edges and capture</li>
+                            <li>Adjust the crop if needed, then apply filters</li>
+                            <li>Tap "Save" to save your document</li>
+                        </ol>
+                        <p><strong>Pro tip:</strong> Use good lighting and hold your phone steady for best results!</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I add multiple pages to a document?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Scan your first page as normal</li>
+                            <li>Instead of saving, tap "Add Page" button</li>
+                            <li>Scan additional pages</li>
+                            <li>Arrange pages by dragging them into order</li>
+                            <li>Tap "Save" when you've added all pages</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I sign a document?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Open the document you want to sign</li>
+                            <li>Tap the "Sign" button in the toolbar</li>
+                            <li>Select an existing signature or create a new one</li>
+                            <li>Position and resize your signature</li>
+                            <li>Tap "Apply" to add the signature</li>
+                        </ol>
+                        <p>You can create and save multiple signatures for different purposes.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I protect a document with a password?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Open the document you want to protect</li>
+                            <li>Tap the three dots (⋯) menu</li>
+                            <li>Select "Set Password"</li>
+                            <li>Enter and confirm your password</li>
+                        </ol>
+                        <p><strong>Important:</strong> Remember your password! If you forget it, there's no way to recover the document.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I share a document?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Open the document you want to share</li>
+                            <li>Tap the share button</li>
+                            <li>Choose your format (PDF or Image)</li>
+                            <li>Select your sharing method (Email, Messages, AirDrop, etc.)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I backup my documents?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Your documents are automatically saved on your device. For cloud backup:</p>
+                        <ol>
+                            <li>Create an account or sign in</li>
+                            <li>Go to Settings > Backup</li>
+                            <li>Enable "Auto Backup"</li>
+                            <li>Your documents will sync automatically</li>
+                        </ol>
+                        <p>Premium users get unlimited cloud storage.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I upgrade to Premium?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Go to Settings > Premium</li>
+                            <li>Choose your plan (Monthly, Yearly, or Lifetime)</li>
+                            <li>Complete the purchase through the App Store or Google Play</li>
+                        </ol>
+                        <p>Premium features include unlimited scans, no watermark, cloud backup, and digital signatures.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I restore my purchases?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <ol>
+                            <li>Go to Settings > Premium</li>
+                            <li>Tap "Restore Purchases"</li>
+                            <li>Sign in with the same Apple ID or Google account used for the original purchase</li>
+                        </ol>
+                        <p>Your purchases are linked to your app store account, not your ScanUp account.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="/landing/terms">Terms</a>
+            <a href="/landing/privacy">Privacy</a>
+            <a href="/landing/support">Support</a>
+        </div>
+        <p>&copy; 2025 ScanUp Inc. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                const isActive = item.classList.contains('active');
+                
+                // Close all items
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+                
+                // Open clicked item if it wasn't active
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
