@@ -153,6 +153,23 @@ export default function OnboardingScreen() {
               style={styles.gradientShadow}
             />
             
+            {/* Scanner line animation */}
+            <Animated.View 
+              style={[
+                styles.scannerLine,
+                {
+                  transform: [{ translateY: scanLineTranslateY }],
+                }
+              ]}
+            >
+              <LinearGradient
+                colors={['transparent', BRAND_BLUE, 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.scannerLineGradient}
+              />
+            </Animated.View>
+            
             {/* Main illustration image */}
             <Image
               source={currentSlide.image}
