@@ -5728,6 +5728,66 @@ async def save_localization(
         logger.error(f"Save localization error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@api_router.post("/admin/localization/refresh")
+async def refresh_translations_from_defaults(
+    admin: dict = Depends(get_admin_user)
+):
+    """Refresh translations by merging new default keys (preserves existing values)"""
+    try:
+        # Update English translations - merge with defaults
+        en_trans = await db.translations.find_one({"language_code": "en"})
+        if en_trans:
+            existing = en_trans.get("translations", {})
+            # Merge: existing values take priority, new keys from defaults added
+            merged_en = {**DEFAULT_TRANSLATIONS, **existing}
+            await db.translations.update_one(
+                {"language_code": "en"},
+                {"$set": {"translations": merged_en, "updated_at": datetime.now(timezone.utc)}}
+            )
+        else:
+            await db.translations.insert_one({
+                "language_code": "en",
+                "translations": DEFAULT_TRANSLATIONS,
+                "updated_at": datetime.now(timezone.utc)
+            })
+        
+        # Update German translations
+        de_trans = await db.translations.find_one({"language_code": "de"})
+        if de_trans:
+            existing = de_trans.get("translations", {})
+            merged_de = {**DEFAULT_TRANSLATIONS_DE, **existing}
+            await db.translations.update_one(
+                {"language_code": "de"},
+                {"$set": {"translations": merged_de, "updated_at": datetime.now(timezone.utc)}}
+            )
+        else:
+            await db.translations.insert_one({
+                "language_code": "de",
+                "translations": DEFAULT_TRANSLATIONS_DE,
+                "updated_at": datetime.now(timezone.utc)
+            })
+        
+        # For other languages, add any missing keys from English defaults
+        other_langs = await db.translations.find({
+            "language_code": {"$nin": ["en", "de"]}
+        }).to_list(100)
+        
+        for lang in other_langs:
+            existing = lang.get("translations", {})
+            # Add missing keys from English (untranslated)
+            merged = {**DEFAULT_TRANSLATIONS, **existing}
+            await db.translations.update_one(
+                {"language_code": lang["language_code"]},
+                {"$set": {"translations": merged, "updated_at": datetime.now(timezone.utc)}}
+            )
+        
+        return {"message": "Translations refreshed with new default keys"}
+    except Exception as e:
+        logger.error(f"Refresh translations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/admin/settings")
 async def get_admin_settings(admin: dict = Depends(get_admin_user)):
     """Get app settings"""
