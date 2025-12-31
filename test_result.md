@@ -898,7 +898,7 @@ agent_communication:
     ### Root Cause Analysis:
     🔍 **Configuration Issue Identified**: 
     - Frontend is trying to fetch from `https://scanup-production.up.railway.app` (404 error)
-    - Should be fetching from `https://scanup-mobile-ui.preview.emergentagent.com`
+    - Should be fetching from `https://localize-scanup.preview.emergentagent.com`
     - Backend APIs are working correctly (verified via direct curl tests)
     - Issue is in frontend configuration not picking up correct EXPO_PUBLIC_BACKEND_URL
     
