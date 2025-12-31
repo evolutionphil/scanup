@@ -26,34 +26,85 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   }, [user?.is_premium, user?.is_trial, setAdsEnabled]);
   
   // Initialize mobile ads SDK on native platforms only
-  // NOTE: For development build only - ads won't work in Expo Go
   useEffect(() => {
-    if (!isNativeEnvironment) {
-      console.log('[AdManager] Skipping ads initialization (web platform)');
-      return;
-    }
+    const initializeAds = async () => {
+      if (!isNativeEnvironment) {
+        console.log('[AdManager] Skipping ads initialization (web platform)');
+        return;
+      }
+      
+      if (mobileAdsInitialized) {
+        console.log('[AdManager] Already initialized');
+        return;
+      }
+      
+      try {
+        // Dynamically require mobile ads
+        const mobileAdsModule = require('react-native-google-mobile-ads');
+        const mobileAds = mobileAdsModule.default;
+        const { InterstitialAd, AdEventType } = mobileAdsModule;
+        
+        console.log('[AdManager] Initializing Google Mobile Ads...');
+        await mobileAds().initialize();
+        console.log('[AdManager] Google Mobile Ads initialized successfully');
+        mobileAdsInitialized = true;
+        
+        // Create interstitial ad
+        const adUnitId = Platform.OS === 'ios' 
+          ? 'ca-app-pub-8771434485570434/9099011184'
+          : 'ca-app-pub-8771434485570434/5877935563';
+        
+        console.log('[AdManager] Creating interstitial with ID:', adUnitId);
+        
+        globalInterstitial = InterstitialAd.createForAdRequest(adUnitId, {
+          requestNonPersonalizedAdsOnly: true,
+        });
+        
+        globalInterstitial.addAdEventListener(AdEventType.LOADED, () => {
+          console.log('[AdManager] Interstitial ad loaded');
+          setAdLoaded(true);
+        });
+        
+        globalInterstitial.addAdEventListener(AdEventType.ERROR, (error: any) => {
+          console.log('[AdManager] Interstitial ad error:', error);
+          setAdLoaded(false);
+        });
+        
+        globalInterstitial.addAdEventListener(AdEventType.CLOSED, () => {
+          console.log('[AdManager] Interstitial ad closed');
+          setAdShowing(false);
+          recordAdShown();
+          // Reload for next time
+          setTimeout(() => {
+            if (globalInterstitial) {
+              globalInterstitial.load();
+            }
+          }, 1000);
+        });
+        
+        globalInterstitial.addAdEventListener(AdEventType.OPENED, () => {
+          console.log('[AdManager] Interstitial ad opened');
+          setAdShowing(true);
+        });
+        
+        // Load the first ad
+        globalInterstitial.load();
+      } catch (error) {
+        console.log('[AdManager] Failed to initialize ads:', error);
+        // Don't crash the app if ads fail to initialize
+        mobileAdsInitialized = true; // Prevent retry loops
+      }
+    };
     
-    if (mobileAdsInitialized) {
-      console.log('[AdManager] Already initialized');
-      return;
-    }
-    
-    // Log that ads will be initialized when running in development build
-    console.log('[AdManager] Google Mobile Ads configured - will initialize in development build');
-    console.log('[AdManager] Ad Unit IDs configured:');
-    console.log('[AdManager] - Android Interstitial: ca-app-pub-8771434485570434/5877935563');
-    console.log('[AdManager] - iOS Interstitial: ca-app-pub-8771434485570434/9099011184');
-    
-    // In a development build, this would dynamically require and initialize the ads
-    // For now, we just mark as ready for when the native module is available
-    mobileAdsInitialized = true;
+    // Delay initialization to allow app to fully load first
+    const timer = setTimeout(initializeAds, 2000);
+    return () => clearTimeout(timer);
   }, [setAdLoaded, setAdShowing, recordAdShown]);
   
   return <>{children}</>;
 };
 
 // Export function to show interstitial ad
-// This will work when running in a development build with native modules
 export const showGlobalInterstitial = async (): Promise<boolean> => {
   if (!isNativeEnvironment) {
     console.log('[showGlobalInterstitial] Skipping on web');
@@ -61,7 +112,7 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
   }
   
   if (!globalInterstitial) {
-    console.log('[showGlobalInterstitial] Interstitial not loaded (requires development build)');
+    console.log('[showGlobalInterstitial] Interstitial not available');
     return false;
   }
   
@@ -76,7 +127,7 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
 
 // Export function to initialize global interstitial
 export const initializeGlobalInterstitial = () => {
-  console.log('[initializeGlobalInterstitial] Will initialize when running in development build');
+  console.log('[initializeGlobalInterstitial] Handled by AdManager');
 };
 
 export default AdManager;
