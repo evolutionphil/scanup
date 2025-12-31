@@ -1076,12 +1076,12 @@ export default function DocumentsScreen() {
       {/* Document Action Sheet Modal */}
       <Modal visible={showDocActionSheet} transparent animationType="slide">
         <Pressable style={styles.actionSheetOverlay} onPress={() => setShowDocActionSheet(false)}>
-          <Pressable style={styles.actionSheetContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.actionSheetContent, { backgroundColor: theme.card }]} onPress={(e) => e.stopPropagation()}>
             {/* Header with document name, size, and close button */}
-            <View style={styles.actionSheetHeader}>
+            <View style={[styles.actionSheetHeader, { borderBottomColor: theme.border }]}>
               <View style={styles.actionSheetHeaderLeft}>
-                <Text style={styles.actionSheetTitle}>{actionSheetDoc?.name || 'Document'}</Text>
-                <Text style={styles.actionSheetSubtitle}>
+                <Text style={[styles.actionSheetTitle, { color: theme.text }]}>{actionSheetDoc?.name || 'Document'}</Text>
+                <Text style={[styles.actionSheetSubtitle, { color: theme.textSecondary }]}>
                   {actionSheetDoc?.pages?.length || 1} {(actionSheetDoc?.pages?.length || 1) === 1 ? 'Page' : 'Pages'} • PDF
                 </Text>
               </View>
@@ -1090,33 +1090,33 @@ export default function DocumentsScreen() {
                 onPress={() => setShowDocActionSheet(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleRenameDocument(actionSheetDoc); }}>
-              <Ionicons name="pencil-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('name', 'Name')}</Text>
+              <Ionicons name="pencil-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('name', 'Name')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleEditDocument(actionSheetDoc); }}>
-              <Ionicons name="create-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('edit', 'Edit')}</Text>
+              <Ionicons name="create-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('edit', 'Edit')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handlePrintDocument(actionSheetDoc); }}>
-              <Ionicons name="print-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('print', 'Print')}</Text>
+              <Ionicons name="print-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('print', 'Print')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handlePasswordDocument(actionSheetDoc); }}>
-              <Ionicons name="lock-closed-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('password', 'Password')}</Text>
+              <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('password', 'Password')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleMoveDocument(actionSheetDoc); }}>
-              <Ionicons name="folder-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('move_to_folder', 'Move to Folder')}</Text>
+              <Ionicons name="folder-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('move_to_folder', 'Move to Folder')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={[styles.actionSheetOption, styles.actionSheetOptionDestructive]} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleDeleteDocument(actionSheetDoc); }}>
@@ -1130,30 +1130,30 @@ export default function DocumentsScreen() {
       {/* Folder Action Sheet Modal */}
       <Modal visible={showFolderActionSheet} transparent animationType="slide">
         <Pressable style={styles.actionSheetOverlay} onPress={() => setShowFolderActionSheet(false)}>
-          <Pressable style={styles.actionSheetContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.actionSheetContent, { backgroundColor: theme.card }]} onPress={(e) => e.stopPropagation()}>
             {/* Header with folder name and close button */}
-            <View style={styles.actionSheetHeader}>
+            <View style={[styles.actionSheetHeader, { borderBottomColor: theme.border }]}>
               <View style={styles.actionSheetHeaderLeft}>
-                <Text style={styles.actionSheetTitle}>{actionSheetFolder?.name || 'Folder'}</Text>
-                <Text style={styles.actionSheetSubtitle}>Folder</Text>
+                <Text style={[styles.actionSheetTitle, { color: theme.text }]}>{actionSheetFolder?.name || 'Folder'}</Text>
+                <Text style={[styles.actionSheetSubtitle, { color: theme.textSecondary }]}>Folder</Text>
               </View>
               <TouchableOpacity 
                 style={styles.actionSheetCloseBtn} 
                 onPress={() => setShowFolderActionSheet(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleRenameFolderAction(actionSheetFolder); }}>
-              <Ionicons name="pencil-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('edit_name', 'Edit Name')}</Text>
+              <Ionicons name="pencil-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('edit_name', 'Edit Name')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleFolderPasswordAction(actionSheetFolder); }}>
-              <Ionicons name="lock-closed-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>{t('password', 'Password')}</Text>
+              <Ionicons name="lock-closed-outline" size={22} color={theme.text} />
+              <Text style={[styles.actionSheetOptionText, { color: theme.text }]}>{t('password', 'Password')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={[styles.actionSheetOption, styles.actionSheetOptionDestructive]} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleDeleteFolderAction(actionSheetFolder); }}>
