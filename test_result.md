@@ -530,7 +530,15 @@ agent_communication:
   - agent: "testing"
     message: "Backend API testing completed successfully. All core APIs working: Auth (register/login/profile), Document CRUD, Folder management, Image processing, Subscription management, OCR tracking. Authentication and error handling robust. Minor image processing warnings in logs but functionality works. Google OAuth validates input correctly but needs real session for full test. All high-priority backend tasks verified and working."
   - agent: "main"
-    message: "Phase 1 Bug Fixes Complete:
+    message: "Bug fixes for settings screen and signature placement:
+    1. Fixed Clear Cache function - now properly removes all AsyncStorage keys including guest_documents_meta, guest_folders, local_documents_meta, pending_sync_documents, and clears the scanup_images directory
+    2. Fixed Reset Settings function - now properly resets theme to light mode, language to English, and all settings to defaults
+    3. Added translations for settings alerts (clear_cache_warning, cache_cleared_restart, etc.)
+    4. Fixed Settings footer spacing - increased marginBottom from 80 to 120 to avoid overlap with scan button
+    5. Fixed Signature aspect ratio mismatch - added useEffect to calculate actual signature dimensions using Image.getSize(), removed hardcoded 0.35 ratio
+    6. Fixed remaining dark mode components (ShareModal, DeleteConfirmModal, CreateFolderModal, SortModal)
+    
+    Please test the Settings screen functionality (Clear Cache, Reset Settings, UI layout) and verify dark mode consistency."
     1. CRITICAL FIX - Export endpoints were defined AFTER router inclusion causing 404. Fixed by moving them before app.include_router()
     2. Scanner crop accuracy - Fixed coordinate system (image coords vs screen coords) with proper scaling
     3. Scanner UI - Improved drag precision with magnifier zoom preview
