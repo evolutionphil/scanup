@@ -845,6 +845,8 @@ export default function DocumentsScreen() {
   // Documents content with sections
   const renderDocumentsContent = () => {
     const sortedDocs = getSortedDocuments();
+    const latestDocs = getLatestDocuments();
+    const remainingDocs = sortedDocs.filter(d => !latestDocs.find(l => l.document_id === d.document_id));
 
     if (viewMode === 'grid') {
       return (
@@ -869,15 +871,43 @@ export default function DocumentsScreen() {
       );
     }
 
-    // In list view, show documents sorted by the selected sort option
+    // List view with Latest and All sections
     return (
       <FlatList
         key="list"
-        data={sortedDocs}
-        keyExtractor={(item) => item.document_id}
-        renderItem={renderDocumentItem}
+        data={[]}
+        keyExtractor={() => 'dummy'}
+        renderItem={() => null}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={() => (
+          <>
+            {documents.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              <>
+                {/* Latest Section */}
+                <Text style={styles.sectionTitle}>Latest</Text>
+                {latestDocs.map((doc) => (
+                  <View key={`latest-${doc.document_id}`}>
+                    {renderDocumentItem({ item: doc })}
+                  </View>
+                ))}
+                
+                {/* All Section */}
+                {remainingDocs.length > 0 && (
+                  <>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All</Text>
+                    {remainingDocs.map((doc) => (
+                      <View key={`all-${doc.document_id}`}>
+                        {renderDocumentItem({ item: doc })}
+                      </View>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
