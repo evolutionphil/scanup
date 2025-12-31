@@ -1111,12 +1111,24 @@ export default function DocumentsScreen() {
         </Pressable>
       </Modal>
 
-      {/* Folder Action Sheet Modal (Android) */}
+      {/* Folder Action Sheet Modal */}
       <Modal visible={showFolderActionSheet} transparent animationType="slide">
         <Pressable style={styles.actionSheetOverlay} onPress={() => setShowFolderActionSheet(false)}>
-          <View style={styles.actionSheetContent}>
-            <View style={styles.actionSheetHandle} />
-            <Text style={styles.actionSheetTitle}>{actionSheetFolder?.name || 'Folder'}</Text>
+          <Pressable style={styles.actionSheetContent} onPress={(e) => e.stopPropagation()}>
+            {/* Header with folder name and close button */}
+            <View style={styles.actionSheetHeader}>
+              <View style={styles.actionSheetHeaderLeft}>
+                <Text style={styles.actionSheetTitle}>{actionSheetFolder?.name || 'Folder'}</Text>
+                <Text style={styles.actionSheetSubtitle}>Folder</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.actionSheetCloseBtn} 
+                onPress={() => setShowFolderActionSheet(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleRenameFolderAction(actionSheetFolder); }}>
               <Ionicons name="pencil-outline" size={22} color="#333" />
@@ -1132,11 +1144,7 @@ export default function DocumentsScreen() {
               <Ionicons name="trash-outline" size={22} color="#EF4444" />
               <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>Delete</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionSheetCancel} onPress={() => setShowFolderActionSheet(false)}>
-              <Text style={styles.actionSheetCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
