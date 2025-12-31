@@ -313,10 +313,15 @@ class BackendTester:
             
             # Test wrong password - expect 401
             wrong_data = {"password": "wrongpassword"}
+            print(f"   🔍 About to test wrong password...")
             wrong_response = self.make_request("POST", f"/folders/{self.test_folder_id}/verify-password", wrong_data)
+            
+            print(f"   🔍 Wrong password response object: {wrong_response}")
+            print(f"   🔍 Wrong password response type: {type(wrong_response)}")
             
             # Check if we got the expected 401 response
             if wrong_response:
+                print(f"   🔍 Wrong password status code: {wrong_response.status_code}")
                 if wrong_response.status_code == 401:
                     self.log_test("Folder Password Rejection", "PASS", "Wrong password correctly rejected")
                     return True
