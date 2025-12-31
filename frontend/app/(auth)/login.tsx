@@ -18,11 +18,13 @@ import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useI18n } from '../../src/store/i18nStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function LoginScreen() {
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     console.log('Login button pressed', { email, password: !!password });
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error', 'Error'), t('please_fill_all_fields', 'Please fill in all fields'));
       return;
     }
 
@@ -44,7 +46,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Login error:', error);
-      Alert.alert('Login Failed', error.message || 'Please check your credentials');
+      Alert.alert(t('login_failed', 'Login Failed'), error.message || t('check_credentials', 'Please check your credentials'));
     } finally {
       setLoading(false);
     }
@@ -106,7 +108,7 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         } else {
           console.error('Session ID not found in URL:', url);
-          Alert.alert('Error', 'Failed to get session from Google. Please try again.');
+          Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
         }
       } else if (result.type === 'dismiss') {
         console.log('User dismissed the login');
@@ -117,7 +119,7 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      Alert.alert('Error', error.message || 'Google sign-in failed. Please try again.');
+      Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
     } finally {
       setGoogleLoading(false);
     }
@@ -141,14 +143,14 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sign in to continue</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t('welcome_back', 'Welcome Back')}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('sign_in_to_continue', 'Sign in to continue')}</Text>
           </View>
 
           <View style={styles.form}>
             <Input
-              label="Email"
-              placeholder="Enter your email"
+              label={t('email', 'Email')}
+              placeholder={t('enter_your_email', 'Enter your email')}
               leftIcon="mail"
               value={email}
               onChangeText={setEmail}
@@ -157,8 +159,8 @@ export default function LoginScreen() {
             />
 
             <Input
-              label="Password"
-              placeholder="Enter your password"
+              label={t('password', 'Password')}
+              placeholder={t('enter_your_password', 'Enter your password')}
               leftIcon="lock-closed"
               value={password}
               onChangeText={setPassword}
@@ -166,7 +168,7 @@ export default function LoginScreen() {
             />
 
             <Button
-              title="Sign In"
+              title={t('sign_in', 'Sign In')}
               onPress={handleLogin}
               loading={loading}
               size="large"
@@ -175,12 +177,12 @@ export default function LoginScreen() {
 
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <Text style={[styles.dividerText, { color: theme.textMuted }]}>or continue with</Text>
+              <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t('or_continue_with', 'or continue with')}</Text>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
             </View>
 
             <Button
-              title="Continue with Google"
+              title={t('continue_with_google', 'Continue with Google')}
               onPress={handleGoogleLogin}
               variant="secondary"
               size="large"
@@ -189,9 +191,9 @@ export default function LoginScreen() {
             />
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
+              <Text style={[styles.footerText, { color: theme.textMuted }]}>{t('dont_have_account', "Don't have an account?")} </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                <Text style={[styles.linkText, { color: theme.primary }]}>Sign Up</Text>
+                <Text style={[styles.linkText, { color: theme.primary }]}>{t('sign_up', 'Sign Up')}</Text>
               </TouchableOpacity>
             </View>
           </View>
