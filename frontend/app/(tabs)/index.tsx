@@ -1057,12 +1057,26 @@ export default function DocumentsScreen() {
         </Pressable>
       </Modal>
 
-      {/* Document Action Sheet Modal (Android) */}
+      {/* Document Action Sheet Modal */}
       <Modal visible={showDocActionSheet} transparent animationType="slide">
         <Pressable style={styles.actionSheetOverlay} onPress={() => setShowDocActionSheet(false)}>
-          <View style={styles.actionSheetContent}>
-            <View style={styles.actionSheetHandle} />
-            <Text style={styles.actionSheetTitle}>{actionSheetDoc?.name || 'Document'}</Text>
+          <Pressable style={styles.actionSheetContent} onPress={(e) => e.stopPropagation()}>
+            {/* Header with document name, size, and close button */}
+            <View style={styles.actionSheetHeader}>
+              <View style={styles.actionSheetHeaderLeft}>
+                <Text style={styles.actionSheetTitle}>{actionSheetDoc?.name || 'Document'}</Text>
+                <Text style={styles.actionSheetSubtitle}>
+                  {actionSheetDoc?.pages?.length || 1} {(actionSheetDoc?.pages?.length || 1) === 1 ? 'Page' : 'Pages'} • PDF
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.actionSheetCloseBtn} 
+                onPress={() => setShowDocActionSheet(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleRenameDocument(actionSheetDoc); }}>
               <Ionicons name="pencil-outline" size={22} color="#333" />
@@ -1093,11 +1107,7 @@ export default function DocumentsScreen() {
               <Ionicons name="trash-outline" size={22} color="#EF4444" />
               <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>Delete</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionSheetCancel} onPress={() => setShowDocActionSheet(false)}>
-              <Text style={styles.actionSheetCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
