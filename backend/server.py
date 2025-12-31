@@ -3881,6 +3881,9 @@ async def startup_db_client():
         
         logger.info("✅ MongoDB collections initialized successfully")
         
+        # Initialize content management collections (languages, translations, legal pages)
+        await init_content_collections()
+        
     except Exception as e:
         logger.warning(f"⚠️ MongoDB Atlas connection issue (will retry on demand): {e}")
         # Don't raise - let app start and handle DB errors at request time
