@@ -5,6 +5,7 @@ import { View, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useI18n } from '../../src/store/i18nStore';
 import OfflineIndicator from '../../src/components/OfflineIndicator';
 import { create } from 'zustand';
 
