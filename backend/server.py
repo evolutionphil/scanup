@@ -2978,7 +2978,42 @@ async def add_signature_to_image(
             sig_data = sig_data.split(',')[1]
         
         sig_bytes = base64.b64decode(sig_data)
-        signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
+        
+        # Check if it's an SVG (starts with XML declaration or svg tag)
+        try:
+            sig_str = sig_bytes.decode('utf-8', errors='ignore')
+            if sig_str.strip().startswith('<') or '<?xml' in sig_str[:100] or '<svg' in sig_str[:500]:
+                # It's an SVG, try to convert to PNG using cairosvg
+                try:
+                    import cairosvg
+                    png_bytes = cairosvg.svg2png(bytestring=sig_bytes, output_width=400)
+                    signature = Image.open(io.BytesIO(png_bytes)).convert('RGBA')
+                    logger.info("Converted SVG signature to PNG")
+                except ImportError:
+                    # cairosvg not available, try svglib
+                    try:
+                        from svglib.svglib import svg2rlg
+                        from reportlab.graphics import renderPM
+                        drawing = svg2rlg(io.BytesIO(sig_bytes))
+                        png_bytes = io.BytesIO()
+                        renderPM.drawToFile(drawing, png_bytes, fmt="PNG")
+                        png_bytes.seek(0)
+                        signature = Image.open(png_bytes).convert('RGBA')
+                        logger.info("Converted SVG signature to PNG using svglib")
+                    except Exception as svg_error:
+                        logger.error(f"SVG conversion failed: {svg_error}")
+                        # Create a simple placeholder signature
+                        signature = Image.new('RGBA', (300, 150), (0, 0, 0, 0))
+                        from PIL import ImageDraw, ImageFont
+                        draw = ImageDraw.Draw(signature)
+                        draw.text((50, 50), "Signature", fill=(0, 0, 0, 255))
+            else:
+                # Regular image (PNG/JPEG)
+                signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
+        except Exception as decode_error:
+            # Try as regular image
+            logger.warning(f"Decoding error: {decode_error}, trying as image")
+            signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
         
         # Calculate signature size
         sig_width = int(base_image.width * request.scale)
