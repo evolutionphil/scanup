@@ -209,7 +209,8 @@ export default function SignaturesScreen() {
                 {isSelectMode && (
                   <View style={[
                     styles.checkbox,
-                    selectedSignatures.includes(sig.id) && styles.checkboxSelected
+                    { borderColor: theme.border, backgroundColor: theme.surface },
+                    selectedSignatures.includes(sig.id) && [styles.checkboxSelected, { backgroundColor: theme.primary, borderColor: theme.primary }]
                   ]}>
                     {selectedSignatures.includes(sig.id) && (
                       <Ionicons name="checkmark" size={16} color="#FFF" />
