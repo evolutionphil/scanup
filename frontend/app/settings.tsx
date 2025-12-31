@@ -161,17 +161,33 @@ export default function SettingsScreen() {
 
   const handleResetSettings = () => {
     Alert.alert(
-      'Reset Settings',
-      'Are you sure you want to reset all settings to default?',
+      t('reset_settings', 'Reset Settings'),
+      t('reset_settings_confirm', 'Are you sure you want to reset all settings to default?'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('reset', 'Reset'),
           style: 'destructive',
           onPress: async () => {
-            setSettings(DEFAULT_SETTINGS);
-            await AsyncStorage.multiRemove(Object.values(SETTINGS_KEYS));
-            Alert.alert('Done', 'Settings have been reset');
+            try {
+              // Reset local settings state
+              setSettings(DEFAULT_SETTINGS);
+              
+              // Clear all settings from AsyncStorage
+              await AsyncStorage.multiRemove(Object.values(SETTINGS_KEYS));
+              
+              // Reset theme to light mode
+              const { useThemeStore } = require('../src/store/themeStore');
+              useThemeStore.getState().setTheme('light');
+              
+              // Reset language to English
+              setLanguage('en');
+              
+              Alert.alert(t('done', 'Done'), t('settings_reset_success', 'Settings have been reset'));
+            } catch (e) {
+              console.error('Failed to reset settings:', e);
+              Alert.alert(t('error', 'Error'), t('failed_to_reset_settings', 'Failed to reset settings'));
+            }
           },
         },
       ]
