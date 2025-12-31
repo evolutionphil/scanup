@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useI18n } from '../src/store/i18nStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ONBOARDING_KEY = '@scanup_onboarding_complete';
@@ -27,22 +28,22 @@ const DOT_INACTIVE = '#D5D5D5';
 
 interface GuideSlide {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   image: any;
 }
 
 const SLIDES: GuideSlide[] = [
   {
     id: '1',
-    title: 'Scan',
-    description: 'Use your phone camera easily to scan your documents',
+    titleKey: 'onboarding_scan_title',
+    descKey: 'onboarding_scan_desc',
     image: require('../assets/images/onboarding-scan.png'),
   },
   {
     id: '2',
-    title: 'Save',
-    description: 'Save your document as PDF, create and share encrypted files',
+    titleKey: 'onboarding_save_title',
+    descKey: 'onboarding_save_desc',
     image: require('../assets/images/onboarding-save.png'),
   },
 ];
