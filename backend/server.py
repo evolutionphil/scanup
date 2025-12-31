@@ -3890,6 +3890,905 @@ async def shutdown_db_client():
     client.close()
 
 
+# ==================== CONTENT MANAGEMENT & TRANSLATIONS ====================
+
+# Default supported languages
+DEFAULT_LANGUAGES = [
+    {"code": "en", "name": "English", "native_name": "English", "is_default": True},
+    {"code": "de", "name": "German", "native_name": "Deutsch", "is_default": False},
+    {"code": "fr", "name": "French", "native_name": "Français", "is_default": False},
+    {"code": "es", "name": "Spanish", "native_name": "Español", "is_default": False},
+]
+
+# Default English translations (base language)
+DEFAULT_TRANSLATIONS = {
+    # Common
+    "app_name": "ScanUp",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "retry": "Retry",
+    "search": "Search",
+    "settings": "Settings",
+    "share": "Share",
+    "print": "Print",
+    
+    # Onboarding
+    "onboarding_scan_title": "Scan",
+    "onboarding_scan_desc": "Use your phone camera easily to scan your documents",
+    "onboarding_save_title": "Save",
+    "onboarding_save_desc": "Save your document as PDF, create and share encrypted files",
+    "get_started": "Get started",
+    
+    # Auth
+    "sign_in": "Sign In",
+    "sign_up": "Sign Up",
+    "sign_out": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot Password?",
+    "continue_with_google": "Continue with Google",
+    "continue_with_apple": "Continue with Apple",
+    "continue_as_guest": "Continue as Guest",
+    "create_account": "Create Account",
+    "already_have_account": "Already have an account?",
+    "dont_have_account": "Don't have an account?",
+    
+    # Home Screen
+    "your_documents": "Your Documents",
+    "documents": "Documents",
+    "folders": "Folders",
+    "latest": "Latest",
+    "all": "All",
+    "no_documents": "No Documents Yet",
+    "no_documents_desc": "Scan your first document using the camera button below",
+    "no_folders": "No Folders Yet",
+    "no_folders_desc": "Create folders to organize your documents",
+    "sort_by": "Sort by",
+    "sort_az": "A-Z",
+    "sort_za": "Z-A",
+    "sort_newest": "Newest First",
+    "sort_oldest": "Oldest First",
+    "view_list": "List View",
+    "view_grid": "Grid View",
+    
+    # Document Actions
+    "rename": "Name",
+    "move_to_folder": "Move to Folder",
+    "set_password": "Password",
+    "remove_password": "Remove Password",
+    "document_protected": "Protected Document",
+    "enter_password": "Enter Password",
+    "wrong_password": "Wrong password. Please try again.",
+    
+    # Scanner
+    "scan_document": "Scan Document",
+    "take_photo": "Take Photo",
+    "choose_from_gallery": "Choose from Gallery",
+    "flash_on": "Flash On",
+    "flash_off": "Flash Off",
+    "auto_detect": "Auto Detect",
+    "manual_crop": "Manual Crop",
+    "retake": "Retake",
+    "use_photo": "Use Photo",
+    "add_page": "Add Page",
+    "pages": "Pages",
+    
+    # Editor
+    "edit_document": "Edit Document",
+    "filters": "Filters",
+    "crop": "Crop",
+    "rotate": "Rotate",
+    "sign": "Sign",
+    "text": "Text",
+    "annotations": "Annotations",
+    "original": "Original",
+    "grayscale": "Grayscale",
+    "black_white": "Black & White",
+    "enhanced": "Enhanced",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "saturation": "Saturation",
+    
+    # Signature
+    "signature": "Signature",
+    "add_signature": "Add Signature",
+    "draw_signature": "Draw Signature",
+    "saved_signatures": "Saved Signatures",
+    "apply_all_pages": "Apply all pages",
+    "manage_signatures": "Manage Signatures",
+    "delete_signature": "Delete Signature",
+    "no_signatures": "No Saved Signatures",
+    "create_first_signature": "Create your first signature",
+    
+    # Folders
+    "new_folder": "New Folder",
+    "folder_name": "Folder name",
+    "folder_color": "Color",
+    "create_folder": "Create Folder",
+    "delete_folder": "Delete Folder",
+    "folder_password": "Folder Password",
+    
+    # Settings
+    "account": "Account",
+    "appearance": "Appearance",
+    "dark_mode": "Dark Mode",
+    "language": "Language",
+    "notifications": "Notifications",
+    "storage": "Storage",
+    "premium": "Premium",
+    "restore_purchases": "Restore Purchases",
+    "rate_app": "Rate App",
+    "share_app": "Share App",
+    "help_support": "Help & Support",
+    "privacy_policy": "Privacy Policy",
+    "terms_conditions": "Terms & Conditions",
+    "about": "About",
+    "version": "Version",
+    
+    # Premium
+    "go_premium": "Go Premium",
+    "premium_title": "Unlock Premium",
+    "premium_subtitle": "Get access to all features",
+    "premium_feature_1": "Remove watermark",
+    "premium_feature_2": "Unlimited scans",
+    "premium_feature_3": "Cloud backup",
+    "premium_feature_4": "Priority support",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "lifetime": "Lifetime",
+    "start_free_trial": "Start Free Trial",
+    "already_premium": "You're already Premium!",
+    
+    # Alerts & Messages
+    "document_saved": "Document saved successfully",
+    "document_deleted": "Document deleted",
+    "folder_created": "Folder created successfully",
+    "folder_deleted": "Folder deleted",
+    "signature_saved": "Signature saved",
+    "signature_applied": "Signature applied",
+    "changes_saved": "Changes saved",
+    "delete_confirm": "Are you sure you want to delete this?",
+    "delete_document_confirm": "Delete this document?",
+    "delete_folder_confirm": "Delete this folder and all its contents?",
+    "unsaved_changes": "You have unsaved changes",
+    "discard_changes": "Discard changes?",
+    "network_error": "Network error. Please check your connection.",
+    "something_went_wrong": "Something went wrong. Please try again.",
+    "session_expired": "Session expired. Please sign in again.",
+    
+    # Time
+    "just_now": "Just now",
+    "minutes_ago": "{count} minutes ago",
+    "hours_ago": "{count} hours ago",
+    "days_ago": "{count} days ago",
+    "today": "Today",
+    "yesterday": "Yesterday",
+}
+
+# Default German translations
+DEFAULT_TRANSLATIONS_DE = {
+    "app_name": "ScanUp",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "done": "Fertig",
+    "ok": "OK",
+    "yes": "Ja",
+    "no": "Nein",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "skip": "Überspringen",
+    "retry": "Erneut versuchen",
+    "search": "Suchen",
+    "settings": "Einstellungen",
+    "share": "Teilen",
+    "print": "Drucken",
+    
+    "onboarding_scan_title": "Scannen",
+    "onboarding_scan_desc": "Verwenden Sie Ihre Handykamera, um Dokumente einfach zu scannen",
+    "onboarding_save_title": "Speichern",
+    "onboarding_save_desc": "Speichern Sie Ihr Dokument als PDF, erstellen und teilen Sie verschlüsselte Dateien",
+    "get_started": "Loslegen",
+    
+    "sign_in": "Anmelden",
+    "sign_up": "Registrieren",
+    "sign_out": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgot_password": "Passwort vergessen?",
+    "continue_with_google": "Mit Google fortfahren",
+    "continue_with_apple": "Mit Apple fortfahren",
+    "continue_as_guest": "Als Gast fortfahren",
+    "create_account": "Konto erstellen",
+    "already_have_account": "Haben Sie bereits ein Konto?",
+    "dont_have_account": "Haben Sie noch kein Konto?",
+    
+    "your_documents": "Ihre Dokumente",
+    "documents": "Dokumente",
+    "folders": "Ordner",
+    "latest": "Neueste",
+    "all": "Alle",
+    "no_documents": "Noch keine Dokumente",
+    "no_documents_desc": "Scannen Sie Ihr erstes Dokument mit der Kamera-Taste unten",
+    "no_folders": "Noch keine Ordner",
+    "no_folders_desc": "Erstellen Sie Ordner, um Ihre Dokumente zu organisieren",
+    "sort_by": "Sortieren nach",
+    "sort_az": "A-Z",
+    "sort_za": "Z-A",
+    "sort_newest": "Neueste zuerst",
+    "sort_oldest": "Älteste zuerst",
+    "view_list": "Listenansicht",
+    "view_grid": "Rasteransicht",
+    
+    "rename": "Umbenennen",
+    "move_to_folder": "In Ordner verschieben",
+    "set_password": "Passwort",
+    "remove_password": "Passwort entfernen",
+    "document_protected": "Geschütztes Dokument",
+    "enter_password": "Passwort eingeben",
+    "wrong_password": "Falsches Passwort. Bitte versuchen Sie es erneut.",
+    
+    "scan_document": "Dokument scannen",
+    "take_photo": "Foto aufnehmen",
+    "choose_from_gallery": "Aus Galerie wählen",
+    "flash_on": "Blitz an",
+    "flash_off": "Blitz aus",
+    "retake": "Neu aufnehmen",
+    "use_photo": "Foto verwenden",
+    "add_page": "Seite hinzufügen",
+    "pages": "Seiten",
+    
+    "edit_document": "Dokument bearbeiten",
+    "filters": "Filter",
+    "crop": "Zuschneiden",
+    "rotate": "Drehen",
+    "sign": "Unterschreiben",
+    "text": "Text",
+    "annotations": "Anmerkungen",
+    "original": "Original",
+    "grayscale": "Graustufen",
+    "black_white": "Schwarz-Weiß",
+    "enhanced": "Verbessert",
+    "brightness": "Helligkeit",
+    "contrast": "Kontrast",
+    "saturation": "Sättigung",
+    
+    "signature": "Unterschrift",
+    "add_signature": "Unterschrift hinzufügen",
+    "draw_signature": "Unterschrift zeichnen",
+    "saved_signatures": "Gespeicherte Unterschriften",
+    "apply_all_pages": "Auf alle Seiten anwenden",
+    "manage_signatures": "Unterschriften verwalten",
+    "delete_signature": "Unterschrift löschen",
+    "no_signatures": "Keine gespeicherten Unterschriften",
+    "create_first_signature": "Erstellen Sie Ihre erste Unterschrift",
+    
+    "new_folder": "Neuer Ordner",
+    "folder_name": "Ordnername",
+    "folder_color": "Farbe",
+    "create_folder": "Ordner erstellen",
+    "delete_folder": "Ordner löschen",
+    "folder_password": "Ordner-Passwort",
+    
+    "account": "Konto",
+    "appearance": "Erscheinungsbild",
+    "dark_mode": "Dunkelmodus",
+    "language": "Sprache",
+    "notifications": "Benachrichtigungen",
+    "storage": "Speicher",
+    "premium": "Premium",
+    "restore_purchases": "Käufe wiederherstellen",
+    "rate_app": "App bewerten",
+    "share_app": "App teilen",
+    "help_support": "Hilfe & Support",
+    "privacy_policy": "Datenschutzrichtlinie",
+    "terms_conditions": "Allgemeine Geschäftsbedingungen",
+    "about": "Über",
+    "version": "Version",
+    
+    "go_premium": "Premium werden",
+    "premium_title": "Premium freischalten",
+    "premium_subtitle": "Zugang zu allen Funktionen erhalten",
+    "premium_feature_1": "Wasserzeichen entfernen",
+    "premium_feature_2": "Unbegrenzte Scans",
+    "premium_feature_3": "Cloud-Backup",
+    "premium_feature_4": "Prioritäts-Support",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "lifetime": "Lebenslang",
+    "start_free_trial": "Kostenlose Testversion starten",
+    "already_premium": "Sie sind bereits Premium!",
+    
+    "document_saved": "Dokument erfolgreich gespeichert",
+    "document_deleted": "Dokument gelöscht",
+    "folder_created": "Ordner erfolgreich erstellt",
+    "folder_deleted": "Ordner gelöscht",
+    "signature_saved": "Unterschrift gespeichert",
+    "signature_applied": "Unterschrift angewendet",
+    "changes_saved": "Änderungen gespeichert",
+    "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten?",
+    "delete_document_confirm": "Dieses Dokument löschen?",
+    "delete_folder_confirm": "Diesen Ordner und seinen gesamten Inhalt löschen?",
+    "unsaved_changes": "Sie haben ungespeicherte Änderungen",
+    "discard_changes": "Änderungen verwerfen?",
+    "network_error": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "something_went_wrong": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "session_expired": "Sitzung abgelaufen. Bitte melden Sie sich erneut an.",
+    
+    "just_now": "Gerade eben",
+    "minutes_ago": "vor {count} Minuten",
+    "hours_ago": "vor {count} Stunden",
+    "days_ago": "vor {count} Tagen",
+    "today": "Heute",
+    "yesterday": "Gestern",
+}
+
+# Default Legal Pages Content (Markdown format)
+DEFAULT_LEGAL_PAGES = {
+    "terms": {
+        "en": """# Terms and Conditions
+
+**Last updated: January 2025**
+
+## 1. Acceptance of Terms
+
+By accessing and using ScanUp ("the App"), you accept and agree to be bound by the terms and conditions of this agreement.
+
+## 2. Description of Service
+
+ScanUp is a document scanning and management application that allows users to:
+- Scan documents using their device camera
+- Edit and enhance scanned documents
+- Organize documents in folders
+- Add signatures to documents
+- Export documents as PDF
+
+## 3. User Accounts
+
+- You are responsible for maintaining the confidentiality of your account
+- You agree to accept responsibility for all activities under your account
+- You must provide accurate and complete information when creating an account
+
+## 4. Privacy
+
+Your use of ScanUp is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices.
+
+## 5. Intellectual Property
+
+The App and its original content, features, and functionality are owned by ScanUp and are protected by international copyright, trademark, and other intellectual property laws.
+
+## 6. User Content
+
+- You retain ownership of documents you create or upload
+- You grant us a license to store and process your content to provide the service
+- We do not access your documents except as necessary to provide the service
+
+## 7. Premium Subscription
+
+- Premium features require a paid subscription
+- Subscriptions automatically renew unless cancelled
+- Refunds are handled according to the app store policies
+
+## 8. Limitation of Liability
+
+ScanUp shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.
+
+## 9. Changes to Terms
+
+We reserve the right to modify these terms at any time. We will notify users of any material changes.
+
+## 10. Contact Us
+
+If you have any questions about these Terms, please contact us at support@scanup.app
+""",
+        "de": """# Allgemeine Geschäftsbedingungen
+
+**Zuletzt aktualisiert: Januar 2025**
+
+## 1. Annahme der Bedingungen
+
+Durch den Zugriff auf und die Nutzung von ScanUp ("die App") akzeptieren Sie die Bedingungen dieser Vereinbarung.
+
+## 2. Beschreibung des Dienstes
+
+ScanUp ist eine Anwendung zum Scannen und Verwalten von Dokumenten, mit der Benutzer:
+- Dokumente mit der Gerätekamera scannen
+- Gescannte Dokumente bearbeiten und verbessern
+- Dokumente in Ordnern organisieren
+- Unterschriften zu Dokumenten hinzufügen
+- Dokumente als PDF exportieren
+
+## 3. Benutzerkonten
+
+- Sie sind für die Vertraulichkeit Ihres Kontos verantwortlich
+- Sie erklären sich damit einverstanden, die Verantwortung für alle Aktivitäten unter Ihrem Konto zu übernehmen
+- Bei der Kontoerstellung müssen Sie genaue und vollständige Informationen angeben
+
+## 4. Datenschutz
+
+Ihre Nutzung von ScanUp unterliegt auch unserer Datenschutzrichtlinie.
+
+## 5. Geistiges Eigentum
+
+Die App und ihr ursprünglicher Inhalt sind Eigentum von ScanUp und durch internationale Urheberrechts- und Markengesetze geschützt.
+
+## 6. Benutzerinhalte
+
+- Sie behalten das Eigentum an den von Ihnen erstellten oder hochgeladenen Dokumenten
+- Sie gewähren uns eine Lizenz zur Speicherung und Verarbeitung Ihrer Inhalte
+- Wir greifen nicht auf Ihre Dokumente zu, außer wenn dies zur Bereitstellung des Dienstes erforderlich ist
+
+## 7. Premium-Abonnement
+
+- Premium-Funktionen erfordern ein kostenpflichtiges Abonnement
+- Abonnements werden automatisch verlängert, sofern sie nicht gekündigt werden
+- Rückerstattungen werden gemäß den App-Store-Richtlinien abgewickelt
+
+## 8. Haftungsbeschränkung
+
+ScanUp haftet nicht für indirekte, zufällige oder Folgeschäden, die sich aus Ihrer Nutzung des Dienstes ergeben.
+
+## 9. Änderungen der Bedingungen
+
+Wir behalten uns das Recht vor, diese Bedingungen jederzeit zu ändern.
+
+## 10. Kontakt
+
+Bei Fragen zu diesen Bedingungen kontaktieren Sie uns bitte unter support@scanup.app
+"""
+    },
+    "privacy": {
+        "en": """# Privacy Policy
+
+**Last updated: January 2025**
+
+## 1. Introduction
+
+ScanUp ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you.
+
+## 2. Information We Collect
+
+### Information You Provide
+- Account information (email, name)
+- Documents you scan and upload
+- Signatures you create
+
+### Information Collected Automatically
+- Device information (model, OS version)
+- Usage data (features used, scan count)
+- Crash reports and diagnostics
+
+## 3. How We Use Your Information
+
+We use your information to:
+- Provide and maintain the service
+- Process and store your documents
+- Send important notifications
+- Improve our service
+- Provide customer support
+
+## 4. Data Storage
+
+- Your documents are stored securely on our servers
+- Premium users can enable cloud backup
+- We use industry-standard encryption to protect your data
+
+## 5. Data Sharing
+
+We do not sell your personal information. We may share data with:
+- Service providers who help us operate the app
+- Law enforcement when required by law
+- Other parties with your consent
+
+## 6. Your Rights
+
+You have the right to:
+- Access your personal data
+- Delete your account and data
+- Export your documents
+- Opt out of marketing communications
+
+## 7. Data Security
+
+We implement appropriate security measures to protect your information, including:
+- Encryption in transit and at rest
+- Secure authentication
+- Regular security audits
+
+## 8. Children's Privacy
+
+Our service is not intended for children under 13. We do not knowingly collect information from children.
+
+## 9. Changes to This Policy
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page.
+
+## 10. Contact Us
+
+If you have questions about this Privacy Policy, please contact us at:
+- Email: privacy@scanup.app
+""",
+        "de": """# Datenschutzrichtlinie
+
+**Zuletzt aktualisiert: Januar 2025**
+
+## 1. Einführung
+
+ScanUp ("wir" oder "uns") verpflichtet sich zum Schutz Ihrer Privatsphäre. Diese Datenschutzrichtlinie erklärt, wie wir Informationen über Sie sammeln, verwenden und weitergeben.
+
+## 2. Informationen, die wir sammeln
+
+### Von Ihnen bereitgestellte Informationen
+- Kontoinformationen (E-Mail, Name)
+- Dokumente, die Sie scannen und hochladen
+- Von Ihnen erstellte Unterschriften
+
+### Automatisch gesammelte Informationen
+- Geräteinformationen (Modell, Betriebssystemversion)
+- Nutzungsdaten (verwendete Funktionen, Scan-Anzahl)
+- Absturzberichte und Diagnosen
+
+## 3. Wie wir Ihre Informationen verwenden
+
+Wir verwenden Ihre Informationen, um:
+- Den Dienst bereitzustellen und zu warten
+- Ihre Dokumente zu verarbeiten und zu speichern
+- Wichtige Benachrichtigungen zu senden
+- Unseren Service zu verbessern
+- Kundensupport zu bieten
+
+## 4. Datenspeicherung
+
+- Ihre Dokumente werden sicher auf unseren Servern gespeichert
+- Premium-Benutzer können Cloud-Backup aktivieren
+- Wir verwenden branchenübliche Verschlüsselung zum Schutz Ihrer Daten
+
+## 5. Datenweitergabe
+
+Wir verkaufen Ihre persönlichen Daten nicht. Wir können Daten teilen mit:
+- Dienstleistern, die uns beim Betrieb der App helfen
+- Strafverfolgungsbehörden, wenn gesetzlich vorgeschrieben
+- Anderen Parteien mit Ihrer Zustimmung
+
+## 6. Ihre Rechte
+
+Sie haben das Recht:
+- Auf Ihre persönlichen Daten zuzugreifen
+- Ihr Konto und Ihre Daten zu löschen
+- Ihre Dokumente zu exportieren
+- Marketing-Kommunikation abzulehnen
+
+## 7. Datensicherheit
+
+Wir implementieren angemessene Sicherheitsmaßnahmen zum Schutz Ihrer Informationen, einschließlich:
+- Verschlüsselung bei der Übertragung und Speicherung
+- Sichere Authentifizierung
+- Regelmäßige Sicherheitsaudits
+
+## 8. Datenschutz für Kinder
+
+Unser Service ist nicht für Kinder unter 13 Jahren bestimmt.
+
+## 9. Änderungen dieser Richtlinie
+
+Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren.
+
+## 10. Kontakt
+
+Bei Fragen zu dieser Datenschutzrichtlinie kontaktieren Sie uns bitte unter:
+- E-Mail: privacy@scanup.app
+"""
+    },
+    "support": {
+        "en": """# Help & Support
+
+## Frequently Asked Questions
+
+### How do I scan a document?
+1. Tap the blue scan button at the bottom of the screen
+2. Point your camera at the document
+3. The app will automatically detect the edges
+4. Tap the capture button to take the photo
+5. Adjust the crop if needed and tap "Use Photo"
+
+### How do I add multiple pages?
+After scanning your first page, tap "Add Page" to scan additional pages. All pages will be saved as a single document.
+
+### How do I edit a scanned document?
+1. Open the document from your document list
+2. Tap "Edit" to access editing tools
+3. You can apply filters, adjust brightness/contrast, rotate, crop, and add signatures
+4. Tap "Save" when finished
+
+### How do I add a signature?
+1. Open a document and tap "Edit"
+2. Select "Sign" from the toolbar
+3. Choose an existing signature or draw a new one
+4. Position and resize the signature on the document
+5. Tap "Save" to apply
+
+### How do I share a document?
+Tap the share icon on any document to export it as a PDF. You can then share via email, messaging apps, or save to cloud services.
+
+### How do I protect a document with a password?
+1. Tap the "..." menu on a document
+2. Select "Password"
+3. Enter your desired password
+4. The document will now require the password to open
+
+## Contact Support
+
+If you need additional help, please contact us:
+
+**Email:** support@scanup.app
+
+**Response Time:** We typically respond within 24-48 hours
+
+## Report a Bug
+
+Found a bug? Please email us at bugs@scanup.app with:
+- Your device model and OS version
+- Steps to reproduce the issue
+- Screenshots if possible
+""",
+        "de": """# Hilfe & Support
+
+## Häufig gestellte Fragen
+
+### Wie scanne ich ein Dokument?
+1. Tippen Sie auf die blaue Scan-Taste am unteren Bildschirmrand
+2. Richten Sie Ihre Kamera auf das Dokument
+3. Die App erkennt automatisch die Kanten
+4. Tippen Sie auf die Aufnahmetaste
+5. Passen Sie den Zuschnitt bei Bedarf an und tippen Sie auf "Foto verwenden"
+
+### Wie füge ich mehrere Seiten hinzu?
+Nach dem Scannen der ersten Seite tippen Sie auf "Seite hinzufügen", um weitere Seiten zu scannen.
+
+### Wie bearbeite ich ein gescanntes Dokument?
+1. Öffnen Sie das Dokument aus Ihrer Dokumentenliste
+2. Tippen Sie auf "Bearbeiten"
+3. Sie können Filter anwenden, Helligkeit/Kontrast anpassen, drehen, zuschneiden und Unterschriften hinzufügen
+4. Tippen Sie auf "Speichern", wenn Sie fertig sind
+
+### Wie füge ich eine Unterschrift hinzu?
+1. Öffnen Sie ein Dokument und tippen Sie auf "Bearbeiten"
+2. Wählen Sie "Unterschreiben" aus der Werkzeugleiste
+3. Wählen Sie eine bestehende Unterschrift oder zeichnen Sie eine neue
+4. Positionieren und skalieren Sie die Unterschrift
+5. Tippen Sie auf "Speichern"
+
+### Wie teile ich ein Dokument?
+Tippen Sie auf das Teilen-Symbol, um es als PDF zu exportieren.
+
+### Wie schütze ich ein Dokument mit einem Passwort?
+1. Tippen Sie auf das "..."-Menü eines Dokuments
+2. Wählen Sie "Passwort"
+3. Geben Sie Ihr gewünschtes Passwort ein
+
+## Support kontaktieren
+
+**E-Mail:** support@scanup.app
+
+**Antwortzeit:** Wir antworten in der Regel innerhalb von 24-48 Stunden
+
+## Fehler melden
+
+Fehler gefunden? Senden Sie uns eine E-Mail an bugs@scanup.app
+"""
+    }
+}
+
+
+# Pydantic models for content management
+class LanguageModel(BaseModel):
+    code: str
+    name: str
+    native_name: str
+    is_default: bool = False
+
+class TranslationUpdate(BaseModel):
+    translations: Dict[str, str]
+
+class LegalPageUpdate(BaseModel):
+    content: str
+
+class TranslationKeyUpdate(BaseModel):
+    key: str
+    value: str
+
+
+# Initialize default content on startup
+async def init_content_collections():
+    """Initialize languages, translations, and legal pages with defaults"""
+    try:
+        # Initialize languages
+        languages_count = await db.languages.count_documents({})
+        if languages_count == 0:
+            for lang in DEFAULT_LANGUAGES:
+                await db.languages.update_one(
+                    {"code": lang["code"]},
+                    {"$set": lang},
+                    upsert=True
+                )
+            logger.info("✅ Default languages initialized")
+        
+        # Initialize English translations
+        en_trans = await db.translations.find_one({"language_code": "en"})
+        if not en_trans:
+            await db.translations.insert_one({
+                "language_code": "en",
+                "translations": DEFAULT_TRANSLATIONS,
+                "updated_at": datetime.now(timezone.utc)
+            })
+            logger.info("✅ English translations initialized")
+        
+        # Initialize German translations
+        de_trans = await db.translations.find_one({"language_code": "de"})
+        if not de_trans:
+            await db.translations.insert_one({
+                "language_code": "de",
+                "translations": DEFAULT_TRANSLATIONS_DE,
+                "updated_at": datetime.now(timezone.utc)
+            })
+            logger.info("✅ German translations initialized")
+        
+        # Initialize legal pages
+        for page_type, content in DEFAULT_LEGAL_PAGES.items():
+            for lang_code, page_content in content.items():
+                existing = await db.legal_pages.find_one({
+                    "page_type": page_type,
+                    "language_code": lang_code
+                })
+                if not existing:
+                    await db.legal_pages.insert_one({
+                        "page_type": page_type,
+                        "language_code": lang_code,
+                        "content": page_content,
+                        "updated_at": datetime.now(timezone.utc)
+                    })
+            logger.info(f"✅ Legal page '{page_type}' initialized")
+        
+    except Exception as e:
+        logger.error(f"Error initializing content: {e}")
+
+
+# Public API endpoints for content
+
+@api_router.get("/content/languages")
+async def get_languages():
+    """Get all supported languages"""
+    try:
+        languages = await db.languages.find({}, {"_id": 0}).to_list(100)
+        if not languages:
+            return DEFAULT_LANGUAGES
+        return languages
+    except Exception as e:
+        logger.error(f"Error fetching languages: {e}")
+        return DEFAULT_LANGUAGES
+
+
+@api_router.get("/content/translations/{language_code}")
+async def get_translations(language_code: str):
+    """Get all translations for a language"""
+    try:
+        trans = await db.translations.find_one(
+            {"language_code": language_code},
+            {"_id": 0}
+        )
+        
+        if trans:
+            return {
+                "language_code": language_code,
+                "translations": trans.get("translations", {}),
+                "updated_at": trans.get("updated_at")
+            }
+        
+        # Fallback to English if language not found
+        en_trans = await db.translations.find_one(
+            {"language_code": "en"},
+            {"_id": 0}
+        )
+        
+        if en_trans:
+            # Return English translations as fallback with the requested language code
+            return {
+                "language_code": language_code,
+                "translations": en_trans.get("translations", DEFAULT_TRANSLATIONS),
+                "updated_at": en_trans.get("updated_at"),
+                "is_fallback": True
+            }
+        
+        # Ultimate fallback to hardcoded defaults
+        return {
+            "language_code": language_code,
+            "translations": DEFAULT_TRANSLATIONS,
+            "is_fallback": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching translations: {e}")
+        return {
+            "language_code": language_code,
+            "translations": DEFAULT_TRANSLATIONS,
+            "is_fallback": True
+        }
+
+
+@api_router.get("/content/legal/{page_type}")
+async def get_legal_page(page_type: str, language_code: str = "en"):
+    """Get a legal page (terms, privacy, support)"""
+    if page_type not in ["terms", "privacy", "support"]:
+        raise HTTPException(status_code=400, detail="Invalid page type")
+    
+    try:
+        page = await db.legal_pages.find_one(
+            {"page_type": page_type, "language_code": language_code},
+            {"_id": 0}
+        )
+        
+        if page:
+            return {
+                "page_type": page_type,
+                "language_code": language_code,
+                "content": page.get("content", ""),
+                "updated_at": page.get("updated_at")
+            }
+        
+        # Fallback to English
+        en_page = await db.legal_pages.find_one(
+            {"page_type": page_type, "language_code": "en"},
+            {"_id": 0}
+        )
+        
+        if en_page:
+            return {
+                "page_type": page_type,
+                "language_code": language_code,
+                "content": en_page.get("content", ""),
+                "updated_at": en_page.get("updated_at"),
+                "is_fallback": True
+            }
+        
+        # Ultimate fallback
+        default_content = DEFAULT_LEGAL_PAGES.get(page_type, {}).get("en", "")
+        return {
+            "page_type": page_type,
+            "language_code": language_code,
+            "content": default_content,
+            "is_fallback": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching legal page: {e}")
+        default_content = DEFAULT_LEGAL_PAGES.get(page_type, {}).get("en", "")
+        return {
+            "page_type": page_type,
+            "language_code": language_code,
+            "content": default_content,
+            "is_fallback": True
+        }
+
 
 # ==================== ADMIN DASHBOARD API ====================
 
