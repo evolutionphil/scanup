@@ -136,9 +136,9 @@ export default function DocumentsScreen() {
         const migratedCount = await migrateGuestDocumentsToAccount(token, user.user_id);
         if (migratedCount > 0) {
           Alert.alert(
-            'Documents Migrated',
-            `${migratedCount} document${migratedCount > 1 ? 's' : ''} from guest mode ${migratedCount > 1 ? 'have' : 'has'} been added to your account.`,
-            [{ text: 'OK' }]
+            t('documents_migrated', 'Documents Migrated'),
+            `${migratedCount} ${t('document', 'document')}${migratedCount > 1 ? 's' : ''} ${migratedCount > 1 ? t('have_been_added', 'have been added') : t('has_been_added', 'has been added')} ${t('to_your_account', 'to your account')}.`,
+            [{ text: t('ok', 'OK') }]
           );
           fetchDocuments(token);
         }
@@ -201,9 +201,9 @@ export default function DocumentsScreen() {
     switch (sortBy) {
       case 'a-z': return 'A-Z';
       case 'z-a': return 'Z-A';
-      case 'newest': return 'Newest';
-      case 'oldest': return 'Oldest';
-      default: return 'Name';
+      case 'newest': return t('newest', 'Newest');
+      case 'oldest': return t('oldest', 'Oldest');
+      default: return t('name', 'Name');
     }
   };
 
@@ -243,7 +243,7 @@ export default function DocumentsScreen() {
       setUnlockDoc(null);
       setUnlockPasswordValue('');
     } else {
-      Alert.alert('Incorrect Password', 'Please try again.');
+      Alert.alert(t('incorrect_password', 'Incorrect Password'), t('please_try_again', 'Please try again.'));
     }
   };
 
@@ -270,12 +270,12 @@ export default function DocumentsScreen() {
     if (selectedDocs.length === 0) return;
     
     Alert.alert(
-      'Delete Documents',
-      `Are you sure you want to delete ${selectedDocs.length} document(s)?`,
+      t('delete_documents', 'Delete Documents'),
+      `${t('delete_confirm_multiple', 'Are you sure you want to delete')} ${selectedDocs.length} ${t('document_s', 'document(s)')}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete', 'Delete'),
           style: 'destructive',
           onPress: async () => {
             setIsDeleting(true);
@@ -287,7 +287,7 @@ export default function DocumentsScreen() {
               setSelectedDocs([]);
             } catch (e) {
               console.error('Error deleting:', e);
-              Alert.alert('Error', 'Failed to delete some documents');
+              Alert.alert(t('error', 'Error'), t('failed_to_delete_documents', 'Failed to delete some documents'));
             } finally {
               setIsDeleting(false);
             }
@@ -310,10 +310,10 @@ export default function DocumentsScreen() {
       setShowMoveModal(false);
       setSelectionMode(false);
       setSelectedDocs([]);
-      Alert.alert('Success', `Moved ${selectedDocs.length} document(s) to ${folderId ? 'folder' : 'main library'}`);
+      Alert.alert(t('success', 'Success'), `${t('moved', 'Moved')} ${selectedDocs.length} ${t('document_s', 'document(s)')} ${t('to', 'to')} ${folderId ? t('folder', 'folder') : t('main_library', 'main library')}`);
     } catch (e) {
       console.error('Error moving document:', e);
-      Alert.alert('Error', 'Failed to move document');
+      Alert.alert(t('error', 'Error'), t('failed_to_move_document', 'Failed to move document'));
     }
   };
   
@@ -322,7 +322,7 @@ export default function DocumentsScreen() {
       const newFolder = await createFolder(token || null, { name, color });
       return newFolder;
     } catch (e) {
-      Alert.alert('Error', 'Failed to create folder');
+      Alert.alert(t('error', 'Error'), t('failed_to_create_folder', 'Failed to create folder'));
       return null;
     }
   };
@@ -330,7 +330,7 @@ export default function DocumentsScreen() {
   // Create folder handler
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
-      Alert.alert('Error', 'Please enter a folder name');
+      Alert.alert(t('error', 'Error'), t('enter_folder_name', 'Please enter a folder name'));
       return;
     }
 
@@ -343,7 +343,7 @@ export default function DocumentsScreen() {
       await fetchFolders(token || null);
     } catch (e) {
       console.error('Folder creation error:', e);
-      Alert.alert('Error', 'Failed to create folder. Please try again.');
+      Alert.alert(t('error', 'Error'), t('failed_to_create_folder_retry', 'Failed to create folder. Please try again.'));
     } finally {
       setCreating(false);
     }
@@ -369,12 +369,12 @@ export default function DocumentsScreen() {
     
     if (latestDoc.password || latestDoc.is_password_protected) {
       Alert.alert(
-        'Protected Document',
-        'This document is password protected. Enter the password to share.',
+        t('protected_document', 'Protected Document'),
+        t('document_password_protected_share', 'This document is password protected. Enter the password to share.'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
           {
-            text: 'Enter Password',
+            text: t('enter_password', 'Enter Password'),
             onPress: () => {
               setUnlockDoc(latestDoc);
               setUnlockPasswordValue('');
@@ -400,9 +400,9 @@ export default function DocumentsScreen() {
     if (renameDoc && renameValue.trim() && token) {
       try {
         await updateDocument(token, renameDoc.document_id, { name: renameValue.trim() });
-        Alert.alert('Success', 'Document renamed successfully');
+        Alert.alert(t('success', 'Success'), t('document_renamed', 'Document renamed successfully'));
       } catch (e) {
-        Alert.alert('Error', 'Failed to rename document');
+        Alert.alert(t('error', 'Error'), t('failed_to_rename_document', 'Failed to rename document'));
       }
     }
     setShowRenameModal(false);
@@ -460,7 +460,7 @@ export default function DocumentsScreen() {
       }
       
       if (pageImages.length === 0) {
-        Alert.alert('Error', 'No images available to print');
+        Alert.alert(t('error', 'Error'), t('no_images_to_print', 'No images available to print'));
         return;
       }
       
@@ -491,7 +491,7 @@ export default function DocumentsScreen() {
       await Print.printAsync({ html });
     } catch (e) {
       console.error('Print error:', e);
-      Alert.alert('Error', 'Failed to print document');
+      Alert.alert(t('error', 'Error'), t('failed_to_print_document', 'Failed to print document'));
     }
   };
 
@@ -510,10 +510,10 @@ export default function DocumentsScreen() {
           is_password_protected: !!passwordValue,
           is_locked: !!passwordValue
         });
-        Alert.alert('Success', passwordValue ? 'Password set successfully' : 'Password removed');
+        Alert.alert(t('success', 'Success'), passwordValue ? t('password_set', 'Password set successfully') : t('password_removed', 'Password removed'));
       } catch (e) {
         console.error('Password update error:', e);
-        Alert.alert('Error', 'Failed to update password');
+        Alert.alert(t('error', 'Error'), t('failed_to_update_password', 'Failed to update password'));
       }
     }
     setShowPasswordModal(false);
@@ -538,7 +538,7 @@ export default function DocumentsScreen() {
       const isLocalDoc = deleteDoc.document_id.startsWith('local_');
       await deleteDocument(isLocalDoc ? null : token, deleteDoc.document_id);
     } catch (e) {
-      Alert.alert('Error', 'Failed to delete document');
+      Alert.alert(t('error', 'Error'), t('failed_to_delete_document', 'Failed to delete document'));
     } finally {
       setShowDeleteModal(false);
       setDeleteDoc(null);
@@ -567,12 +567,12 @@ export default function DocumentsScreen() {
         
         if (response.ok) {
           await fetchFolders(token || null);
-          Alert.alert('Success', 'Folder renamed successfully');
+          Alert.alert(t('success', 'Success'), t('folder_renamed', 'Folder renamed successfully'));
         } else {
           throw new Error('Failed to rename folder');
         }
       } catch (e) {
-        Alert.alert('Error', 'Failed to rename folder');
+        Alert.alert(t('error', 'Error'), t('failed_to_rename_folder', 'Failed to rename folder'));
       }
     }
     setShowRenameFolderModal(false);
@@ -603,12 +603,12 @@ export default function DocumentsScreen() {
         
         if (response.ok) {
           await fetchFolders(token || null);
-          Alert.alert('Success', folderPasswordValue ? 'Password set successfully' : 'Password removed');
+          Alert.alert(t('success', 'Success'), folderPasswordValue ? t('password_set', 'Password set successfully') : t('password_removed', 'Password removed'));
         } else {
           throw new Error('Failed to set password');
         }
       } catch (e) {
-        Alert.alert('Error', 'Failed to set folder password');
+        Alert.alert(t('error', 'Error'), t('failed_to_set_folder_password', 'Failed to set folder password'));
       }
     }
     setShowFolderPasswordModal(false);
@@ -618,18 +618,18 @@ export default function DocumentsScreen() {
 
   const handleDeleteFolderAction = (folder: Folder) => {
     Alert.alert(
-      'Delete Folder',
-      `Are you sure you want to delete "${folder.name}"? Documents inside will be moved to the main library.`,
+      t('delete_folder', 'Delete Folder'),
+      `${t('delete_folder_confirm', 'Are you sure you want to delete')} "${folder.name}"? ${t('documents_will_be_moved', 'Documents inside will be moved to the main library.')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete', 'Delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteFolder(token || null, folder.folder_id);
             } catch (e) {
-              Alert.alert('Error', 'Failed to delete folder');
+              Alert.alert(t('error', 'Error'), t('failed_to_delete_folder', 'Failed to delete folder'));
             }
           },
         },
@@ -793,12 +793,12 @@ export default function DocumentsScreen() {
         <Ionicons name={activeMainTab === 'documents' ? "documents-outline" : "folder-outline"} size={56} color="#CCC" />
       </View>
       <Text style={styles.emptyTitle}>
-        {activeMainTab === 'documents' ? 'No Documents Yet' : 'No Folders Yet'}
+        {activeMainTab === 'documents' ? t('no_documents_yet', 'No Documents Yet') : t('no_folders_yet', 'No Folders Yet')}
       </Text>
       <Text style={styles.emptyText}>
         {activeMainTab === 'documents' 
-          ? 'Tap the scan button to scan your first document'
-          : 'Create folders to organize your documents'}
+          ? t('tap_scan_first_document', 'Tap the scan button to scan your first document')
+          : t('create_folders_organize', 'Create folders to organize your documents')}
       </Text>
     </View>
   );
@@ -920,7 +920,7 @@ export default function DocumentsScreen() {
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#3E51FB" />
-            <Text style={styles.loadingText}>{t('deleting', 'Deleting...')}</Text>
+            <Text style={styles.loadingText}>{t('deleting', 'Deleting')}...</Text>
           </View>
         </View>
       )}
@@ -1035,7 +1035,7 @@ export default function DocumentsScreen() {
                 onPress={() => setTempSortBy(option)}
               >
                 <Text style={styles.sortOptionLabel}>
-                  {option === 'a-z' ? 'A-Z' : option === 'z-a' ? 'Z-A' : option === 'newest' ? 'Newest First' : 'Oldest First'}
+                  {option === 'a-z' ? 'A-Z' : option === 'z-a' ? 'Z-A' : option === 'newest' ? t('newest_first', 'Newest First') : t('oldest_first', 'Oldest First')}
                 </Text>
                 <View style={[styles.radioOuter, tempSortBy === option && styles.radioOuterActive]}>
                   {tempSortBy === option && <View style={styles.radioInner} />}
@@ -1052,7 +1052,7 @@ export default function DocumentsScreen() {
                 style={styles.sortOptionRow}
                 onPress={() => setTempViewMode(option)}
               >
-                <Text style={styles.sortOptionLabel}>{option === 'list' ? 'List' : 'Grid'}</Text>
+                <Text style={styles.sortOptionLabel}>{option === 'list' ? t('list', 'List') : t('grid', 'Grid')}</Text>
                 <View style={[styles.radioOuter, tempViewMode === option && styles.radioOuterActive]}>
                   {tempViewMode === option && <View style={styles.radioInner} />}
                 </View>
@@ -1064,7 +1064,7 @@ export default function DocumentsScreen() {
               style={styles.sortDoneButton}
               onPress={applySortSettings}
             >
-              <Text style={styles.sortDoneButtonText}>Done</Text>
+              <Text style={styles.sortDoneButtonText}>{t('done', 'Done')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1093,32 +1093,32 @@ export default function DocumentsScreen() {
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleRenameDocument(actionSheetDoc); }}>
               <Ionicons name="pencil-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Name</Text>
+              <Text style={styles.actionSheetOptionText}>{t('name', 'Name')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleEditDocument(actionSheetDoc); }}>
               <Ionicons name="create-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Edit</Text>
+              <Text style={styles.actionSheetOptionText}>{t('edit', 'Edit')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handlePrintDocument(actionSheetDoc); }}>
               <Ionicons name="print-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Print</Text>
+              <Text style={styles.actionSheetOptionText}>{t('print', 'Print')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handlePasswordDocument(actionSheetDoc); }}>
               <Ionicons name="lock-closed-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Password</Text>
+              <Text style={styles.actionSheetOptionText}>{t('password', 'Password')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleMoveDocument(actionSheetDoc); }}>
               <Ionicons name="folder-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Move to Folder</Text>
+              <Text style={styles.actionSheetOptionText}>{t('move_to_folder', 'Move to Folder')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={[styles.actionSheetOption, styles.actionSheetOptionDestructive]} onPress={() => { setShowDocActionSheet(false); actionSheetDoc && handleDeleteDocument(actionSheetDoc); }}>
               <Ionicons name="trash-outline" size={22} color="#EF4444" />
-              <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>Delete</Text>
+              <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>{t('delete', 'Delete')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1145,17 +1145,17 @@ export default function DocumentsScreen() {
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleRenameFolderAction(actionSheetFolder); }}>
               <Ionicons name="pencil-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Edit Name</Text>
+              <Text style={styles.actionSheetOptionText}>{t('edit_name', 'Edit Name')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionSheetOption} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleFolderPasswordAction(actionSheetFolder); }}>
               <Ionicons name="lock-closed-outline" size={22} color="#333" />
-              <Text style={styles.actionSheetOptionText}>Password</Text>
+              <Text style={styles.actionSheetOptionText}>{t('password', 'Password')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={[styles.actionSheetOption, styles.actionSheetOptionDestructive]} onPress={() => { setShowFolderActionSheet(false); actionSheetFolder && handleDeleteFolderAction(actionSheetFolder); }}>
               <Ionicons name="trash-outline" size={22} color="#EF4444" />
-              <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>Delete</Text>
+              <Text style={[styles.actionSheetOptionText, { color: '#EF4444' }]}>{t('delete', 'Delete')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1165,18 +1165,18 @@ export default function DocumentsScreen() {
       <Modal visible={showCreateFolderModal} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setShowCreateFolderModal(false)}>
           <Pressable style={styles.createFolderModalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>New Folder</Text>
+            <Text style={styles.modalTitle}>{t('new_folder', 'New Folder')}</Text>
             
             <TextInput
               style={styles.folderInput}
-              placeholder="Folder name"
+              placeholder={t('folder_name', 'Folder name')}
               placeholderTextColor="#999"
               value={newFolderName}
               onChangeText={setNewFolderName}
               autoFocus
             />
             
-            <Text style={styles.colorLabel}>Color</Text>
+            <Text style={styles.colorLabel}>{t('color', 'Color')}</Text>
             <View style={styles.colorGrid}>
               {FOLDER_COLORS.map((color) => (
                 <TouchableOpacity
@@ -1200,14 +1200,14 @@ export default function DocumentsScreen() {
                 style={styles.modalBtnCancel} 
                 onPress={() => setShowCreateFolderModal(false)}
               >
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.modalBtnConfirm} 
                 onPress={handleCreateFolder}
                 disabled={creating}
               >
-                <Text style={styles.modalBtnConfirmText}>{creating ? 'Creating...' : 'Create'}</Text>
+                <Text style={styles.modalBtnConfirmText}>{creating ? `${t('creating', 'Creating')}...` : t('create', 'Create')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -1227,21 +1227,21 @@ export default function DocumentsScreen() {
       <Modal visible={showRenameModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Rename Document</Text>
+            <Text style={styles.modalTitle}>{t('rename_document', 'Rename Document')}</Text>
             <TextInput
               style={styles.modalInput}
               value={renameValue}
               onChangeText={setRenameValue}
-              placeholder="Enter new name"
+              placeholder={t('enter_new_name', 'Enter new name')}
               placeholderTextColor="#999"
               autoFocus
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowRenameModal(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmRename}>
-                <Text style={styles.modalBtnConfirmText}>Rename</Text>
+                <Text style={styles.modalBtnConfirmText}>{t('rename', 'Rename')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1252,21 +1252,21 @@ export default function DocumentsScreen() {
       <Modal visible={showRenameFolderModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameFolderModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Rename Folder</Text>
+            <Text style={styles.modalTitle}>{t('rename_folder', 'Rename Folder')}</Text>
             <TextInput
               style={styles.modalInput}
               value={renameFolderValue}
               onChangeText={setRenameFolderValue}
-              placeholder="Enter new name"
+              placeholder={t('enter_new_name', 'Enter new name')}
               placeholderTextColor="#999"
               autoFocus
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowRenameFolderModal(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmRenameFolder}>
-                <Text style={styles.modalBtnConfirmText}>Rename</Text>
+                <Text style={styles.modalBtnConfirmText}>{t('rename', 'Rename')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1277,25 +1277,25 @@ export default function DocumentsScreen() {
       <Modal visible={showFolderPasswordModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowFolderPasswordModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Set Folder Password</Text>
+            <Text style={styles.modalTitle}>{t('set_folder_password', 'Set Folder Password')}</Text>
             <Text style={styles.modalSubtitle}>
-              Enter a password to protect this folder. Leave empty to remove password.
+              {t('enter_password_protect_folder', 'Enter a password to protect this folder. Leave empty to remove password.')}
             </Text>
             <TextInput
               style={styles.modalInput}
               value={folderPasswordValue}
               onChangeText={setFolderPasswordValue}
-              placeholder="Enter password (optional)"
+              placeholder={t('enter_password_optional', 'Enter password (optional)')}
               placeholderTextColor="#999"
               secureTextEntry
               autoFocus
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowFolderPasswordModal(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmFolderPassword}>
-                <Text style={styles.modalBtnConfirmText}>{folderPasswordValue ? 'Set Password' : 'Remove Password'}</Text>
+                <Text style={styles.modalBtnConfirmText}>{folderPasswordValue ? t('set_password', 'Set Password') : t('remove_password', 'Remove Password')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1306,25 +1306,25 @@ export default function DocumentsScreen() {
       <Modal visible={showPasswordModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPasswordModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Set Password</Text>
+            <Text style={styles.modalTitle}>{t('set_password', 'Set Password')}</Text>
             <Text style={styles.modalSubtitle}>
-              Enter a password to protect this document. Leave empty to remove password.
+              {t('enter_password_protect_document', 'Enter a password to protect this document. Leave empty to remove password.')}
             </Text>
             <TextInput
               style={styles.modalInput}
               value={passwordValue}
               onChangeText={setPasswordValue}
-              placeholder="Enter password (optional)"
+              placeholder={t('enter_password_optional', 'Enter password (optional)')}
               placeholderTextColor="#999"
               secureTextEntry
               autoFocus
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowPasswordModal(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmPassword}>
-                <Text style={styles.modalBtnConfirmText}>{passwordValue ? 'Set Password' : 'Remove Password'}</Text>
+                <Text style={styles.modalBtnConfirmText}>{passwordValue ? t('set_password', 'Set Password') : t('remove_password', 'Remove Password')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1337,16 +1337,16 @@ export default function DocumentsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.unlockHeader}>
               <Ionicons name="lock-closed" size={40} color="#3E51FB" />
-              <Text style={[styles.modalTitle, { marginTop: 12 }]}>Document Protected</Text>
+              <Text style={[styles.modalTitle, { marginTop: 12 }]}>{t('document_protected', 'Document Protected')}</Text>
             </View>
             <Text style={[styles.modalSubtitle, { textAlign: 'center' }]}>
-              Enter the password to view this document.
+              {t('enter_password_to_view', 'Enter the password to view this document.')}
             </Text>
             <TextInput
               style={styles.modalInput}
               value={unlockPasswordValue}
               onChangeText={setUnlockPasswordValue}
-              placeholder="Enter password"
+              placeholder={t('enter_password', 'Enter password')}
               placeholderTextColor="#999"
               secureTextEntry
               autoFocus
@@ -1354,10 +1354,10 @@ export default function DocumentsScreen() {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowUnlockModal(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleUnlockDocument}>
-                <Text style={styles.modalBtnConfirmText}>Unlock</Text>
+                <Text style={styles.modalBtnConfirmText}>{t('unlock', 'Unlock')}</Text>
               </TouchableOpacity>
             </View>
           </View>
