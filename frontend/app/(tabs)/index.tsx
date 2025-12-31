@@ -558,7 +558,7 @@ export default function DocumentsScreen() {
     if (renameFolder && renameFolderValue.trim()) {
       try {
         // Update folder name via API
-        const response = await fetch(`/api/folders/${renameFolder.folder_id}`, {
+        const response = await fetch(`${BACKEND_URL}/api/folders/${renameFolder.folder_id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -591,15 +591,15 @@ export default function DocumentsScreen() {
   const confirmFolderPassword = async () => {
     if (folderForPassword) {
       try {
-        const response = await fetch(`/api/folders/${folderForPassword.folder_id}`, {
+        const response = await fetch(`${BACKEND_URL}/api/folders/${folderForPassword.folder_id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ 
-            password: folderPasswordValue || null,
-            is_password_protected: !!folderPasswordValue
+            password_hash: folderPasswordValue || null,
+            is_protected: !!folderPasswordValue
           }),
         });
         
