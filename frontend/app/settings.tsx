@@ -432,14 +432,20 @@ export default function SettingsScreen() {
         
         <SettingRow
           icon="document-text-outline"
-          label="Terms of Service"
-          onPress={() => Alert.alert('Terms of Service', 'Coming soon...')}
+          label={t('terms_conditions', 'Terms of Service')}
+          onPress={() => router.push('/legal?type=terms')}
         />
         
         <SettingRow
           icon="shield-checkmark-outline"
-          label="Privacy Policy"
-          onPress={() => Alert.alert('Privacy Policy', 'Coming soon...')}
+          label={t('privacy_policy', 'Privacy Policy')}
+          onPress={() => router.push('/legal?type=privacy')}
+        />
+        
+        <SettingRow
+          icon="help-circle-outline"
+          label={t('help_support', 'Help & Support')}
+          onPress={() => router.push('/legal?type=support')}
         />
 
         <View style={styles.footer}>
