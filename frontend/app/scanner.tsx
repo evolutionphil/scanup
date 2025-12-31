@@ -15,6 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
+import { useAdStore } from '../src/store/adStore';
+import { showGlobalInterstitial } from '../src/components/AdManager';
 
 // Generate unique ID for pages
 const generatePageId = () => `page_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
