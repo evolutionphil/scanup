@@ -165,6 +165,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
   },
 
+  googleLoginNative: async (idToken: string, googleUser: any) => {
+    const response = await fetch(`${BACKEND_URL}/api/auth/google/native`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_token: idToken,
+        email: googleUser.email,
+        name: googleUser.name,
+        photo: googleUser.photo,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Google login failed');
+    }
+
+    const data = await response.json();
+    
+    // Clear guest mode and save credentials
+    await removeStorage(GUEST_KEY);
+    await setStorage(TOKEN_KEY, data.token);
+    await setStorage(USER_KEY, JSON.stringify(data.user));
+    
+    set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
+  },
+
   logout: async () => {
     const token = get().token;
     const wasGuest = get().isGuest;
