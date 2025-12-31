@@ -19,586 +19,369 @@ import os
 BACKEND_URL = "https://localize-scanup.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
-def create_test_image(width=100, height=100, color='red'):
-    """Create a small test image in base64 format"""
-    img = Image.new('RGB', (width, height), color=color)
-    buffer = BytesIO()
-    img.save(buffer, format='JPEG')
-    return base64.b64encode(buffer.getvalue()).decode()
-
-# Sample base64 image for testing (small 100x100 red square)
-SAMPLE_IMAGE_BASE64 = create_test_image(100, 100, 'red')
-
-class TestResults:
+class BackendTester:
     def __init__(self):
-        self.passed = 0
-        self.failed = 0
-        self.errors = []
+        self.session = requests.Session()
+        self.auth_token = None
+        self.test_user_email = f"test_{uuid.uuid4().hex[:8]}@scanup.test"
+        self.test_user_password = "TestPassword123!"
+        self.test_user_name = "Test User"
         
-    def add_pass(self, test_name):
-        self.passed += 1
-        print(f"✅ {test_name}")
+        # Test data storage
+        self.test_document_id = None
+        self.test_folder_id = None
         
-    def add_fail(self, test_name, error):
-        self.failed += 1
-        self.errors.append(f"{test_name}: {error}")
-        print(f"❌ {test_name}: {error}")
-        
-    def summary(self):
-        total = self.passed + self.failed
-        print(f"\n=== TEST SUMMARY ===")
-        print(f"Total tests: {total}")
-        print(f"Passed: {self.passed}")
-        print(f"Failed: {self.failed}")
-        if self.errors:
-            print(f"\nErrors:")
-            for error in self.errors:
-                print(f"  - {error}")
-        return self.failed == 0
+        print(f"🧪 Backend Tester initialized")
+        print(f"📡 Backend URL: {BACKEND_URL}")
+        print(f"👤 Test user: {self.test_user_email}")
+        print("-" * 60)
 
-def create_realistic_document_image():
-    """Create a more realistic document image for testing"""
-    from PIL import Image, ImageDraw, ImageFont
-    import io
-    
-    # Create a white document-like image
-    width, height = 800, 600
-    image = Image.new('RGB', (width, height), 'white')
-    draw = ImageDraw.Draw(image)
-    
-    # Add some text-like content
-    try:
-        # Try to use default font
-        font = ImageFont.load_default()
-    except:
-        font = None
-    
-    # Draw some lines to simulate text
-    for i in range(10):
-        y = 50 + i * 40
-        draw.rectangle([50, y, 700, y + 20], fill='black')
-        draw.rectangle([50, y + 25, 500, y + 35], fill='black')
-    
-    # Add a border
-    draw.rectangle([40, 40, width-40, height-40], outline='black', width=2)
-    
-    # Convert to base64
-    buffer = io.BytesIO()
-    image.save(buffer, format='JPEG', quality=90)
-    return base64.b64encode(buffer.getvalue()).decode()
+    def log_test(self, test_name, status, details=""):
+        """Log test results with consistent formatting"""
+        status_emoji = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
+        print(f"{status_emoji} {test_name}: {status}")
+        if details:
+            print(f"   {details}")
 
-def test_user_registration(results):
-    """Test user registration"""
-    try:
-        response = requests.post(f"{BASE_URL}/auth/register", json={
-            "email": TEST_USER_EMAIL,
-            "password": TEST_USER_PASSWORD,
-            "name": TEST_USER_NAME
-        })
+    def make_request(self, method, endpoint, data=None, headers=None, expect_status=None):
+        """Make HTTP request with proper error handling"""
+        url = f"{API_BASE}{endpoint}"
         
-        if response.status_code == 200:
-            data = response.json()
-            if "token" in data and "user" in data:
-                results.add_pass("User Registration")
-                return data["token"]
+        # Add auth header if we have a token
+        if self.auth_token and headers is None:
+            headers = {"Authorization": f"Bearer {self.auth_token}"}
+        elif self.auth_token and headers:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        
+        try:
+            if method.upper() == "GET":
+                response = self.session.get(url, headers=headers)
+            elif method.upper() == "POST":
+                response = self.session.post(url, json=data, headers=headers)
+            elif method.upper() == "PUT":
+                response = self.session.put(url, json=data, headers=headers)
+            elif method.upper() == "DELETE":
+                response = self.session.delete(url, headers=headers)
             else:
-                results.add_fail("User Registration", "Missing token or user in response")
-                return None
-        else:
-            results.add_fail("User Registration", f"Status {response.status_code}: {response.text}")
+                raise ValueError(f"Unsupported method: {method}")
+            
+            # Check expected status if provided
+            if expect_status and response.status_code != expect_status:
+                print(f"   ⚠️ Expected status {expect_status}, got {response.status_code}")
+                print(f"   Response: {response.text[:200]}")
+            
+            return response
+        except requests.exceptions.RequestException as e:
+            print(f"   ❌ Request failed: {e}")
             return None
-    except Exception as e:
-        results.add_fail("User Registration", str(e))
-        return None
 
-def test_create_document(token, results):
-    """Create a test document with sample pages"""
-    try:
-        # Create a realistic document image
-        document_image = create_realistic_document_image()
+    def test_user_registration(self):
+        """Test user registration"""
+        print("\n🔐 Testing User Registration...")
         
-        headers = {"Authorization": f"Bearer {token}"}
-        document_data = {
-            "name": "Test Document for Export",
-            "tags": ["test", "export"],
+        data = {
+            "email": self.test_user_email,
+            "password": self.test_user_password,
+            "name": self.test_user_name
+        }
+        
+        response = self.make_request("POST", "/auth/register", data)
+        
+        if response and response.status_code == 200:
+            result = response.json()
+            self.auth_token = result.get("token")
+            self.log_test("User Registration", "PASS", f"Token received: {self.auth_token[:20]}...")
+            return True
+        else:
+            error_msg = response.text if response else "No response"
+            self.log_test("User Registration", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
+            return False
+
+    def test_user_login(self):
+        """Test user login (fallback if registration fails)"""
+        print("\n🔑 Testing User Login...")
+        
+        data = {
+            "email": self.test_user_email,
+            "password": self.test_user_password
+        }
+        
+        response = self.make_request("POST", "/auth/login", data)
+        
+        if response and response.status_code == 200:
+            result = response.json()
+            self.auth_token = result.get("token")
+            self.log_test("User Login", "PASS", f"Token received: {self.auth_token[:20]}...")
+            return True
+        else:
+            error_msg = response.text if response else "No response"
+            self.log_test("User Login", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
+            return False
+
+    def create_test_document(self):
+        """Create a test document for rename testing"""
+        print("\n📄 Creating Test Document...")
+        
+        # Create a simple base64 image (1x1 pixel white PNG)
+        test_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        
+        data = {
+            "name": "Test Document for Rename",
+            "folder_id": None,
+            "tags": ["test"],
             "pages": [
                 {
-                    "image_base64": document_image,
-                    "ocr_text": "This is sample OCR text from page 1. It contains important information for testing export functionality.",
+                    "image_base64": test_image_base64,
                     "filter_applied": "original",
-                    "rotation": 0,
-                    "order": 0
-                },
-                {
-                    "image_base64": document_image,
-                    "ocr_text": "This is sample OCR text from page 2. Second page content for multi-page export testing.",
-                    "filter_applied": "enhanced",
-                    "rotation": 0,
-                    "order": 1
+                    "rotation": 0
                 }
             ]
         }
         
-        response = requests.post(f"{BASE_URL}/documents", json=document_data, headers=headers)
+        response = self.make_request("POST", "/documents", data)
         
-        if response.status_code == 200:
-            data = response.json()
-            if "document_id" in data:
-                results.add_pass("Document Creation")
-                return data["document_id"]
-            else:
-                results.add_fail("Document Creation", "Missing document_id in response")
-                return None
+        if response and response.status_code == 200:
+            result = response.json()
+            self.test_document_id = result.get("document_id")
+            self.log_test("Create Test Document", "PASS", f"Document ID: {self.test_document_id}")
+            return True
         else:
-            results.add_fail("Document Creation", f"Status {response.status_code}: {response.text}")
-            return None
-    except Exception as e:
-        results.add_fail("Document Creation", str(e))
-        return None
+            error_msg = response.text if response else "No response"
+            self.log_test("Create Test Document", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
+            return False
 
-def test_export_pdf(token, document_id, results):
-    """Test PDF export functionality"""
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        export_data = {
-            "document_id": document_id,
-            "format": "pdf",
-            "include_ocr": True
+    def create_test_folder(self):
+        """Create a test folder for rename and password testing"""
+        print("\n📁 Creating Test Folder...")
+        
+        data = {
+            "name": "Test Folder for Operations",
+            "color": "#3B82F6"
         }
         
-        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", json=export_data, headers=headers)
+        response = self.make_request("POST", "/folders", data)
         
-        if response.status_code == 200:
-            data = response.json()
-            if "file_base64" in data and "mime_type" in data:
-                if data["mime_type"] == "application/pdf":
-                    # Verify the base64 data is valid
-                    try:
-                        pdf_data = base64.b64decode(data["file_base64"])
-                        if pdf_data.startswith(b'%PDF'):
-                            results.add_pass("Export PDF")
-                            return True
-                        else:
-                            results.add_fail("Export PDF", "Invalid PDF data - missing PDF header")
-                            return False
-                    except Exception as decode_error:
-                        results.add_fail("Export PDF", f"Invalid base64 data: {decode_error}")
+        if response and response.status_code == 200:
+            result = response.json()
+            self.test_folder_id = result.get("folder_id")
+            self.log_test("Create Test Folder", "PASS", f"Folder ID: {self.test_folder_id}")
+            return True
+        else:
+            error_msg = response.text if response else "No response"
+            self.log_test("Create Test Folder", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
+            return False
+
+    def test_rename_document(self):
+        """Test renaming a document - MAIN TEST FROM REVIEW REQUEST"""
+        print("\n📝 Testing Document Rename API...")
+        
+        if not self.test_document_id:
+            self.log_test("Document Rename", "FAIL", "No test document available")
+            return False
+        
+        new_name = f"Renamed Document {datetime.now().strftime('%H:%M:%S')}"
+        data = {"name": new_name}
+        
+        response = self.make_request("PUT", f"/documents/{self.test_document_id}", data)
+        
+        if response and response.status_code == 200:
+            result = response.json()
+            actual_name = result.get("name")
+            
+            if actual_name == new_name:
+                self.log_test("Document Rename", "PASS", f"Name updated to: {actual_name}")
+                
+                # Verify the change persisted in database
+                verify_response = self.make_request("GET", f"/documents/{self.test_document_id}")
+                if verify_response and verify_response.status_code == 200:
+                    verify_result = verify_response.json()
+                    if verify_result.get("name") == new_name:
+                        self.log_test("Document Rename Persistence", "PASS", "Name change persisted in database")
+                        return True
+                    else:
+                        self.log_test("Document Rename Persistence", "FAIL", f"Database shows: {verify_result.get('name')}")
                         return False
                 else:
-                    results.add_fail("Export PDF", f"Wrong mime type: {data['mime_type']}")
+                    self.log_test("Document Rename Verification", "FAIL", "Could not verify database persistence")
                     return False
             else:
-                results.add_fail("Export PDF", "Missing file_base64 or mime_type in response")
+                self.log_test("Document Rename", "FAIL", f"Expected: {new_name}, Got: {actual_name}")
                 return False
         else:
-            results.add_fail("Export PDF", f"Status {response.status_code}: {response.text}")
+            error_msg = response.text if response else "No response"
+            self.log_test("Document Rename", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
             return False
-    except Exception as e:
-        results.add_fail("Export PDF", str(e))
-        return False
 
-def test_export_jpeg(token, document_id, results):
-    """Test JPEG export functionality"""
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        export_data = {
-            "document_id": document_id,
-            "format": "jpeg"
-        }
+    def test_rename_folder(self):
+        """Test renaming a folder - MAIN TEST FROM REVIEW REQUEST"""
+        print("\n📂 Testing Folder Rename API...")
         
-        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", json=export_data, headers=headers)
+        if not self.test_folder_id:
+            self.log_test("Folder Rename", "FAIL", "No test folder available")
+            return False
         
-        if response.status_code == 200:
-            data = response.json()
-            if "file_base64" in data and "mime_type" in data:
-                if data["mime_type"] == "image/jpeg":
-                    # Verify the base64 data is valid JPEG
-                    try:
-                        jpeg_data = base64.b64decode(data["file_base64"])
-                        if jpeg_data.startswith(b'\xff\xd8\xff'):
-                            results.add_pass("Export JPEG")
-                            return True
-                        else:
-                            results.add_fail("Export JPEG", "Invalid JPEG data - missing JPEG header")
-                            return False
-                    except Exception as decode_error:
-                        results.add_fail("Export JPEG", f"Invalid base64 data: {decode_error}")
+        new_name = f"Renamed Folder {datetime.now().strftime('%H:%M:%S')}"
+        data = {"name": new_name}
+        
+        response = self.make_request("PUT", f"/folders/{self.test_folder_id}", data)
+        
+        if response and response.status_code == 200:
+            result = response.json()
+            actual_name = result.get("name")
+            
+            if actual_name == new_name:
+                self.log_test("Folder Rename", "PASS", f"Name updated to: {actual_name}")
+                
+                # Verify the change persisted in database
+                verify_response = self.make_request("GET", "/folders")
+                if verify_response and verify_response.status_code == 200:
+                    folders = verify_response.json()
+                    test_folder = next((f for f in folders if f.get("folder_id") == self.test_folder_id), None)
+                    
+                    if test_folder and test_folder.get("name") == new_name:
+                        self.log_test("Folder Rename Persistence", "PASS", "Name change persisted in database")
+                        return True
+                    else:
+                        self.log_test("Folder Rename Persistence", "FAIL", f"Database shows: {test_folder.get('name') if test_folder else 'Folder not found'}")
                         return False
                 else:
-                    results.add_fail("Export JPEG", f"Wrong mime type: {data['mime_type']}")
+                    self.log_test("Folder Rename Verification", "FAIL", "Could not verify database persistence")
                     return False
             else:
-                results.add_fail("Export JPEG", "Missing file_base64 or mime_type in response")
+                self.log_test("Folder Rename", "FAIL", f"Expected: {new_name}, Got: {actual_name}")
                 return False
         else:
-            results.add_fail("Export JPEG", f"Status {response.status_code}: {response.text}")
+            error_msg = response.text if response else "No response"
+            self.log_test("Folder Rename", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
             return False
-    except Exception as e:
-        results.add_fail("Export JPEG", str(e))
-        return False
 
-def test_perspective_crop(token, results):
-    """Test perspective crop with normalized coordinates"""
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
+    def test_set_folder_password(self):
+        """Test setting folder password - MAIN TEST FROM REVIEW REQUEST"""
+        print("\n🔒 Testing Folder Password API...")
         
-        # Create test image
-        test_image = create_realistic_document_image()
+        if not self.test_folder_id:
+            self.log_test("Folder Password", "FAIL", "No test folder available")
+            return False
         
-        # Test with normalized corners (0-1 range)
-        crop_data = {
-            "image_base64": test_image,
-            "corners": [
-                {"x": 0.1, "y": 0.1},  # top-left
-                {"x": 0.9, "y": 0.1},  # top-right
-                {"x": 0.9, "y": 0.9},  # bottom-right
-                {"x": 0.1, "y": 0.9}   # bottom-left
-            ]
-        }
+        test_password = "test123"
+        data = {"password": test_password}
         
-        response = requests.post(f"{BASE_URL}/images/perspective-crop", json=crop_data, headers=headers)
+        response = self.make_request("PUT", f"/folders/{self.test_folder_id}", data)
         
-        if response.status_code == 200:
-            data = response.json()
-            if "success" in data and data["success"]:
-                if "cropped_image_base64" in data:
-                    # Verify the returned image is valid
-                    try:
-                        cropped_data = base64.b64decode(data["cropped_image_base64"])
-                        if cropped_data.startswith(b'\xff\xd8\xff'):
-                            results.add_pass("Perspective Crop with Normalized Coordinates")
-                            return True
-                        else:
-                            results.add_fail("Perspective Crop", "Invalid cropped image data")
-                            return False
-                    except Exception as decode_error:
-                        results.add_fail("Perspective Crop", f"Invalid base64 data: {decode_error}")
+        if response and response.status_code == 200:
+            result = response.json()
+            is_protected = result.get("is_protected", False)
+            
+            if is_protected:
+                self.log_test("Folder Password Set", "PASS", "Folder marked as protected")
+                
+                # Test password verification if endpoint exists
+                verify_data = {"password": test_password}
+                verify_response = self.make_request("POST", f"/folders/{self.test_folder_id}/verify-password", verify_data)
+                
+                if verify_response and verify_response.status_code == 200:
+                    self.log_test("Folder Password Verification", "PASS", "Correct password accepted")
+                    
+                    # Test wrong password
+                    wrong_data = {"password": "wrongpassword"}
+                    wrong_response = self.make_request("POST", f"/folders/{self.test_folder_id}/verify-password", wrong_data)
+                    
+                    if wrong_response and wrong_response.status_code == 401:
+                        self.log_test("Folder Password Rejection", "PASS", "Wrong password correctly rejected")
+                        return True
+                    else:
+                        self.log_test("Folder Password Rejection", "FAIL", f"Wrong password not rejected properly: {wrong_response.status_code if wrong_response else 'None'}")
                         return False
                 else:
-                    results.add_fail("Perspective Crop", "Missing cropped_image_base64 in response")
+                    self.log_test("Folder Password Verification", "FAIL", f"Password verification failed: {verify_response.status_code if verify_response else 'None'}")
                     return False
             else:
-                results.add_fail("Perspective Crop", f"Crop failed: {data.get('message', 'Unknown error')}")
+                self.log_test("Folder Password Set", "FAIL", "Folder not marked as protected")
                 return False
         else:
-            results.add_fail("Perspective Crop", f"Status {response.status_code}: {response.text}")
+            error_msg = response.text if response else "No response"
+            self.log_test("Folder Password", "FAIL", f"Status: {response.status_code if response else 'None'}, Error: {error_msg}")
             return False
-    except Exception as e:
-        results.add_fail("Perspective Crop", str(e))
-        return False
 
-def test_edge_cases(token, document_id, results):
-    """Test edge cases and error handling"""
-    headers = {"Authorization": f"Bearer {token}"}
-    
-    # Test invalid document ID for export
-    try:
-        response = requests.post(f"{BASE_URL}/documents/invalid_doc_id/export", 
-                               json={"document_id": "invalid", "format": "pdf"}, 
-                               headers=headers)
-        if response.status_code == 404:
-            results.add_pass("Export with Invalid Document ID (404 Error)")
-        else:
-            results.add_fail("Export with Invalid Document ID", f"Expected 404, got {response.status_code}")
-    except Exception as e:
-        results.add_fail("Export with Invalid Document ID", str(e))
-    
-    # Test invalid format
-    try:
-        response = requests.post(f"{BASE_URL}/documents/{document_id}/export", 
-                               json={"document_id": document_id, "format": "invalid_format"}, 
-                               headers=headers)
-        if response.status_code == 400:
-            results.add_pass("Export with Invalid Format (400 Error)")
-        else:
-            results.add_fail("Export with Invalid Format", f"Expected 400, got {response.status_code}")
-    except Exception as e:
-        results.add_fail("Export with Invalid Format", str(e))
-    
-    # Test perspective crop with invalid corners
-    try:
-        response = requests.post(f"{BASE_URL}/images/perspective-crop", 
-                               json={"image_base64": "invalid_base64", "corners": []}, 
-                               headers=headers)
-        # Should handle gracefully
-        if response.status_code in [200, 400]:
-            results.add_pass("Perspective Crop with Invalid Data (Graceful Handling)")
-        else:
-            results.add_fail("Perspective Crop with Invalid Data", f"Unexpected status {response.status_code}")
-    except Exception as e:
-        results.add_fail("Perspective Crop with Invalid Data", str(e))
+    def cleanup_test_data(self):
+        """Clean up test documents and folders"""
+        print("\n🧹 Cleaning up test data...")
+        
+        # Delete test document
+        if self.test_document_id:
+            response = self.make_request("DELETE", f"/documents/{self.test_document_id}")
+            if response and response.status_code == 200:
+                self.log_test("Delete Test Document", "PASS", "Document deleted")
+            else:
+                self.log_test("Delete Test Document", "FAIL", f"Status: {response.status_code if response else 'None'}")
+        
+        # Delete test folder
+        if self.test_folder_id:
+            response = self.make_request("DELETE", f"/folders/{self.test_folder_id}")
+            if response and response.status_code == 200:
+                self.log_test("Delete Test Folder", "PASS", "Folder deleted")
+            else:
+                self.log_test("Delete Test Folder", "FAIL", f"Status: {response.status_code if response else 'None'}")
 
-def test_image_process_public_endpoint(results):
-    """Test the /api/images/process-public endpoint specifically"""
-    print("\n🎨 Testing Image Processing Public Endpoint")
-    print("=" * 50)
-    
-    # Test 1: Process image with raw base64 (no data: prefix) - GRAYSCALE FILTER
-    print("\n🧪 Test 1: Raw base64 with grayscale filter")
-    try:
-        payload = {
-            "image_base64": SAMPLE_IMAGE_BASE64,
-            "operation": "filter",
-            "params": {
-                "type": "grayscale",
-                "brightness": 0,
-                "contrast": 0,
-                "saturation": 0
-            }
+    def run_all_tests(self):
+        """Run all tests in sequence"""
+        print("🚀 Starting Backend API Tests for Review Request")
+        print("=" * 60)
+        
+        test_results = {
+            "total": 0,
+            "passed": 0,
+            "failed": 0
         }
         
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
+        # Authentication tests
+        auth_success = self.test_user_registration()
+        if not auth_success:
+            auth_success = self.test_user_login()
         
-        print(f"   Status Code: {response.status_code}")
+        if not auth_success:
+            print("\n❌ CRITICAL: Authentication failed. Cannot proceed with API tests.")
+            return test_results
         
-        if response.status_code == 200:
-            data = response.json()
-            if "processed_image_base64" in data:
-                processed_len = len(data["processed_image_base64"])
-                print(f"   ✅ SUCCESS: Received processed image ({processed_len} chars)")
-                results.add_pass("Process Public - Raw base64 grayscale")
-            else:
-                results.add_fail("Process Public - Raw base64 grayscale", "Missing processed_image_base64 in response")
-        else:
-            results.add_fail("Process Public - Raw base64 grayscale", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Raw base64 grayscale", str(e))
-    
-    # Test 2: Process image with data: prefix (should still work)
-    print("\n🧪 Test 2: Base64 with data: prefix")
-    try:
-        data_uri_base64 = f"data:image/jpeg;base64,{SAMPLE_IMAGE_BASE64}"
-        payload = {
-            "image_base64": data_uri_base64,
-            "operation": "filter",
-            "params": {
-                "type": "enhanced",
-                "brightness": 10,
-                "contrast": 5,
-                "saturation": -10
-            }
-        }
+        # Setup tests
+        doc_created = self.create_test_document()
+        folder_created = self.create_test_folder()
         
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
+        # Main tests from review request
+        tests = [
+            ("Document Rename", self.test_rename_document),
+            ("Folder Rename", self.test_rename_folder),
+            ("Folder Password", self.test_set_folder_password)
+        ]
         
-        print(f"   Status Code: {response.status_code}")
+        for test_name, test_func in tests:
+            test_results["total"] += 1
+            try:
+                if test_func():
+                    test_results["passed"] += 1
+                else:
+                    test_results["failed"] += 1
+            except Exception as e:
+                print(f"❌ {test_name} failed with exception: {e}")
+                test_results["failed"] += 1
         
-        if response.status_code == 200:
-            data = response.json()
-            if "processed_image_base64" in data:
-                processed_len = len(data["processed_image_base64"])
-                print(f"   ✅ SUCCESS: Processed image with data: prefix ({processed_len} chars)")
-                results.add_pass("Process Public - Data URI prefix")
-            else:
-                results.add_fail("Process Public - Data URI prefix", "Missing processed_image_base64 in response")
-        else:
-            results.add_fail("Process Public - Data URI prefix", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Data URI prefix", str(e))
-    
-    # Test 3: Verify rotation endpoint works
-    print("\n🧪 Test 3: Image rotation")
-    try:
-        payload = {
-            "image_base64": SAMPLE_IMAGE_BASE64,
-            "operation": "rotate",
-            "params": {
-                "degrees": 90
-            }
-        }
+        # Cleanup
+        self.cleanup_test_data()
         
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
+        # Summary
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
+        print(f"Total Tests: {test_results['total']}")
+        print(f"✅ Passed: {test_results['passed']}")
+        print(f"❌ Failed: {test_results['failed']}")
+        print(f"Success Rate: {(test_results['passed']/test_results['total']*100):.1f}%" if test_results['total'] > 0 else "0%")
         
-        print(f"   Status Code: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            if "processed_image_base64" in data:
-                processed_len = len(data["processed_image_base64"])
-                print(f"   ✅ SUCCESS: Rotated image 90 degrees ({processed_len} chars)")
-                results.add_pass("Process Public - Rotation")
-            else:
-                results.add_fail("Process Public - Rotation", "Missing processed_image_base64 in response")
-        else:
-            results.add_fail("Process Public - Rotation", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Rotation", str(e))
-    
-    # Test 4: Test crop operation
-    print("\n🧪 Test 4: Image cropping")
-    try:
-        payload = {
-            "image_base64": SAMPLE_IMAGE_BASE64,
-            "operation": "crop",
-            "params": {
-                "x": 10,
-                "y": 10,
-                "width": 50,
-                "height": 50
-            }
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
-        
-        print(f"   Status Code: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            if "processed_image_base64" in data:
-                processed_len = len(data["processed_image_base64"])
-                print(f"   ✅ SUCCESS: Cropped image ({processed_len} chars)")
-                results.add_pass("Process Public - Cropping")
-            else:
-                results.add_fail("Process Public - Cropping", "Missing processed_image_base64 in response")
-        else:
-            results.add_fail("Process Public - Cropping", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Cropping", str(e))
-    
-    # Test 5: Test with empty/invalid image data
-    print("\n🧪 Test 5: Empty image data validation")
-    try:
-        payload = {
-            "image_base64": "",
-            "operation": "filter",
-            "params": {
-                "type": "grayscale"
-            }
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
-        
-        print(f"   Status Code: {response.status_code}")
-        
-        if response.status_code == 422:
-            print(f"   ✅ SUCCESS: Properly rejected empty image data with 422")
-            results.add_pass("Process Public - Empty data validation")
-        elif response.status_code == 200:
-            print(f"   ⚠️  WARNING: Accepted empty image data (should validate)")
-            results.add_pass("Process Public - Empty data validation (lenient)")
-        else:
-            results.add_fail("Process Public - Empty data validation", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Empty data validation", str(e))
-    
-    # Test 6: Test with invalid base64 data
-    print("\n🧪 Test 6: Invalid base64 data")
-    try:
-        payload = {
-            "image_base64": "invalid_base64_data_here",
-            "operation": "filter",
-            "params": {
-                "type": "grayscale"
-            }
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/images/process-public",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30
-        )
-        
-        print(f"   Status Code: {response.status_code}")
-        
-        if response.status_code in [400, 422, 500]:
-            print(f"   ✅ SUCCESS: Properly handled invalid base64 data")
-            results.add_pass("Process Public - Invalid base64")
-        elif response.status_code == 200:
-            print(f"   ⚠️  WARNING: Accepted invalid base64 data")
-            results.add_pass("Process Public - Invalid base64 (lenient)")
-        else:
-            results.add_fail("Process Public - Invalid base64", f"HTTP {response.status_code}: {response.text}")
-            
-    except Exception as e:
-        results.add_fail("Process Public - Invalid base64", str(e))
-
-def check_backend_logs():
-    """Check backend logs for any errors"""
-    print("\n🔍 Checking backend logs...")
-    try:
-        import subprocess
-        result = subprocess.run(
-            ["tail", "-n", "20", "/var/log/supervisor/backend.err.log"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        if result.returncode == 0:
-            print("📋 Recent backend error logs:")
-            print(result.stdout)
-        else:
-            print("⚠️  Could not read backend error logs")
-            
-    except Exception as e:
-        print(f"❌ Error reading logs: {e}")
-
-def main():
-    """Main test execution - Focus on Image Processing Public Endpoint"""
-    print("🚀 Starting ScanUp Image Processing API Tests")
-    print(f"Testing against: {BASE_URL}")
-    print("=" * 60)
-    
-    results = TestResults()
-    
-    # Test the specific image processing endpoint as requested
-    print("\n🎨 Testing Image Processing Public Endpoint")
-    test_image_process_public_endpoint(results)
-    
-    # Check backend logs for any issues
-    check_backend_logs()
-    
-    # Final Results
-    print("\n" + "=" * 60)
-    success = results.summary()
-    
-    if success:
-        print("🎉 All image processing tests passed!")
-        print("✅ The /api/images/process-public endpoint is working correctly.")
-        print("✅ 422 error fix has been verified - endpoint handles base64 data properly.")
-    else:
-        print("⚠️ Some tests failed. Check the details above.")
-    
-    return success
+        return test_results
 
 if __name__ == "__main__":
-    try:
-        success = main()
-        sys.exit(0 if success else 1)
-    except KeyboardInterrupt:
-        print("\n\n⏹️ Tests interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n\n💥 Unexpected error: {e}")
-        sys.exit(1)
+    tester = BackendTester()
+    results = tester.run_all_tests()
+    
+    # Exit with error code if any tests failed
+    sys.exit(0 if results["failed"] == 0 else 1)
