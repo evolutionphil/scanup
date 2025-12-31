@@ -38,6 +38,8 @@ const FOLDER_COLORS = [
   '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
 ];
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
 type TabType = 'documents' | 'folders';
 type SortType = 'a-z' | 'z-a' | 'newest' | 'oldest';
 type ViewType = 'list' | 'grid';
