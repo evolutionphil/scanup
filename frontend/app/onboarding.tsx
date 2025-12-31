@@ -281,6 +281,19 @@ const styles = StyleSheet.create({
     height: 166,
     zIndex: 3,
   },
+  scannerLine: {
+    position: 'absolute',
+    top: 70,
+    left: 20,
+    right: 20,
+    height: 3,
+    zIndex: 10,
+  },
+  scannerLineGradient: {
+    flex: 1,
+    height: 3,
+    borderRadius: 2,
+  },
   textContainer: {
     alignItems: 'center',
     paddingHorizontal: 40,
