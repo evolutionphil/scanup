@@ -400,6 +400,16 @@ export default function SettingsScreen() {
           }
         />
 
+        {/* Premium Features */}
+        <SectionHeader title={t('subscription', 'SUBSCRIPTION').toUpperCase()} />
+        
+        <SettingRow
+          icon="star-outline"
+          label={t('premium_features', 'Premium Features')}
+          subtitle={t('premium_features_desc', 'Unlock all premium features')}
+          onPress={() => router.push('/premium')}
+        />
+
         {/* Appearance */}
         <SectionHeader title={t('appearance', 'APPEARANCE').toUpperCase()} />
         
