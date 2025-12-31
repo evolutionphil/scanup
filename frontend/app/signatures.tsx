@@ -32,6 +32,7 @@ interface SavedSignature {
 export default function SignaturesScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const [signatures, setSignatures] = useState<SavedSignature[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedSignatures, setSelectedSignatures] = useState<string[]>([]);
