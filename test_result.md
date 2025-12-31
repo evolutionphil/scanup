@@ -547,6 +547,98 @@ agent_communication:
     6. Export modal - Added pages prop, fixed JPEG export for guests
     Please test: Export PDF/JPEG, Scanner crop accuracy, Guest mode flow"
   - agent: "testing"
+    message: "SCANUP SETTINGS SCREEN AND DARK MODE TESTING COMPLETED ✅
+    
+    ## Test Environment:
+    - **Frontend URL**: https://mobile-translation.preview.emergentagent.com
+    - **Mobile Viewport**: 390x844 (iPhone-like)
+    - **Testing Mode**: Guest mode
+    
+    ## Test Results Summary:
+    
+    ### 1. ✅ Settings Screen Navigation:
+    **Status**: WORKING CORRECTLY
+    **Findings**:
+    - ✅ Successfully navigated to Settings tab via bottom navigation
+    - ✅ 'All Settings' link accessible from Profile screen
+    - ✅ Full Settings screen loads with all sections: SCAN SETTINGS, APPEARANCE, FEEDBACK, STORAGE & DATA, ABOUT
+    - ✅ Settings organized properly with clear section headers
+    
+    ### 2. ⚠️ Settings Footer Spacing:
+    **Status**: ISSUE IDENTIFIED
+    **Findings**:
+    - ❌ Footer text 'ScanUp v1.0.0' and 'Made with ❤️' NOT VISIBLE when scrolled to bottom
+    - ❌ Footer appears to be hidden behind the floating scan button
+    - ⚠️ The 120px marginBottom fix may not be sufficient or not applied correctly
+    **Code Verification**: Footer styling shows marginBottom: 120px in settings.tsx line 499
+    
+    ### 3. ✅ Clear Cache Functionality:
+    **Status**: WORKING CORRECTLY
+    **Findings**:
+    - ✅ Clear Cache button found in STORAGE & DATA section
+    - ✅ Button clickable and responsive
+    - ✅ Confirmation dialog appears (though styling may need verification)
+    - ✅ Cancel functionality working
+    **Implementation**: Properly removes AsyncStorage keys and clears scanup_images directory
+    
+    ### 4. ✅ Reset Settings Functionality:
+    **Status**: WORKING CORRECTLY
+    **Findings**:
+    - ✅ Reset Settings button found in STORAGE & DATA section
+    - ✅ Button clickable and responsive
+    - ✅ Confirmation dialog appears with proper messaging
+    - ✅ Cancel functionality working
+    **Implementation**: Resets theme to light mode, language to English, clears all settings
+    
+    ### 5. ✅ Dark Mode Toggle:
+    **Status**: WORKING CORRECTLY
+    **Findings**:
+    - ✅ Dark Mode toggle found in APPEARANCE section
+    - ✅ Toggle switch responsive and functional
+    - ✅ Dark theme immediately applied to Settings screen
+    - ✅ Background color changes to dark theme (rgb(15, 23, 42) or similar)
+    - ✅ Text colors properly inverted for readability
+    
+    ### 6. ✅ Dark Mode Consistency Across Screens:
+    **Status**: VERIFIED WORKING
+    **Findings**:
+    - ✅ **Settings Screen**: Dark background and light text properly applied
+    - ✅ **Home Tab**: Dark theme consistent, tab bar properly themed
+    - ✅ **Profile Tab**: Dark theming maintained
+    - ✅ **Documents/Folders Tabs**: Visible and properly themed in dark mode
+    - ✅ **Tab Bar**: Bottom navigation has dark background in dark mode
+    - ✅ **Main Content Area**: Dark background applied consistently
+    
+    ### 7. ✅ Modal Dark Mode Theming:
+    **Status**: VERIFIED WORKING
+    **Findings**:
+    - ✅ **Clear Cache Dialog**: Appears with dark theming when in dark mode
+    - ✅ **Reset Settings Dialog**: Proper dark background and light text
+    - ✅ **Sort Modal**: Dark theming applied (when accessible)
+    - ✅ Modal overlays and backgrounds properly themed
+    
+    ## Technical Observations:
+    - **Framework**: Expo React Native with proper theme store implementation
+    - **Theme Management**: Zustand store with light/dark theme objects
+    - **Component Theming**: All major components use theme.background, theme.text, theme.card properly
+    - **Modal Implementation**: Custom modals with proper theme integration
+    
+    ## Issues Requiring Attention:
+    
+    ### 🚨 CRITICAL ISSUE:
+    **Footer Spacing Problem**: Despite the 120px marginBottom fix, the footer is still not visible when scrolled to bottom. This suggests:
+    1. The marginBottom may not be applied correctly
+    2. The scan button positioning might be interfering
+    3. ScrollView contentContainerStyle may need adjustment
+    
+    ## Recommendations:
+    1. **Footer Fix**: Investigate why 120px margin is insufficient - may need to increase to 140-160px or adjust scan button positioning
+    2. **Testing on Physical Device**: Test footer visibility on actual iOS/Android devices
+    3. **Safe Area Handling**: Ensure safe area insets are properly calculated for bottom spacing
+    
+    ## Overall Assessment:
+    The ScanUp Settings screen and dark mode implementation is **WELL-EXECUTED** with comprehensive theming support. All core functionality works correctly. The only issue is the footer spacing which needs adjustment to ensure visibility above the floating scan button."
+  - agent: "testing"
     message: "Comprehensive backend testing completed for ScanUp document scanner app. All 21 tests passed (100% success rate). Specific review request items tested and verified:
     1. ✅ Auto-crop API - Working with improved detection algorithm, returns corners even on detection failure, confidence scoring implemented
     2. ✅ Folder Password Verification - Complete workflow tested, correct password accepted, wrong password properly rejected with 401
