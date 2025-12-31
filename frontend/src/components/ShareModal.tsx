@@ -485,10 +485,8 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 24,
@@ -503,11 +501,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: TEXT_DARK,
   },
   subtitle: {
     fontSize: 14,
-    color: TEXT_MUTED,
     marginTop: 4,
   },
   closeButton: {
@@ -515,7 +511,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: BORDER_GRAY,
     marginVertical: 16,
   },
   row: {
@@ -532,11 +527,9 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: TEXT_DARK,
   },
   formatToggle: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
     borderRadius: 25,
     padding: 4,
   },
@@ -551,7 +544,6 @@ const styles = StyleSheet.create({
   formatText: {
     fontSize: 14,
     fontWeight: '600',
-    color: TEXT_MUTED,
   },
   formatTextSelected: {
     color: '#FFFFFF',
@@ -561,12 +553,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   passwordInput: {
-    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: TEXT_DARK,
   },
   shareButton: {
     flexDirection: 'row',
