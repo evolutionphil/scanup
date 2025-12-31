@@ -230,7 +230,7 @@ export default function SignaturesScreen() {
 
       {/* Bottom Button */}
       {isSelectMode && selectedSignatures.length > 0 ? (
-        <View style={styles.bottomButtonContainer}>
+        <View style={[styles.bottomButtonContainer, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}>
           <TouchableOpacity 
             style={[styles.addNewButton, styles.deleteButton]}
             onPress={handleDeleteSelected}
@@ -240,7 +240,7 @@ export default function SignaturesScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.bottomButtonContainer}>
+        <View style={[styles.bottomButtonContainer, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}>
           <TouchableOpacity 
             style={styles.addNewButton}
             onPress={() => router.push('/add-signature')}
