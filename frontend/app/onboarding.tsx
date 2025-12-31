@@ -221,7 +221,7 @@ export default function OnboardingScreen() {
           onPress={handleGetStarted}
           activeOpacity={0.8}
         >
-          <Text style={styles.getStartedText}>Get started</Text>
+          <Text style={styles.getStartedText}>{t('get_started', 'Get started')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
