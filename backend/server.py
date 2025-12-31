@@ -4244,6 +4244,23 @@ DEFAULT_TRANSLATIONS_DE = {
     "days_ago": "vor {count} Tagen",
     "today": "Heute",
     "yesterday": "Gestern",
+    
+    # Settings Page Additional
+    "settings": "Einstellungen",
+    "scan_settings": "Scan-Einstellungen",
+    "default_scan_quality": "Standard-Scanqualität",
+    "default_filter": "Standardfilter",
+    "auto_enhance": "Automatische Verbesserung",
+    "auto_enhance_desc": "Gescannte Bilder automatisch verbessern",
+    "feedback": "Rückmeldung",
+    "sound_effects": "Soundeffekte",
+    "haptic_feedback": "Haptisches Feedback",
+    "storage_data": "Speicher & Daten",
+    "clear_cache": "Cache leeren",
+    "clear_cache_desc": "Speicherplatz freigeben",
+    "reset_settings": "Einstellungen zurücksetzen",
+    "reset_settings_desc": "Standardeinstellungen wiederherstellen",
+    "select_language": "Sprache auswählen",
 }
 
 # Default Legal Pages Content (Markdown format)
