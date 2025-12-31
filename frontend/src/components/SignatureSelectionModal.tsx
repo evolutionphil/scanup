@@ -32,7 +32,10 @@ const SIGNATURES_KEY = '@scanup_saved_signatures';
 interface SavedSignature {
   id: string;
   name: string;
-  base64: string;
+  base64?: string;
+  paths?: string[];
+  width?: number;
+  height?: number;
   createdAt: string;
 }
 
