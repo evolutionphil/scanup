@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useThemeStore } from '../store/themeStore';
+import { useI18n } from '../store/i18nStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -26,10 +27,11 @@ export default function DeleteConfirmModal({
   title = 'Are you sure you want to delete the file?',
   itemName,
 }: DeleteConfirmModalProps) {
-  const { theme } = useThemeStore();
+  const { theme, isDark } = useThemeStore();
+  const { t } = useI18n();
 
   const displayTitle = itemName 
-    ? `Are you sure you want to delete "${itemName}"?`
+    ? `${t('delete_confirm', 'Are you sure you want to delete')} "${itemName}"?`
     : title;
 
   return (
@@ -39,25 +41,25 @@ export default function DeleteConfirmModal({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
-          <Text style={styles.title}>{displayTitle}</Text>
+      <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
+        <View style={[styles.container, { backgroundColor: theme.card }]}>
+          <Text style={[styles.title, { color: theme.text }]}>{displayTitle}</Text>
           
           <View style={styles.buttonRow}>
             <TouchableOpacity 
-              style={[styles.button, styles.cancelButton]}
+              style={[styles.button, styles.cancelButton, { backgroundColor: theme.surfaceVariant }]}
               onPress={onCancel}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.button, styles.confirmButton]}
+              style={[styles.button, styles.confirmButton, { backgroundColor: theme.danger }]}
               onPress={onConfirm}
               activeOpacity={0.8}
             >
-              <Text style={styles.confirmButtonText}>Yes</Text>
+              <Text style={styles.confirmButtonText}>{t('yes', 'Yes')}</Text>
             </TouchableOpacity>
           </View>
         </View>
