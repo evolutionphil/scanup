@@ -1022,11 +1022,11 @@ export default function DocumentsScreen() {
       {/* Sort Menu Modal */}
       <Modal visible={showSortMenu} transparent animationType="fade">
         <Pressable style={styles.sortModalOverlay} onPress={() => setShowSortMenu(false)}>
-          <Pressable style={styles.sortModalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.sortModalContent, { backgroundColor: theme.card }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sortModalHeader}>
-              <Text style={styles.sortModalTitle}>{t('sort_by', 'Sort by')}</Text>
+              <Text style={[styles.sortModalTitle, { color: theme.text }]}>{t('sort_by', 'Sort by')}</Text>
               <TouchableOpacity onPress={() => setShowSortMenu(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
             
@@ -1037,16 +1037,16 @@ export default function DocumentsScreen() {
                 style={styles.sortOptionRow}
                 onPress={() => setTempSortBy(option)}
               >
-                <Text style={styles.sortOptionLabel}>
+                <Text style={[styles.sortOptionLabel, { color: theme.text }]}>
                   {option === 'a-z' ? 'A-Z' : option === 'z-a' ? 'Z-A' : option === 'newest' ? t('newest_first', 'Newest First') : t('oldest_first', 'Oldest First')}
                 </Text>
-                <View style={[styles.radioOuter, tempSortBy === option && styles.radioOuterActive]}>
-                  {tempSortBy === option && <View style={styles.radioInner} />}
+                <View style={[styles.radioOuter, { borderColor: theme.border }, tempSortBy === option && { borderColor: theme.primary }]}>
+                  {tempSortBy === option && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
                 </View>
               </TouchableOpacity>
             ))}
             
-            <View style={styles.sortDivider} />
+            <View style={[styles.sortDivider, { backgroundColor: theme.border }]} />
             
             {/* View Options */}
             {(['list', 'grid'] as ViewType[]).map((option) => (
@@ -1055,16 +1055,16 @@ export default function DocumentsScreen() {
                 style={styles.sortOptionRow}
                 onPress={() => setTempViewMode(option)}
               >
-                <Text style={styles.sortOptionLabel}>{option === 'list' ? t('list', 'List') : t('grid', 'Grid')}</Text>
-                <View style={[styles.radioOuter, tempViewMode === option && styles.radioOuterActive]}>
-                  {tempViewMode === option && <View style={styles.radioInner} />}
+                <Text style={[styles.sortOptionLabel, { color: theme.text }]}>{option === 'list' ? t('list', 'List') : t('grid', 'Grid')}</Text>
+                <View style={[styles.radioOuter, { borderColor: theme.border }, tempViewMode === option && { borderColor: theme.primary }]}>
+                  {tempViewMode === option && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
                 </View>
               </TouchableOpacity>
             ))}
             
             {/* Done Button */}
             <TouchableOpacity 
-              style={styles.sortDoneButton}
+              style={[styles.sortDoneButton, { backgroundColor: theme.primary }]}
               onPress={applySortSettings}
             >
               <Text style={styles.sortDoneButtonText}>{t('done', 'Done')}</Text>
