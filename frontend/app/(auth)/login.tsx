@@ -126,6 +126,53 @@ export default function LoginScreen() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('Apple Sign-In success:', credential.user);
+      
+      // Send to backend for authentication
+      const response = await fetch(`${BACKEND_URL}/api/auth/apple/native`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identity_token: credential.identityToken,
+          user_id: credential.user,
+          email: credential.email,
+          full_name: credential.fullName ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim() : null,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (appleLogin) {
+          await appleLogin(data);
+        }
+        router.replace('/(tabs)');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Apple authentication failed');
+      }
+    } catch (error: any) {
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        console.log('Apple Sign-In cancelled by user');
+        // Don't show error for user cancellation
+      } else {
+        console.error('Apple login error:', error);
+        Alert.alert(t('error', 'Error'), error.message || t('apple_signin_failed', 'Apple sign-in failed. Please try again.'));
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
