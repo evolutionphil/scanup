@@ -122,10 +122,10 @@ export default function ProfileScreen() {
                 if (response.ok) {
                   const updatedUser = await response.json();
                   updateUser(updatedUser);
-                  Alert.alert('Success', 'Your subscription has been cancelled');
+                  Alert.alert(t('success', 'Success'), t('subscription_cancelled', 'Your premium subscription has been cancelled.'));
                 }
               } catch (e) {
-                Alert.alert('Error', 'Failed to update subscription');
+                Alert.alert(t('error', 'Error'), t('something_went_wrong', 'Something went wrong'));
               } finally {
                 setUpgrading(false);
               }
@@ -135,12 +135,12 @@ export default function ProfileScreen() {
       );
     } else {
       Alert.alert(
-        'Upgrade to Premium',
-        'Unlock all features:\n\n• Unlimited OCR scans\n• Cloud sync across devices\n• Password-protected PDFs\n• Advanced image filters\n• No watermarks on exports',
+        t('upgrade_to_pro', 'Upgrade to Pro'),
+        `${t('unlock_premium_features', 'Unlock all premium features')}:\n\n• ${t('unlimited_ocr', 'Unlimited OCR')}\n• ${t('cloud_sync', 'Cloud sync across devices')}\n• ${t('no_watermarks', 'No watermarks on exports')}`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
           {
-            text: 'Upgrade Now',
+            text: t('upgrade_now', 'Upgrade Now'),
             onPress: async () => {
               setUpgrading(true);
               try {
@@ -156,10 +156,10 @@ export default function ProfileScreen() {
                 if (response.ok) {
                   const updatedUser = await response.json();
                   updateUser(updatedUser);
-                  Alert.alert('Welcome to Premium!', 'Enjoy unlimited features.');
+                  Alert.alert(`🎉 ${t('premium_activated', 'Premium Activated!')}`, t('enjoy_premium_features', 'Enjoy all premium features!'));
                 }
               } catch (e) {
-                Alert.alert('Error', 'Failed to upgrade');
+                Alert.alert(t('error', 'Error'), t('something_went_wrong', 'Something went wrong'));
               } finally {
                 setUpgrading(false);
               }
@@ -175,7 +175,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('profile', 'Profile')}</Text>
         </View>
 
         {/* Profile Card */}
