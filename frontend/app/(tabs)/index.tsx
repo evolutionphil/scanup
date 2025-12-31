@@ -976,20 +976,20 @@ export default function DocumentsScreen() {
       </View>
       
       {/* Tabs - Documents / Folders */}
-      <View style={styles.tabsContainer}>
+      <View style={[styles.tabsContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <TouchableOpacity 
-          style={[styles.tab, activeMainTab === 'documents' && styles.tabActive]}
+          style={[styles.tab, activeMainTab === 'documents' && [styles.tabActive, { borderBottomColor: theme.primary }]]}
           onPress={() => setActiveMainTab('documents')}
         >
-          <Text style={[styles.tabText, activeMainTab === 'documents' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { color: theme.textMuted }, activeMainTab === 'documents' && { color: theme.text, fontWeight: '600' }]}>
             {t('documents', 'Documents')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tab, activeMainTab === 'folders' && styles.tabActive]}
+          style={[styles.tab, activeMainTab === 'folders' && [styles.tabActive, { borderBottomColor: theme.primary }]]}
           onPress={() => setActiveMainTab('folders')}
         >
-          <Text style={[styles.tabText, activeMainTab === 'folders' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { color: theme.textMuted }, activeMainTab === 'folders' && { color: theme.text, fontWeight: '600' }]}>
             {t('folders', 'Folders')}
           </Text>
         </TouchableOpacity>
