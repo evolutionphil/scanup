@@ -15,7 +15,7 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-mobile-ui.preview.emergentagent.com"
       }
     },
     "preview": {
@@ -27,7 +27,7 @@
         "resourceClass": "m1-medium"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-mobile-ui.preview.emergentagent.com"
       }
     },
     "production": {
@@ -39,7 +39,7 @@
         "resourceClass": "m1-medium"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-mobile-ui.preview.emergentagent.com"
       }
     }
   },
