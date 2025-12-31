@@ -47,7 +47,7 @@ type ViewType = 'list' | 'grid';
 export default function DocumentsScreen() {
   const insets = useSafeAreaInsets();
   const { user, token, isGuest } = useAuthStore();
-  const { theme } = useThemeStore();
+  const { theme, isDark } = useThemeStore();
   const { t } = useI18n();
   const { activeMainTab, setActiveMainTab } = useTabStore();
   const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, deleteFolder, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
