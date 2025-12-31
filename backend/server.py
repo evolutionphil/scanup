@@ -5991,3 +5991,37 @@ if os_module.path.exists(admin_static_path):
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
     
     logger.info("✅ Admin dashboard mounted at /admin")
+
+# Serve the landing page from /landing path
+landing_page_path = os_module.path.join(os_module.path.dirname(__file__), "landing-page")
+if os_module.path.exists(landing_page_path):
+    @app.get("/landing")
+    @app.get("/landing/")
+    async def serve_landing_page():
+        index_path = os_module.path.join(landing_page_path, "index.html")
+        if os_module.path.exists(index_path):
+            return FileResponse(index_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Landing page not found")
+    
+    @app.get("/landing/terms")
+    async def serve_terms_page():
+        terms_path = os_module.path.join(landing_page_path, "terms.html")
+        if os_module.path.exists(terms_path):
+            return FileResponse(terms_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Terms page not found")
+    
+    @app.get("/landing/privacy")
+    async def serve_privacy_page():
+        privacy_path = os_module.path.join(landing_page_path, "privacy.html")
+        if os_module.path.exists(privacy_path):
+            return FileResponse(privacy_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Privacy page not found")
+    
+    @app.get("/landing/support")
+    async def serve_support_page():
+        support_path = os_module.path.join(landing_page_path, "support.html")
+        if os_module.path.exists(support_path):
+            return FileResponse(support_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Support page not found")
+    
+    logger.info("✅ Landing page mounted at /landing")
