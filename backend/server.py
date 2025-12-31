@@ -1499,6 +1499,85 @@ async def google_native_login(request: Request, response: Response):
     
     return {"user": user_to_response(user), "token": session_token}
 
+@api_router.post("/auth/apple/native")
+async def apple_native_login(request: Request, response: Response):
+    """Process native Apple Sign-In from iOS app"""
+    body = await request.json()
+    
+    identity_token = body.get("identity_token")  # JWT token from Apple
+    user_id_apple = body.get("user_id")  # Apple's user ID
+    email = body.get("email")  # May be null if user hides email
+    full_name = body.get("full_name")  # May be null after first login
+    
+    if not user_id_apple:
+        raise HTTPException(status_code=400, detail="user_id required")
+    
+    # Use Apple's user_id as a fallback identifier if email is hidden
+    lookup_id = email if email else f"apple_{user_id_apple}"
+    
+    # Check if user exists by Apple ID or email
+    existing = await db.users.find_one(
+        {"$or": [{"apple_id": user_id_apple}, {"email": email}]} if email else {"apple_id": user_id_apple},
+        {"_id": 0}
+    )
+    
+    if existing:
+        user_id = existing["user_id"]
+        # Update Apple ID if not set
+        if not existing.get("apple_id"):
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"apple_id": user_id_apple, "updated_at": datetime.now(timezone.utc)}}
+            )
+    else:
+        # Create new user
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc)
+        
+        # Generate placeholder email if hidden
+        user_email = email or f"{user_id_apple[:8]}@privaterelay.appleid.com"
+        
+        new_user = {
+            "user_id": user_id,
+            "email": user_email,
+            "name": full_name or "Apple User",
+            "apple_id": user_id_apple,
+            "picture": None,
+            "subscription_type": "free",
+            "subscription_expires_at": None,
+            "ocr_usage_today": 0,
+            "ocr_usage_date": None,
+            "created_at": now,
+            "updated_at": now
+        }
+        await db.users.insert_one(new_user)
+    
+    # Create session
+    session_token = str(uuid.uuid4())
+    expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=30 * 24 * 60 * 60,
+        path="/"
+    )
+    
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = User(**{k: v for k, v in user_doc.items() if k not in ["password_hash", "apple_id"]})
+    
+    return {"user": user_to_response(user), "token": session_token}
+
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user profile"""
