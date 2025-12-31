@@ -448,9 +448,9 @@ export default function SettingsScreen() {
           onPress={() => router.push('/legal?type=support')}
         />
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { marginBottom: 80 }]}>
           <Text style={[styles.footerText, { color: theme.textMuted }]}>
-            ScanUp © 2025
+            ScanUp v1.0.0
           </Text>
           <Text style={[styles.footerText, { color: theme.textMuted }]}>
             Made with ❤️
