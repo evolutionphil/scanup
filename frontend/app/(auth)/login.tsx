@@ -238,6 +238,33 @@ export default function LoginScreen() {
               icon={<Ionicons name="logo-google" size={20} color={theme.text} />}
             />
 
+            {/* Apple Sign-In Button - only shown on iOS */}
+            {appleAvailable && (
+              <TouchableOpacity
+                style={[
+                  styles.appleButton,
+                  { 
+                    backgroundColor: mode === 'dark' ? '#FFFFFF' : '#000000',
+                    marginTop: 12,
+                  }
+                ]}
+                onPress={handleAppleLogin}
+                disabled={appleLoading}
+              >
+                <Ionicons 
+                  name="logo-apple" 
+                  size={20} 
+                  color={mode === 'dark' ? '#000000' : '#FFFFFF'} 
+                />
+                <Text style={[
+                  styles.appleButtonText,
+                  { color: mode === 'dark' ? '#000000' : '#FFFFFF' }
+                ]}>
+                  {appleLoading ? '...' : t('continue_with_apple', 'Continue with Apple')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.textMuted }]}>{t('dont_have_account', "Don't have an account?")} </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
