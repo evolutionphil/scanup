@@ -585,25 +585,17 @@ export default function DocumentsScreen() {
   const confirmFolderPassword = async () => {
     if (folderForPassword) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/folders/${folderForPassword.folder_id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ 
-            password_hash: folderPasswordValue || null,
-            is_protected: !!folderPasswordValue
-          }),
+        // Use the store's updateFolder function which handles both local and cloud folders
+        const isLocalFolder = folderForPassword.folder_id.startsWith('local_');
+        const { updateFolder } = useDocumentStore.getState();
+        await updateFolder(isLocalFolder ? null : token, folderForPassword.folder_id, { 
+          password_hash: folderPasswordValue || null,
+          is_protected: !!folderPasswordValue
         });
-        
-        if (response.ok) {
-          await fetchFolders(token || null);
-          Alert.alert(t('success', 'Success'), folderPasswordValue ? t('password_set', 'Password set successfully') : t('password_removed', 'Password removed'));
-        } else {
-          throw new Error('Failed to set password');
-        }
+        await fetchFolders(token || null);
+        Alert.alert(t('success', 'Success'), folderPasswordValue ? t('password_set', 'Password set successfully') : t('password_removed', 'Password removed'));
       } catch (e) {
+        console.error('Folder password error:', e);
         Alert.alert(t('error', 'Error'), t('failed_to_set_folder_password', 'Failed to set folder password'));
       }
     }
