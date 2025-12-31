@@ -53,17 +53,21 @@ class BackendTester:
         elif self.auth_token and headers:
             headers["Authorization"] = f"Bearer {self.auth_token}"
         
+        print(f"   🌐 Making {method} request to: {url}")
+        
         try:
             if method.upper() == "GET":
-                response = self.session.get(url, headers=headers)
+                response = self.session.get(url, headers=headers, timeout=30)
             elif method.upper() == "POST":
-                response = self.session.post(url, json=data, headers=headers)
+                response = self.session.post(url, json=data, headers=headers, timeout=30)
             elif method.upper() == "PUT":
-                response = self.session.put(url, json=data, headers=headers)
+                response = self.session.put(url, json=data, headers=headers, timeout=30)
             elif method.upper() == "DELETE":
-                response = self.session.delete(url, headers=headers)
+                response = self.session.delete(url, headers=headers, timeout=30)
             else:
                 raise ValueError(f"Unsupported method: {method}")
+            
+            print(f"   📊 Response status: {response.status_code}")
             
             # Check expected status if provided
             if expect_status and response.status_code != expect_status:
