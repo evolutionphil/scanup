@@ -914,21 +914,21 @@ export default function DocumentsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#3E51FB" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.primary} />
       
       {/* Loading Spinner Overlay */}
       {isDeleting && (
         <View style={styles.loadingOverlay}>
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#3E51FB" />
-            <Text style={styles.loadingText}>{t('deleting', 'Deleting')}...</Text>
+          <View style={[styles.loadingBox, { backgroundColor: theme.card }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.text }]}>{t('deleting', 'Deleting')}...</Text>
           </View>
         </View>
       )}
       
       {/* Blue Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>{t('your_documents', 'Your Documents')}</Text>
