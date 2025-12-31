@@ -1167,19 +1167,19 @@ export default function DocumentsScreen() {
       {/* Create Folder Modal */}
       <Modal visible={showCreateFolderModal} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setShowCreateFolderModal(false)}>
-          <Pressable style={styles.createFolderModalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>{t('new_folder', 'New Folder')}</Text>
+          <Pressable style={[styles.createFolderModalContent, { backgroundColor: theme.card }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('new_folder', 'New Folder')}</Text>
             
             <TextInput
-              style={styles.folderInput}
+              style={[styles.folderInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               placeholder={t('folder_name', 'Folder name')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               value={newFolderName}
               onChangeText={setNewFolderName}
               autoFocus
             />
             
-            <Text style={styles.colorLabel}>{t('color', 'Color')}</Text>
+            <Text style={[styles.colorLabel, { color: theme.textSecondary }]}>{t('color', 'Color')}</Text>
             <View style={styles.colorGrid}>
               {FOLDER_COLORS.map((color) => (
                 <TouchableOpacity
@@ -1200,13 +1200,13 @@ export default function DocumentsScreen() {
             
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={styles.modalBtnCancel} 
+                style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} 
                 onPress={() => setShowCreateFolderModal(false)}
               >
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.modalBtnConfirm} 
+                style={[styles.modalBtnConfirm, { backgroundColor: theme.primary }]} 
                 onPress={handleCreateFolder}
                 disabled={creating}
               >
