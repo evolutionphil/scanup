@@ -863,6 +863,18 @@ export default function DocumentsScreen() {
                     ))}
                   </>
                 )}
+                
+                {/* Folders Section */}
+                {folders.length > 0 && (
+                  <>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Folders</Text>
+                    {folders.map((folder) => (
+                      <View key={`folder-${folder.folder_id}`}>
+                        {renderFolderItem({ item: folder })}
+                      </View>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </>
