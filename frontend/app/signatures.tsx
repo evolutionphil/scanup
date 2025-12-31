@@ -173,7 +173,7 @@ export default function SignaturesScreen() {
 
       <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={[styles.content, { backgroundColor: theme.background }]} contentContainerStyle={styles.contentContainer}>
         {signatures.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.surface }]}>
