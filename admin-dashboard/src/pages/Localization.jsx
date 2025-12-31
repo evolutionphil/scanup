@@ -124,17 +124,20 @@ export default function Localization() {
   const saveTranslations = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/admin/localization`, {
-        method: 'POST',
+      // Save translations for the selected language
+      const res = await fetch(`${API_URL}/admin/translations/${selectedLang}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ languages, translations }),
+        body: JSON.stringify({ translations: translations[selectedLang] || {} }),
       });
 
       if (res.ok) {
         alert('Translations saved successfully!');
+      } else {
+        throw new Error('Failed to save');
       }
     } catch (e) {
       console.error('Failed to save:', e);
