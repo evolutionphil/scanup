@@ -80,7 +80,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: t('home', 'Home'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
             ),
@@ -94,7 +94,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="folders"
           options={{
-            title: 'Folders',
+            title: t('folders', 'Folders'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "folder" : "folder-outline"} size={22} color={color} />
             ),
@@ -134,7 +134,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="search"
           options={{
-            title: 'Search',
+            title: t('search', 'Search'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "search" : "search-outline"} size={22} color={color} />
             ),
@@ -143,7 +143,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Settings',
+            title: t('settings', 'Settings'),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "settings" : "settings-outline"} size={22} color={color} />
             ),
