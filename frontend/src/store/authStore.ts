@@ -193,6 +193,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
   },
 
+  appleLogin: async (data: any) => {
+    // Clear guest mode and save credentials
+    await removeStorage(GUEST_KEY);
+    await setStorage(TOKEN_KEY, data.token);
+    await setStorage(USER_KEY, JSON.stringify(data.user));
+    
+    set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
+  },
+
   logout: async () => {
     const token = get().token;
     const wasGuest = get().isGuest;
