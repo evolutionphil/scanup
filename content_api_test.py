@@ -278,20 +278,24 @@ def test_admin_content_apis():
         response = requests.get(f"{API_BASE}/admin/legal-pages", headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            if isinstance(data, list):
-                # Should have legal pages
-                page_types = set()
+            if isinstance(data, dict):
+                # Should have legal pages organized by type
+                page_types = set(data.keys())
                 languages = set()
-                for page in data:
-                    if 'page_type' in page and 'language_code' in page and 'content' in page:
-                        page_types.add(page['page_type'])
-                        languages.add(page['language_code'])
+                total_pages = 0
+                
+                for page_type, lang_data in data.items():
+                    if isinstance(lang_data, dict):
+                        for lang_code, page_content in lang_data.items():
+                            if 'content' in page_content:
+                                languages.add(lang_code)
+                                total_pages += 1
                 
                 expected_types = {'terms', 'privacy', 'support'}
                 found_types = page_types.intersection(expected_types)
                 
                 results.add_result("GET /api/admin/legal-pages", True, 
-                                 f"Returns {len(data)} legal pages, {len(found_types)}/{len(expected_types)} expected types, {len(languages)} languages")
+                                 f"Returns {total_pages} legal pages, {len(found_types)}/{len(expected_types)} expected types, {len(languages)} languages")
             else:
                 results.add_result("GET /api/admin/legal-pages", False, 
                                  f"Invalid response format: {type(data)}")
