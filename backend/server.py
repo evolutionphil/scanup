@@ -4097,6 +4097,20 @@ DEFAULT_TRANSLATIONS = {
     "reset_settings": "Reset Settings",
     "reset_settings_desc": "Restore default settings",
     "select_language": "Select Language",
+    
+    # Additional Keys for UI
+    "deleting": "Deleting...",
+    "selected": "selected",
+    "untitled_document": "Untitled Document",
+    "create": "Create",
+    "name_placeholder": "Name",
+    "color": "Color",
+    "list_view": "List",
+    "grid_view": "Grid",
+    "view_mode": "View",
+    "profile": "Profile",
+    "guest_user": "Guest User",
+    "sign_in_to_sync": "Sign in to sync your documents",
 }
 
 # Default German translations
