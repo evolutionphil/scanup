@@ -638,6 +638,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  emptySignatureThumb: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   optionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
