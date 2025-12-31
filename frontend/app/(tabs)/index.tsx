@@ -847,7 +847,7 @@ export default function DocumentsScreen() {
             ) : (
               <>
                 {/* Latest Section */}
-                <Text style={styles.sectionTitle}>Latest</Text>
+                <Text style={styles.sectionTitle}>{t('latest', 'Latest')}</Text>
                 {latestDocs.map((doc) => (
                   <View key={`latest-${doc.document_id}`}>
                     {renderDocumentItem({ item: doc })}
@@ -857,7 +857,7 @@ export default function DocumentsScreen() {
                 {/* All Section */}
                 {remainingDocs.length > 0 && (
                   <>
-                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All</Text>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('all', 'All')}</Text>
                     {remainingDocs.map((doc) => (
                       <View key={`all-${doc.document_id}`}>
                         {renderDocumentItem({ item: doc })}
@@ -869,7 +869,7 @@ export default function DocumentsScreen() {
                 {/* Folders Section */}
                 {folders.length > 0 && (
                   <>
-                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Folders</Text>
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('folders', 'Folders')}</Text>
                     {folders.map((folder) => (
                       <View key={`folder-${folder.folder_id}`}>
                         {renderFolderItem({ item: folder })}
