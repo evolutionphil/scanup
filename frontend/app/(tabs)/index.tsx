@@ -765,7 +765,7 @@ export default function DocumentsScreen() {
   // Render folder item
   const renderFolderItem = ({ item }: { item: Folder }) => (
     <TouchableOpacity
-      style={styles.documentCard}
+      style={[styles.documentCard, { backgroundColor: theme.card }]}
       onPress={() => router.push(`/folder/${item.folder_id}`)}
       activeOpacity={0.7}
     >
@@ -773,11 +773,11 @@ export default function DocumentsScreen() {
         <Ionicons name="folder" size={28} color="#FFF" />
       </View>
       <View style={styles.documentInfo}>
-        <Text style={styles.documentName} numberOfLines={1}>
+        <Text style={[styles.documentName, { color: theme.text }]} numberOfLines={1}>
           {item.name}
         </Text>
-        <Text style={styles.documentDate}>
-          {item.document_count || 0} documents
+        <Text style={[styles.documentDate, { color: theme.textSecondary }]}>
+          {item.document_count || 0} {t('documents', 'documents')}
         </Text>
       </View>
       <TouchableOpacity 
