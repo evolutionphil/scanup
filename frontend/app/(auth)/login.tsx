@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,20 +14,39 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useI18n } from '../../src/store/i18nStore';
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 export default function LoginScreen() {
-  const { theme } = useThemeStore();
+  const { theme, mode } = useThemeStore();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, googleLogin } = useAuthStore();
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const { login, googleLogin, appleLogin } = useAuthStore();
+
+  useEffect(() => {
+    // Check if Apple Sign-In is available
+    const checkAppleAvailability = async () => {
+      try {
+        const isAvailable = await AppleAuthentication.isAvailableAsync();
+        setAppleAvailable(isAvailable);
+      } catch (e) {
+        console.log('Apple Auth not available:', e);
+        setAppleAvailable(false);
+      }
+    };
+    checkAppleAvailability();
+  }, []);
 
   const handleLogin = async () => {
     console.log('Login button pressed', { email, password: !!password });
