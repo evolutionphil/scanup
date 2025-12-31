@@ -176,11 +176,11 @@ export default function SignaturesScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {signatures.length === 0 ? (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="pencil-outline" size={48} color="#9CA3AF" />
+            <View style={[styles.emptyIcon, { backgroundColor: theme.surface }]}>
+              <Ionicons name="pencil-outline" size={48} color={theme.textSecondary} />
             </View>
-            <Text style={styles.emptyTitle}>{t('no_signatures_yet', 'No Signatures Yet')}</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('no_signatures_yet', 'No Signatures Yet')}</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               {t('create_first_signature', 'Create your first signature to use when signing documents')}
             </Text>
           </View>
