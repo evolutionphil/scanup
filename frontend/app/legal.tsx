@@ -21,15 +21,21 @@ import Markdown from 'react-native-markdown-display';
 
 const BRAND_BLUE = '#3E51FB';
 
-// Get backend URL
+// Get backend URL - prioritize environment variable, then config, then empty (relative path)
 const getBackendUrl = () => {
-  const backendUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
-    || process.env.EXPO_PUBLIC_BACKEND_URL 
-    || '';
-  // Remove trailing slash if present
-  const cleanUrl = backendUrl.replace(/\/$/, '');
-  console.log('[Legal] Backend URL:', cleanUrl);
-  return cleanUrl;
+  // Try process.env first (works in most cases)
+  if (process.env.EXPO_PUBLIC_BACKEND_URL) {
+    return process.env.EXPO_PUBLIC_BACKEND_URL.replace(/\/$/, '');
+  }
+  
+  // Try expo config extra
+  const extraUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL;
+  if (extraUrl) {
+    return extraUrl.replace(/\/$/, '');
+  }
+  
+  // Fallback to empty string (will use relative URLs)
+  return '';
 };
 
 export default function LegalPageScreen() {
