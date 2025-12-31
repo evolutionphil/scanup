@@ -5450,22 +5450,236 @@ async def get_all_translations():
 
 @api_router.get("/admin/localization")
 async def get_localization(admin: dict = Depends(get_admin_user)):
-    """Get localization data"""
+    """Get all localization data (languages and translations)"""
     try:
-        data = await db.settings.find_one({"key": "localization"}, {"_id": 0})
-        if data:
-            return data.get("value", {"languages": ["en"], "translations": {}})
-        return {"languages": ["en"], "translations": {}}
+        # Get all languages
+        languages = await db.languages.find({}, {"_id": 0}).to_list(100)
+        if not languages:
+            languages = DEFAULT_LANGUAGES
+        
+        # Get all translations
+        translations_cursor = db.translations.find({}, {"_id": 0})
+        translations_list = await translations_cursor.to_list(100)
+        
+        translations = {}
+        for t in translations_list:
+            translations[t["language_code"]] = t.get("translations", {})
+        
+        # Ensure English defaults exist
+        if "en" not in translations:
+            translations["en"] = DEFAULT_TRANSLATIONS
+        
+        return {
+            "languages": languages,
+            "translations": translations,
+            "default_keys": list(DEFAULT_TRANSLATIONS.keys())
+        }
     except Exception as e:
         logger.error(f"Get localization error: {e}")
-        return {"languages": ["en"], "translations": {}}
+        return {
+            "languages": DEFAULT_LANGUAGES,
+            "translations": {"en": DEFAULT_TRANSLATIONS},
+            "default_keys": list(DEFAULT_TRANSLATIONS.keys())
+        }
+
+
+@api_router.post("/admin/languages")
+async def add_language(
+    language: LanguageModel,
+    admin: dict = Depends(get_admin_user)
+):
+    """Add a new language"""
+    try:
+        # Check if language already exists
+        existing = await db.languages.find_one({"code": language.code})
+        if existing:
+            raise HTTPException(status_code=400, detail="Language already exists")
+        
+        # Add language
+        await db.languages.insert_one(language.dict())
+        
+        # Initialize with English translations as default
+        en_trans = await db.translations.find_one({"language_code": "en"})
+        default_trans = en_trans.get("translations", DEFAULT_TRANSLATIONS) if en_trans else DEFAULT_TRANSLATIONS
+        
+        await db.translations.insert_one({
+            "language_code": language.code,
+            "translations": default_trans,  # Copy English as starting point
+            "updated_at": datetime.now(timezone.utc)
+        })
+        
+        return {"message": f"Language '{language.name}' added successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Add language error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.put("/admin/languages/{language_code}")
+async def update_language(
+    language_code: str,
+    language: LanguageModel,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update a language"""
+    try:
+        result = await db.languages.update_one(
+            {"code": language_code},
+            {"$set": {
+                "name": language.name,
+                "native_name": language.native_name,
+                "is_default": language.is_default
+            }}
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Language not found")
+        return {"message": "Language updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update language error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/admin/languages/{language_code}")
+async def delete_language(
+    language_code: str,
+    admin: dict = Depends(get_admin_user)
+):
+    """Delete a language (cannot delete English)"""
+    try:
+        if language_code == "en":
+            raise HTTPException(status_code=400, detail="Cannot delete default language")
+        
+        await db.languages.delete_one({"code": language_code})
+        await db.translations.delete_one({"language_code": language_code})
+        await db.legal_pages.delete_many({"language_code": language_code})
+        
+        return {"message": f"Language '{language_code}' deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete language error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.put("/admin/translations/{language_code}")
+async def update_translations(
+    language_code: str,
+    data: TranslationUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update translations for a language"""
+    try:
+        result = await db.translations.update_one(
+            {"language_code": language_code},
+            {
+                "$set": {
+                    "translations": data.translations,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+        return {"message": f"Translations for '{language_code}' updated"}
+    except Exception as e:
+        logger.error(f"Update translations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.put("/admin/translations/{language_code}/key")
+async def update_translation_key(
+    language_code: str,
+    data: TranslationKeyUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update a single translation key"""
+    try:
+        result = await db.translations.update_one(
+            {"language_code": language_code},
+            {
+                "$set": {
+                    f"translations.{data.key}": data.value,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+        return {"message": f"Translation key '{data.key}' updated"}
+    except Exception as e:
+        logger.error(f"Update translation key error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Admin Legal Pages endpoints
+@api_router.get("/admin/legal-pages")
+async def get_all_legal_pages(admin: dict = Depends(get_admin_user)):
+    """Get all legal pages"""
+    try:
+        pages = await db.legal_pages.find({}, {"_id": 0}).to_list(100)
+        
+        # Group by page type
+        grouped = {}
+        for page in pages:
+            page_type = page.get("page_type")
+            if page_type not in grouped:
+                grouped[page_type] = {}
+            grouped[page_type][page.get("language_code")] = {
+                "content": page.get("content", ""),
+                "updated_at": page.get("updated_at")
+            }
+        
+        # Add defaults for missing pages
+        for page_type in ["terms", "privacy", "support"]:
+            if page_type not in grouped:
+                grouped[page_type] = {}
+            if "en" not in grouped[page_type]:
+                grouped[page_type]["en"] = {
+                    "content": DEFAULT_LEGAL_PAGES.get(page_type, {}).get("en", ""),
+                    "updated_at": None
+                }
+        
+        return grouped
+    except Exception as e:
+        logger.error(f"Get legal pages error: {e}")
+        return {}
+
+
+@api_router.put("/admin/legal-pages/{page_type}/{language_code}")
+async def update_legal_page(
+    page_type: str,
+    language_code: str,
+    data: LegalPageUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update a legal page"""
+    if page_type not in ["terms", "privacy", "support"]:
+        raise HTTPException(status_code=400, detail="Invalid page type")
+    
+    try:
+        await db.legal_pages.update_one(
+            {"page_type": page_type, "language_code": language_code},
+            {
+                "$set": {
+                    "content": data.content,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+        return {"message": f"Legal page '{page_type}' ({language_code}) updated"}
+    except Exception as e:
+        logger.error(f"Update legal page error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @api_router.post("/admin/localization")
 async def save_localization(
     data: dict,
     admin: dict = Depends(get_admin_user)
 ):
-    """Save localization data"""
+    """Save localization data (legacy endpoint)"""
     try:
         await db.settings.update_one(
             {"key": "localization"},
