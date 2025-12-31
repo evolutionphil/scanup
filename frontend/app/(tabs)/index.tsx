@@ -979,7 +979,7 @@ export default function DocumentsScreen() {
           onPress={() => setActiveMainTab('documents')}
         >
           <Text style={[styles.tabText, activeMainTab === 'documents' && styles.tabTextActive]}>
-            Documents
+            {t('documents', 'Documents')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
@@ -987,7 +987,7 @@ export default function DocumentsScreen() {
           onPress={() => setActiveMainTab('folders')}
         >
           <Text style={[styles.tabText, activeMainTab === 'folders' && styles.tabTextActive]}>
-            Folders
+            {t('folders', 'Folders')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -999,9 +999,9 @@ export default function DocumentsScreen() {
             setSelectionMode(false);
             setSelectedDocs([]);
           }}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('cancel', 'Cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.selectedCount}>{selectedDocs.length} selected</Text>
+          <Text style={styles.selectedCount}>{selectedDocs.length} {t('selected', 'selected')}</Text>
           <View style={styles.selectionActions}>
             <TouchableOpacity onPress={() => setShowMoveModal(true)} style={styles.selectionAction}>
               <Ionicons name="folder-outline" size={22} color="#3E51FB" />
@@ -1021,7 +1021,7 @@ export default function DocumentsScreen() {
         <Pressable style={styles.sortModalOverlay} onPress={() => setShowSortMenu(false)}>
           <Pressable style={styles.sortModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sortModalHeader}>
-              <Text style={styles.sortModalTitle}>Sort by</Text>
+              <Text style={styles.sortModalTitle}>{t('sort_by', 'Sort by')}</Text>
               <TouchableOpacity onPress={() => setShowSortMenu(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
