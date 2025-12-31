@@ -49,6 +49,14 @@ export default function LegalPageScreen() {
 
   useEffect(() => {
     const loadContent = async () => {
+      // Validate page type
+      if (!type || !['terms', 'privacy', 'support'].includes(type)) {
+        console.log('[Legal] Invalid or missing page type:', type);
+        setError('Invalid page type');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
         setError(null);
@@ -61,7 +69,11 @@ export default function LegalPageScreen() {
         
         // Fetch from backend
         const backendUrl = getBackendUrl();
-        const fetchUrl = `${backendUrl}/api/content/legal/${pageType}?language_code=${currentLanguage}`;
+        
+        // If no backend URL, try relative path
+        const fetchUrl = backendUrl 
+          ? `${backendUrl}/api/content/legal/${pageType}?language_code=${currentLanguage}`
+          : `/api/content/legal/${pageType}?language_code=${currentLanguage}`;
         console.log('[Legal] Fetching from:', fetchUrl);
         
         const response = await fetch(fetchUrl);
