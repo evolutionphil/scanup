@@ -202,6 +202,17 @@ export default function ScannerScreen() {
         if (newDoc && newDoc.document_id) {
           console.log('[Scanner] Document created with ID:', newDoc.document_id);
           
+          // Increment scan count and potentially show ad (for free users)
+          incrementScanCount();
+          if (shouldShowAd()) {
+            console.log('[Scanner] Showing interstitial ad after scan');
+            try {
+              await showGlobalInterstitial();
+            } catch (e) {
+              console.log('[Scanner] Could not show ad:', e);
+            }
+          }
+          
           // Small delay to ensure state is updated, then navigate
           setTimeout(() => {
             try {
