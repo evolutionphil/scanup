@@ -997,20 +997,20 @@ export default function DocumentsScreen() {
       
       {/* Selection Header */}
       {selectionMode && (
-        <View style={styles.selectionHeader}>
+        <View style={[styles.selectionHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={() => {
             setSelectionMode(false);
             setSelectedDocs([]);
           }}>
-            <Text style={styles.cancelText}>{t('cancel', 'Cancel')}</Text>
+            <Text style={[styles.cancelText, { color: theme.primary }]}>{t('cancel', 'Cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.selectedCount}>{selectedDocs.length} {t('selected', 'selected')}</Text>
+          <Text style={[styles.selectedCount, { color: theme.text }]}>{selectedDocs.length} {t('selected', 'selected')}</Text>
           <View style={styles.selectionActions}>
             <TouchableOpacity onPress={() => setShowMoveModal(true)} style={styles.selectionAction}>
-              <Ionicons name="folder-outline" size={22} color="#3E51FB" />
+              <Ionicons name="folder-outline" size={22} color={theme.primary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDeleteSelected} style={styles.selectionAction}>
-              <Ionicons name="trash-outline" size={22} color="#EF4444" />
+              <Ionicons name="trash-outline" size={22} color={theme.danger} />
             </TouchableOpacity>
           </View>
         </View>
