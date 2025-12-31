@@ -49,6 +49,43 @@ const SLIDES: GuideSlide[] = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+
+  // Start scanner line animation
+  useEffect(() => {
+    const startAnimation = () => {
+      // Reset to top
+      scanLineAnim.setValue(0);
+      
+      // Animate up and down continuously
+      Animated.loop(
+        Animated.sequence([
+          // Move down
+          Animated.timing(scanLineAnim, {
+            toValue: 1,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          // Move up
+          Animated.timing(scanLineAnim, {
+            toValue: 0,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+
+    startAnimation();
+  }, [currentIndex]);
+
+  // Calculate scanner line position (relative to image container)
+  const scanLineTranslateY = scanLineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 140], // From top to bottom of image area
+  });
 
   const handleGetStarted = async () => {
     // If on first slide, go to second slide
