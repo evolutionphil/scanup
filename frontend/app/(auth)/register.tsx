@@ -18,11 +18,13 @@ import Input from '../../src/components/Input';
 import Button from '../../src/components/Button';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
+import { useI18n } from '../../src/store/i18nStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function RegisterScreen() {
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,17 +35,17 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error', 'Error'), t('please_fill_all_fields', 'Please fill in all fields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('error', 'Error'), t('passwords_do_not_match', 'Passwords do not match'));
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('error', 'Error'), t('password_min_length', 'Password must be at least 6 characters'));
       return;
     }
 
@@ -52,7 +54,7 @@ export default function RegisterScreen() {
       await register(email, password, name);
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.message || 'Please try again');
+      Alert.alert(t('registration_failed', 'Registration Failed'), error.message || t('please_try_again', 'Please try again'));
     } finally {
       setLoading(false);
     }
@@ -88,17 +90,17 @@ export default function RegisterScreen() {
           await googleLogin(sessionId);
           router.replace('/(tabs)');
         } else {
-          Alert.alert('Error', 'Failed to get session from Google. Please try again.');
+          Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
         }
       } else if (result.type === 'dismiss') {
         console.log('User dismissed the login');
       } else {
         console.log('Auth result type:', result.type);
-        Alert.alert('Login Cancelled', 'Please try signing in again');
+        Alert.alert(t('login_cancelled', 'Login Cancelled'), t('please_try_signing_in_again', 'Please try signing in again'));
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      Alert.alert('Error', 'Google sign-in failed');
+      Alert.alert(t('error', 'Error'), t('google_signin_failed', 'Google sign-in failed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -122,14 +124,14 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Sign up to get started</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t('create_account', 'Create Account')}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('sign_up_to_get_started', 'Sign up to get started')}</Text>
           </View>
 
           <View style={styles.form}>
             <Input
-              label="Full Name"
-              placeholder="Enter your name"
+              label={t('full_name', 'Full Name')}
+              placeholder={t('enter_your_name', 'Enter your name')}
               leftIcon="person"
               value={name}
               onChangeText={setName}
@@ -137,8 +139,8 @@ export default function RegisterScreen() {
             />
 
             <Input
-              label="Email"
-              placeholder="Enter your email"
+              label={t('email', 'Email')}
+              placeholder={t('enter_your_email', 'Enter your email')}
               leftIcon="mail"
               value={email}
               onChangeText={setEmail}
@@ -147,8 +149,8 @@ export default function RegisterScreen() {
             />
 
             <Input
-              label="Password"
-              placeholder="Create a password"
+              label={t('password', 'Password')}
+              placeholder={t('create_a_password', 'Create a password')}
               leftIcon="lock-closed"
               value={password}
               onChangeText={setPassword}
@@ -156,8 +158,8 @@ export default function RegisterScreen() {
             />
 
             <Input
-              label="Confirm Password"
-              placeholder="Confirm your password"
+              label={t('confirm_password', 'Confirm Password')}
+              placeholder={t('confirm_your_password', 'Confirm your password')}
               leftIcon="lock-closed"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -165,7 +167,7 @@ export default function RegisterScreen() {
             />
 
             <Button
-              title="Create Account"
+              title={t('create_account', 'Create Account')}
               onPress={handleRegister}
               loading={loading}
               size="large"
@@ -174,12 +176,12 @@ export default function RegisterScreen() {
 
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <Text style={[styles.dividerText, { color: theme.textMuted }]}>or continue with</Text>
+              <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t('or_continue_with', 'or continue with')}</Text>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
             </View>
 
             <Button
-              title="Continue with Google"
+              title={t('continue_with_google', 'Continue with Google')}
               onPress={handleGoogleLogin}
               variant="secondary"
               size="large"
@@ -188,9 +190,9 @@ export default function RegisterScreen() {
             />
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textMuted }]}>Already have an account? </Text>
+              <Text style={[styles.footerText, { color: theme.textMuted }]}>{t('already_have_account', 'Already have an account?')} </Text>
               <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text style={[styles.linkText, { color: theme.primary }]}>Sign In</Text>
+                <Text style={[styles.linkText, { color: theme.primary }]}>{t('sign_in', 'Sign In')}</Text>
               </TouchableOpacity>
             </View>
           </View>
