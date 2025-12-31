@@ -358,26 +358,8 @@ export default function DocumentsScreen() {
   // Show folder actions
   const showFolderActions = (folder: Folder) => {
     setActionSheetFolder(folder);
-    
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Edit Name', 'Password', 'Delete'],
-          destructiveButtonIndex: 3,
-          cancelButtonIndex: 0,
-          title: folder.name,
-        },
-        (buttonIndex) => {
-          switch (buttonIndex) {
-            case 1: handleRenameFolderAction(folder); break;
-            case 2: handleFolderPasswordAction(folder); break;
-            case 3: handleDeleteFolderAction(folder); break;
-          }
-        }
-      );
-    } else {
-      setShowFolderActionSheet(true);
-    }
+    // Always use custom modal for consistent design across platforms
+    setShowFolderActionSheet(true);
   };
 
   // Document action handlers
