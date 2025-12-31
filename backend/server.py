@@ -4080,6 +4080,23 @@ DEFAULT_TRANSLATIONS = {
     "days_ago": "{count} days ago",
     "today": "Today",
     "yesterday": "Yesterday",
+    
+    # Settings Page Additional
+    "settings": "Settings",
+    "scan_settings": "Scan Settings",
+    "default_scan_quality": "Default Scan Quality",
+    "default_filter": "Default Filter",
+    "auto_enhance": "Auto Enhance",
+    "auto_enhance_desc": "Automatically enhance scanned images",
+    "feedback": "Feedback",
+    "sound_effects": "Sound Effects",
+    "haptic_feedback": "Haptic Feedback",
+    "storage_data": "Storage & Data",
+    "clear_cache": "Clear Cache",
+    "clear_cache_desc": "Free up storage space",
+    "reset_settings": "Reset Settings",
+    "reset_settings_desc": "Restore default settings",
+    "select_language": "Select Language",
 }
 
 # Default German translations
