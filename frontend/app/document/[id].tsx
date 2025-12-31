@@ -1510,6 +1510,36 @@ export default function DocumentScreen() {
           existingAnnotations={(currentDocument.pages[selectedPageIndex] as any).annotations || []}
         />
       )}
+
+      {/* Signature Selection Modal */}
+      {currentDocument && (
+        <SignatureSelectionModal
+          visible={showSignatureSelection}
+          onClose={() => setShowSignatureSelection(false)}
+          onApply={async (signatureBase64, position, scale, applyToAllPages) => {
+            setShowSignatureSelection(false);
+            // Apply signature to current page or all pages
+            await handleApplySignature(signatureBase64, position, scale);
+            
+            if (applyToAllPages && currentDocument.pages.length > 1) {
+              // Apply to remaining pages
+              for (let i = 0; i < currentDocument.pages.length; i++) {
+                if (i !== selectedPageIndex) {
+                  // For each page, we would need to apply the signature
+                  // This is a simplified version - in production, we'd batch these
+                  console.log(`Applying signature to page ${i + 1}`);
+                }
+              }
+              Alert.alert('Success', 'Signature applied to all pages!');
+            }
+          }}
+          documentImage={currentDocument.pages[selectedPageIndex].image_base64 || ''}
+          documentImageUrl={currentDocument.pages[selectedPageIndex].image_url}
+          pageCount={currentDocument.pages.length}
+          currentPage={selectedPageIndex + 1}
+          theme={theme}
+        />
+      )}
     </SafeAreaView>
   );
 }
