@@ -1184,3 +1184,32 @@ agent_communication:
     ## Overall Assessment:
     The ScanUp mobile app frontend is **well-implemented** with proper mobile-first design, clean navigation, and robust code structure. Core UI components and navigation work correctly. Backend APIs are confirmed functional. Testing limitations are primarily due to the empty state of a new app and browser automation constraints for mobile-specific features."
 
+
+
+  - agent: "main"
+    message: "FRONTEND BUG FIXES COMPLETED:
+    
+    ## Issue 1: Document Rename Not Working (FIXED)
+    **Root Cause**: The `confirmRename` function in `index.tsx` required `token` to be truthy, blocking guest mode.
+    **Fix**: Changed condition to work for both guest (local_) and logged-in users by checking `renameDoc.document_id.startsWith('local_')`.
+    
+    ## Issue 2: Folder Rename Not Working (FIXED)
+    **Root Cause**: Used direct `fetch` instead of store's `updateFolder` function.
+    **Fix**: Changed to use `useDocumentStore.getState().updateFolder()` which handles both local and cloud folders.
+    
+    ## Issue 3: Folder Password Not Working (FIXED)
+    **Root Cause**: Same as folder rename - direct fetch bypassed local folder handling.
+    **Fix**: Changed to use `useDocumentStore.getState().updateFolder()` for consistent handling.
+    
+    ## Issue 4: Google Sign-in Error After Onboarding (FIXED)
+    **Root Cause**: Native Google Sign-In had configuration issues (DEVELOPER_ERROR) due to OAuth credentials not matching app package/bundle ID.
+    **Fix**: Changed to use WebBrowser-based authentication (Emergent Auth) consistently for both login and register pages. This approach:
+    - Works across all platforms (web, iOS, Android)
+    - Doesn't require native OAuth configuration
+    - Uses the same authentication flow as the register page
+    
+    ## Files Modified:
+    - `/app/frontend/app/(tabs)/index.tsx` - Fixed rename/password functions
+    - `/app/frontend/app/(auth)/login.tsx` - Changed to WebBrowser auth
+    
+    All critical frontend operations should now work for both guest and logged-in users."
