@@ -15,7 +15,6 @@ import {
   TextInput,
   StatusBar,
   ActivityIndicator,
-  ActionSheetIOS,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
