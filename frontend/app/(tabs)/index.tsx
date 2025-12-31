@@ -26,6 +26,7 @@ import { getInfoAsync, readAsStringAsync, EncodingType } from 'expo-file-system/
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, Folder, getImageSource } from '../../src/store/documentStore';
+import { useI18n } from '../../src/store/i18nStore';
 import MoveToFolderModal from '../../src/components/MoveToFolderModal';
 import ShareModal from '../../src/components/ShareModal';
 import DeleteConfirmModal from '../../src/components/DeleteConfirmModal';
@@ -45,6 +46,7 @@ export default function DocumentsScreen() {
   const insets = useSafeAreaInsets();
   const { user, token, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const { activeMainTab, setActiveMainTab } = useTabStore();
   const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, deleteFolder, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
   const { hasPending, pendingDocIds } = useOfflineQueue();
