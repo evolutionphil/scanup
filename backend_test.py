@@ -310,18 +310,21 @@ class BackendTester:
         if verify_response and verify_response.status_code == 200:
             self.log_test("Folder Password Verification", "PASS", "Correct password accepted")
             
-            # Test wrong password
+            # Test wrong password - expect 401
             wrong_data = {"password": "wrongpassword"}
             wrong_response = self.make_request("POST", f"/folders/{self.test_folder_id}/verify-password", wrong_data)
             
-            if wrong_response and wrong_response.status_code == 401:
-                self.log_test("Folder Password Rejection", "PASS", "Wrong password correctly rejected")
-                return True
-            else:
-                self.log_test("Folder Password Rejection", "FAIL", f"Wrong password not rejected properly: {wrong_response.status_code if wrong_response else 'None'}")
-                print(f"   🔍 Debug: Expected 401, got {wrong_response.status_code if wrong_response else 'None'}")
-                if wrong_response:
+            # Check if we got the expected 401 response
+            if wrong_response:
+                if wrong_response.status_code == 401:
+                    self.log_test("Folder Password Rejection", "PASS", "Wrong password correctly rejected")
+                    return True
+                else:
+                    self.log_test("Folder Password Rejection", "FAIL", f"Expected 401, got {wrong_response.status_code}")
                     print(f"   🔍 Response: {wrong_response.text[:200]}")
+                    return False
+            else:
+                self.log_test("Folder Password Rejection", "FAIL", "No response received for wrong password test")
                 return False
         else:
             self.log_test("Folder Password Verification", "FAIL", f"Password verification failed: {verify_response.status_code if verify_response else 'None'}")
