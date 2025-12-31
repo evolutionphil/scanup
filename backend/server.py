@@ -1430,6 +1430,75 @@ async def google_oauth_callback(request: Request, response: Response):
     
     return {"user": user_to_response(user), "token": session_token}
 
+@api_router.post("/auth/google/native")
+async def google_native_login(request: Request, response: Response):
+    """Process native Google Sign-In from Android/iOS app"""
+    body = await request.json()
+    
+    email = body.get("email")
+    name = body.get("name")
+    photo = body.get("photo")
+    id_token = body.get("id_token")  # For future verification with Google
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="email required")
+    
+    # Check if user exists
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if existing:
+        user_id = existing["user_id"]
+        # Update photo if provided
+        if photo and photo != existing.get("picture"):
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"picture": photo, "updated_at": datetime.now(timezone.utc)}}
+            )
+    else:
+        # Create new user
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc)
+        
+        new_user = {
+            "user_id": user_id,
+            "email": email,
+            "name": name or email.split("@")[0],
+            "picture": photo,
+            "subscription_type": "free",
+            "subscription_expires_at": None,
+            "ocr_usage_today": 0,
+            "ocr_usage_date": None,
+            "created_at": now,
+            "updated_at": now
+        }
+        await db.users.insert_one(new_user)
+    
+    # Create session
+    session_token = str(uuid.uuid4())
+    expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=30 * 24 * 60 * 60,
+        path="/"
+    )
+    
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
+    
+    return {"user": user_to_response(user), "token": session_token}
+
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user profile"""
