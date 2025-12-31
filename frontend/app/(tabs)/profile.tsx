@@ -342,7 +342,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/legal?type=support')}>
             <View style={styles.settingLeft}>
               <Ionicons name="help-circle-outline" size={22} color={theme.textSecondary} />
               <Text style={[styles.settingLabel, { color: theme.text }]}>Help & Support</Text>
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={() => router.push('/legal?type=privacy')}>
             <View style={styles.settingLeft}>
               <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} />
               <Text style={[styles.settingLabel, { color: theme.text }]}>Privacy Policy</Text>
