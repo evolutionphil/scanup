@@ -192,7 +192,7 @@ export default function SignaturesScreen() {
                 style={[
                   styles.signatureCard,
                   { backgroundColor: theme.surface, borderColor: theme.border },
-                  isSelectMode && selectedSignatures.includes(sig.id) && [styles.signatureCardSelected, { borderColor: theme.primary, backgroundColor: theme.primaryLight }]
+                  isSelectMode && selectedSignatures.includes(sig.id) && [styles.signatureCardSelected, { borderColor: theme.primary, backgroundColor: theme.surfaceVariant }]
                 ]}
                 onPress={() => {
                   if (isSelectMode) {
