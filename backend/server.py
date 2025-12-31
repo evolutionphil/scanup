@@ -4276,6 +4276,17 @@ DEFAULT_TRANSLATIONS = {
     "confirm_password": "Confirm Password",
     "confirm_your_password": "Confirm your password",
     "filter_by": "Filter by",
+    
+    # Share Modal
+    "file_format": "File format",
+    "password_protect": "Password protect",
+    "enter_password_for_pdf": "Enter password for PDF",
+    "share_document": "Share document",
+    "mail": "Mail",
+    "page": "Page",
+    
+    # Tab Bar
+    "home": "Home",
 }
 
 # Default German translations
