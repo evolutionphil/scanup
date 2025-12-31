@@ -51,6 +51,7 @@ const SLIDES: GuideSlide[] = [
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const { t } = useI18n();
 
   // Start scanner line animation
   useEffect(() => {
@@ -87,6 +88,13 @@ export default function OnboardingScreen() {
     inputRange: [0, 1],
     outputRange: [0, 140], // From top to bottom of image area
   });
+  
+  // Get current slide with translated content
+  const currentSlide = {
+    ...SLIDES[currentIndex],
+    title: t(SLIDES[currentIndex].titleKey, SLIDES[currentIndex].titleKey === 'onboarding_scan_title' ? 'Scan' : 'Save'),
+    description: t(SLIDES[currentIndex].descKey, SLIDES[currentIndex].descKey === 'onboarding_scan_desc' ? 'Use your phone camera easily to scan your documents' : 'Save your document as PDF, create and share encrypted files'),
+  };
 
   const handleGetStarted = async () => {
     // If on first slide, go to second slide
