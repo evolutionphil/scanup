@@ -399,11 +399,14 @@ export default function DocumentsScreen() {
   };
   
   const confirmRename = async () => {
-    if (renameDoc && renameValue.trim() && token) {
+    if (renameDoc && renameValue.trim()) {
       try {
-        await updateDocument(token, renameDoc.document_id, { name: renameValue.trim() });
+        // updateDocument handles both local and cloud documents
+        const isLocalDoc = renameDoc.document_id.startsWith('local_');
+        await updateDocument(isLocalDoc ? null : token, renameDoc.document_id, { name: renameValue.trim() });
         Alert.alert(t('success', 'Success'), t('document_renamed', 'Document renamed successfully'));
       } catch (e) {
+        console.error('Rename error:', e);
         Alert.alert(t('error', 'Error'), t('failed_to_rename_document', 'Failed to rename document'));
       }
     }
