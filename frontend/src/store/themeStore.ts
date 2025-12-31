@@ -42,6 +42,7 @@ export type Theme = typeof darkTheme;
 interface ThemeState {
   mode: ThemeMode;
   theme: Theme;
+  isDark: boolean;
   toggleTheme: () => void;
   setTheme: (mode: ThemeMode) => void;
   loadTheme: () => Promise<void>;
@@ -50,12 +51,14 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>((set, get) => ({
   mode: 'light',
   theme: lightTheme,
+  isDark: false,
 
   toggleTheme: () => {
     const newMode = get().mode === 'dark' ? 'light' : 'dark';
     set({
       mode: newMode,
       theme: newMode === 'dark' ? darkTheme : lightTheme,
+      isDark: newMode === 'dark',
     });
     AsyncStorage.setItem('theme', newMode);
   },
@@ -64,6 +67,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     set({
       mode,
       theme: mode === 'dark' ? darkTheme : lightTheme,
+      isDark: mode === 'dark',
     });
     AsyncStorage.setItem('theme', mode);
   },
@@ -75,6 +79,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
         set({
           mode: savedTheme,
           theme: savedTheme === 'dark' ? darkTheme : lightTheme,
+          isDark: savedTheme === 'dark',
         });
       }
     } catch (e) {
