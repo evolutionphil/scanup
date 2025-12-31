@@ -351,30 +351,8 @@ export default function DocumentsScreen() {
   // Show document actions (iOS ActionSheet / Android custom modal)
   const showDocumentActions = (doc: Document) => {
     setActionSheetDoc(doc);
-    
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Name', 'Edit', 'Print', 'Password', 'Move to Folder', 'Delete'],
-          destructiveButtonIndex: 6,
-          cancelButtonIndex: 0,
-          title: doc.name || 'Document',
-        },
-        (buttonIndex) => {
-          switch (buttonIndex) {
-            case 1: handleRenameDocument(doc); break;
-            case 2: handleEditDocument(doc); break;
-            case 3: handlePrintDocument(doc); break;
-            case 4: handlePasswordDocument(doc); break;
-            case 5: handleMoveDocument(doc); break;
-            case 6: handleDeleteDocument(doc); break;
-          }
-        }
-      );
-    } else {
-      // Show custom modal for Android
-      setShowDocActionSheet(true);
-    }
+    // Always use custom modal for consistent design across platforms
+    setShowDocActionSheet(true);
   };
 
   // Show folder actions
