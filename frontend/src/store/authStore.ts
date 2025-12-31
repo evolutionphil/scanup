@@ -35,6 +35,7 @@ interface AuthState {
   register: (email: string, password: string, name: string) => Promise<void>;
   googleLogin: (sessionId: string) => Promise<void>;
   googleLoginNative: (idToken: string, googleUser: any) => Promise<void>;
+  appleLogin: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
   updateUser: (user: User) => void;
