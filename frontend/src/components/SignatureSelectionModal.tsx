@@ -158,7 +158,7 @@ export default function SignatureSelectionModal({
     setSelectedSignature(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedSignature) {
       Alert.alert('No Signature', 'Please select or create a signature first');
       return;
@@ -166,6 +166,21 @@ export default function SignatureSelectionModal({
 
     // Get the base64 from the selected signature
     let signatureBase64 = selectedSignature.base64;
+    
+    // If signature has SVG paths but no base64, we need to capture it
+    if (!signatureBase64 && selectedSignature.paths && selectedSignature.paths.length > 0) {
+      // For SVG-based signatures, create an SVG data URL
+      const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${selectedSignature.width || 300} ${selectedSignature.height || 200}">
+        ${selectedSignature.paths.map(p => `<path d="${p}" stroke="#000" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}
+      </svg>`;
+      signatureBase64 = `data:image/svg+xml;base64,${btoa(svgContent)}`;
+    }
+    
+    // Safety check - ensure signatureBase64 exists
+    if (!signatureBase64) {
+      Alert.alert('Error', 'Invalid signature data. Please select another signature.');
+      return;
+    }
     
     // If it's an SVG data URL, we need to use it directly
     // The backend will handle converting it
