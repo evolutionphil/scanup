@@ -706,6 +706,7 @@ export default function DocumentsScreen() {
       <TouchableOpacity
         style={[
           styles.documentCard,
+          { backgroundColor: theme.card },
           isSelected && styles.documentCardSelected
         ]}
         onPress={() => handleDocumentPress(item)}
@@ -720,26 +721,26 @@ export default function DocumentsScreen() {
               resizeMode="cover"
             />
           ) : (
-            <View style={styles.thumbnailPlaceholder}>
-              <Ionicons name="document-text-outline" size={32} color="#CCC" />
+            <View style={[styles.thumbnailPlaceholder, { backgroundColor: theme.border }]}>
+              <Ionicons name="document-text-outline" size={32} color={theme.textMuted} />
             </View>
           )}
         </View>
         
         <View style={styles.documentInfo}>
-          <Text style={styles.documentName} numberOfLines={1}>
+          <Text style={[styles.documentName, { color: theme.text }]} numberOfLines={1}>
             {item.name || 'Untitled Document'}
           </Text>
-          <Text style={styles.documentDate}>
+          <Text style={[styles.documentDate, { color: theme.textSecondary }]}>
             {formatDate(item.updated_at || item.created_at)}
           </Text>
           <View style={styles.documentMeta}>
-            <Ionicons name="document-outline" size={12} color="#999" />
-            <Text style={styles.documentMetaText}>
+            <Ionicons name="document-outline" size={12} color={theme.textMuted} />
+            <Text style={[styles.documentMetaText, { color: theme.textMuted }]}>
               {item.pages?.length || 1}
             </Text>
-            <Text style={styles.documentMetaDot}>•</Text>
-            <Text style={styles.documentMetaText}>PDF</Text>
+            <Text style={[styles.documentMetaDot, { color: theme.textMuted }]}>•</Text>
+            <Text style={[styles.documentMetaText, { color: theme.textMuted }]}>PDF</Text>
           </View>
         </View>
         
@@ -748,13 +749,13 @@ export default function DocumentsScreen() {
             style={styles.actionButton}
             onPress={() => handleExportDocument(item)}
           >
-            <Ionicons name="share-outline" size={20} color="#333" />
+            <Ionicons name="share-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => showDocumentActions(item)}
           >
-            <Ionicons name="ellipsis-horizontal" size={20} color="#333" />
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
