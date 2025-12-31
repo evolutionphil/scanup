@@ -339,7 +339,7 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/settings')}>
             <View style={styles.settingLeft}>
               <Ionicons name="settings-outline" size={22} color={theme.textSecondary} />
-              <Text style={[styles.settingLabel, { color: theme.text }]}>All Settings</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t('all_settings', 'All Settings')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
@@ -347,7 +347,7 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/legal?type=support')}>
             <View style={styles.settingLeft}>
               <Ionicons name="help-circle-outline" size={22} color={theme.textSecondary} />
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Help & Support</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t('help_support', 'Help & Support')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
@@ -355,7 +355,7 @@ export default function ProfileScreen() {
           <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={() => router.push('/legal?type=privacy')}>
             <View style={styles.settingLeft}>
               <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} />
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Privacy Policy</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t('privacy_policy', 'Privacy Policy')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
@@ -363,9 +363,9 @@ export default function ProfileScreen() {
 
         {/* Signatures Section */}
         <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Signatures</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('signatures', 'Signatures')}</Text>
           <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
-            Create and manage your saved signatures
+            {t('create_manage_signatures', 'Create and manage your saved signatures')}
           </Text>
           
           <TouchableOpacity 
@@ -376,9 +376,9 @@ export default function ProfileScreen() {
               <Ionicons name="pencil" size={24} color={theme.primary} />
             </View>
             <View style={styles.signatureCardText}>
-              <Text style={[styles.signatureCardTitle, { color: theme.text }]}>Manage Signatures</Text>
+              <Text style={[styles.signatureCardTitle, { color: theme.text }]}>{t('manage_signatures', 'Manage Signatures')}</Text>
               <Text style={[styles.signatureCardSubtitle, { color: theme.textMuted }]}>
-                Create, edit, and delete signatures
+                {t('create_edit_delete_signatures', 'Create, edit, and delete signatures')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
@@ -388,7 +388,7 @@ export default function ProfileScreen() {
         {/* Sign In / Logout Button */}
         {isGuest ? (
           <Button
-            title="Sign In"
+            title={t('sign_in', 'Sign In')}
             onPress={() => router.push('/(auth)/login')}
             variant="primary"
             style={styles.logoutButton}
@@ -396,7 +396,7 @@ export default function ProfileScreen() {
           />
         ) : (
           <Button
-            title="Logout"
+            title={t('logout', 'Logout')}
             onPress={handleLogout}
             variant="danger"
             style={styles.logoutButton}
