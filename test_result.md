@@ -420,9 +420,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Clear Cache function - should remove all local data"
-    - "Reset Settings function - should reset all settings to default"
-    - "Settings screen footer spacing"
+    - "Settings screen footer spacing - NEEDS FIX (footer still hidden behind scan button)"
     - "Signature aspect ratio fix"
   stuck_tasks: []
   test_all: false
