@@ -175,54 +175,6 @@ export default function LoginScreen() {
       setGoogleLoading(false);
     }
   };
-      
-      console.log('Google login redirect URL:', redirectUrl);
-      const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-      
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-      console.log('WebBrowser result:', JSON.stringify(result, null, 2));
-      
-      if (result.type === 'success' && result.url) {
-        let sessionId = '';
-        const url = result.url;
-        console.log('Return URL:', url);
-        
-        // Try multiple patterns to extract session_id
-        const patterns = [
-          /[#?&]session_id=([^&]+)/,
-          /session_id=([^&\s]+)/,
-        ];
-        
-        for (const pattern of patterns) {
-          const match = url.match(pattern);
-          if (match && match[1]) {
-            sessionId = match[1];
-            break;
-          }
-        }
-        
-        console.log('Parsed session_id:', sessionId ? 'found' : 'not found');
-        
-        if (sessionId) {
-          await googleLogin(sessionId);
-          router.replace('/(tabs)');
-        } else {
-          Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
-        }
-      } else if (result.type === 'dismiss') {
-        console.log('User dismissed the login');
-        // Don't show error for user-initiated cancellation
-      } else {
-        console.log('Auth result type:', result.type);
-        Alert.alert(t('login_cancelled', 'Login Cancelled'), t('please_try_signing_in_again', 'Please try signing in again'));
-      }
-    } catch (error: any) {
-      console.error('Google login error:', error);
-      Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
 
   const handleAppleLogin = async () => {
     setAppleLoading(true);
