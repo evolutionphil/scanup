@@ -158,7 +158,8 @@ export const useI18n = create<I18nState>()(
         
         try {
           const backendUrl = getBackendUrl();
-          const response = await fetch(`${backendUrl}/api/translations/${targetLang}`, {
+          // Updated to use new content API endpoint
+          const response = await fetch(`${backendUrl}/api/content/translations/${targetLang}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -168,21 +169,26 @@ export const useI18n = create<I18nState>()(
           if (response.ok) {
             const data = await response.json();
             set({
-              currentLanguage: data.lang || targetLang,
+              currentLanguage: data.language_code || targetLang,
               translations: { ...DEFAULT_TRANSLATIONS, ...data.translations },
               isLoading: false,
               lastFetched: Date.now(),
             });
             
-            // Also fetch available languages
+            // Also fetch available languages from new endpoint
             try {
-              const allResponse = await fetch(`${backendUrl}/api/translations`);
-              if (allResponse.ok) {
-                const allData = await allResponse.json();
-                set({ availableLanguages: allData.languages || ['en'] });
+              const langResponse = await fetch(`${backendUrl}/api/content/languages`);
+              if (langResponse.ok) {
+                const langData = await langResponse.json();
+                // Extract language codes from the language objects
+                const langCodes = Array.isArray(langData) 
+                  ? langData.map((l: any) => l.code || l) 
+                  : ['en'];
+                set({ availableLanguages: langCodes });
               }
             } catch (e) {
               // Ignore - not critical
+              console.log('Error fetching languages list:', e);
             }
           } else {
             throw new Error('Failed to fetch translations');
