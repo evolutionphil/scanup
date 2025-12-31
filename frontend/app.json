@@ -57,13 +57,6 @@
       "expo-router",
       "expo-dev-client",
       [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-8771434485570434~5351337863",
-          "iosAppId": "ca-app-pub-8771434485570434~1412092855"
-        }
-      ],
-      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o"
