@@ -433,6 +433,23 @@ export default function SignatureSelectionModal({
               <Text style={styles.toggleLabel}>Apply all pages</Text>
             </View>
             
+            {/* Resize Controls */}
+            <View style={styles.resizeControls}>
+              <TouchableOpacity 
+                style={styles.resizeBtn}
+                onPress={() => setScale(prev => Math.max(0.1, prev - 0.05))}
+              >
+                <Ionicons name="remove" size={20} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.resizeLabel}>Size</Text>
+              <TouchableOpacity 
+                style={styles.resizeBtn}
+                onPress={() => setScale(prev => Math.min(0.6, prev + 0.05))}
+              >
+                <Ionicons name="add" size={20} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
             <TouchableOpacity 
               style={styles.removeButton}
               onPress={handleRemoveSignature}
