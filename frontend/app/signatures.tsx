@@ -144,13 +144,13 @@ export default function SignaturesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.background }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="#111827" />
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('signatures', 'Signatures')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('signatures', 'Signatures')}</Text>
         {signatures.length > 0 ? (
           <TouchableOpacity 
             onPress={() => {
@@ -162,7 +162,7 @@ export default function SignaturesScreen() {
               }
             }}
           >
-            <Text style={styles.selectText}>
+            <Text style={[styles.selectText, { color: theme.primary }]}>
               {isSelectMode ? t('cancel', 'Cancel') : t('select', 'Select')}
             </Text>
           </TouchableOpacity>
@@ -171,7 +171,7 @@ export default function SignaturesScreen() {
         )}
       </View>
 
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {signatures.length === 0 ? (
