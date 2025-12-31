@@ -343,16 +343,25 @@ def test_content_structure():
             data = response.json()
             if 'translations' in data:
                 translations = data['translations']
-                # Check for common translation keys
-                common_keys = ['app_name', 'loading', 'error', 'cancel', 'save', 'delete', 'edit']
-                found_keys = [key for key in common_keys if key in translations]
-                
-                if len(found_keys) >= 5:  # Should have most common keys
-                    results.add_result("Translation Structure", True, 
-                                     f"Has {len(found_keys)}/{len(common_keys)} common translation keys")
+                # Handle nested structure - translations might be under a language key
+                if isinstance(translations, dict):
+                    # Check if it's nested under language code
+                    actual_translations = translations
+                    if 'en' in translations and isinstance(translations['en'], dict):
+                        actual_translations = translations['en']
+                    
+                    # Check for common translation keys
+                    common_keys = ['app_name', 'loading', 'error', 'cancel', 'save', 'delete', 'edit']
+                    found_keys = [key for key in common_keys if key in actual_translations]
+                    
+                    if len(found_keys) >= 5:  # Should have most common keys
+                        results.add_result("Translation Structure", True, 
+                                         f"Has {len(found_keys)}/{len(common_keys)} common translation keys")
+                    else:
+                        results.add_result("Translation Structure", True, 
+                                         f"Has {len(found_keys)}/{len(common_keys)} common keys found")
                 else:
-                    results.add_result("Translation Structure", True, 
-                                     f"Has {len(found_keys)}/{len(common_keys)} common keys found")
+                    results.add_result("Translation Structure", False, "Translations not in dict format")
             else:
                 results.add_result("Translation Structure", False, "No translations field")
         else:
