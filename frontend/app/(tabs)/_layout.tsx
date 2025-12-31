@@ -27,6 +27,7 @@ const SCAN_BUTTON_OFFSET = 28;
 export default function TabsLayout() {
   const { isAuthenticated, isLoading, isGuest } = useAuthStore();
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const { setActiveMainTab } = useTabStore();
   const insets = useSafeAreaInsets();
   const hasRedirected = React.useRef(false);
