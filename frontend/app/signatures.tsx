@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../src/store/themeStore';
+import { useI18n } from '../src/store/i18nStore';
 
 const SIGNATURES_KEY = '@scanup_saved_signatures';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,6 +30,7 @@ interface SavedSignature {
 
 export default function SignaturesScreen() {
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const [signatures, setSignatures] = useState<SavedSignature[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedSignatures, setSelectedSignatures] = useState<string[]>([]);
@@ -63,12 +65,12 @@ export default function SignaturesScreen() {
 
   const handleDeleteSignature = (id: string) => {
     Alert.alert(
-      'Delete Signature',
-      'Are you sure you want to delete this signature?',
+      t('delete_signature', 'Delete Signature'),
+      t('delete_signature_confirm', 'Are you sure you want to delete this signature?'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete', 'Delete'),
           style: 'destructive',
           onPress: () => {
             const updated = signatures.filter(s => s.id !== id);
@@ -83,12 +85,12 @@ export default function SignaturesScreen() {
     if (selectedSignatures.length === 0) return;
     
     Alert.alert(
-      'Delete Selected',
-      `Are you sure you want to delete ${selectedSignatures.length} signature(s)?`,
+      t('delete_selected', 'Delete Selected'),
+      `${t('delete_confirm_multiple', 'Are you sure you want to delete')} ${selectedSignatures.length} ${t('signature_s', 'signature(s)')}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete', 'Delete'),
           style: 'destructive',
           onPress: () => {
             const updated = signatures.filter(s => !selectedSignatures.includes(s.id));
@@ -146,7 +148,7 @@ export default function SignaturesScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Signatures</Text>
+        <Text style={styles.headerTitle}>{t('signatures', 'Signatures')}</Text>
         {signatures.length > 0 ? (
           <TouchableOpacity 
             onPress={() => {
@@ -159,7 +161,7 @@ export default function SignaturesScreen() {
             }}
           >
             <Text style={styles.selectText}>
-              {isSelectMode ? 'Cancel' : 'Select'}
+              {isSelectMode ? t('cancel', 'Cancel') : t('select', 'Select')}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -175,9 +177,9 @@ export default function SignaturesScreen() {
             <View style={styles.emptyIcon}>
               <Ionicons name="pencil-outline" size={48} color="#9CA3AF" />
             </View>
-            <Text style={styles.emptyTitle}>No Signatures Yet</Text>
+            <Text style={styles.emptyTitle}>{t('no_signatures_yet', 'No Signatures Yet')}</Text>
             <Text style={styles.emptyText}>
-              Create your first signature to use when signing documents
+              {t('create_first_signature', 'Create your first signature to use when signing documents')}
             </Text>
           </View>
         ) : (
@@ -232,7 +234,7 @@ export default function SignaturesScreen() {
             onPress={handleDeleteSelected}
           >
             <Ionicons name="trash-outline" size={22} color="#FFF" />
-            <Text style={styles.addNewButtonText}>Delete ({selectedSignatures.length})</Text>
+            <Text style={styles.addNewButtonText}>{t('delete', 'Delete')} ({selectedSignatures.length})</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -242,7 +244,7 @@ export default function SignaturesScreen() {
             onPress={() => router.push('/add-signature')}
           >
             <Ionicons name="add" size={22} color="#FFF" />
-            <Text style={styles.addNewButtonText}>Add new</Text>
+            <Text style={styles.addNewButtonText}>{t('add_new', 'Add new')}</Text>
           </TouchableOpacity>
         </View>
       )}
