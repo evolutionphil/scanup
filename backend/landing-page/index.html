@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScanUp - Smart Document Scanner App</title>
+    <meta name="description" content="ScanUp is the ultimate mobile document scanner. Scan, edit, sign, and share documents instantly. Available on iOS and Android.">
+    <meta name="keywords" content="document scanner, PDF scanner, mobile scanner, scan documents, digital signature, ScanUp">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="ScanUp - Smart Document Scanner App">
+    <meta property="og:description" content="Transform your phone into a powerful document scanner. Scan, edit, sign, and share in seconds.">
+    <meta property="og:type" content="website">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #3E51FB;
+            --primary-dark: #2D3ED9;
+            --primary-light: #6B7BFF;
+            --secondary: #10B981;
+            --dark: #111827;
+            --gray-900: #1F2937;
+            --gray-700: #374151;
+            --gray-500: #6B7280;
+            --gray-300: #D1D5DB;
+            --gray-100: #F3F4F6;
+            --white: #FFFFFF;
+            --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-100);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray-700);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-cta {
+            background: var(--gradient);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(62, 81, 251, 0.3);
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--dark);
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 100%);
+            padding: 8rem 2rem 4rem;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(62, 81, 251, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        
+        .hero-content {
+            z-index: 1;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(62, 81, 251, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--gray-700) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero h1 span {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 10px 30px rgba(62, 81, 251, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(62, 81, 251, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--white);
+            color: var(--dark);
+            border: 2px solid var(--gray-300);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+        
+        .stat {
+            text-align: left;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dark);
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+        
+        .hero-image {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .phone-mockup {
+            position: relative;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+        
+        .phone-frame {
+            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 45px;
+            padding: 12px;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.25), 0 30px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .phone-screen {
+            background: var(--white);
+            border-radius: 35px;
+            overflow: hidden;
+            aspect-ratio: 9/19.5;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .phone-notch {
+            width: 120px;
+            height: 30px;
+            background: #1a1a2e;
+            margin: 0 auto;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .phone-content {
+            flex: 1;
+            padding: 1rem;
+            background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 100%);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .phone-header {
+            text-align: center;
+            padding: 1rem 0;
+        }
+        
+        .phone-header h3 {
+            font-size: 1.1rem;
+            color: var(--dark);
+        }
+        
+        .phone-docs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .phone-doc {
+            background: white;
+            border-radius: 12px;
+            padding: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        .phone-doc-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+        
+        .phone-doc-info h4 {
+            font-size: 0.8rem;
+            color: var(--dark);
+        }
+        
+        .phone-doc-info p {
+            font-size: 0.65rem;
+            color: var(--gray-500);
+        }
+        
+        .phone-scan-btn {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .floating-card {
+            position: absolute;
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .floating-card-1 {
+            top: 10%;
+            right: -20px;
+            animation-delay: 0s;
+        }
+        
+        .floating-card-2 {
+            bottom: 20%;
+            left: -30px;
+            animation-delay: 1.5s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: var(--white);
+        }
+        
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .section-label {
+            display: inline-block;
+            background: rgba(62, 81, 251, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: var(--gray-500);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--gray-100);
+            border-radius: 24px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+        }
+        
+        .feature-card p {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+        
+        /* How It Works */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: linear-gradient(180deg, #F8FAFF 0%, #FFFFFF 100%);
+        }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .step {
+            text-align: center;
+            position: relative;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 40px;
+            right: -1rem;
+            width: calc(100% - 80px);
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            transform: translateX(50%);
+        }
+        
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 auto 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .step h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        
+        .step p {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+        
+        /* Testimonials */
+        .testimonials {
+            padding: 6rem 2rem;
+            background: var(--dark);
+            color: white;
+        }
+        
+        .testimonials .section-label {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .testimonials .section-title {
+            color: white;
+        }
+        
+        .testimonials .section-subtitle {
+            color: var(--gray-300);
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .testimonial-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+        }
+        
+        .testimonial-stars {
+            color: #FBBF24;
+            margin-bottom: 1rem;
+        }
+        
+        .testimonial-text {
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: var(--gray-300);
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .testimonial-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        
+        .testimonial-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .testimonial-info p {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+        
+        /* Pricing */
+        .pricing {
+            padding: 6rem 2rem;
+            background: var(--white);
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .pricing-card {
+            background: var(--gray-100);
+            border-radius: 24px;
+            padding: 2.5rem;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .pricing-card.popular {
+            background: var(--gradient);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .pricing-card.popular:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+        }
+        
+        .pricing-card .price span {
+            font-size: 1rem;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .pricing-features li {
+            padding: 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .pricing-features li i {
+            color: var(--secondary);
+        }
+        
+        .pricing-card.popular .pricing-features li i {
+            color: white;
+        }
+        
+        .pricing-card .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .pricing-card.popular .btn-primary {
+            background: white;
+            color: var(--primary);
+        }
+        
+        /* Download Section */
+        .download {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .download h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+        
+        .download p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .download-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .store-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--dark);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .store-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .store-btn i {
+            font-size: 2rem;
+        }
+        
+        .store-btn-text {
+            text-align: left;
+        }
+        
+        .store-btn-text span {
+            display: block;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        .store-btn-text strong {
+            font-size: 1.1rem;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--gray-900);
+            color: white;
+            padding: 4rem 2rem 2rem;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        
+        .footer-brand .logo {
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-brand p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+            max-width: 300px;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+        
+        .footer-column h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-column ul {
+            list-style: none;
+        }
+        
+        .footer-column ul li {
+            margin-bottom: 0.75rem;
+        }
+        
+        .footer-column ul a {
+            color: var(--gray-500);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-column ul a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .footer-bottom p {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .footer-links a {
+            color: var(--gray-500);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        /* Legal Pages */
+        .legal-page {
+            padding: 8rem 2rem 4rem;
+            min-height: 100vh;
+            background: var(--gray-100);
+        }
+        
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+        
+        .legal-content h1 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+        
+        .legal-content h2 {
+            font-size: 1.25rem;
+            margin: 2rem 0 1rem;
+            color: var(--dark);
+        }
+        
+        .legal-content p, .legal-content li {
+            color: var(--gray-700);
+            margin-bottom: 1rem;
+        }
+        
+        .legal-content ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .hero-content {
+                order: 1;
+            }
+            
+            .hero-image {
+                order: 0;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                margin: 0 auto 2rem;
+            }
+            
+            .hero-buttons {
+                justify-content: center;
+            }
+            
+            .hero-stats {
+                justify-content: center;
+            }
+            
+            .features-grid,
+            .testimonials-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .step:not(:last-child)::after {
+                display: none;
+            }
+            
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .pricing-card.popular {
+                transform: none;
+            }
+            
+            .pricing-card.popular:hover {
+                transform: translateY(-10px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .nav-cta {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero {
+                padding: 6rem 1.5rem 3rem;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 1.75rem;
+            }
+            
+            .steps {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .phone-mockup {
+                max-width: 280px;
+            }
+        }
+        
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Language Selector */
+        .language-selector {
+            position: relative;
+        }
+        
+        .language-btn {
+            background: none;
+            border: 1px solid var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+        
+        .language-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 0.5rem;
+            min-width: 150px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .language-dropdown.show {
+            display: block;
+        }
+        
+        .language-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--gray-700);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .language-dropdown a:hover {
+            background: var(--gray-100);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                ScanUp
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#testimonials">Reviews</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+            </ul>
+            <a href="#download" class="nav-cta">Download App</a>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-star"></i>
+                    #1 Document Scanner App
+                </div>
+                <h1>Scan Documents <span>Instantly</span> with Your Phone</h1>
+                <p>Transform your smartphone into a powerful document scanner. Scan, edit, sign, and share documents in seconds with professional quality.</p>
+                <div class="hero-buttons">
+                    <a href="#download" class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                        Download Free
+                    </a>
+                    <a href="#features" class="btn btn-secondary">
+                        <i class="fas fa-play-circle"></i>
+                        See How It Works
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">5M+</div>
+                        <div class="stat-label">Downloads</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">4.9</div>
+                        <div class="stat-label">App Rating</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">50M+</div>
+                        <div class="stat-label">Docs Scanned</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="phone-mockup">
+                    <div class="phone-frame">
+                        <div class="phone-screen">
+                            <div class="phone-notch"></div>
+                            <div class="phone-content">
+                                <div class="phone-header">
+                                    <h3>Your Documents</h3>
+                                </div>
+                                <div class="phone-docs">
+                                    <div class="phone-doc">
+                                        <div class="phone-doc-icon">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </div>
+                                        <div class="phone-doc-info">
+                                            <h4>Contract_2025.pdf</h4>
+                                            <p>2 pages • Today</p>
+                                        </div>
+                                    </div>
+                                    <div class="phone-doc">
+                                        <div class="phone-doc-icon">
+                                            <i class="fas fa-file-image"></i>
+                                        </div>
+                                        <div class="phone-doc-info">
+                                            <h4>Receipt_Amazon.pdf</h4>
+                                            <p>1 page • Yesterday</p>
+                                        </div>
+                                    </div>
+                                    <div class="phone-doc">
+                                        <div class="phone-doc-icon">
+                                            <i class="fas fa-file-alt"></i>
+                                        </div>
+                                        <div class="phone-doc-info">
+                                            <h4>ID_Document.pdf</h4>
+                                            <p>1 page • 2 days ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="phone-scan-btn">
+                                    <i class="fas fa-camera"></i>
+                                    Scan Document
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="floating-card floating-card-1">
+                        <i class="fas fa-check-circle" style="color: var(--secondary); margin-right: 8px;"></i>
+                        <span style="font-weight: 600; font-size: 0.9rem;">Scan Complete!</span>
+                    </div>
+                    <div class="floating-card floating-card-2">
+                        <i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 8px;"></i>
+                        <span style="font-weight: 600; font-size: 0.9rem;">Encrypted & Secure</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-container">
+            <div class="section-header fade-in">
+                <span class="section-label">Features</span>
+                <h2 class="section-title">Everything You Need to Go Paperless</h2>
+                <p class="section-subtitle">Powerful features that make document scanning effortless and professional.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3>Auto Edge Detection</h3>
+                    <p>Smart AI automatically detects document edges and crops perfectly, ensuring professional results every time.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3>Smart Filters</h3>
+                    <p>Enhance your scans with automatic color correction, contrast adjustment, and multiple filter options.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-signature"></i>
+                    </div>
+                    <h3>Digital Signatures</h3>
+                    <p>Create and save your signature. Sign documents directly on your phone with just a few taps.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>Password Protection</h3>
+                    <p>Secure sensitive documents with password encryption. Your data stays private and protected.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3>Cloud Backup</h3>
+                    <p>Never lose your documents. Automatically sync and backup to the cloud across all devices.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <h3>Easy Sharing</h3>
+                    <p>Share documents via email, messaging apps, or cloud storage with a single tap.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-container">
+            <div class="section-header fade-in">
+                <span class="section-label">How It Works</span>
+                <h2 class="section-title">Scan in 4 Simple Steps</h2>
+                <p class="section-subtitle">Go from paper to digital in seconds with our intuitive scanning process.</p>
+            </div>
+            <div class="steps">
+                <div class="step fade-in">
+                    <div class="step-number">1</div>
+                    <h3>Point Camera</h3>
+                    <p>Open the app and point your camera at any document</p>
+                </div>
+                <div class="step fade-in">
+                    <div class="step-number">2</div>
+                    <h3>Auto Capture</h3>
+                    <p>Our AI detects edges and captures automatically</p>
+                </div>
+                <div class="step fade-in">
+                    <div class="step-number">3</div>
+                    <h3>Enhance</h3>
+                    <p>Apply filters and adjustments for perfect results</p>
+                </div>
+                <div class="step fade-in">
+                    <div class="step-number">4</div>
+                    <h3>Save & Share</h3>
+                    <p>Export as PDF and share anywhere instantly</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials" id="testimonials">
+        <div class="section-container">
+            <div class="section-header fade-in">
+                <span class="section-label">Testimonials</span>
+                <h2 class="section-title">Loved by Millions Worldwide</h2>
+                <p class="section-subtitle">See what our users are saying about ScanUp.</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card fade-in">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"ScanUp has completely transformed how I handle documents. The signature feature is a game-changer for my business contracts!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">JD</div>
+                        <div class="testimonial-info">
+                            <h4>John Davis</h4>
+                            <p>Small Business Owner</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"As a student, I scan all my notes and handouts. The quality is amazing and it saves me so much time organizing everything."</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SM</div>
+                        <div class="testimonial-info">
+                            <h4>Sarah Miller</h4>
+                            <p>Graduate Student</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"The auto-detection feature is incredible. It captures documents perfectly every time. Best scanner app I've ever used!"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">MR</div>
+                        <div class="testimonial-info">
+                            <h4>Michael Roberts</h4>
+                            <p>Freelance Consultant</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+        <div class="section-container">
+            <div class="section-header fade-in">
+                <span class="section-label">Pricing</span>
+                <h2 class="section-title">Choose Your Plan</h2>
+                <p class="section-subtitle">Start free and upgrade when you need more power.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card fade-in">
+                    <h3>Free</h3>
+                    <div class="price">$0<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 10 scans per month</li>
+                        <li><i class="fas fa-check"></i> Basic filters</li>
+                        <li><i class="fas fa-check"></i> PDF export</li>
+                        <li><i class="fas fa-check"></i> Local storage</li>
+                        <li><i class="fas fa-check"></i> Watermark on exports</li>
+                    </ul>
+                    <a href="#download" class="btn btn-secondary">Get Started</a>
+                </div>
+                <div class="pricing-card popular fade-in">
+                    <div class="popular-badge">Most Popular</div>
+                    <h3>Pro</h3>
+                    <div class="price">$4.99<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Unlimited scans</li>
+                        <li><i class="fas fa-check"></i> All premium filters</li>
+                        <li><i class="fas fa-check"></i> Digital signatures</li>
+                        <li><i class="fas fa-check"></i> Cloud backup</li>
+                        <li><i class="fas fa-check"></i> No watermark</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                    </ul>
+                    <a href="#download" class="btn btn-primary">Start Free Trial</a>
+                </div>
+                <div class="pricing-card fade-in">
+                    <h3>Lifetime</h3>
+                    <div class="price">$49.99<span> once</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Everything in Pro</li>
+                        <li><i class="fas fa-check"></i> One-time payment</li>
+                        <li><i class="fas fa-check"></i> Lifetime updates</li>
+                        <li><i class="fas fa-check"></i> Premium support</li>
+                        <li><i class="fas fa-check"></i> Early access features</li>
+                    </ul>
+                    <a href="#download" class="btn btn-secondary">Get Lifetime</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="download" id="download">
+        <div class="section-container">
+            <h2>Ready to Go Paperless?</h2>
+            <p>Download ScanUp now and transform how you handle documents. Available on iOS and Android.</p>
+            <div class="download-buttons">
+                <a href="#" class="store-btn">
+                    <i class="fab fa-apple"></i>
+                    <div class="store-btn-text">
+                        <span>Download on the</span>
+                        <strong>App Store</strong>
+                    </div>
+                </a>
+                <a href="#" class="store-btn">
+                    <i class="fab fa-google-play"></i>
+                    <div class="store-btn-text">
+                        <span>Get it on</span>
+                        <strong>Google Play</strong>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        ScanUp
+                    </a>
+                    <p>The smartest way to scan, sign, and share documents. Available on iOS and Android.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#download">Download</a></li>
+                        <li><a href="#testimonials">Reviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="/landing/support">Help Center</a></li>
+                        <li><a href="/landing/support">Contact Us</a></li>
+                        <li><a href="/landing/support">FAQ</a></li>
+                        <li><a href="#">Status</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/landing/terms">Terms of Service</a></li>
+                        <li><a href="/landing/privacy">Privacy Policy</a></li>
+                        <li><a href="/landing/privacy">Cookie Policy</a></li>
+                        <li><a href="/landing/terms">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 ScanUp Inc. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="/landing/terms">Terms</a>
+                    <a href="/landing/privacy">Privacy</a>
+                    <a href="/landing/support">Support</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Fade in animation on scroll
+        const fadeElements = document.querySelectorAll('.fade-in');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        fadeElements.forEach(el => observer.observe(el));
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
