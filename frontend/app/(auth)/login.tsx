@@ -327,6 +327,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 14,
   },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 12,
+    gap: 8,
+  },
+  appleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
