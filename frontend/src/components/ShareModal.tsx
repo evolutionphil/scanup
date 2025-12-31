@@ -18,15 +18,13 @@ import * as Print from 'expo-print';
 import * as MailComposer from 'expo-mail-composer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
+import { useI18n } from '../store/i18nStore';
 
 // Backend URL for PDF password protection
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-// Brand colors from Figma
+// Brand colors (used for primary accent - stays the same in both themes)
 const BRAND_BLUE = '#3E51FB';
-const TEXT_DARK = '#1B1B1B';
-const TEXT_MUTED = '#A4A4A4';
-const BORDER_GRAY = '#DADADA';
 
 // Helper to load image base64 from any source
 const loadPageImageBase64 = async (page: { image_base64?: string; image_url?: string; image_file_uri?: string }): Promise<string> => {
