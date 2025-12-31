@@ -784,7 +784,7 @@ export default function DocumentsScreen() {
         style={styles.actionButton}
         onPress={() => showFolderActions(item)}
       >
-        <Ionicons name="ellipsis-horizontal" size={20} color="#333" />
+        <Ionicons name="ellipsis-horizontal" size={20} color={theme.textSecondary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
