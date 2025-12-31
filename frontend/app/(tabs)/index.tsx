@@ -1229,19 +1229,19 @@ export default function DocumentsScreen() {
       {/* Rename Modal */}
       <Modal visible={showRenameModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('rename_document', 'Rename Document')}</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('rename_document', 'Rename Document')}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={renameValue}
               onChangeText={setRenameValue}
               placeholder={t('enter_new_name', 'Enter new name')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowRenameModal(false)}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+              <TouchableOpacity style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} onPress={() => setShowRenameModal(false)}>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmRename}>
                 <Text style={styles.modalBtnConfirmText}>{t('rename', 'Rename')}</Text>
@@ -1254,19 +1254,19 @@ export default function DocumentsScreen() {
       {/* Rename Folder Modal */}
       <Modal visible={showRenameFolderModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRenameFolderModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('rename_folder', 'Rename Folder')}</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('rename_folder', 'Rename Folder')}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={renameFolderValue}
               onChangeText={setRenameFolderValue}
               placeholder={t('enter_new_name', 'Enter new name')}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.textMuted}
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowRenameFolderModal(false)}>
-                <Text style={styles.modalBtnCancelText}>{t('cancel', 'Cancel')}</Text>
+              <TouchableOpacity style={[styles.modalBtnCancel, { backgroundColor: theme.border }]} onPress={() => setShowRenameFolderModal(false)}>
+                <Text style={[styles.modalBtnCancelText, { color: theme.text }]}>{t('cancel', 'Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmRenameFolder}>
                 <Text style={styles.modalBtnConfirmText}>{t('rename', 'Rename')}</Text>
