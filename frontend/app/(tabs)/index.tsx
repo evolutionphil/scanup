@@ -1748,6 +1748,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
+    paddingTop: 20,
+  },
+  actionSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  actionSheetHeaderLeft: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  actionSheetCloseBtn: {
+    padding: 4,
   },
   actionSheetHandle: {
     width: 40,
@@ -1762,8 +1777,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    textAlign: 'center',
-    marginBottom: 16,
+    textAlign: 'left',
+  },
+  actionSheetSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
   },
   actionSheetOption: {
     flexDirection: 'row',
