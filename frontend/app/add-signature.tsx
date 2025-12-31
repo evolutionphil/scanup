@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../src/store/themeStore';
+import { useI18n } from '../src/store/i18nStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SIGNATURES_KEY = '@scanup_saved_signatures';
@@ -30,6 +31,7 @@ interface SavedSignature {
 
 export default function AddSignatureScreen() {
   const { theme } = useThemeStore();
+  const { t } = useI18n();
   const [paths, setPaths] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState('');
 
@@ -58,7 +60,7 @@ export default function AddSignatureScreen() {
 
   const handleSave = async () => {
     if (paths.length === 0) {
-      Alert.alert('Error', 'Please draw a signature first');
+      Alert.alert(t('error', 'Error'), t('please_draw_signature', 'Please draw a signature first'));
       return;
     }
 
@@ -70,7 +72,7 @@ export default function AddSignatureScreen() {
       // Save paths directly instead of converting to base64
       const newSignature: SavedSignature = {
         id: `sig_${Date.now()}`,
-        name: `Signature ${existingSignatures.length + 1}`,
+        name: `${t('signature', 'Signature')} ${existingSignatures.length + 1}`,
         paths: paths,
         width: CANVAS_WIDTH,
         height: CANVAS_HEIGHT,
@@ -80,12 +82,12 @@ export default function AddSignatureScreen() {
       const updated = [...existingSignatures, newSignature];
       await AsyncStorage.setItem(SIGNATURES_KEY, JSON.stringify(updated));
       
-      Alert.alert('Success', 'Signature saved!', [
-        { text: 'OK', onPress: () => router.back() }
+      Alert.alert(t('success', 'Success'), t('signature_saved', 'Signature saved!'), [
+        { text: t('ok', 'OK'), onPress: () => router.back() }
       ]);
     } catch (e) {
       console.error('Failed to save signature:', e);
-      Alert.alert('Error', 'Failed to save signature');
+      Alert.alert(t('error', 'Error'), t('failed_to_save_signature', 'Failed to save signature'));
     }
   };
 
@@ -99,12 +101,12 @@ export default function AddSignatureScreen() {
         >
           <Ionicons name="chevron-back" size={28} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add signature</Text>
+        <Text style={styles.headerTitle}>{t('add_signature', 'Add signature')}</Text>
         <TouchableOpacity 
           style={styles.saveButton}
           onPress={handleSave}
         >
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>{t('save', 'Save')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -116,7 +118,7 @@ export default function AddSignatureScreen() {
         {/* Sign Here Placeholder */}
         {paths.length === 0 && !currentPath && (
           <View style={styles.placeholderContainer}>
-            <Text style={styles.placeholderText}>Sign here</Text>
+            <Text style={styles.placeholderText}>{t('sign_here', 'Sign here')}</Text>
           </View>
         )}
         
@@ -174,7 +176,7 @@ export default function AddSignatureScreen() {
       {/* Footer Info */}
       <View style={styles.footer}>
         <View style={styles.footerDivider} />
-        <Text style={styles.footerText}>Draw your signature above</Text>
+        <Text style={styles.footerText}>{t('draw_signature_above', 'Draw your signature above')}</Text>
       </View>
     </SafeAreaView>
   );
