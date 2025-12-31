@@ -23,7 +23,7 @@ class BackendTester:
     def __init__(self):
         self.session = requests.Session()
         self.auth_token = None
-        self.test_user_email = f"test_{uuid.uuid4().hex[:8]}@scanup.test"
+        self.test_user_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
         self.test_user_password = "TestPassword123!"
         self.test_user_name = "Test User"
         
