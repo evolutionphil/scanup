@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for ScanUp Document Scanner App
-Focus: Image Processing Public Endpoint /api/images/process-public
+Tests the specific endpoints mentioned in the review request:
+1. Rename Document API
+2. Rename Folder API  
+3. Set Folder Password API
 """
 
 import requests
@@ -11,15 +14,10 @@ import uuid
 from datetime import datetime
 import sys
 import os
-from io import BytesIO
-from PIL import Image
-import time
 
-# Test configuration
-BASE_URL = "https://localize-scanup.preview.emergentagent.com/api"
-TEST_USER_EMAIL = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
-TEST_USER_PASSWORD = "TestPassword123!"
-TEST_USER_NAME = "Test User"
+# Backend URL from frontend environment
+BACKEND_URL = "https://localize-scanup.preview.emergentagent.com"
+API_BASE = f"{BACKEND_URL}/api"
 
 def create_test_image(width=100, height=100, color='red'):
     """Create a small test image in base64 format"""
