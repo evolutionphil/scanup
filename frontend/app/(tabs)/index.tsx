@@ -850,7 +850,7 @@ export default function DocumentsScreen() {
             ) : (
               <>
                 {/* Latest Section */}
-                <Text style={styles.sectionTitle}>{t('latest', 'Latest')}</Text>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('latest', 'Latest')}</Text>
                 {latestDocs.map((doc) => (
                   <View key={`latest-${doc.document_id}`}>
                     {renderDocumentItem({ item: doc })}
@@ -860,7 +860,7 @@ export default function DocumentsScreen() {
                 {/* All Section */}
                 {remainingDocs.length > 0 && (
                   <>
-                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('all', 'All')}</Text>
+                    <Text style={[styles.sectionTitle, { marginTop: 20, color: theme.text }]}>{t('all', 'All')}</Text>
                     {remainingDocs.map((doc) => (
                       <View key={`all-${doc.document_id}`}>
                         {renderDocumentItem({ item: doc })}
