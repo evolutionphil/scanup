@@ -4,12 +4,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import Constants from 'expo-constants';
 
-// Get backend URL
+// Get backend URL - prioritize environment variable, then config, then empty (relative path)
 const getBackendUrl = () => {
-  const backendUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
-    || process.env.EXPO_PUBLIC_BACKEND_URL 
-    || '';
-  return backendUrl.replace(/\/$/, '');
+  // Try process.env first (works in most cases)
+  if (process.env.EXPO_PUBLIC_BACKEND_URL) {
+    return process.env.EXPO_PUBLIC_BACKEND_URL.replace(/\/$/, '');
+  }
+  
+  // Try expo config extra
+  const extraUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL;
+  if (extraUrl) {
+    return extraUrl.replace(/\/$/, '');
+  }
+  
+  // Fallback to empty string (will use relative URLs)
+  return '';
 };
 
 // Default English translations (fallback if API fails)
