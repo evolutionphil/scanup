@@ -71,7 +71,6 @@ export default function DeleteConfirmModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -91,7 +90,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1A1A1A',
     textAlign: 'center',
     lineHeight: 28,
     marginBottom: 32,
@@ -108,17 +106,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#E8E8E8',
-  },
+  cancelButton: {},
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4A4A4A',
   },
-  confirmButton: {
-    backgroundColor: '#F87171', // Coral/salmon color
-  },
+  confirmButton: {},
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
