@@ -129,8 +129,6 @@ export default function OnboardingScreen() {
     }
   };
 
-  const currentSlide = SLIDES[currentIndex];
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Swipe areas for navigation */}
