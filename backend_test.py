@@ -319,6 +319,9 @@ class BackendTester:
                 return True
             else:
                 self.log_test("Folder Password Rejection", "FAIL", f"Wrong password not rejected properly: {wrong_response.status_code if wrong_response else 'None'}")
+                print(f"   🔍 Debug: Expected 401, got {wrong_response.status_code if wrong_response else 'None'}")
+                if wrong_response:
+                    print(f"   🔍 Response: {wrong_response.text[:200]}")
                 return False
         else:
             self.log_test("Folder Password Verification", "FAIL", f"Password verification failed: {verify_response.status_code if verify_response else 'None'}")
