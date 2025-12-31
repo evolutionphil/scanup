@@ -920,7 +920,7 @@ export default function DocumentsScreen() {
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#3E51FB" />
-            <Text style={styles.loadingText}>Deleting...</Text>
+            <Text style={styles.loadingText}>{t('deleting', 'Deleting...')}</Text>
           </View>
         </View>
       )}
@@ -929,12 +929,12 @@ export default function DocumentsScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Your Documents</Text>
+            <Text style={styles.headerTitle}>{t('your_documents', 'Your Documents')}</Text>
             <TouchableOpacity 
               style={styles.sortSelector}
               onPress={openSortMenu}
             >
-              <Text style={styles.sortLabel}>Sort by</Text>
+              <Text style={styles.sortLabel}>{t('sort_by', 'Sort by')}</Text>
               <Text style={styles.sortValue}>{getSortLabel()}</Text>
               <Ionicons name="chevron-down" size={14} color="#FFF" />
             </TouchableOpacity>
