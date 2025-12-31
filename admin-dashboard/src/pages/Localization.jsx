@@ -365,57 +365,67 @@ export default function Localization() {
               </tr>
             </thead>
             <tbody>
-              {filteredKeys.map((key) => (
-                <tr key={key} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-mono text-sm text-gray-600">{key}</td>
-                  <td className="py-3 px-4 text-gray-500 text-sm">{englishTranslations[key]}</td>
-                  <td className="py-3 px-4">
-                    {editingKey === key ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => updateTranslation(key, editValue)}
-                          className="text-emerald-600 hover:text-emerald-700"
+              {filteredKeys.map((key) => {
+                // Ensure we get string values, not objects
+                const englishValue = typeof englishTranslations[key] === 'string' 
+                  ? englishTranslations[key] 
+                  : (englishTranslations[key] ? JSON.stringify(englishTranslations[key]) : '');
+                const currentValue = typeof currentTranslations[key] === 'string'
+                  ? currentTranslations[key]
+                  : (currentTranslations[key] ? JSON.stringify(currentTranslations[key]) : '');
+                
+                return (
+                  <tr key={key} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-3 px-4 font-mono text-sm text-gray-600">{key}</td>
+                    <td className="py-3 px-4 text-gray-500 text-sm">{englishValue}</td>
+                    <td className="py-3 px-4">
+                      {editingKey === key ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => updateTranslation(key, editValue)}
+                            className="text-emerald-600 hover:text-emerald-700"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={() => setEditingKey(null)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className={`cursor-pointer hover:bg-gray-100 px-2 py-1 rounded text-sm ${
+                            !currentValue ? 'text-red-400 italic' : ''
+                          }`}
+                          onClick={() => {
+                            setEditingKey(key);
+                            setEditValue(currentValue || '');
+                          }}
                         >
-                          <Check size={18} />
-                        </button>
-                        <button
-                          onClick={() => setEditingKey(null)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        className={`cursor-pointer hover:bg-gray-100 px-2 py-1 rounded text-sm ${
-                          !currentTranslations[key] ? 'text-red-400 italic' : ''
-                        }`}
-                        onClick={() => {
-                          setEditingKey(key);
-                          setEditValue(currentTranslations[key] || '');
-                        }}
+                          {currentValue || 'Click to translate...'}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => deleteTranslationKey(key)}
+                        className="text-gray-400 hover:text-red-500"
                       >
-                        {currentTranslations[key] || 'Click to translate...'}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => deleteTranslationKey(key)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
