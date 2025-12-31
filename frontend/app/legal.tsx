@@ -26,7 +26,10 @@ const getBackendUrl = () => {
   const backendUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL 
     || process.env.EXPO_PUBLIC_BACKEND_URL 
     || '';
-  return backendUrl.replace(/\/$/, '');
+  // Remove trailing slash if present
+  const cleanUrl = backendUrl.replace(/\/$/, '');
+  console.log('[Legal] Backend URL:', cleanUrl);
+  return cleanUrl;
 };
 
 export default function LegalPageScreen() {
@@ -51,30 +54,39 @@ export default function LegalPageScreen() {
         setError(null);
         
         const pageType = type as 'terms' | 'privacy' | 'support';
+        console.log('[Legal] Loading page type:', pageType, 'language:', currentLanguage);
         
         // Check cache first
         const cacheKey = `@scanup_legal_${pageType}_${currentLanguage}`;
-        const cached = await AsyncStorage.getItem(cacheKey);
         
         // Fetch from backend
         const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/content/legal/${pageType}?language_code=${currentLanguage}`);
+        const fetchUrl = `${backendUrl}/api/content/legal/${pageType}?language_code=${currentLanguage}`;
+        console.log('[Legal] Fetching from:', fetchUrl);
+        
+        const response = await fetch(fetchUrl);
+        console.log('[Legal] Response status:', response.status);
         
         if (response.ok) {
           const data = await response.json();
+          console.log('[Legal] Got content length:', data.content?.length || 0);
           const pageContent = data.content || '';
           setContent(pageContent);
           
           // Cache the content
           await AsyncStorage.setItem(cacheKey, pageContent);
-        } else if (cached) {
-          // Use cached if fetch fails
-          setContent(cached);
         } else {
-          throw new Error('Failed to load content');
+          // Try cache
+          const cached = await AsyncStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('[Legal] Using cached content');
+            setContent(cached);
+          } else {
+            throw new Error(`HTTP ${response.status}: Failed to load content`);
+          }
         }
       } catch (err) {
-        console.error('Error loading legal page:', err);
+        console.error('[Legal] Error loading legal page:', err);
         setError(t('error', 'Failed to load content. Please try again.'));
       } finally {
         setIsLoading(false);
