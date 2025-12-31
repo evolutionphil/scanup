@@ -419,7 +419,11 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Clear Cache function - should remove all local data"
+    - "Reset Settings function - should reset all settings to default"
+    - "Settings screen footer spacing"
+    - "Signature aspect ratio fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
