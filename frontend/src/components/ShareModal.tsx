@@ -342,31 +342,34 @@ export default function ShareModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity style={[styles.backdrop, { backgroundColor: theme.overlay }]} onPress={onClose} activeOpacity={1} />
         
         <View style={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom, 24) + 16 }
+          { 
+            backgroundColor: theme.card,
+            paddingBottom: Math.max(insets.bottom, 24) + 16 
+          }
         ]}>
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Share</Text>
-              <Text style={styles.subtitle}>
-                {documentName} - {calculateFileSize()} - {actualPageCount} {actualPageCount === 1 ? 'Page' : 'Pages'}
+              <Text style={[styles.title, { color: theme.text }]}>{t('share', 'Share')}</Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                {documentName} - {calculateFileSize()} - {actualPageCount} {actualPageCount === 1 ? t('page', 'Page') : t('pages', 'Pages')}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={TEXT_DARK} />
+              <Ionicons name="close" size={24} color={theme.text} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* File Format */}
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>File format</Text>
-            <View style={styles.formatToggle}>
+            <Text style={[styles.rowLabel, { color: theme.text }]}>{t('file_format', 'File format')}</Text>
+            <View style={[styles.formatToggle, { backgroundColor: theme.surfaceVariant }]}>
               <TouchableOpacity
                 style={[
                   styles.formatOption,
@@ -376,6 +379,7 @@ export default function ShareModal({
               >
                 <Text style={[
                   styles.formatText,
+                  { color: theme.textMuted },
                   selectedFormat === 'pdf' && styles.formatTextSelected,
                 ]}>
                   PDF
@@ -390,6 +394,7 @@ export default function ShareModal({
               >
                 <Text style={[
                   styles.formatText,
+                  { color: theme.textMuted },
                   selectedFormat === 'jpg' && styles.formatTextSelected,
                 ]}>
                   JPG
@@ -398,20 +403,20 @@ export default function ShareModal({
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Password Protect */}
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Password protect</Text>
+            <Text style={[styles.rowLabel, { color: theme.text }]}>{t('password_protect', 'Password protect')}</Text>
             <Switch
               value={passwordProtect}
               onValueChange={(value) => {
                 setPasswordProtect(value);
                 if (!value) setPassword('');
               }}
-              trackColor={{ false: '#E5E5E5', true: BRAND_BLUE + '50' }}
-              thumbColor={passwordProtect ? BRAND_BLUE : '#FFFFFF'}
-              ios_backgroundColor="#E5E5E5"
+              trackColor={{ false: theme.surfaceVariant, true: BRAND_BLUE + '50' }}
+              thumbColor={passwordProtect ? BRAND_BLUE : theme.card}
+              ios_backgroundColor={theme.surfaceVariant}
             />
           </View>
           
@@ -419,9 +424,15 @@ export default function ShareModal({
           {passwordProtect && selectedFormat === 'pdf' && (
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={styles.passwordInput}
-                placeholder="Enter password for PDF"
-                placeholderTextColor={TEXT_MUTED}
+                style={[
+                  styles.passwordInput,
+                  { 
+                    backgroundColor: theme.surfaceVariant,
+                    color: theme.text,
+                  }
+                ]}
+                placeholder={t('enter_password_for_pdf', 'Enter password for PDF')}
+                placeholderTextColor={theme.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -430,20 +441,20 @@ export default function ShareModal({
             </View>
           )}
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Mail Option */}
           <TouchableOpacity style={styles.actionRow} onPress={handleMail} disabled={isExporting}>
-            <Text style={styles.rowLabel}>Mail</Text>
-            <Ionicons name="mail-outline" size={24} color={TEXT_DARK} />
+            <Text style={[styles.rowLabel, { color: theme.text }]}>{t('mail', 'Mail')}</Text>
+            <Ionicons name="mail-outline" size={24} color={theme.text} />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Print Option */}
           <TouchableOpacity style={styles.actionRow} onPress={handlePrint} disabled={isExporting}>
-            <Text style={styles.rowLabel}>Print</Text>
-            <Ionicons name="print-outline" size={24} color={TEXT_DARK} />
+            <Text style={[styles.rowLabel, { color: theme.text }]}>{t('print', 'Print')}</Text>
+            <Ionicons name="print-outline" size={24} color={theme.text} />
           </TouchableOpacity>
 
           {/* Share Button */}
@@ -457,7 +468,7 @@ export default function ShareModal({
             ) : (
               <>
                 <Ionicons name="arrow-up-circle-outline" size={22} color="#FFFFFF" />
-                <Text style={styles.shareButtonText}>Share document</Text>
+                <Text style={styles.shareButtonText}>{t('share_document', 'Share document')}</Text>
               </>
             )}
           </TouchableOpacity>
