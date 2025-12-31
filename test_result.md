@@ -878,5 +878,50 @@ agent_communication:
     ✅ Translation structure properly nested with all common keys (app_name, loading, error, cancel, save, delete, edit)
     ✅ Legal content substantial and properly formatted (contains legal indicators: terms, conditions, agreement, rights, liability)
     
-    All content management and translation APIs are fully functional and meet the specified requirements."
+  - agent: "testing"
+    message: "LEGAL PAGES NAVIGATION TESTING COMPLETED ✅
+    
+    ## Test Results Summary:
+    
+    ### Navigation Testing:
+    ✅ Successfully navigated to the app
+    ✅ Found and accessed Profile/Settings page via bottom navigation
+    ✅ Located Help & Support and Privacy Policy links in Settings section
+    ✅ Links are properly styled and clickable
+    ✅ Back navigation works correctly (returns to Profile page)
+    
+    ### Legal Page Content Issues Found:
+    ❌ **CRITICAL ISSUE**: Legal pages show \"Error\" message instead of content
+    ❌ Both Privacy Policy and Help & Support pages fail to load content
+    ❌ Backend API calls are being made to wrong URL
+    
+    ### Root Cause Analysis:
+    🔍 **Configuration Issue Identified**: 
+    - Frontend is trying to fetch from `https://scanup-production.up.railway.app` (404 error)
+    - Should be fetching from `https://scanup-mobile-ui.preview.emergentagent.com`
+    - Backend APIs are working correctly (verified via direct curl tests)
+    - Issue is in frontend configuration not picking up correct EXPO_PUBLIC_BACKEND_URL
+    
+    ### Configuration Fixes Applied:
+    ✅ Updated app.json extra.EXPO_PUBLIC_BACKEND_URL
+    ✅ Updated FilterEditor.tsx fallback URL
+    ✅ Updated offlineQueue.ts fallback URL  
+    ✅ Updated eas.json environment URLs
+    ✅ Cleared Metro cache and restarted Expo service
+    
+    ### Current Status:
+    ⚠️ **Configuration changes not yet taking effect** - app still using cached old URL
+    ⚠️ May require additional cache clearing or build restart
+    
+    ### What Works:
+    ✅ Profile page navigation and UI layout
+    ✅ Legal page links visibility and interaction
+    ✅ Back navigation functionality
+    ✅ Backend legal content APIs (verified working)
+    
+    ### What Needs Fix:
+    ❌ Frontend configuration to use correct backend URL
+    ❌ Legal page content loading
+    
+    The navigation structure and UI are working correctly, but there's a configuration issue preventing content from loading."
 
