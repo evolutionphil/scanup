@@ -56,6 +56,7 @@ interface PurchaseState {
   setPremium: (isPremium: boolean) => void;
   setHasRemovedAds: (hasRemovedAds: boolean) => void;
   setError: (error: string | null) => void;
+  syncWithBackend: (token: string | null, userId: string | null) => Promise<void>;
 }
 
 // Storage keys
