@@ -1390,8 +1390,190 @@ async def login(credentials: UserLogin, response: Response):
         path="/"
     )
     
-    user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
+    user = User(**{k: v for k, v in user_doc.items() if k not in ["password_hash", "verification_code", "verification_code_expires", "reset_code", "reset_code_expires"]})
     return AuthResponse(user=user_to_response(user), token=token)
+
+
+# Password Reset Request
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: PasswordResetRequest):
+    """Request a password reset code"""
+    user_doc = await db.users.find_one({"email": data.email}, {"_id": 0})
+    
+    # Don't reveal if email exists or not
+    if not user_doc:
+        return {"message": "If this email exists, a reset code will be sent"}
+    
+    # Generate reset code
+    reset_code = generate_reset_code()
+    now = datetime.now(timezone.utc)
+    
+    # Store reset code in database
+    await db.users.update_one(
+        {"email": data.email},
+        {"$set": {
+            "reset_code": reset_code,
+            "reset_code_expires": now + timedelta(hours=1),
+            "updated_at": now
+        }}
+    )
+    
+    # Send reset email
+    try:
+        user_name = user_doc.get("name", "User")
+        await send_password_reset_email(data.email, user_name, reset_code)
+        logger.info(f"Password reset email sent to {data.email}")
+    except Exception as e:
+        logger.error(f"Failed to send reset email to {data.email}: {e}")
+    
+    return {"message": "If this email exists, a reset code will be sent"}
+
+
+# Password Reset Confirm
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: PasswordResetConfirm):
+    """Reset password using the code"""
+    user_doc = await db.users.find_one({"email": data.email}, {"_id": 0})
+    
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Invalid email or code")
+    
+    # Check code
+    stored_code = user_doc.get("reset_code")
+    expires = user_doc.get("reset_code_expires")
+    
+    if not stored_code or stored_code != data.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    if expires and expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Code has expired")
+    
+    # Update password
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"email": data.email},
+        {"$set": {
+            "password_hash": hash_password(data.new_password),
+            "reset_code": None,
+            "reset_code_expires": None,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": "Password reset successfully"}
+
+
+# Email Verification
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+@api_router.post("/auth/verify-email")
+async def verify_email(data: VerifyEmailRequest):
+    """Verify email using the code"""
+    user_doc = await db.users.find_one({"email": data.email}, {"_id": 0})
+    
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Invalid email or code")
+    
+    # Check code
+    stored_code = user_doc.get("verification_code")
+    expires = user_doc.get("verification_code_expires")
+    
+    if not stored_code or stored_code != data.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    if expires and expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Code has expired")
+    
+    # Mark as verified
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"email": data.email},
+        {"$set": {
+            "email_verified": True,
+            "verification_code": None,
+            "verification_code_expires": None,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": "Email verified successfully"}
+
+
+# Resend Verification Email
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification(data: ResendVerificationRequest):
+    """Resend verification email"""
+    user_doc = await db.users.find_one({"email": data.email}, {"_id": 0})
+    
+    if not user_doc:
+        return {"message": "If this email exists, a verification code will be sent"}
+    
+    if user_doc.get("email_verified"):
+        return {"message": "Email is already verified"}
+    
+    # Generate new code
+    verification_code = generate_verification_code()
+    now = datetime.now(timezone.utc)
+    
+    await db.users.update_one(
+        {"email": data.email},
+        {"$set": {
+            "verification_code": verification_code,
+            "verification_code_expires": now + timedelta(hours=24),
+            "updated_at": now
+        }}
+    )
+    
+    # Send email
+    try:
+        user_name = user_doc.get("name", "User")
+        await send_verification_email(data.email, user_name, verification_code)
+        logger.info(f"Verification email resent to {data.email}")
+    except Exception as e:
+        logger.error(f"Failed to resend verification email to {data.email}: {e}")
+    
+    return {"message": "If this email exists, a verification code will be sent"}
+
+
+# Purchase confirmation email endpoint
+class PurchaseEmailRequest(BaseModel):
+    product_id: str
+    product_name: str
+    price: str
+
+@api_router.post("/email/purchase-confirmation")
+async def send_purchase_email(data: PurchaseEmailRequest, user: User = Depends(get_current_user)):
+    """Send purchase confirmation email"""
+    try:
+        await send_purchase_confirmation_email(
+            user.email,
+            user.name,
+            data.product_name,
+            data.price
+        )
+        
+        # Also send premium welcome if it's a subscription
+        if "premium" in data.product_id.lower() or "subscription" in data.product_id.lower():
+            plan_name = "Premium Monthly" if "monthly" in data.product_id.lower() else "Premium Yearly"
+            await send_premium_welcome_email(user.email, user.name, plan_name)
+        
+        return {"message": "Purchase confirmation email sent"}
+    except Exception as e:
+        logger.error(f"Failed to send purchase email: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send email")
 
 @api_router.post("/auth/google/callback")
 async def google_oauth_callback(request: Request, response: Response):
