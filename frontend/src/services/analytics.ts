@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 
-// Analytics module - Firebase Analytics is auto-enabled via google-services.json
-// This module provides helper functions for custom event tracking
-// On native builds, Firebase SDK is automatically included and tracks basic events
+// Firebase Analytics using React Native Firebase
+let analytics: any = null;
+let isInitialized = false;
 
 // Initialize analytics (call this at app startup)
 export const initAnalytics = async () => {
@@ -11,34 +11,92 @@ export const initAnalytics = async () => {
     return;
   }
   
-  console.log('[Analytics] Firebase Analytics auto-enabled via google-services.json');
-  // Firebase Analytics is automatically initialized via google-services.json
-  // Basic events like app_open, screen_view are tracked automatically
+  if (isInitialized) {
+    console.log('[Analytics] Already initialized');
+    return;
+  }
+  
+  try {
+    // Dynamic import to avoid issues on web
+    const firebaseAnalytics = require('@react-native-firebase/analytics').default;
+    analytics = firebaseAnalytics();
+    
+    // Enable analytics collection
+    await analytics.setAnalyticsCollectionEnabled(true);
+    
+    isInitialized = true;
+    console.log('[Analytics] Firebase Analytics initialized successfully');
+    
+    // Log app_open event
+    await analytics.logEvent('app_open');
+  } catch (error) {
+    console.error('[Analytics] Failed to initialize:', error);
+  }
 };
 
-// Log a custom event - placeholder for future implementation
+// Log a custom event
 export const logEvent = async (eventName: string, params?: Record<string, any>) => {
-  if (Platform.OS === 'web') return;
-  console.log(`[Analytics] Event: ${eventName}`, params);
-  // Custom events can be logged when full Firebase SDK is properly integrated
+  if (!analytics || Platform.OS === 'web') {
+    console.log(`[Analytics] Event (not sent): ${eventName}`, params);
+    return;
+  }
+  
+  try {
+    await analytics.logEvent(eventName, params);
+    console.log(`[Analytics] Event logged: ${eventName}`, params);
+  } catch (error) {
+    console.error('[Analytics] Failed to log event:', error);
+  }
 };
 
 // Log screen view
 export const logScreenView = async (screenName: string, screenClass?: string) => {
-  if (Platform.OS === 'web') return;
-  console.log(`[Analytics] Screen view: ${screenName}`);
+  if (!analytics || Platform.OS === 'web') {
+    console.log(`[Analytics] Screen view (not sent): ${screenName}`);
+    return;
+  }
+  
+  try {
+    await analytics.logScreenView({
+      screen_name: screenName,
+      screen_class: screenClass || screenName,
+    });
+    console.log(`[Analytics] Screen view: ${screenName}`);
+  } catch (error) {
+    console.error('[Analytics] Failed to log screen view:', error);
+  }
 };
 
 // Set user ID for analytics
 export const setUserId = async (userId: string | null) => {
-  if (Platform.OS === 'web') return;
-  console.log(`[Analytics] User ID: ${userId ? 'logged in' : 'anonymous'}`);
+  if (!analytics || Platform.OS === 'web') {
+    console.log(`[Analytics] User ID (not sent): ${userId}`);
+    return;
+  }
+  
+  try {
+    await analytics.setUserId(userId);
+    console.log(`[Analytics] User ID set: ${userId ? 'logged in' : 'anonymous'}`);
+  } catch (error) {
+    console.error('[Analytics] Failed to set user ID:', error);
+  }
 };
 
 // Set user properties
 export const setUserProperties = async (properties: Record<string, string | null>) => {
-  if (Platform.OS === 'web') return;
-  console.log('[Analytics] User properties set');
+  if (!analytics || Platform.OS === 'web') {
+    console.log('[Analytics] User properties (not sent)');
+    return;
+  }
+  
+  try {
+    for (const [key, value] of Object.entries(properties)) {
+      await analytics.setUserProperty(key, value);
+    }
+    console.log('[Analytics] User properties set');
+  } catch (error) {
+    console.error('[Analytics] Failed to set user properties:', error);
+  }
 };
 
 // Pre-defined events for common actions
@@ -99,13 +157,39 @@ export const logPurchaseEvent = async (
   currency?: string,
   errorMessage?: string
 ) => {
-  if (Platform.OS === 'web') return;
+  if (!analytics || Platform.OS === 'web') {
+    console.log(`[Analytics] Purchase event (not sent): ${eventType}`, { productId, price, currency, errorMessage });
+    return;
+  }
   
-  const eventName = eventType === 'started' 
-    ? AnalyticsEvents.PURCHASE_STARTED
-    : eventType === 'completed'
-      ? AnalyticsEvents.PURCHASE_COMPLETED
-      : AnalyticsEvents.PURCHASE_FAILED;
-  
-  console.log(`[Analytics] Purchase event: ${eventName}`, { productId, price, currency, errorMessage });
+  try {
+    const params: Record<string, any> = {
+      product_id: productId,
+    };
+    
+    if (price !== undefined) params.value = price;
+    if (currency) params.currency = currency;
+    if (errorMessage) params.error_message = errorMessage;
+    
+    const eventName = eventType === 'started' 
+      ? AnalyticsEvents.PURCHASE_STARTED
+      : eventType === 'completed'
+        ? AnalyticsEvents.PURCHASE_COMPLETED
+        : AnalyticsEvents.PURCHASE_FAILED;
+    
+    await analytics.logEvent(eventName, params);
+    
+    // Also log standard Firebase purchase event for completed purchases
+    if (eventType === 'completed' && price !== undefined) {
+      await analytics.logPurchase({
+        value: price,
+        currency: currency || 'EUR',
+        items: [{ item_id: productId }],
+      });
+    }
+    
+    console.log(`[Analytics] Purchase event logged: ${eventName}`);
+  } catch (error) {
+    console.error('[Analytics] Failed to log purchase event:', error);
+  }
 };
