@@ -113,12 +113,15 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { getSubscriptions, getProducts } = require('react-native-iap');
+      const { fetchProducts } = require('react-native-iap');
       
-      // Fetch subscriptions
+      // Fetch subscriptions using v14 API
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
-        const subs = await getSubscriptions({ skus: SUBSCRIPTION_SKUS });
+        const subs = await fetchProducts({
+          skus: SUBSCRIPTION_SKUS,
+          type: 'subs',
+        });
         console.log('[PurchaseStore] Subscriptions:', JSON.stringify(subs, null, 2));
         
         const formattedSubs: Product[] = subs.map((sub: any) => {
@@ -149,10 +152,13 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         console.log('[PurchaseStore] Subscriptions error:', subError.message);
       }
       
-      // Fetch one-time products
+      // Fetch one-time products using v14 API
       try {
         console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
-        const products = await getProducts({ skus: PRODUCT_SKUS });
+        const products = await fetchProducts({
+          skus: PRODUCT_SKUS,
+          type: 'inapp',
+        });
         console.log('[PurchaseStore] Products:', JSON.stringify(products, null, 2));
         
         const formattedProducts: Product[] = products.map((prod: any) => ({
