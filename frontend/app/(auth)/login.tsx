@@ -102,9 +102,13 @@ export default function LoginScreen() {
       // Use native Google Sign-In on mobile platforms
       if (Platform.OS !== 'web' && GoogleSignin) {
         console.log('[GoogleLogin] Using native Google Sign-In');
+        console.log('[GoogleLogin] Checking Play Services...');
         
-        await GoogleSignin.hasPlayServices();
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        console.log('[GoogleLogin] Play Services available, starting sign-in...');
+        
         const response = await GoogleSignin.signIn();
+        console.log('[GoogleLogin] Sign-in response received');
         
         if (isSuccessResponse && isSuccessResponse(response)) {
           const { data } = response;
@@ -112,11 +116,13 @@ export default function LoginScreen() {
           
           // Get ID token for backend authentication
           const tokens = await GoogleSignin.getTokens();
+          console.log('[GoogleLogin] Got tokens, sending to backend...');
           
           // Send to backend for authentication
           await googleLoginNative(tokens.idToken, data.user);
           router.replace('/(tabs)');
         } else {
+          console.log('[GoogleLogin] Response was not success:', JSON.stringify(response));
           throw new Error('Google sign-in did not return success response');
         }
       } else {
@@ -154,6 +160,8 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error('[GoogleLogin] Error:', error);
+      console.error('[GoogleLogin] Error code:', error.code);
+      console.error('[GoogleLogin] Error message:', error.message);
       
       // Handle native Google Sign-In errors
       if (isErrorWithCode && isErrorWithCode(error)) {
@@ -169,7 +177,15 @@ export default function LoginScreen() {
             Alert.alert(t('error', 'Error'), t('play_services_not_available', 'Google Play Services not available'));
             break;
           default:
-            Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
+            // For DEVELOPER_ERROR, provide helpful message
+            if (error.code === 'DEVELOPER_ERROR' || error.message?.includes('DEVELOPER_ERROR')) {
+              Alert.alert(
+                'Google Sign-In Configuration Error',
+                'DEVELOPER_ERROR: This usually means the SHA-1 fingerprint of the signing certificate is not registered in Firebase Console.\n\nPlease check:\n1. App signing certificate SHA-1 in Play Console\n2. Firebase Console > Project Settings > Your Apps\n\nError: ' + error.message
+              );
+            } else {
+              Alert.alert(t('error', 'Error'), `${error.code || 'Unknown'}: ${error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.')}`);
+            }
         }
       } else {
         Alert.alert(t('error', 'Error'), error.message || t('google_signin_failed', 'Google sign-in failed. Please try again.'));
