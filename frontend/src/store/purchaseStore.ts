@@ -257,16 +257,16 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { requestSubscription, getSubscriptions, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
+      const { requestPurchase, fetchProducts, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
       
       let purchase;
       
       if (Platform.OS === 'android') {
-        // Get fresh subscription with offer token
-        const subs = await getSubscriptions({ skus: [productId] });
+        // Get fresh subscription with offer token using v14 API
+        const subs = await fetchProducts({ skus: [productId], type: 'subs' });
         console.log('[PurchaseStore] Fresh subs:', JSON.stringify(subs, null, 2));
         
-        if (subs.length === 0) {
+        if (!subs || subs.length === 0) {
           throw new Error('Subscription not found in store');
         }
         
@@ -279,15 +279,19 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         
         console.log('[PurchaseStore] Using offerToken:', offerToken);
         
-        // V14 API for Android subscriptions - use requestSubscription
-        purchase = await requestSubscription({
-          sku: productId,
-          subscriptionOffers: [{ sku: productId, offerToken }],
+        // V14 API for Android subscriptions
+        purchase = await requestPurchase({
+          request: {
+            skus: [productId],
+            subscriptionOffers: [{ sku: productId, offerToken }],
+          },
+          type: 'subs',
         });
       } else {
-        // iOS - use requestSubscription
-        purchase = await requestSubscription({
-          sku: productId,
+        // iOS - use requestPurchase with subs type
+        purchase = await requestPurchase({
+          request: { sku: productId },
+          type: 'subs',
         });
       }
       
