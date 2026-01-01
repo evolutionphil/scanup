@@ -39,6 +39,7 @@ export default function PremiumScreen() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { isAuthenticated, isGuest, continueAsGuest } = useAuthStore();
   const {
     isInitialized,
     isLoading,
@@ -64,11 +65,20 @@ export default function PremiumScreen() {
   // Handle back button - always go to main tabs
   const handleClose = () => {
     try {
-      // Always navigate to main tabs to avoid white screen
-      router.replace('/(tabs)');
+      // If user is not authenticated and not a guest, make them a guest first
+      if (!isAuthenticated && !isGuest) {
+        console.log('[Premium] User not authenticated, setting as guest before navigation');
+        continueAsGuest();
+      }
+      
+      // Small delay to ensure auth state is updated before navigation
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 50);
     } catch (e) {
       console.log('[Premium] Navigation error:', e);
-      // Fallback
+      // Fallback - set as guest and try again
+      continueAsGuest();
       router.push('/(tabs)');
     }
   };
