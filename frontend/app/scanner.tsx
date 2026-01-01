@@ -183,12 +183,14 @@ export default function ScannerScreen() {
           console.log('[Scanner] Pages added to document:', addToDocumentId);
           
           // Increment scan count for each page added and potentially show ad (for free users)
-          // Each page counts as a scan
+          // Use getState to get fresh store values
+          const { incrementAndCheckAd } = useAdStore.getState();
+          let shouldShow = false;
           for (let i = 0; i < newPages.length; i++) {
-            incrementScanCount();
+            shouldShow = incrementAndCheckAd();
           }
           
-          if (shouldShowAd()) {
+          if (shouldShow) {
             console.log('[Scanner] Showing interstitial ad after adding pages');
             try {
               await showGlobalInterstitial();
