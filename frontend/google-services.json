@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "159628540720-j38bgggbcqrdb4cl8f349hm35ve8dprj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.visiongo.scanupp",
+            "certificate_hash": "f2c5c06fcc2e8b62c1596d7745dec8180a7a5330"
+          }
+        },
+        {
           "client_id": "159628540720-o2ckqdtkdei1ohmff4q85n7huovu0v95.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
