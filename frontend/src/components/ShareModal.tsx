@@ -103,16 +103,16 @@ export default function ShareModal({
   const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Helper function to show ad after export/share
+  // Helper function to show ad IMMEDIATELY on share/export
   const tryShowAd = async () => {
-    // Use the store directly to avoid stale state
-    const { incrementAndCheckAd } = useAdStore.getState();
+    // Get fresh state from store
+    const { adsEnabled, isAdLoaded } = useAdStore.getState();
     
-    const shouldShow = incrementAndCheckAd();
-    console.log('[ShareModal] tryShowAd - shouldShow:', shouldShow);
+    console.log('[ShareModal] tryShowAd - adsEnabled:', adsEnabled, 'isAdLoaded:', isAdLoaded);
     
-    if (shouldShow) {
-      console.log('[ShareModal] Showing ad after export/share');
+    // Show ad immediately if enabled and loaded (no counting)
+    if (adsEnabled && isAdLoaded) {
+      console.log('[ShareModal] Showing ad immediately on share/export');
       try {
         await showGlobalInterstitial();
       } catch (e) {
