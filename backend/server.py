@@ -21,6 +21,16 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 import re
 import cv2
 import numpy as np
+# Email service
+from email_service import (
+    send_welcome_email,
+    send_verification_email,
+    send_password_reset_email,
+    send_purchase_confirmation_email,
+    send_premium_welcome_email,
+    generate_verification_code,
+    generate_reset_code
+)
 # Note: emergentintegrations was removed for Railway deployment compatibility
 # Using pytesseract (Tesseract OCR) as a public alternative
 try:
