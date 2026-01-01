@@ -22,8 +22,13 @@ import { useI18n } from '../store/i18nStore';
 import { useAdStore } from '../store/adStore';
 import { showGlobalInterstitial } from './AdManager';
 
-// Backend URL for PDF password protection
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import Constants from 'expo-constants';
+
+// Backend URL for PDF password protection - use multiple fallbacks for reliability
+const BACKEND_URL = 
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
+  process.env.EXPO_PUBLIC_BACKEND_URL ||
+  'https://scanapp-revamp.preview.emergentagent.com';
 
 // Brand colors (used for primary accent - stays the same in both themes)
 const BRAND_BLUE = '#3E51FB';
