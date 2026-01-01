@@ -19,6 +19,8 @@ import * as MailComposer from 'expo-mail-composer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import { useI18n } from '../store/i18nStore';
+import { useAdStore } from '../store/adStore';
+import { showGlobalInterstitial } from './AdManager';
 
 // Backend URL for PDF password protection
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
