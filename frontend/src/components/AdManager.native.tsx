@@ -66,6 +66,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
 
   // Update ads enabled based on premium status (with stable reference check)
   useEffect(() => {
+    // Skip if user is null (logged out state) - don't update ads state during logout
+    if (user === null) {
+      return;
+    }
+    
     const isUserPremium = user?.is_premium || user?.is_trial;
     const shouldDisableAds = isUserPremium || isPremium || hasRemovedAds;
     console.log('[AdManager] Premium status check - disabling ads:', shouldDisableAds);
