@@ -17,6 +17,7 @@ import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
 import { usePurchaseStore, PRODUCT_IDS } from '../src/store/purchaseStore';
 import { useAuthStore } from '../src/store/authStore';
+import { logScreenView, logEvent, logPurchaseEvent, AnalyticsEvents } from '../src/services/analytics';
 
 const BRAND_BLUE = '#3B82F6';
 
@@ -60,6 +61,9 @@ export default function PremiumScreen() {
 
   useEffect(() => {
     initialize();
+    // Log screen view for analytics
+    logScreenView('Premium', 'PremiumScreen');
+    logEvent(AnalyticsEvents.PREMIUM_SCREEN_VIEWED);
   }, []);
 
   // Handle back button - always go to main tabs
