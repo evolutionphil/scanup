@@ -38,10 +38,13 @@ if (Platform.OS !== 'web') {
     isErrorWithCode = googleSignInModule.isErrorWithCode;
     
     // Configure Google Sign-In - Use the web client ID from google-services.json (client_type: 3)
+    // This must match the OAuth 2.0 Web Client ID in Google Cloud Console / Firebase
     GoogleSignin.configure({
       webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
       offlineAccess: true,
+      forceCodeForRefreshToken: true,
     });
+    console.log('[GoogleSignIn] Configured with webClientId: 159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com');
   } catch (e) {
     console.log('Google Sign-In not available:', e);
   }
