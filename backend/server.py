@@ -1703,6 +1703,49 @@ async def get_usage_stats(
         "is_premium": is_premium
     }
 
+class UpdatePremiumRequest(BaseModel):
+    user_id: str
+    is_premium: bool
+    has_removed_ads: bool = False
+    subscription_type: Optional[str] = None
+
+@api_router.post("/user/update-premium")
+async def update_premium_status(
+    request: UpdatePremiumRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user's premium status from app purchase"""
+    # Ensure user can only update their own status
+    if request.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Cannot update other user's status")
+    
+    update_data = {}
+    
+    if request.is_premium:
+        # Map subscription type
+        if request.subscription_type:
+            if "yearly" in request.subscription_type:
+                update_data["subscription_type"] = "premium"
+                update_data["subscription_expires_at"] = datetime.now(timezone.utc) + timedelta(days=365)
+            elif "monthly" in request.subscription_type:
+                update_data["subscription_type"] = "premium"
+                update_data["subscription_expires_at"] = datetime.now(timezone.utc) + timedelta(days=30)
+            else:
+                update_data["subscription_type"] = "premium"
+    
+    if request.has_removed_ads:
+        # Store has_removed_ads in user document (add field if needed)
+        update_data["has_removed_ads"] = True
+    
+    if update_data:
+        result = await db.users.update_one(
+            {"user_id": current_user.user_id},
+            {"$set": update_data}
+        )
+        logger.info(f"Updated premium status for user {current_user.user_id}: {update_data}")
+    
+    return {"success": True, "updated": update_data}
+
 # ==================== DOCUMENT ENDPOINTS ====================
 
 @api_router.post("/documents", response_model=Document)
