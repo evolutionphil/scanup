@@ -28,7 +28,7 @@ import Constants from 'expo-constants';
 const BACKEND_URL = 
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  'https://scanapp-revamp.preview.emergentagent.com';
+  'https://scanup-production.up.railway.app';  // Railway backend
 
 // Brand colors (used for primary accent - stays the same in both themes)
 const BRAND_BLUE = '#3E51FB';
