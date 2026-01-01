@@ -305,6 +305,10 @@ export default function ShareModal({
         body: `Please find attached: ${documentName}`,
         attachments: [newUri],
       });
+      
+      // Show ad after mail compose
+      await tryShowAd();
+      
       onClose();
     } catch (error: any) {
       console.error('Mail error:', error);
