@@ -34,6 +34,8 @@ export default function RegisterScreen() {
   const { register, googleLogin } = useAuthStore();
 
   const handleRegister = async () => {
+    console.log('[Register] Attempting registration...');
+    
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert(t('error', 'Error'), t('please_fill_all_fields', 'Please fill in all fields'));
       return;
@@ -51,9 +53,12 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
+      console.log('[Register] Calling register API...');
       await register(email, password, name);
+      console.log('[Register] Success! Navigating...');
       router.replace('/(tabs)');
     } catch (error: any) {
+      console.error('[Register] Error:', error.message);
       Alert.alert(t('registration_failed', 'Registration Failed'), error.message || t('please_try_again', 'Please try again'));
     } finally {
       setLoading(false);
