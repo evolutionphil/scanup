@@ -443,15 +443,16 @@ export default function DocumentScreen() {
       setShowFilterEditor(false);
       
       // Show ad after applying filter (for free users)
-      if (adsEnabled) {
-        incrementScanCount();
-        if (shouldShowAd()) {
-          console.log('[handleApplyFilter] Showing ad after filter apply');
-          try {
-            await showGlobalInterstitial();
-          } catch (e) {
-            console.log('[handleApplyFilter] Could not show ad:', e);
-          }
+      const { incrementAndCheckAd } = useAdStore.getState();
+      const shouldShow = incrementAndCheckAd();
+      console.log('[handleApplyFilter] shouldShow ad:', shouldShow);
+      
+      if (shouldShow) {
+        console.log('[handleApplyFilter] Showing ad after filter apply');
+        try {
+          await showGlobalInterstitial();
+        } catch (e) {
+          console.log('[handleApplyFilter] Could not show ad:', e);
         }
       }
     } catch (e) {
