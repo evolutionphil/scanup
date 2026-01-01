@@ -387,7 +387,7 @@ def user_to_response(user: User) -> UserResponse:
     )
 
 def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
-    """Add watermark to image for free users"""
+    """Add a single watermark to image center for free users"""
     try:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
@@ -399,8 +399,8 @@ def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
         watermark = Image.new('RGBA', image.size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(watermark)
         
-        # Calculate font size based on image size (larger for visibility)
-        font_size = max(40, min(image.width, image.height) // 12)
+        # Calculate font size based on image size (reasonable size, not too big)
+        font_size = max(30, min(image.width, image.height) // 15)
         
         # Try to use a built-in font, fallback to default
         try:
@@ -415,30 +415,16 @@ def add_watermark(image_base64: str, watermark_text: str = "ScanUp") -> str:
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         
-        # Draw diagonal watermarks across the image for better visibility
-        # Multiple watermarks at different positions
-        positions = [
-            (image.width // 4 - text_width // 2, image.height // 4 - text_height // 2),
-            (3 * image.width // 4 - text_width // 2, image.height // 4 - text_height // 2),
-            (image.width // 2 - text_width // 2, image.height // 2 - text_height // 2),
-            (image.width // 4 - text_width // 2, 3 * image.height // 4 - text_height // 2),
-            (3 * image.width // 4 - text_width // 2, 3 * image.height // 4 - text_height // 2),
-        ]
+        # Single watermark in the center of the image
+        x = (image.width - text_width) // 2
+        y = (image.height - text_height) // 2
         
-        for x, y in positions:
-            # Draw shadow/outline first for visibility on any background
-            shadow_offset = 2
-            draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(255, 255, 255, 100))
-            
-            # Draw main watermark text (semi-transparent)
-            draw.text((x, y), text, font=font, fill=(128, 128, 128, 150))
+        # Draw shadow/outline first for visibility on any background
+        shadow_offset = 2
+        draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0, 80))
         
-        # Also add a bottom-right corner watermark
-        padding = 20
-        x = image.width - text_width - padding
-        y = image.height - text_height - padding
-        draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(0, 0, 0, 120))
-        draw.text((x, y), text, font=font, fill=(100, 100, 100, 200))
+        # Draw main watermark text (semi-transparent gray)
+        draw.text((x, y), text, font=font, fill=(128, 128, 128, 120))
         
         # Composite
         watermarked = Image.alpha_composite(image, watermark)
