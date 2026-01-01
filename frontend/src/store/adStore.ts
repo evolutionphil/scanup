@@ -47,6 +47,8 @@ interface AdState {
   setAdsEnabled: (enabled: boolean) => void;
   shouldShowAd: () => boolean;
   recordAdShown: () => void;
+  // Combined action: increment and check if should show
+  incrementAndCheckAd: () => boolean;
 }
 
 export const useAdStore = create<AdState>((set, get) => ({
@@ -58,7 +60,9 @@ export const useAdStore = create<AdState>((set, get) => ({
   scansBetweenAds: 3, // Show interstitial every 3 scans
   
   incrementScanCount: () => {
-    set((state) => ({ scanCount: state.scanCount + 1 }));
+    const newCount = get().scanCount + 1;
+    console.log('[AdStore] Incrementing scan count to:', newCount);
+    set({ scanCount: newCount });
   },
   
   resetScanCount: () => {
@@ -66,6 +70,7 @@ export const useAdStore = create<AdState>((set, get) => ({
   },
   
   setAdLoaded: (loaded: boolean) => {
+    console.log('[AdStore] Ad loaded:', loaded);
     set({ isAdLoaded: loaded });
   },
   
@@ -74,29 +79,70 @@ export const useAdStore = create<AdState>((set, get) => ({
   },
   
   setAdsEnabled: (enabled: boolean) => {
+    console.log('[AdStore] Ads enabled:', enabled);
     set({ adsEnabled: enabled });
   },
   
   shouldShowAd: () => {
     const { scanCount, scansBetweenAds, adsEnabled, isAdLoaded, lastAdShownAt } = get();
     
+    console.log('[AdStore] shouldShowAd check:', { scanCount, scansBetweenAds, adsEnabled, isAdLoaded, lastAdShownAt });
+    
     // Don't show ads if disabled (premium users)
-    if (!adsEnabled) return false;
+    if (!adsEnabled) {
+      console.log('[AdStore] Ads disabled - skipping');
+      return false;
+    }
     
     // Don't show if ad not loaded
-    if (!isAdLoaded) return false;
+    if (!isAdLoaded) {
+      console.log('[AdStore] Ad not loaded - skipping');
+      return false;
+    }
     
     // Don't show ads too frequently (minimum 30 seconds between ads)
-    if (lastAdShownAt && Date.now() - lastAdShownAt < 30000) return false;
+    if (lastAdShownAt && Date.now() - lastAdShownAt < 30000) {
+      console.log('[AdStore] Too soon since last ad - skipping');
+      return false;
+    }
     
     // Show ad every N scans
-    return scanCount > 0 && scanCount % scansBetweenAds === 0;
+    const shouldShow = scanCount > 0 && scanCount % scansBetweenAds === 0;
+    console.log('[AdStore] Should show ad:', shouldShow, `(${scanCount} % ${scansBetweenAds} = ${scanCount % scansBetweenAds})`);
+    return shouldShow;
   },
   
   recordAdShown: () => {
+    console.log('[AdStore] Recording ad shown');
     set({ 
       lastAdShownAt: Date.now(),
       isAdLoaded: false, // Ad needs to be reloaded after showing
     });
+  },
+  
+  // Combined action to avoid race conditions
+  incrementAndCheckAd: () => {
+    const state = get();
+    const newCount = state.scanCount + 1;
+    set({ scanCount: newCount });
+    
+    console.log('[AdStore] incrementAndCheckAd:', { 
+      newCount, 
+      adsEnabled: state.adsEnabled, 
+      isAdLoaded: state.isAdLoaded 
+    });
+    
+    // Don't show if disabled or not loaded
+    if (!state.adsEnabled || !state.isAdLoaded) {
+      return false;
+    }
+    
+    // Don't show too frequently
+    if (state.lastAdShownAt && Date.now() - state.lastAdShownAt < 30000) {
+      return false;
+    }
+    
+    // Show ad every N actions
+    return newCount > 0 && newCount % state.scansBetweenAds === 0;
   },
 }));
