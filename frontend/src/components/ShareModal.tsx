@@ -98,7 +98,6 @@ export default function ShareModal({
   const { theme, isDark } = useThemeStore();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
-  const { incrementScanCount, shouldShowAd, adsEnabled } = useAdStore();
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
   const [passwordProtect, setPasswordProtect] = useState(false);
   const [password, setPassword] = useState('');
@@ -106,10 +105,13 @@ export default function ShareModal({
 
   // Helper function to show ad after export/share
   const tryShowAd = async () => {
-    if (!adsEnabled) return;
+    // Use the store directly to avoid stale state
+    const { incrementAndCheckAd } = useAdStore.getState();
     
-    incrementScanCount(); // Count export/share as an action
-    if (shouldShowAd()) {
+    const shouldShow = incrementAndCheckAd();
+    console.log('[ShareModal] tryShowAd - shouldShow:', shouldShow);
+    
+    if (shouldShow) {
       console.log('[ShareModal] Showing ad after export/share');
       try {
         await showGlobalInterstitial();
