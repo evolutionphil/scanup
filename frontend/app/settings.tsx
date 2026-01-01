@@ -445,7 +445,7 @@ export default function SettingsScreen() {
         <SettingRow
           icon="language-outline"
           label={t('language', 'Language')}
-          value={LANGUAGE_OPTIONS.find(l => l.value === settings.language)?.label}
+          value={languageOptions.find(l => l.value === settings.language)?.label}
           onPress={() => setShowLanguagePicker(true)}
         />
 
