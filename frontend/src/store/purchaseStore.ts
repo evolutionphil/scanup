@@ -221,20 +221,42 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { requestPurchase, finishTransaction } = require('react-native-iap');
+      const { requestPurchase, getProducts, finishTransaction, purchaseUpdatedListener, purchaseErrorListener } = require('react-native-iap');
       
-      // Request purchase
-      const purchase = await requestPurchase({
-        skus: [productId],
-        andDangerouslyFinishTransactionAutomaticallyIOS: false,
-      });
+      // First get the product to ensure it exists
+      const products = await getProducts({ skus: [productId] });
+      console.log('[PurchaseStore] Found products:', JSON.stringify(products, null, 2));
+      
+      if (products.length === 0) {
+        throw new Error('Product not found in store');
+      }
+      
+      // Request purchase - for Android non-consumable
+      let purchase;
+      if (Platform.OS === 'android') {
+        purchase = await requestPurchase({
+          skus: [productId],
+        });
+      } else {
+        purchase = await requestPurchase({
+          sku: productId,
+          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        });
+      }
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
       if (purchase) {
         // Finish the transaction
         try {
-          await finishTransaction({ purchase, isConsumable: false });
+          if (Platform.OS === 'android') {
+            const { acknowledgePurchaseAndroid } = require('react-native-iap');
+            if (purchase.purchaseToken) {
+              await acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+            }
+          } else {
+            await finishTransaction({ purchase, isConsumable: false });
+          }
         } catch (finishError) {
           console.log('[PurchaseStore] Finish transaction error:', finishError);
         }
