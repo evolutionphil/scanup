@@ -2,7 +2,7 @@
   "expo": {
     "name": "ScanUp",
     "slug": "scanup",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scanup",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.visiongo.scanupp",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.visiongo.scanupp",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#3B82F6"
