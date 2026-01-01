@@ -68,21 +68,37 @@ const FILTER_OPTIONS: { label: string; value: FilterType; icon: string }[] = [
   { label: 'Magic', value: 'magic', icon: 'sparkles-outline' },
 ];
 
-const LANGUAGE_OPTIONS = [
-  { label: 'English', value: 'en', flag: '🇺🇸' },
-  { label: 'Deutsch', value: 'de', flag: '🇩🇪' },
-  { label: 'Français', value: 'fr', flag: '🇫🇷' },
-  { label: 'Español', value: 'es', flag: '🇪🇸' },
-  { label: 'Italiano', value: 'it', flag: '🇮🇹' },
-  { label: 'العربية', value: 'ar', flag: '🇸🇦' },
-  { label: '中文', value: 'zh', flag: '🇨🇳' },
-];
+// Language display info - maps language codes to display names and flags
+const LANGUAGE_INFO: Record<string, { label: string; flag: string }> = {
+  en: { label: 'English', flag: '🇺🇸' },
+  de: { label: 'Deutsch', flag: '🇩🇪' },
+  fr: { label: 'Français', flag: '🇫🇷' },
+  es: { label: 'Español', flag: '🇪🇸' },
+  it: { label: 'Italiano', flag: '🇮🇹' },
+  ar: { label: 'العربية', flag: '🇸🇦' },
+  zh: { label: '中文', flag: '🇨🇳' },
+  tr: { label: 'Türkçe', flag: '🇹🇷' },
+  ru: { label: 'Русский', flag: '🇷🇺' },
+  pt: { label: 'Português', flag: '🇵🇹' },
+  ja: { label: '日本語', flag: '🇯🇵' },
+  ko: { label: '한국어', flag: '🇰🇷' },
+  nl: { label: 'Nederlands', flag: '🇳🇱' },
+  pl: { label: 'Polski', flag: '🇵🇱' },
+  uk: { label: 'Українська', flag: '🇺🇦' },
+};
 
 export default function SettingsScreen() {
   const { theme, isDark, toggleTheme } = useThemeStore();
   const { user, isGuest, logout } = useAuthStore();
   const { currentLanguage, setLanguage, t, availableLanguages } = useI18n();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  
+  // Generate language options from availableLanguages
+  const languageOptions = availableLanguages.map(code => ({
+    label: LANGUAGE_INFO[code]?.label || code.toUpperCase(),
+    value: code,
+    flag: LANGUAGE_INFO[code]?.flag || '🌐',
+  }));
   const [showQualityPicker, setShowQualityPicker] = useState(false);
   const [showFilterPicker, setShowFilterPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
