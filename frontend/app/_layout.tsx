@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
 import { AdManager } from '../src/components/AdManager';
+import { initAnalytics } from '../src/services/analytics';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
@@ -17,6 +18,13 @@ export default function RootLayout() {
       hasInitialized.current = true;
       loadTheme();
       initializeI18n();
+      
+      // Initialize Firebase Analytics on native platforms
+      if (Platform.OS !== 'web') {
+        initAnalytics().catch(err => {
+          console.log('[RootLayout] Analytics init error:', err);
+        });
+      }
     }
   }, []);
 
