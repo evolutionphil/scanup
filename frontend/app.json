@@ -113,8 +113,7 @@
         {
           "microphonePermission": "Allow ScanUp to access your microphone for video capture"
         }
-      ],
-      "react-native-google-mobile-ads"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
