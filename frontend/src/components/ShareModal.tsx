@@ -98,10 +98,26 @@ export default function ShareModal({
   const { theme, isDark } = useThemeStore();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const { incrementScanCount, shouldShowAd, adsEnabled } = useAdStore();
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
   const [passwordProtect, setPasswordProtect] = useState(false);
   const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Helper function to show ad after export/share
+  const tryShowAd = async () => {
+    if (!adsEnabled) return;
+    
+    incrementScanCount(); // Count export/share as an action
+    if (shouldShowAd()) {
+      console.log('[ShareModal] Showing ad after export/share');
+      try {
+        await showGlobalInterstitial();
+      } catch (e) {
+        console.log('[ShareModal] Could not show ad:', e);
+      }
+    }
+  };
 
   // Calculate actual page count from pages array or use provided pageCount
   const actualPageCount = pageCount ?? pages.length;
