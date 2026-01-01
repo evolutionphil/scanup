@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useAdStore } from '../store/adStore';
 import { useAuthStore } from '../store/authStore';
+import { usePurchaseStore } from '../store/purchaseStore';
 
 interface AdManagerProps {
   children: React.ReactNode;
