@@ -251,7 +251,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { requestPurchase, getSubscriptions, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
+      const { requestSubscription, getSubscriptions, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
       
       let purchase;
       
@@ -273,19 +273,15 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         
         console.log('[PurchaseStore] Using offerToken:', offerToken);
         
-        // V14 API for Android subscriptions
-        purchase = await requestPurchase({
-          request: {
-            skus: [productId],
-            subscriptionOffers: [{ sku: productId, offerToken }],
-          },
-          type: 'subs',
+        // V14 API for Android subscriptions - use requestSubscription
+        purchase = await requestSubscription({
+          sku: productId,
+          subscriptionOffers: [{ sku: productId, offerToken }],
         });
       } else {
-        // iOS
-        purchase = await requestPurchase({
-          request: { sku: productId },
-          type: 'subs',
+        // iOS - use requestSubscription
+        purchase = await requestSubscription({
+          sku: productId,
         });
       }
       
