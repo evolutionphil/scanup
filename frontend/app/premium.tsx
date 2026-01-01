@@ -115,21 +115,31 @@ export default function PremiumScreen() {
     setError(null);
     
     let success = false;
+    let productId = '';
     
     if (selectedPlan === 'monthly') {
-      success = await purchaseSubscription(PRODUCT_IDS.PREMIUM_MONTHLY);
+      productId = PRODUCT_IDS.PREMIUM_MONTHLY;
+      logPurchaseEvent('started', productId);
+      success = await purchaseSubscription(productId);
     } else if (selectedPlan === 'yearly') {
-      success = await purchaseSubscription(PRODUCT_IDS.PREMIUM_YEARLY);
+      productId = PRODUCT_IDS.PREMIUM_YEARLY;
+      logPurchaseEvent('started', productId);
+      success = await purchaseSubscription(productId);
     } else if (selectedPlan === 'removeAds') {
-      success = await purchaseProduct(PRODUCT_IDS.REMOVE_ADS);
+      productId = PRODUCT_IDS.REMOVE_ADS;
+      logPurchaseEvent('started', productId);
+      success = await purchaseProduct(productId);
     }
     
     if (success) {
+      logPurchaseEvent('completed', productId);
       Alert.alert(
         t('purchase_success', 'Purchase Successful!'),
         t('purchase_success_message', 'Thank you for your purchase. Enjoy your premium features!'),
         [{ text: 'OK', onPress: () => router.back() }]
       );
+    } else if (error) {
+      logPurchaseEvent('failed', productId, undefined, undefined, error);
     }
   };
 
@@ -138,6 +148,7 @@ export default function PremiumScreen() {
     
     const state = usePurchaseStore.getState();
     if (state.isPremium || state.hasRemovedAds) {
+      logEvent('purchases_restored');
       Alert.alert(
         t('restore_success', 'Restore Successful!'),
         t('restore_success_message', 'Your purchases have been restored.'),
