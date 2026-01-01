@@ -44,13 +44,21 @@ let isInitializing = false;
 export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const { setAdLoaded, setAdShowing, setAdsEnabled, recordAdShown } = useAdStore();
   const { user } = useAuthStore();
+  const { isPremium, hasRemovedAds, initialize: initializePurchases } = usePurchaseStore();
   const [sdkReady, setSdkReady] = useState(false);
 
-  // Update ads enabled based on user premium status
+  // Initialize purchase store to check for existing purchases
   useEffect(() => {
-    const isPremium = user?.is_premium || user?.is_trial;
-    setAdsEnabled(!isPremium);
-  }, [user?.is_premium, user?.is_trial, setAdsEnabled]);
+    initializePurchases();
+  }, []);
+
+  // Update ads enabled based on user premium status AND purchase status
+  useEffect(() => {
+    const isUserPremium = user?.is_premium || user?.is_trial;
+    const shouldDisableAds = isUserPremium || isPremium || hasRemovedAds;
+    console.log('[AdManager] Updating ads enabled:', !shouldDisableAds, { isUserPremium, isPremium, hasRemovedAds });
+    setAdsEnabled(!shouldDisableAds);
+  }, [user?.is_premium, user?.is_trial, isPremium, hasRemovedAds, setAdsEnabled]);
 
   // Initialize Google Mobile Ads SDK
   const initializeSDK = useCallback(async () => {
