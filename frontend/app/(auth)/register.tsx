@@ -152,6 +152,14 @@ export default function RegisterScreen() {
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('sign_up_to_get_started', 'Sign up to get started')}</Text>
           </View>
 
+          {/* Error Message Display */}
+          {errorMessage && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={20} color="#EF4444" />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          )}
+
           <View style={styles.form}>
             <Input
               label={t('full_name', 'Full Name')}
