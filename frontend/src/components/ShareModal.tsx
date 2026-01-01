@@ -265,6 +265,9 @@ export default function ShareModal({
           mimeType,
           dialogTitle: `Share ${documentName}`,
         });
+        
+        // Show ad after successful share
+        await tryShowAd();
       } else {
         Alert.alert('Success', 'File saved successfully');
       }
