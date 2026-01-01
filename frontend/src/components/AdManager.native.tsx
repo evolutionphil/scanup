@@ -105,6 +105,25 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     isInitializing = true;
 
     try {
+      // Initialize Firebase FIRST (required for AdMob/Firebase integration)
+      try {
+        const firebaseApp = require('@react-native-firebase/app').default;
+        if (!firebaseApp.apps.length) {
+          console.log('[AdManager] Firebase not initialized, initializing...');
+          // Firebase auto-initializes from google-services.json
+        } else {
+          console.log('[AdManager] Firebase already initialized');
+        }
+        
+        // Initialize Firebase Analytics
+        const analytics = require('@react-native-firebase/analytics').default;
+        await analytics().setAnalyticsCollectionEnabled(true);
+        console.log('[AdManager] Firebase Analytics enabled');
+      } catch (firebaseError) {
+        console.log('[AdManager] Firebase init (non-critical):', firebaseError);
+      }
+
+      // Now initialize AdMob
       const adsModule = getAdsModule();
       if (!adsModule) {
         console.log('[AdManager] Ads module not available');
@@ -112,11 +131,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
       }
       
       const mobileAds = adsModule.default;
-      console.log('[AdManager] Initializing SDK...');
+      console.log('[AdManager] Initializing AdMob SDK...');
       
       await mobileAds().initialize();
       
-      console.log('[AdManager] SDK initialized');
+      console.log('[AdManager] AdMob SDK initialized');
       isSDKInitialized = true;
       setSdkReady(true);
       
