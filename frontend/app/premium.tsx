@@ -60,12 +60,15 @@ export default function PremiumScreen() {
     initialize();
   }, []);
 
-  // Handle back button
+  // Handle back button - always go to main tabs
   const handleClose = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
+    try {
+      // Always navigate to main tabs to avoid white screen
       router.replace('/(tabs)');
+    } catch (e) {
+      console.log('[Premium] Navigation error:', e);
+      // Fallback
+      router.push('/(tabs)');
     }
   };
 
