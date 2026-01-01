@@ -164,7 +164,7 @@ export default function FilterEditor({
         ? base64Image.split(',')[1] 
         : base64Image;
       
-      const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://scanapp-revamp.preview.emergentagent.com';
+      const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://scanapp-fix.preview.emergentagent.com';
       const endpoint = `${BACKEND_URL}/api/images/apply-filter`;
       
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };

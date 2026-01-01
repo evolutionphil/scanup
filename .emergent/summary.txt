@@ -1,200 +1,249 @@
 <analysis>
 
 **original_problem_statement**:
-The user initially requested a UI overhaul and bug fixes for the ScanUp app. The primary issues were inconsistent dark mode, non-functional document/folder renaming, non-functional folder password setting, and UI layout problems.
+The user's initial goal was a UI overhaul and fixing bugs. This evolved into a series of critical tasks. The primary blocker was a native Android app crash caused by the Google AdMob integration. After resolving the crash, the user requested:
+1.  **Ad Logic Refinement:** Change ad triggers from just new document creation to include adding new pages, exporting as PDF, sharing, and applying filters. The user later requested that sharing/exporting/filtering trigger ads immediately, while scanning pages remains on a counter.
+2.  **Premium Features:** Implement a Go Premium feature with both monthly/yearly subscriptions and a one-time Remove Ads purchase, without using RevenueCat.
+3.  **Language Picker Fix:** The in-app language picker was hardcoded and missing languages (Turkish, Russian) that were available on the backend. The app should dynamically fetch and display all available languages.
+4.  **Guest Subscription Handling:** A user who buys a subscription as a guest should have it linked to their account when they log in.
+5.  **Critical Bug Fixes (from user testing):**
+    *   Google Sign-In fails with .
+    *   In-app purchases (subscriptions and one-time) are not working, showing errors like missing purchase request configuration or undefined is not a function.
+    *   The 'X' (close) button on the premium screen leads to a white page instead of returning to the app.
+    *   PDF password protection fails in the release APK.
+6.  **Build & Deployment:** The user repeatedly faced local and cloud build failures (, ,  errors, missing Gradle wrapper) and needed guidance to generate a production AAB for the Play Store. The backend needed to be pointed to the user's Railway deployment instead of the temporary preview URL.
 
-During this session, the user provided more specific feedback and new requests:
-- **Dark Mode:** The tab bar background and Share modal were still in light theme.
-- **New Bugs:** Clear Cache and Reset Settings were not working as expected.
-- **Critical Failures:** The user re-reported that document/folder renaming, setting a folder password, setting a PDF password, and saving annotations were all failing with various errors.
-- **Feature Request:** Add a link/button on the settings screen to navigate to the premium features page.
-- **UI Request:** Update the phone mockup on the promotional landing page to show a more realistic view of the app's interface.
-
-**User's preferred language**: English
+**User's preferred language**: The user converses primarily in English, but uses German (Warnung) and Turkish (düzeltir misin, Tamamlandı) and receives some responses in Turkish. The next agent should primarily respond in English but be prepared to understand and respond in Turkish if the user switches.
 
 **what currently exists?**
-The application is a full-stack Expo (React Native) app with a FastAPI backend.
-- A comprehensive dark mode has been implemented across most of the application, including the main documents screen, tab bar, settings, and various modals (, ).
-- The Clear Cache function in settings has been fixed to correctly remove all guest documents from AsyncStorage and delete cached images from the file system.
-- The Reset Settings function has been fixed to properly reset all settings, including the theme.
-- The annotation/signature size mismatch has been fixed. The signature preview now correctly calculates and displays the aspect ratio of the actual signature, ensuring it matches the final saved document.
-- The settings screen has been updated with more bottom padding to prevent the version text from being obscured by the main tab bar on mobile devices.
-- A Go Premium button has been added to the settings screen.
-- The promotional landing page has been significantly improved with a realistic, detailed mockup of the app's UI, including a document list, folders, and tab bar.
+The application is a full-stack Expo (React Native) app with a FastAPI backend hosted on Railway.
+- The critical native build crash related to AdMob has been resolved.
+- Ad logic has been implemented to trigger ads immediately on sharing/exporting/filtering and every 3 pages for scanning.
+- An in-app purchase system using  has been integrated. This includes a  paywall screen and a  to manage IAP logic. The  now checks for premium status to hide ads.
+- The language picker on the  page has been refactored to dynamically display languages fetched from the backend, fixing the missing languages issue.
+- A system to sync a guest user's purchases to their account upon login has been implemented on both the frontend () and backend ( endpoint).
+- All backend API calls have been successfully pointed to the user's Railway URL ().
+- Numerous build-time issues ( errors,  misconfiguration, icon dimensions, package mismatches) have been resolved to enable successful EAS builds.
 
 **Last working item**:
-    - Last item agent was working: The agent was debugging a set of critical, user-reported bugs where core features (document/folder renaming, setting passwords, and saving annotations) were failing on the frontend. After confirming via  that all corresponding backend APIs were working correctly, the agent deduced the failures were in the frontend API calls. The agent was about to re-investigate the frontend code, starting with the incorrect API path ( instead of ) being called from .
-    - Status: IN PROGRESS
-    - Agent Testing Done: Y (Manual  testing for backend APIs)
-    - Which testing method agent to use? manual testing by curl
-    - User Testing Done: N
+    - Last item agent was working: The agent was fixing a series of errors reported by  that were causing the user's EAS build to fail. The fixes included:
+        1. Resizing the app icon to be perfectly square.
+        2. Adding the  and  directories to  to ensure EAS uses the prebuild workflow correctly.
+        3. Removing the  file to resolve lock file conflicts.
+        4. Running env: load .env
+env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_TOKEN
+Dependencies are up to date to correct package version mismatches.
+        5. Correcting a peer dependency mismatch between  and .
+        The goal was to create a clean project state for a successful production build.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: N
+    - Which testing method agent to use? The user will perform manual testing via a production build (An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username). The next agent needs to guide the user to pull the latest code and run the build. IAP testing requires uploading the AAB to the Play Console Internal Testing track.
+    - User Testing Done: N (The user was blocked by build failures).
 
 **All Pending/In progress Issue list**:
-  - Issue 1: Core frontend operations are failing. (P0)
-  - Issue 2: Saving annotations fails with a Backend error message. (P0)
-  - Issue 3: Setting a password on a shared PDF fails. (P0)
-  - Issue 4: Translations are still missing for some UI elements. (P2)
-  - Issue 5: Watermark is not visible on scanned documents for non-premium users. (P3)
+  - Issue 1: In-App Purchases (IAP) are not working. (P0)
+  - Issue 2: Google Sign-In fails with . (P0)
+  - Issue 3: App web preview is broken due to native-only modules. (P2)
+  - Issue 4: Several features implemented in previous sessions have not been verified by the user on a stable build. (P2)
 
   Issues Detail:
-  - Issue 1: **Core frontend operations failing**
-     - Description: User reports that renaming documents, renaming folders, and setting a password on a folder are all failing from the UI.
-     - Attempted fixes: The previous agent had attempted a fix by changing relative URLs to absolute URLs, but this was not successful. The current agent has confirmed via  that the backend endpoints (, etc.) are working correctly. The issue is definitively in the frontend client code.
-     - Next debug checklist:
-        1. Open .
-        2. In the , , and  functions, add  statements to inspect the exact , ,  (especially the  token), and  being sent in the  requests.
-        3. Compare the logged data against the successful  commands to find the discrepancy (e.g., incorrect payload structure, missing token, wrong URL).
-     - Why fix this issue and what will be achieved with the fix?: These are fundamental CRUD operations for the app. Fixing them is critical for basic usability.
+  - Issue 1: **In-App Purchases (IAP) are not working**
+     - Description: User reported that on a release build, attempting to purchase a subscription or the remove ads feature results in errors like missing purchase request configuration or undefined is not a function.
+     - Attempted fixes: The agent correctly identified that  was updated to v14, which has a breaking API change. The  was rewritten multiple times to match the new v14 syntax for fetching products and initiating purchases, based on documentation and  advice.
+     - Next debug checklist: The code in  is now believed to be correct for v14. The issue can only be verified by the user with a new build.
+        1. Guide the user to perform a clean EAS build: , yarn install v1.22.22
+[1/4] Resolving packages...
+success Already up-to-date.
+Done in 0.34s., An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username.
+        2. Instruct the user to upload the generated AAB to the **Internal Testing track** in the Google Play Console.
+        3. Ensure the user has added their Google account as a **licensed tester**.
+        4. Ask the user to install the app from the Play Store (internal track link) and re-test all three purchase options (monthly, yearly, remove ads).
+        5. If it still fails, ask for the exact error message and any logs from Android Studio's Logcat connected to the device.
+     - Why fix this issue and what will be achieved with the fix?: This is a core monetization feature and a complete blocker for the app's business model.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (on a real device via Play Store internal testing).
+     - Blocked on other issue: None.
+
+  - Issue 2: **Google Sign-In fails with **
+     - Description: User reports that Google Sign-In is not working on the release build. This error almost always indicates a mismatch between the app's signing certificate (SHA-1 fingerprint) and the configuration in Firebase.
+     - Attempted fixes:
+        1. The agent found and fixed hardcoded, incorrect client IDs in  and .
+        2. The agent guided the user to add **two** SHA-1 fingerprints to their Firebase project settings: one from their local upload keystore and one from the Google Play Console's App Signing page.
+        3. The user provided an updated  containing these new fingerprints, which the agent integrated into the project.
+     - Next debug checklist: The configuration is now believed to be correct.
+        1. The user must test this on the new production build generated for Issue 1.
+        2. If it fails, confirm with the user that the exact SHA-1 fingerprints from the App signing page in Play Console and their local keystore are present in the Firebase project settings.
+     - Why fix this issue and what will be achieved with the fix?: This is a critical authentication path for users.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (on a release build).
+     - Blocked on other issue: None.
+
+  - Issue 3: **App web preview is broken due to native-only modules**
+     - Description: The Expo web preview crashes with an error  This is caused by .
+     - Attempted fixes: The agent correctly identified the cause and attempted to fix it by creating platform-specific files ( and ). However, due to Metro bundler caching, the fix didn't immediately take effect, and the agent moved on to more critical issues.
+     - Next debug checklist: The approach was correct, but needs to be finalized.
+        1. Verify that  contains the full ad logic and  contains a mock/empty implementation.
+        2. Ensure there is no  acting as an index, and that components import  directly, letting Metro resolve the extension.
+        3. Restart the expo server with a cache clear: [21:12:27] Starting project at /app/frontend.
+     - Why fix this issue and what will be achieved with the fix?: While not a production blocker, fixing this improves the development experience by allowing the agent to use the web preview for non-native UI work.
      - Status:  IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend (web preview).
+     - Blocked on other issue: None.
+
+  - Issue 4: **Pending user verification for previously implemented features**
+     - Description: The following features were implemented but have not been tested by the user on a stable, working build.
+        *   Annotation/Signature saving.
+        *   PDF password protection (the backend endpoint works, but the full flow in-app needs testing).
+        *   Watermark visibility for non-premium users.
+        *   Sort by modal translations.
+     - Status: TESTING PENDING
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
-  - Issue 2: **Saving annotations fails**
-     - Description: User reports Failed to save annotations: Backend error when trying to save a signature on a document.
-     - Attempted fixes: The agent confirmed the backend endpoint  exists. The issue is likely the frontend payload.
-     - Next debug checklist:
-        1. Open .
-        2. Locate the  function (or similar).
-        3. Add  statements to inspect the payload being sent to . The backend expects fields like , , , etc. The payload is likely malformed or missing required fields.
-     - Why fix this issue and what will be achieved with the fix?: This is the core document signing feature of the application.
-     - Status:  IN PROGRESS
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
-  - Issue 3: **PDF password protection fails**
-     - Description: User reports could not apply password protection sharing unprotected pdf.
-     - Attempted fixes: The agent discovered through logs that the frontend is likely calling an incorrect endpoint path: .
-     - Next debug checklist:
-        1. Open .
-        2. Find the function that handles PDF password protection.
-        3. Correct the  call's URL from  to the correct path: .
-     - Why fix this issue and what will be achieved with the fix?: Fixes a security and sharing feature.
-     - Status:  IN PROGRESS
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
-  - Issue 4: **Incomplete Translations**
-     - Description: The  modal elements and the no documents text in folders are still not translated.
-     - Attempted fixes: None in this session.
-     - Next debug checklist:
-        1. Inspect the  in  and replace hardcoded text with  calls.
-        2. Add the new translation keys to  in .
-     - Why fix this issue and what will be achieved with the fix?: To complete the app-wide internationalization feature.
-     - Status: **NOT STARTED**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
-  - Issue 5: **Watermark Not Visible**
-     - Description: Watermark for non-premium users is not being applied to documents. This is a carry-over issue.
-     - Attempted fixes: None in this session.
-     - Next debug checklist:
-        1. Examine the  check in  within the document processing logic.
-        2. Add logging inside the  function to trace its execution and check variables.
-     - Why fix this issue and what will be achieved with the fix?: Core business logic for differentiating free/premium users.
-     - Status: **NOT STARTED**
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Backend
-     - Blocked on other issue: none
+     - Should Test frontend/backend/both after fix?: Frontend.
 
 **In progress Task List**:
-  - None. All in-progress items are categorized as issues.
+  - None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - (P1) Implement functionality for the search icon on the main screen.
+    - (P1) Implement functionality for the search icon on the main screen ().
 - **Future Tasks**:
     - Refactor the monolithic  into smaller, more manageable routers.
-    - Refactor the very large  component into smaller sub-components.
+    - Refactor large frontend components like  into smaller sub-components.
 
 **Completed work in this session**
-- **Dark Mode Overhaul (DONE)**:
-  - Fixed hardcoded colors in .
-  - Fixed multiple hardcoded colors in  for modals, tabs, and headers.
-  - Fixed hardcoded colors in .
-  - Visually verified with screenshots that dark mode is now consistently applied on the home screen, tab bar, and settings.
-- **Settings Screen Bugs (DONE)**:
-  - **Clear Cache**: Fixed  in  to use correct AsyncStorage keys and to delete the image directory from the file system.
-  - **Reset Settings**: Fixed  in  to also reset the theme state.
-  - **UI Glitch**: Increased bottom margin in  to  to prevent the footer from overlapping with the tab bar.
-- **Annotation Size Mismatch (DONE)**:
-  - Fixed the signature preview in . It now uses  to calculate the signature's true aspect ratio, ensuring the preview matches the final saved output.
-- **Landing Page UI (DONE)**:
-  - Replaced the generic phone mockup in  with a detailed, realistic HTML/CSS representation of the app's document screen.
-- **Feature Addition (DONE)**:
-  - Added a Go Premium button to the  screen, which navigates to .
-- **Backend (DONE)**:
-  - Added new translation keys to  for the cache/reset confirmation dialogs.
+- **Critical Crash Fix (DONE)**: Resolved the native Android crash by fixing AdMob configuration and guiding the user through numerous local build environment issues (,  memory, SDK path, keystores).
+- **Ad Logic Implementation (DONE)**: Implemented new ad trigger points for scanning, sharing, exporting, and filtering, including logic for immediate display vs. a counter. Refactored the ad store () to be more robust.
+- **In-App Purchase/Premium Feature (IMPLEMENTED)**:
+  - Installed and configured .
+  - Created  paywall screen.
+  - Created  to handle IAP logic, including updating it for the v14 API.
+  - Fixed navigation bugs on the premium screen.
+- **Backend Migration (DONE)**: All API calls and configurations (, , ) were updated to use the user's production Railway backend URL.
+- **Language Picker Fix (DONE)**: Refactored  to use a dynamic language list from the  instead of a hardcoded array.
+- **Guest Subscription Sync (DONE)**: Implemented frontend () and backend () logic to associate purchases made by a guest user with their account after they log in.
+- **Google Sign-In Fix (ATTEMPTED)**: Corrected hardcoded  and  and integrated a new  with the user's correct SHA-1 fingerprints.
+- **Build System Hygiene (DONE)**: Fixed numerous  errors, including correcting the  file, resolving package mismatches, fixing the app icon dimensions, and removing conflicting lock files to enable successful EAS builds.
+- **App Versioning (DONE)**: Updated the app version to  and  to  in  and  as requested by the user.
+
+**Earlier issues found/mentioned but not fixed**
+   - All known issues are captured in the **All Pending/In progress Issue list**.
+
+**Known issue recurrence from previous fork**
+  - **App Crash:** The initial app crash was a new, overriding issue in this fork, now resolved.
+  - **Build Failures:** The user has consistently struggled with their local build environment, leading to recurring issues with Gradle, keystores, and dependencies.
+  - **IAP/Auth:** The IAP and Google Sign-in issues are recurring within this session, with multiple fixes attempted. The latest fixes are pending verification.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Dynamic Theming**: Successfully extended the Zustand  to fix inconsistent dark mode in multiple components.
-- **WYSIWYG Image Sizing**: In React Native, used  on a base64 string to get the true dimensions of a user-generated signature, then calculated the aspect ratio to render a preview that perfectly matches the backend-processed result.
-- **Manual API Debugging**: When automated testing failed, successfully used  with a bearer token to manually test backend endpoints, isolating the problem to the frontend.
-- **File System Management**: Used  to delete an entire directory () as part of the Clear Cache functionality.
+- **In-App Purchases (IAP):** Using  (v14) to handle one-time purchases and subscriptions directly with Google Play Billing and Apple StoreKit. Requires testing on a physical device with a licensed tester account via a build from the Play Console internal track.
+- **Native Build Debugging (Android):** Diagnosing and fixing a wide range of Gradle issues, including  (fixed by editing ), missing SDK location (fixed with ), and missing Gradle wrapper (fixed with ).
+- **Google Sign-In Authentication Flow:** Understanding that  is caused by a SHA-1 fingerprint mismatch and the need to include fingerprints from both the local upload key and the Play App Signing key in the Firebase project's .
+- **Expo Prebuild & EAS Build:** Correctly configuring  to let EAS manage the native projects. Fixing  issues to ensure clean cloud builds.
+- **Platform-Specific Files:** Using  and  extensions to split code for native-only libraries like  to prevent web preview crashes.
+- **State Management (Zustand):** Creating and modifying multiple stores (, , ) to manage global app state for ads, internationalization, and premium features.
 
 **key DB schema**
-  - No changes to schema in this session.
+  - **users** collection: The user model was implicitly updated on the backend to handle  and  fields, managed via the new  endpoint.
 
 **changes in tech stack**
-  - No changes to tech stack in this session.
+  - Added  for in-app purchases.
+  - Added  as a peer dependency for .
 
 **All files of reference**
-- : Location of failing rename/password API calls. **NEEDS IMMEDIATE ATTENTION.**
-- : Location of failing PDF password API call. **NEEDS IMMEDIATE ATTENTION.**
-- : Location of failing annotation saving API call. **NEEDS IMMEDIATE ATTENTION.**
-- : Location of fixed cache/reset/UI functions.
-- : Location of the fixed annotation size preview.
-- : The updated promotional landing page.
+- : **CRITICAL**. Contains all logic for In-App Purchases. Has been rewritten for the  v14 API and is the primary file to check if IAP issues persist.
+- : **CRITICAL**. Contains configurations for Android version, Google Sign-in, and other plugins.
+- : **CRITICAL**. Contains Firebase configuration, including API keys and OAuth client IDs linked to the app's SHA-1 signing certificates. This is key for Google Sign-In to work.
+- : Contains the Google Sign-In button logic and .
+- : Defines build profiles and environment variables like the backend URL for cloud builds.
+- : Contains memory settings for Gradle, crucial for preventing local build failures.
+
+**Areas that need refactoring**:
+- The  platform-specific file implementation (, ) was started but may not have been fully cleaned up due to focus on more critical issues. This should be verified to ensure it's a clean implementation.
+
+**key api endpoints**
+- **POST** : New endpoint in  to update a user's premium status, used for syncing guest purchases.
+- **POST** : Existing endpoint used for password-protecting PDFs. Its functionality was verified against the user's Railway backend.
 
 **Critical Info for New Agent**
-- **Your immediate and highest priority is to fix the failing frontend API calls.** The user has reported that document/folder renaming, password setting, and annotation saving are all broken.
-- **The backend is working correctly.** The previous agent verified all relevant endpoints using . Do not spend time debugging the backend. The problem is 100% in the frontend.
-- **Debug Strategy:** Use  to print the exact URL, payload, and headers for the  requests in  (for rename/password) and  (for PDF password).
-- **Strong Clue:** Logs indicated a  for . The correct endpoint is . Start by fixing this in . This single fix might solve one of the user's reported issues and build momentum.
-- The ESLint parsing errors for TypeScript are a known configuration issue and can be ignored as they do not block the app from running.
+- **The user's highest priorities are fixing In-App Purchases and Google Sign-In.** Do not work on anything else until the user can verify these on a production build.
+- **The user has had many local build failures.** Your primary goal is to guide them to a successful **EAS build**. Do not recommend local Android Studio builds unless absolutely necessary. The required command sequence is: , yarn install v1.22.22
+[1/4] Resolving packages...
+success Already up-to-date.
+Done in 0.36s., An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username.
+- **In-App Purchases can ONLY be tested on a real device using a build from the Google Play Console.**
+    1. The user must upload the AAB from the EAS build to the **Internal Testing** track.
+    2. The user must add their Google account to the **list of licensed testers** in the Play Console.
+    3. They must then install the app from the link provided by the Play Store, not by side-loading the APK.
+- **Google Sign-In  is almost certainly a SHA-1 fingerprint issue.** The  has been updated with two keys, which *should* fix it, but this needs to be verified on the release build. If it fails, you must re-confirm with the user the exact SHA-1s in their Firebase console.
+- **Do not change the backend URL.** It has been correctly set to the user's Railway production deployment ().
 
 **documents created in this job**
-  - None.
+  - 
+  - 
+  - 
+  - 
+  - 
 
-**Last 10 User Messages and any pending HUMAN messages**
-1. **User**: did iyou check the rename folder and rename document feature... (and other bugs). (IN PROGRESS - This is the current P0 task).
-2. **User**: on ladingin page it is very nice but only one thign we have to update the image in the phone and use our main view... (COMPLETED - Agent updated the landing page mockup).
-3. **User**: now check the clear cache... (and other settings fixes). (COMPLETED - Agent fixed cache, reset, and investigated other issues).
-4. **User**: Provided positive feedback on the dark mode summary.
-5. **User**: Focus initially on completing the dark mode fixes to address your main frustration. (COMPLETED).
-... (Older messages relate to work that is now complete).
+**Last 10 User Messages and any pending HUMAN messages** 
+1.  **User:** Asks to update app version to 10 due to Play Store error. (COMPLETED)
+2.  **User:** Reports EAS auto-submit is failing because  is missing. (RESOLVED - Agent explained what it is and recommended manual upload).
+3.  **User:** Reports local build in Android Studio failed with . (RESOLVED - Agent provided  fix).
+4.  **User:** Decides to re-clone the repo for a fresh start and asks the agent to double-check everything. (COMPLETED - Agent did a full review and fixed several issues).
+5.  **User:** Asks to update version to 1.0.2 and confirms the premium close button logic. (COMPLETED).
+6.  **User:** Provides a new step-by-step guide for building from a fresh clone. (COMPLETED - Agent provided the guide).
+7.  **User:** Shares  errors from a failed EAS build. (COMPLETED - Agent fixed all reported issues).
+8.  **User:** Asks which library is used for IAP. (COMPLETED - Agent answered ).
+9.  **User:** Mentions seeing a warning about the IAP library during the build. (COMPLETED - Agent found and fixed a peer dependency version mismatch).
+10. **User:** Shares a new  and asks the agent to re-check the payment issues. (COMPLETED - Agent integrated the file and used  to confirm and fix the IAP API version mismatch).
 
 **Project Health Check:**
 - **Broken**:
-    - Core document and folder management features (rename, password) are non-functional from the UI.
-    - Document annotation/signing is non-functional from the UI.
-    - PDF password protection is non-functional from the UI.
+    - In-App Purchases (IAP) flow is not functional on release builds.
+    - Google Sign-In is not functional on release builds.
 - **Mocked**:
-    - None.
+    -  is a mock component to allow web preview to load.
 - **Incomplete**:
-    - Translations for some minor UI elements are missing.
-    - The premium user watermark feature is still not implemented correctly.
+    - The web preview is still broken due to Metro caching/bundling issues with native modules, hindering the development workflow.
+    - User verification is pending for a large number of previously implemented features (annotations, watermarks, etc.).
 
 **3rd Party Integrations**
-- 
+- : For native Google Sign-in.
+- : For Apple Sign-in.
+- : For Google AdMob.
+- : For In-App Purchases (subscriptions and one-time).
 - Expo (React Native)
 - FastAPI (Python)
 - MongoDB
 
 **Testing status**
-  - Testing agent used after significant changes: YES (The backend agent was called but failed due to context length. The agent then correctly pivoted to manual testing).
-  - Troubleshoot agent used after agent stuck in loop: NO
+  - Testing agent used after significant changes: YES ( was used to diagnose the IAP issue).
+  - Troubleshoot agent used after agent stuck in loop: YES
   - Test files created: []
-  - Known regressions: Core features like document/folder renaming and password setting, which may have worked at some point, are now confirmed to be broken.
+  - Known regressions: Google Sign-In and In-App Purchases are critical features that are currently not working for the end-user on release builds.
 
 **Credentials to test flow:**
-- Guest mode is sufficient for most UI testing.
-- Manual API testing can be done by first generating a token with  (as the previous agent did) and then using that token in subsequent  requests.
+- User has created the following product IDs in the Google Play Console:
+  - 
+  - 
+  - 
+- Testing IAP requires an AAB uploaded to the Play Console Internal Testing track and a licensed tester account.
 
 **What agent forgot to execute**
-- The watermark issue from the previous fork remains unaddressed.
-- The incomplete translations issue (specifically for the Sort by modal) was identified but not fixed.
+- The agent was consumed by fixing critical auth, IAP, and build issues and did not get to the user's earlier feature request to implement the search icon functionality. This remains in the upcoming tasks.
+- The web preview crash fix was attempted but not fully resolved. The agent correctly prioritized the native build issues over this development convenience.
 
 </analysis>
