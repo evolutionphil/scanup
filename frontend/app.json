@@ -57,6 +57,8 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
+      "@react-native-firebase/app",
+      "@react-native-firebase/analytics",
       [
         "react-native-google-mobile-ads",
         {
