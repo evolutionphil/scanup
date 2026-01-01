@@ -32,11 +32,10 @@ interface Product {
   price: string;
   localizedPrice: string;
   currency: string;
-  offerToken?: string; // For Android subscriptions
+  offerToken?: string;
 }
 
 interface PurchaseState {
-  // State
   isInitialized: boolean;
   isLoading: boolean;
   isPremium: boolean;
@@ -46,7 +45,6 @@ interface PurchaseState {
   activeSubscription: string | null;
   error: string | null;
   
-  // Actions
   initialize: () => Promise<void>;
   fetchProducts: () => Promise<void>;
   purchaseProduct: (productId: string) => Promise<boolean>;
@@ -59,7 +57,6 @@ interface PurchaseState {
   syncWithBackend: (token: string | null, userId: string | null) => Promise<void>;
 }
 
-// Storage keys
 const STORAGE_KEYS = {
   IS_PREMIUM: '@scanup_is_premium',
   HAS_REMOVED_ADS: '@scanup_has_removed_ads',
@@ -83,42 +80,36 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true });
     
     try {
-      // Load saved state from AsyncStorage
+      // Load saved state
       const [isPremiumStr, hasRemovedAdsStr, activeSubscription] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM),
         AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS),
         AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION),
       ]);
       
-      const isPremium = isPremiumStr === 'true';
-      const hasRemovedAds = hasRemovedAdsStr === 'true';
-      
       set({
-        isPremium,
-        hasRemovedAds,
+        isPremium: isPremiumStr === 'true',
+        hasRemovedAds: hasRemovedAdsStr === 'true',
         activeSubscription,
       });
       
-      // Initialize IAP connection (only on native)
+      // Initialize IAP (only on native)
       if (Platform.OS !== 'web') {
         try {
-          const { initConnection, flushFailedPurchasesCachedAsPendingAndroid } = require('react-native-iap');
+          const RNIap = require('react-native-iap');
           
-          const result = await initConnection();
-          console.log('[PurchaseStore] IAP connection result:', result);
+          const result = await RNIap.initConnection();
+          console.log('[PurchaseStore] IAP connection:', result);
           
-          // Clear any pending purchases on Android
           if (Platform.OS === 'android') {
             try {
-              await flushFailedPurchasesCachedAsPendingAndroid();
+              await RNIap.flushFailedPurchasesCachedAsPendingAndroid();
             } catch (e) {
-              console.log('[PurchaseStore] Flush failed purchases:', e);
+              console.log('[PurchaseStore] Flush failed:', e);
             }
           }
           
-          // Fetch products
           await get().fetchProducts();
-          
         } catch (iapError: any) {
           console.error('[PurchaseStore] IAP init error:', iapError);
           set({ error: iapError.message || 'Failed to connect to store' });
@@ -126,10 +117,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       }
       
       set({ isInitialized: true, isLoading: false });
-      console.log('[PurchaseStore] Initialized successfully');
     } catch (error: any) {
-      console.error('[PurchaseStore] Initialization error:', error);
-      set({ isInitialized: true, isLoading: false, error: 'Failed to initialize purchases' });
+      console.error('[PurchaseStore] Init error:', error);
+      set({ isInitialized: true, isLoading: false, error: 'Failed to initialize' });
     }
   },
 
@@ -140,26 +130,24 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { getSubscriptions, getProducts } = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
       // Fetch subscriptions
       if (SUBSCRIPTION_SKUS.length > 0) {
         try {
-          console.log('[PurchaseStore] Fetching subscriptions:', SUBSCRIPTION_SKUS);
-          const subs = await getSubscriptions({ skus: SUBSCRIPTION_SKUS });
-          console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
+          console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
+          const subs = await RNIap.getSubscriptions({ skus: SUBSCRIPTION_SKUS });
+          console.log('[PurchaseStore] Subscriptions result:', JSON.stringify(subs, null, 2));
           
           const formattedSubs: Product[] = subs.map((sub: any) => {
-            // For Android, get offer token from subscriptionOfferDetails
             let offerToken = undefined;
-            let price = sub.localizedPrice || sub.price || '0';
+            let price = sub.localizedPrice || '€4.99';
             
             if (Platform.OS === 'android' && sub.subscriptionOfferDetails?.length > 0) {
               offerToken = sub.subscriptionOfferDetails[0].offerToken;
-              // Get price from pricing phases
-              const pricingPhases = sub.subscriptionOfferDetails[0].pricingPhases?.pricingPhaseList;
-              if (pricingPhases?.length > 0) {
-                price = pricingPhases[0].formattedPrice || price;
+              const phases = sub.subscriptionOfferDetails[0].pricingPhases?.pricingPhaseList;
+              if (phases?.length > 0) {
+                price = phases[0].formattedPrice || price;
               }
             }
             
@@ -174,7 +162,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             };
           });
           
-          console.log('[PurchaseStore] Formatted subscriptions:', formattedSubs);
           set({ subscriptions: formattedSubs });
         } catch (subError: any) {
           console.log('[PurchaseStore] Subscriptions error:', subError.message);
@@ -184,20 +171,19 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch one-time products
       if (PRODUCT_SKUS.length > 0) {
         try {
-          console.log('[PurchaseStore] Fetching products:', PRODUCT_SKUS);
-          const products = await getProducts({ skus: PRODUCT_SKUS });
-          console.log('[PurchaseStore] Raw products:', JSON.stringify(products, null, 2));
+          console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
+          const products = await RNIap.getProducts({ skus: PRODUCT_SKUS });
+          console.log('[PurchaseStore] Products result:', JSON.stringify(products, null, 2));
           
           const formattedProducts: Product[] = products.map((prod: any) => ({
             productId: prod.productId,
             title: prod.title || prod.name || prod.productId,
             description: prod.description || '',
             price: prod.price || '0',
-            localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetails?.formattedPrice || prod.price || '0',
+            localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetails?.formattedPrice || '€4.99',
             currency: prod.currency || 'EUR',
           }));
           
-          console.log('[PurchaseStore] Formatted products:', formattedProducts);
           set({ products: formattedProducts });
         } catch (prodError: any) {
           console.log('[PurchaseStore] Products error:', prodError.message);
@@ -206,62 +192,48 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       set({ isLoading: false });
     } catch (error: any) {
-      console.error('[PurchaseStore] Fetch products error:', error);
-      set({ isLoading: false, error: error.message || 'Failed to load products' });
+      console.error('[PurchaseStore] Fetch error:', error);
+      set({ isLoading: false, error: error.message });
     }
   },
 
   purchaseProduct: async (productId: string) => {
     if (Platform.OS === 'web') {
-      set({ error: 'Purchases not available on web' });
+      set({ error: 'Not available on web' });
       return false;
     }
     
-    console.log('[PurchaseStore] Purchasing product:', productId);
+    console.log('[PurchaseStore] Purchasing:', productId);
     set({ isLoading: true, error: null });
     
     try {
-      const { requestPurchase, getProducts, finishTransaction, purchaseUpdatedListener, purchaseErrorListener } = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
-      // First get the product to ensure it exists
-      const products = await getProducts({ skus: [productId] });
-      console.log('[PurchaseStore] Found products:', JSON.stringify(products, null, 2));
+      // Use the new API structure
+      const purchaseRequest = Platform.OS === 'android' 
+        ? { skus: [productId] }
+        : { sku: productId };
       
-      if (products.length === 0) {
-        throw new Error('Product not found in store');
-      }
+      console.log('[PurchaseStore] Purchase request:', purchaseRequest);
       
-      // Request purchase - for Android non-consumable
-      let purchase;
-      if (Platform.OS === 'android') {
-        purchase = await requestPurchase({
-          skus: [productId],
-        });
-      } else {
-        purchase = await requestPurchase({
-          sku: productId,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-        });
-      }
-      
+      const purchase = await RNIap.requestPurchase(purchaseRequest);
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
       if (purchase) {
-        // Finish the transaction
+        // Acknowledge/finish the transaction
         try {
-          if (Platform.OS === 'android') {
-            const { acknowledgePurchaseAndroid } = require('react-native-iap');
-            if (purchase.purchaseToken) {
-              await acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
-            }
-          } else {
-            await finishTransaction({ purchase, isConsumable: false });
+          if (Platform.OS === 'android' && purchase.purchaseToken) {
+            await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+            console.log('[PurchaseStore] Acknowledged Android purchase');
+          } else if (Platform.OS === 'ios') {
+            await RNIap.finishTransaction({ purchase, isConsumable: false });
+            console.log('[PurchaseStore] Finished iOS transaction');
           }
-        } catch (finishError) {
-          console.log('[PurchaseStore] Finish transaction error:', finishError);
+        } catch (finishErr) {
+          console.log('[PurchaseStore] Finish error:', finishErr);
         }
         
-        // Update state based on what was purchased
+        // Update local state
         if (productId === PRODUCT_IDS.REMOVE_ADS) {
           await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
           set({ hasRemovedAds: true });
@@ -276,7 +248,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     } catch (error: any) {
       console.error('[PurchaseStore] Purchase error:', error);
       
-      // Handle user cancellation
       if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled')) {
         set({ isLoading: false });
         return false;
@@ -289,7 +260,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   purchaseSubscription: async (productId: string) => {
     if (Platform.OS === 'web') {
-      set({ error: 'Subscriptions not available on web' });
+      set({ error: 'Not available on web' });
       return false;
     }
     
@@ -297,14 +268,14 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { requestSubscription, finishTransaction, getSubscriptions } = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
       let purchase;
       
       if (Platform.OS === 'android') {
-        // Android requires subscription offer token
-        const subs = await getSubscriptions({ skus: [productId] });
-        console.log('[PurchaseStore] Fetched sub for purchase:', JSON.stringify(subs, null, 2));
+        // Get fresh subscription data with offer token
+        const subs = await RNIap.getSubscriptions({ skus: [productId] });
+        console.log('[PurchaseStore] Fresh subs:', JSON.stringify(subs, null, 2));
         
         if (subs.length === 0) {
           throw new Error('Subscription not found');
@@ -314,38 +285,39 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         const offerToken = sub.subscriptionOfferDetails?.[0]?.offerToken;
         
         if (!offerToken) {
-          throw new Error('No offer token found for subscription');
+          throw new Error('No offer token found');
         }
         
         console.log('[PurchaseStore] Using offer token:', offerToken);
         
-        purchase = await requestSubscription({
+        purchase = await RNIap.requestSubscription({
           sku: productId,
           subscriptionOffers: [{ sku: productId, offerToken }],
         });
       } else {
         // iOS
-        purchase = await requestSubscription({
-          sku: productId,
-        });
+        purchase = await RNIap.requestSubscription({ sku: productId });
       }
       
       console.log('[PurchaseStore] Subscription result:', JSON.stringify(purchase, null, 2));
       
       if (purchase) {
-        // Finish the transaction
+        // Acknowledge/finish
         try {
-          await finishTransaction({ purchase, isConsumable: false });
-        } catch (finishError) {
-          console.log('[PurchaseStore] Finish transaction error:', finishError);
+          if (Platform.OS === 'android' && purchase.purchaseToken) {
+            await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+          } else if (Platform.OS === 'ios') {
+            await RNIap.finishTransaction({ purchase, isConsumable: false });
+          }
+        } catch (finishErr) {
+          console.log('[PurchaseStore] Finish error:', finishErr);
         }
         
-        // Update premium status
+        // Update local state
         await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
         await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
-        set({ isPremium: true, activeSubscription: productId });
+        set({ isPremium: true, activeSubscription: productId, isLoading: false });
         
-        set({ isLoading: false });
         return true;
       }
       
@@ -354,7 +326,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     } catch (error: any) {
       console.error('[PurchaseStore] Subscription error:', error);
       
-      // Handle user cancellation
       if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled')) {
         set({ isLoading: false });
         return false;
@@ -367,18 +338,17 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   restorePurchases: async () => {
     if (Platform.OS === 'web') {
-      set({ error: 'Restore not available on web' });
+      set({ error: 'Not available on web' });
       return;
     }
     
-    console.log('[PurchaseStore] Restoring purchases...');
+    console.log('[PurchaseStore] Restoring...');
     set({ isLoading: true, error: null });
     
     try {
-      const { getAvailablePurchases } = require('react-native-iap');
-      
-      const purchases = await getAvailablePurchases();
-      console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
+      const RNIap = require('react-native-iap');
+      const purchases = await RNIap.getAvailablePurchases();
+      console.log('[PurchaseStore] Available:', JSON.stringify(purchases, null, 2));
       
       let isPremium = false;
       let hasRemovedAds = false;
@@ -388,41 +358,29 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         if (purchase.productId === PRODUCT_IDS.REMOVE_ADS) {
           hasRemovedAds = true;
         }
-        if (
-          purchase.productId === PRODUCT_IDS.PREMIUM_MONTHLY ||
-          purchase.productId === PRODUCT_IDS.PREMIUM_YEARLY
-        ) {
+        if (purchase.productId === PRODUCT_IDS.PREMIUM_MONTHLY || 
+            purchase.productId === PRODUCT_IDS.PREMIUM_YEARLY) {
           isPremium = true;
           activeSubscription = purchase.productId;
         }
       }
       
-      // Save to storage
       await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, isPremium.toString());
       await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, hasRemovedAds.toString());
       if (activeSubscription) {
         await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, activeSubscription);
       }
       
-      set({
-        isPremium,
-        hasRemovedAds,
-        activeSubscription,
-        isLoading: false,
-      });
-      
-      console.log('[PurchaseStore] Restore complete:', { isPremium, hasRemovedAds, activeSubscription });
+      set({ isPremium, hasRemovedAds, activeSubscription, isLoading: false });
     } catch (error: any) {
       console.error('[PurchaseStore] Restore error:', error);
-      set({ isLoading: false, error: error.message || 'Failed to restore purchases' });
+      set({ isLoading: false, error: error.message });
     }
   },
 
   checkPremiumStatus: async () => {
-    // Just read from storage - actual validation happens during restore
     const isPremiumStr = await AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM);
     const hasRemovedAdsStr = await AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS);
-    
     set({
       isPremium: isPremiumStr === 'true',
       hasRemovedAds: hasRemovedAdsStr === 'true',
@@ -442,16 +400,12 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   setError: (error: string | null) => {
     set({ error });
   },
-  
-  // Sync purchase status with backend when user logs in
+
   syncWithBackend: async (token: string | null, userId: string | null) => {
-    if (!token || !userId) {
-      console.log('[PurchaseStore] No token/userId - skipping backend sync');
-      return;
-    }
+    if (!token || !userId) return;
     
     const state = get();
-    console.log('[PurchaseStore] Syncing with backend...', { isPremium: state.isPremium, hasRemovedAds: state.hasRemovedAds });
+    console.log('[PurchaseStore] Syncing with backend...');
     
     try {
       const Constants = require('expo-constants').default;
@@ -460,11 +414,8 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         process.env.EXPO_PUBLIC_BACKEND_URL ||
         'https://scanup-production.up.railway.app';
       
-      // If user has local purchases, sync to backend
       if (state.isPremium || state.hasRemovedAds) {
-        console.log('[PurchaseStore] Syncing local purchases to backend');
-        
-        const response = await fetch(`${BACKEND_URL}/api/user/update-premium`, {
+        await fetch(`${BACKEND_URL}/api/user/update-premium`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -477,46 +428,13 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             subscription_type: state.activeSubscription,
           }),
         });
-        
-        if (response.ok) {
-          console.log('[PurchaseStore] Successfully synced to backend');
-        } else {
-          console.log('[PurchaseStore] Backend sync failed:', response.status);
-        }
-      }
-      
-      // Also check if backend has premium status (in case user bought on another device)
-      const userResponse = await fetch(`${BACKEND_URL}/api/user/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        console.log('[PurchaseStore] Backend user data:', userData);
-        
-        // If backend says premium but local doesn't, update local
-        if (userData.is_premium && !state.isPremium) {
-          console.log('[PurchaseStore] Updating local premium from backend');
-          await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
-          set({ isPremium: true });
-        }
-        
-        // Same for has_removed_ads
-        if (userData.has_removed_ads && !state.hasRemovedAds) {
-          console.log('[PurchaseStore] Updating local has_removed_ads from backend');
-          await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
-          set({ hasRemovedAds: true });
-        }
       }
     } catch (error) {
-      console.error('[PurchaseStore] Backend sync error:', error);
+      console.error('[PurchaseStore] Sync error:', error);
     }
   },
 }));
 
-// Helper hook to check if user should see ads
 export const useShouldShowAds = () => {
   const { isPremium, hasRemovedAds } = usePurchaseStore();
   return !isPremium && !hasRemovedAds;
