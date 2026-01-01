@@ -420,6 +420,78 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   setError: (error: string | null) => {
     set({ error });
   },
+  
+  // Sync purchase status with backend when user logs in
+  syncWithBackend: async (token: string | null, userId: string | null) => {
+    if (!token || !userId) {
+      console.log('[PurchaseStore] No token/userId - skipping backend sync');
+      return;
+    }
+    
+    const state = get();
+    console.log('[PurchaseStore] Syncing with backend...', { isPremium: state.isPremium, hasRemovedAds: state.hasRemovedAds });
+    
+    try {
+      const Constants = require('expo-constants').default;
+      const BACKEND_URL = 
+        Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
+        process.env.EXPO_PUBLIC_BACKEND_URL ||
+        'https://scanup-production.up.railway.app';
+      
+      // If user has local purchases, sync to backend
+      if (state.isPremium || state.hasRemovedAds) {
+        console.log('[PurchaseStore] Syncing local purchases to backend');
+        
+        const response = await fetch(`${BACKEND_URL}/api/user/update-premium`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            is_premium: state.isPremium,
+            has_removed_ads: state.hasRemovedAds,
+            subscription_type: state.activeSubscription,
+          }),
+        });
+        
+        if (response.ok) {
+          console.log('[PurchaseStore] Successfully synced to backend');
+        } else {
+          console.log('[PurchaseStore] Backend sync failed:', response.status);
+        }
+      }
+      
+      // Also check if backend has premium status (in case user bought on another device)
+      const userResponse = await fetch(`${BACKEND_URL}/api/user/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        console.log('[PurchaseStore] Backend user data:', userData);
+        
+        // If backend says premium but local doesn't, update local
+        if (userData.is_premium && !state.isPremium) {
+          console.log('[PurchaseStore] Updating local premium from backend');
+          await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
+          set({ isPremium: true });
+        }
+        
+        // Same for has_removed_ads
+        if (userData.has_removed_ads && !state.hasRemovedAds) {
+          console.log('[PurchaseStore] Updating local has_removed_ads from backend');
+          await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
+          set({ hasRemovedAds: true });
+        }
+      }
+    } catch (error) {
+      console.error('[PurchaseStore] Backend sync error:', error);
+    }
+  },
 }));
 
 // Helper hook to check if user should see ads
