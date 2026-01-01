@@ -37,9 +37,9 @@ if (Platform.OS !== 'web') {
     isSuccessResponse = googleSignInModule.isSuccessResponse;
     isErrorWithCode = googleSignInModule.isErrorWithCode;
     
-    // Configure Google Sign-In
+    // Configure Google Sign-In - Use the web client ID from google-services.json (client_type: 3)
     GoogleSignin.configure({
-      webClientId: '215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o.apps.googleusercontent.com',
+      webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
       offlineAccess: true,
     });
   } catch (e) {
