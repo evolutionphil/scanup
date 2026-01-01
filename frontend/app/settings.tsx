@@ -557,7 +557,7 @@ export default function SettingsScreen() {
         visible={showLanguagePicker}
         onClose={() => setShowLanguagePicker(false)}
         title={t('select_language', 'Select Language')}
-        options={LANGUAGE_OPTIONS}
+        options={languageOptions}
         selectedValue={settings.language}
         onSelect={(v) => {
           updateSetting('language', v);
