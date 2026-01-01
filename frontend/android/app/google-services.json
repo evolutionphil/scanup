@@ -1,0 +1,25 @@
+{
+  "project_info": {
+    "project_number": "215448198260",
+    "project_id": "scanupp"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215448198260:android:placeholder",
+        "android_client_info": {
+          "package_name": "com.visiongo.scanupp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "215448198260-tqfp3kj7eucqlctatrq5j8q876kspc8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [],
+      "services": {}
+    }
+  ],
+  "configuration_version": "1"
+}
