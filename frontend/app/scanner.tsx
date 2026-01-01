@@ -217,8 +217,12 @@ export default function ScannerScreen() {
         if (newDoc && newDoc.document_id) {
           console.log('[Scanner] Document created with ID:', newDoc.document_id);
           
-          // Increment scan count and potentially show ad (for free users)
-          incrementScanCount();
+          // Increment scan count for each page scanned and potentially show ad (for free users)
+          // Each page counts as a scan
+          for (let i = 0; i < validImages.length; i++) {
+            incrementScanCount();
+          }
+          
           if (shouldShowAd()) {
             console.log('[Scanner] Showing interstitial ad after scan');
             try {
