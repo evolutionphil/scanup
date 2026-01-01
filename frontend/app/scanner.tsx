@@ -31,7 +31,6 @@ export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
   const { token } = useAuthStore();
   const { createDocumentLocalFirst, updateDocument, documents } = useDocumentStore();
-  const { incrementScanCount, shouldShowAd } = useAdStore();
   
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
