@@ -12,7 +12,20 @@
           "package_name": "com.visiongo.scanupp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "159628540720-81pt5h52361c9qm9l8rb4omfmaaao6b9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.visiongo.scanupp",
+            "certificate_hash": "374b08d0c95bd02333f4701b8497ad8f54491756"
+          }
+        },
+        {
+          "client_id": "159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB8XC_VcbFzb0cKNXIRcfx094kR66JYGJE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
