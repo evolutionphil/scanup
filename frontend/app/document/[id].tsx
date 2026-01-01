@@ -22,6 +22,8 @@ import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, PageData, getImageSource } from '../../src/store/documentStore';
+import { useAdStore } from '../../src/store/adStore';
+import { showGlobalInterstitial } from '../../src/components/AdManager';
 import Button from '../../src/components/Button';
 import LoadingScreen from '../../src/components/LoadingScreen';
 import FilterEditor from '../../src/components/FilterEditor';
