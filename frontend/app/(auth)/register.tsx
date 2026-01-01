@@ -22,6 +22,15 @@ import { useI18n } from '../../src/store/i18nStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+// Helper to show alerts on both web and native
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
 export default function RegisterScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
@@ -31,23 +40,31 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, googleLogin } = useAuthStore();
 
   const handleRegister = async () => {
     console.log('[Register] Attempting registration...');
+    setErrorMessage(null);
     
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert(t('error', 'Error'), t('please_fill_all_fields', 'Please fill in all fields'));
+      const msg = t('please_fill_all_fields', 'Please fill in all fields');
+      setErrorMessage(msg);
+      showAlert(t('error', 'Error'), msg);
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert(t('error', 'Error'), t('passwords_do_not_match', 'Passwords do not match'));
+      const msg = t('passwords_do_not_match', 'Passwords do not match');
+      setErrorMessage(msg);
+      showAlert(t('error', 'Error'), msg);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert(t('error', 'Error'), t('password_min_length', 'Password must be at least 6 characters'));
+      const msg = t('password_min_length', 'Password must be at least 6 characters');
+      setErrorMessage(msg);
+      showAlert(t('error', 'Error'), msg);
       return;
     }
 
@@ -59,7 +76,9 @@ export default function RegisterScreen() {
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('[Register] Error:', error.message);
-      Alert.alert(t('registration_failed', 'Registration Failed'), error.message || t('please_try_again', 'Please try again'));
+      const msg = error.message || t('please_try_again', 'Please try again');
+      setErrorMessage(msg);
+      showAlert(t('registration_failed', 'Registration Failed'), msg);
     } finally {
       setLoading(false);
     }
