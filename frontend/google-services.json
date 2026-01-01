@@ -1,12 +1,13 @@
 {
   "project_info": {
     "project_number": "215448198260",
-    "project_id": "scanupp"
+    "project_id": "scanupp",
+    "storage_bucket": "scanupp.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:215448198260:android:placeholder",
+        "mobilesdk_app_id": "1:215448198260:android:a1b2c3d4e5f67890",
         "android_client_info": {
           "package_name": "com.visiongo.scanupp"
         }
@@ -17,8 +18,16 @@
           "client_type": 3
         }
       ],
-      "api_key": [],
-      "services": {}
+      "api_key": [
+        {
+          "current_key": "AIzaSyPlaceholderKeyForAdMob"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"
