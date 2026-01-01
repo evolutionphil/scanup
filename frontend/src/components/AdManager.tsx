@@ -17,7 +17,6 @@ const AD_UNITS = {
     android: 'ca-app-pub-8771434485570434/5877935563',
     ios: 'ca-app-pub-8771434485570434/9099011184',
   },
-  // Test IDs for development
   test: {
     interstitial: {
       android: 'ca-app-pub-3940256099942544/1033173712',
@@ -30,16 +29,25 @@ const AD_UNITS = {
 let globalInterstitial: any = null;
 let isSDKInitialized = false;
 let isInitializing = false;
+let mobileAdsModule: any = null;
+
+// Lazy load the ads module only on native
+const getAdsModule = () => {
+  if (!isNativeEnvironment) return null;
+  if (mobileAdsModule) return mobileAdsModule;
+  
+  try {
+    mobileAdsModule = require('react-native-google-mobile-ads');
+    return mobileAdsModule;
+  } catch (e) {
+    console.log('[AdManager] Failed to load ads module:', e);
+    return null;
+  }
+};
 
 /**
- * AdManager Component
- * 
- * Handles Google Mobile Ads initialization and interstitial ad management.
- * Key features:
- * - Delays SDK initialization until app is ready
- * - Uses delayAppMeasurementInit in app.json to prevent crash on cold start
- * - Only shows ads to non-premium users
- * - Shows interstitial every 3 scans
+ * AdManager Component - Handles Google Mobile Ads
+ * Only loads native ads module on iOS/Android, not on web
  */
 export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const { setAdLoaded, setAdShowing, setAdsEnabled, recordAdShown } = useAdStore();
@@ -47,65 +55,63 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const { isPremium, hasRemovedAds, initialize: initializePurchases } = usePurchaseStore();
   const [sdkReady, setSdkReady] = useState(false);
 
-  // Initialize purchase store to check for existing purchases
+  // Initialize purchase store
   useEffect(() => {
     initializePurchases();
   }, []);
 
-  // Update ads enabled based on user premium status AND purchase status
+  // Update ads enabled based on premium status
   useEffect(() => {
     const isUserPremium = user?.is_premium || user?.is_trial;
     const shouldDisableAds = isUserPremium || isPremium || hasRemovedAds;
-    console.log('[AdManager] Updating ads enabled:', !shouldDisableAds, { isUserPremium, isPremium, hasRemovedAds });
+    console.log('[AdManager] Ads enabled:', !shouldDisableAds);
     setAdsEnabled(!shouldDisableAds);
   }, [user?.is_premium, user?.is_trial, isPremium, hasRemovedAds, setAdsEnabled]);
 
-  // Initialize Google Mobile Ads SDK
+  // Initialize SDK
   const initializeSDK = useCallback(async () => {
     if (!isNativeEnvironment) {
       console.log('[AdManager] Skipping - web platform');
       return;
     }
 
-    if (isSDKInitialized || isInitializing) {
-      console.log('[AdManager] Already initialized or initializing');
-      return;
-    }
+    if (isSDKInitialized || isInitializing) return;
 
     isInitializing = true;
 
     try {
-      // Dynamic import to avoid bundling issues on web
-      const mobileAds = require('react-native-google-mobile-ads').default;
+      const adsModule = getAdsModule();
+      if (!adsModule) {
+        console.log('[AdManager] Ads module not available');
+        return;
+      }
       
-      console.log('[AdManager] Initializing Google Mobile Ads SDK...');
+      const mobileAds = adsModule.default;
+      console.log('[AdManager] Initializing SDK...');
       
-      const adapterStatuses = await mobileAds().initialize();
+      await mobileAds().initialize();
       
-      console.log('[AdManager] SDK initialized successfully');
-      console.log('[AdManager] Adapter statuses:', JSON.stringify(adapterStatuses, null, 2));
-      
+      console.log('[AdManager] SDK initialized');
       isSDKInitialized = true;
       setSdkReady(true);
       
-      // Load first interstitial after SDK is ready
       loadInterstitial();
     } catch (error) {
-      console.error('[AdManager] SDK initialization failed:', error);
+      console.error('[AdManager] SDK init failed:', error);
       isInitializing = false;
     }
   }, []);
 
-  // Load interstitial ad
+  // Load interstitial
   const loadInterstitial = useCallback(() => {
-    if (!isNativeEnvironment || !isSDKInitialized) {
-      return;
-    }
+    if (!isNativeEnvironment || !isSDKInitialized) return;
 
     try {
-      const { InterstitialAd, AdEventType } = require('react-native-google-mobile-ads');
+      const adsModule = getAdsModule();
+      if (!adsModule) return;
       
-      // Use test ads in development, real ads in production
+      const { InterstitialAd, AdEventType } = adsModule;
+      
       const adUnitId = __DEV__ 
         ? (Platform.OS === 'ios' ? AD_UNITS.test.interstitial.ios : AD_UNITS.test.interstitial.android)
         : (Platform.OS === 'ios' ? AD_UNITS.interstitial.ios : AD_UNITS.interstitial.android);
@@ -116,22 +122,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         requestNonPersonalizedAdsOnly: true,
       });
 
-      // Event listeners
       const unsubscribeLoaded = globalInterstitial.addAdEventListener(
         AdEventType.LOADED,
         () => {
           console.log('[AdManager] Interstitial loaded');
           setAdLoaded(true);
-        }
-      );
-
-      const unsubscribeError = globalInterstitial.addAdEventListener(
-        AdEventType.ERROR,
-        (error: any) => {
-          console.log('[AdManager] Interstitial error:', error);
-          setAdLoaded(false);
-          // Retry after 60 seconds
-          setTimeout(loadInterstitial, 60000);
         }
       );
 
@@ -141,62 +136,55 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
           console.log('[AdManager] Interstitial closed');
           setAdShowing(false);
           recordAdShown();
-          // Load next ad
-          setTimeout(loadInterstitial, 1000);
+          // Reload for next time
+          loadInterstitial();
         }
       );
 
-      const unsubscribeOpened = globalInterstitial.addAdEventListener(
-        AdEventType.OPENED,
-        () => {
-          console.log('[AdManager] Interstitial opened');
-          setAdShowing(true);
+      const unsubscribeError = globalInterstitial.addAdEventListener(
+        AdEventType.ERROR,
+        (error: any) => {
+          console.log('[AdManager] Ad error:', error);
+          setAdLoaded(false);
+          // Retry after delay
+          setTimeout(loadInterstitial, 30000);
         }
       );
 
-      // Load the ad
       globalInterstitial.load();
 
-      // Store unsubscribe functions for cleanup
-      globalInterstitial._unsubscribers = [
-        unsubscribeLoaded,
-        unsubscribeError,
-        unsubscribeClosed,
-        unsubscribeOpened,
-      ];
+      return () => {
+        unsubscribeLoaded();
+        unsubscribeClosed();
+        unsubscribeError();
+      };
     } catch (error) {
-      console.error('[AdManager] Error loading interstitial:', error);
+      console.error('[AdManager] Load interstitial error:', error);
     }
   }, [setAdLoaded, setAdShowing, recordAdShown]);
 
-  // Initialize SDK after a delay to ensure app is fully loaded
+  // Initialize on mount (delayed for stability)
   useEffect(() => {
-    if (!isNativeEnvironment) {
-      return;
-    }
+    if (!isNativeEnvironment) return;
 
-    // Delay initialization to prevent cold start crashes
     const timer = setTimeout(() => {
       initializeSDK();
-    }, 3000); // 3 second delay
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [initializeSDK]);
 
-  // Handle app state changes - reload ad when app comes to foreground
+  // Handle app state changes
   useEffect(() => {
-    if (!isNativeEnvironment) {
-      return;
-    }
+    if (!isNativeEnvironment) return;
 
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && isSDKInitialized && !globalInterstitial) {
         loadInterstitial();
       }
-    };
+    });
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
+    return () => subscription.remove();
   }, [loadInterstitial]);
 
   return <>{children}</>;
@@ -204,11 +192,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
 
 /**
  * Show interstitial ad
- * Call this after user actions like scanning a document
+ * Call this when you want to show an ad (e.g., after scan)
  */
 export const showGlobalInterstitial = async (): Promise<boolean> => {
   if (!isNativeEnvironment) {
-    console.log('[showInterstitial] Skipping - web platform');
+    console.log('[showInterstitial] Skipping - web');
     return false;
   }
 
@@ -218,7 +206,7 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
   }
 
   if (!globalInterstitial) {
-    console.log('[showInterstitial] No interstitial loaded');
+    console.log('[showInterstitial] No interstitial');
     return false;
   }
 
@@ -230,7 +218,7 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
       return false;
     }
 
-    console.log('[showInterstitial] Showing interstitial...');
+    console.log('[showInterstitial] Showing...');
     await globalInterstitial.show();
     return true;
   } catch (error) {
@@ -240,11 +228,11 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
 };
 
 /**
- * Check if interstitial should be shown based on scan count
+ * Check if ads should be shown based on premium status and count
  */
-export const shouldShowInterstitialAfterScan = (): boolean => {
-  const { shouldShowAd, adsEnabled } = useAdStore.getState();
-  return adsEnabled && shouldShowAd();
+export const checkShouldShowAd = (): boolean => {
+  const { adsEnabled, isAdLoaded } = useAdStore.getState();
+  return adsEnabled && isAdLoaded;
 };
 
 export default AdManager;
