@@ -8,11 +8,20 @@ from typing import Optional
 import logging
 import secrets
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Initialize Resend
-resend.api_key = os.getenv("RESEND_API_KEY")
+# Initialize Resend - load from env
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+    logger.info(f"✅ Resend API key loaded (length: {len(RESEND_API_KEY)})")
+else:
+    logger.warning("⚠️ RESEND_API_KEY not found in environment")
 
 # Email configuration
 FROM_EMAIL = "ScanUp <onboarding@resend.dev>"  # Use your verified domain later
