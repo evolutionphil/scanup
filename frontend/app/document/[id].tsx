@@ -137,7 +137,6 @@ export default function DocumentScreen() {
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
   const { currentDocument, fetchDocument, updateDocument, deleteDocument, processImage } = useDocumentStore();
-  const { incrementScanCount, shouldShowAd, adsEnabled } = useAdStore();
   const [loading, setLoading] = useState(true);
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
   const [showRenameModal, setShowRenameModal] = useState(false);
