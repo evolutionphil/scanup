@@ -441,13 +441,12 @@ export default function DocumentScreen() {
       await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
       setShowFilterEditor(false);
       
-      // Show ad after applying filter (for free users)
-      const { incrementAndCheckAd } = useAdStore.getState();
-      const shouldShow = incrementAndCheckAd();
-      console.log('[handleApplyFilter] shouldShow ad:', shouldShow);
+      // Show ad IMMEDIATELY after applying filter (for free users)
+      const { adsEnabled, isAdLoaded } = useAdStore.getState();
+      console.log('[handleApplyFilter] adsEnabled:', adsEnabled, 'isAdLoaded:', isAdLoaded);
       
-      if (shouldShow) {
-        console.log('[handleApplyFilter] Showing ad after filter apply');
+      if (adsEnabled && isAdLoaded) {
+        console.log('[handleApplyFilter] Showing ad immediately after filter apply');
         try {
           await showGlobalInterstitial();
         } catch (e) {
