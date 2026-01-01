@@ -54,19 +54,23 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const { user } = useAuthStore();
   const { isPremium, hasRemovedAds, initialize: initializePurchases } = usePurchaseStore();
   const [sdkReady, setSdkReady] = useState(false);
+  const [hasInitializedPurchases, setHasInitializedPurchases] = useState(false);
 
-  // Initialize purchase store
+  // Initialize purchase store (only once)
   useEffect(() => {
-    initializePurchases();
-  }, []);
+    if (!hasInitializedPurchases) {
+      setHasInitializedPurchases(true);
+      initializePurchases();
+    }
+  }, [hasInitializedPurchases, initializePurchases]);
 
-  // Update ads enabled based on premium status
+  // Update ads enabled based on premium status (with stable reference check)
   useEffect(() => {
     const isUserPremium = user?.is_premium || user?.is_trial;
     const shouldDisableAds = isUserPremium || isPremium || hasRemovedAds;
-    console.log('[AdManager] Ads enabled:', !shouldDisableAds);
+    console.log('[AdManager] Premium status check - disabling ads:', shouldDisableAds);
     setAdsEnabled(!shouldDisableAds);
-  }, [user?.is_premium, user?.is_trial, isPremium, hasRemovedAds, setAdsEnabled]);
+  }, [user?.is_premium, user?.is_trial, isPremium, hasRemovedAds]); // Removed setAdsEnabled from deps
 
   // Initialize SDK
   const initializeSDK = useCallback(async () => {
