@@ -1321,6 +1321,9 @@ async def register(user_data: UserCreate, response: Response):
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
     
+    # Generate verification code
+    verification_code = generate_verification_code()
+    
     user_doc = {
         "user_id": user_id,
         "email": user_data.email,
@@ -1331,6 +1334,9 @@ async def register(user_data: UserCreate, response: Response):
         "subscription_expires_at": None,
         "ocr_usage_today": 0,
         "ocr_usage_date": None,
+        "email_verified": False,
+        "verification_code": verification_code,
+        "verification_code_expires": now + timedelta(hours=24),
         "created_at": now,
         "updated_at": now
     }
@@ -1350,7 +1356,15 @@ async def register(user_data: UserCreate, response: Response):
         path="/"
     )
     
-    user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
+    # Send welcome email (async, don't block)
+    try:
+        await send_welcome_email(user_data.email, user_data.name)
+        await send_verification_email(user_data.email, user_data.name, verification_code)
+        logger.info(f"Welcome and verification emails sent to {user_data.email}")
+    except Exception as e:
+        logger.error(f"Failed to send emails to {user_data.email}: {e}")
+    
+    user = User(**{k: v for k, v in user_doc.items() if k not in ["password_hash", "verification_code", "verification_code_expires"]})
     return AuthResponse(user=user_to_response(user), token=token)
 
 @api_router.post("/auth/login", response_model=AuthResponse)
