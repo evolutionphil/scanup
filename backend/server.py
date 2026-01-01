@@ -152,6 +152,8 @@ class User(BaseModel):
     # Trial period
     trial_start_date: Optional[datetime] = None
     trial_used: bool = False
+    # Email verification
+    email_verified: bool = False
     # Timestamps
     created_at: datetime
     updated_at: Optional[datetime] = None
