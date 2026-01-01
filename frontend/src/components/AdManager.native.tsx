@@ -50,32 +50,48 @@ const getAdsModule = () => {
  * Only loads native ads module on iOS/Android, not on web
  */
 export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
-  const { setAdLoaded, setAdShowing, setAdsEnabled, recordAdShown } = useAdStore();
-  const { user } = useAuthStore();
-  const { isPremium, hasRemovedAds, initialize: initializePurchases } = usePurchaseStore();
+  const setAdLoaded = useAdStore((state) => state.setAdLoaded);
+  const setAdShowing = useAdStore((state) => state.setAdShowing);
+  const setAdsEnabled = useAdStore((state) => state.setAdsEnabled);
+  const recordAdShown = useAdStore((state) => state.recordAdShown);
+  
+  const user = useAuthStore((state) => state.user);
+  
+  const isPremium = usePurchaseStore((state) => state.isPremium);
+  const hasRemovedAds = usePurchaseStore((state) => state.hasRemovedAds);
+  const initializePurchases = usePurchaseStore((state) => state.initialize);
+  
   const [sdkReady, setSdkReady] = useState(false);
-  const [hasInitializedPurchases, setHasInitializedPurchases] = useState(false);
+  const [purchasesInitialized, setPurchasesInitialized] = useState(false);
+  const [adsStatusSet, setAdsStatusSet] = useState(false);
 
-  // Initialize purchase store (only once)
+  // Initialize purchase store (only once on mount)
   useEffect(() => {
-    if (!hasInitializedPurchases) {
-      setHasInitializedPurchases(true);
-      initializePurchases();
+    if (!purchasesInitialized) {
+      setPurchasesInitialized(true);
+      initializePurchases().catch(err => {
+        console.log('[AdManager] Purchase init error:', err);
+      });
     }
-  }, [hasInitializedPurchases, initializePurchases]);
+  }, [purchasesInitialized]);
 
-  // Update ads enabled based on premium status (with stable reference check)
+  // Update ads enabled based on premium status (only when values actually change)
   useEffect(() => {
-    // Skip if user is null (logged out state) - don't update ads state during logout
-    if (user === null) {
-      return;
-    }
+    // Don't run until purchases are initialized
+    if (!purchasesInitialized) return;
     
-    const isUserPremium = user?.is_premium || user?.is_trial;
+    // Calculate if ads should be disabled
+    const isUserPremium = user?.is_premium === true || user?.is_trial === true;
     const shouldDisableAds = isUserPremium || isPremium || hasRemovedAds;
-    console.log('[AdManager] Premium status check - disabling ads:', shouldDisableAds);
-    setAdsEnabled(!shouldDisableAds);
-  }, [user?.is_premium, user?.is_trial, isPremium, hasRemovedAds]); // Removed setAdsEnabled from deps
+    
+    console.log('[AdManager] Ads check - premium:', isUserPremium, 'isPremium:', isPremium, 'hasRemovedAds:', hasRemovedAds);
+    
+    // Only update if we haven't set it yet or if there's a real change
+    if (!adsStatusSet) {
+      setAdsEnabled(!shouldDisableAds);
+      setAdsStatusSet(true);
+    }
+  }, [purchasesInitialized, user?.is_premium, user?.is_trial, isPremium, hasRemovedAds, adsStatusSet]);
 
   // Initialize SDK
   const initializeSDK = useCallback(async () => {
