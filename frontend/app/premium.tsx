@@ -37,6 +37,7 @@ export default function PremiumScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const {
     isInitialized,
     isLoading,
@@ -57,6 +58,24 @@ export default function PremiumScreen() {
 
   useEffect(() => {
     initialize();
+  }, []);
+
+  // Handle back button
+  const handleClose = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
+  // Handle hardware back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+    return () => backHandler.remove();
   }, []);
 
   // Get prices from fetched products (or use defaults)
