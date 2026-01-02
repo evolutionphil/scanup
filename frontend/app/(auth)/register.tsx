@@ -34,6 +34,9 @@ const showAlert = (title: string, message: string) => {
 export default function RegisterScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = params.returnTo;
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,6 +45,15 @@ export default function RegisterScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, googleLogin } = useAuthStore();
+  
+  // Helper function to navigate after successful registration
+  const navigateAfterLogin = () => {
+    if (returnTo) {
+      router.replace(returnTo as any);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   const handleRegister = async () => {
     console.log('[Register] Attempting registration...');
