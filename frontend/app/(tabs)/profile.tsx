@@ -571,6 +571,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1E293B',
   },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   userName: {
     fontSize: 20,
     fontWeight: '600',
