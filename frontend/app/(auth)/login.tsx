@@ -163,7 +163,7 @@ export default function LoginScreen() {
           
           if (sessionId) {
             await googleLogin(sessionId);
-            router.replace('/(tabs)');
+            navigateAfterLogin();
           } else {
             Alert.alert(t('error', 'Error'), t('google_session_failed', 'Failed to get session from Google. Please try again.'));
           }
