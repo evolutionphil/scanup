@@ -349,7 +349,7 @@ export default function LoginScreen() {
 
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.textMuted }]}>{t('dont_have_account', "Don't have an account?")} </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+              <TouchableOpacity onPress={() => router.push(returnTo ? `/(auth)/register?returnTo=${encodeURIComponent(returnTo)}` : '/(auth)/register')}>
                 <Text style={[styles.linkText, { color: theme.primary }]}>{t('sign_up', 'Sign Up')}</Text>
               </TouchableOpacity>
             </View>
