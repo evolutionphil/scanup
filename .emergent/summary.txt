@@ -1,238 +1,208 @@
 <analysis>
 
 **original_problem_statement**:
-The user's initial request for a UI overhaul evolved into fixing critical bugs and implementing monetization. The main goals are:
-1.  **Fix In-App Purchases (IAP):** The core monetization feature is broken. All purchase attempts (monthly/yearly subscriptions, one-time remove ads) fail on release builds with various errors. This is the highest priority.
-2.  **Fix Google Sign-In:** Users cannot log in with Google, receiving a . After logging in, logging out causes the app to crash to a white screen.
-3.  **Implement Email System:** Implement a complete email system for user registration (welcome/verification emails), password resets, and purchase confirmations.
-4.  **Fix Bugs:**
-    *   The X (close) button on the premium screen after onboarding led to a white screen.
-    *   Firebase Analytics was not showing data.
-    *   A watermark for non-premium users was tiling across the entire document instead of appearing as a single, centered mark.
+The user's primary goals are to fix critical bugs preventing the app from launching and monetizing, and to implement several related features.
+1.  **Fix In-App Purchases (IAP) (P0):** The core monetization feature is broken. Subscriptions fail with a . Additionally, canceling a one-time purchase incorrectly marks it as successful.
+2.  **Fix Logout Crash (P0):** Logging out causes the app to crash to a white screen with a Maximum update depth exceeded error.
+3.  **Fix Auth Persistence (P0):** Users were being logged out every time they closed and reopened the app.
+4.  **Implement Watermark Removal on Purchase (P1):** When a user becomes premium, watermarks should be removed from their previously scanned documents.
+5.  **Enhance Admin Dashboard (P2):** The admin should be able to see detailed user information (including subscription status, name from Google, avatar) in a modal when clicking on a user in the user list.
+6.  **Implement Avatar Upload (P2):** Users should be able to upload a profile avatar, which should persist across app sessions.
+7.  **Refine Purchase Flow (P1):** Guest users should not be able to make purchases. They should be prompted to log in, and after logging in, they should be returned to the screen they were on (e.g., the premium screen).
+8.  **UI/UX improvements:** Redesign the premium screen and add a dedicated Remove Ads screen and flow.
 
-**User's preferred language**: The user communicates in English but occasionally uses German (Warnung) and Turkish (düzeltir misin). The next agent should primarily respond in English but be prepared to understand and potentially respond in Turkish.
+**User's preferred language**: Turkish. The user communicates in a mix of English and Turkish. The next agent MUST respond in Turkish.
 
 **what currently exists?**
 The project is a full-stack Expo (React Native) app with a FastAPI backend.
-- A basic IAP implementation exists using , but it is non-functional due to repeated incorrect API usage for version 14+.
-- Google Sign-In is partially integrated but has a critical crash on logout.
-- A new email service using Resend has been added to the backend, with new endpoints for registration, verification, and password reset. However, it's in a sandbox mode and cannot send emails to users until the user configures a custom domain in their Resend account.
-- The backend watermark logic has been updated to place a single watermark.
-- Firebase Analytics has been integrated using .
-- The app version has been updated to  with .
+- A heavily modified  implementation exists, but it's only partially functional. The one-time purchase flow is buggy, and subscriptions are completely broken.
+- Auth persistence has been fixed but requires verification.
+- The logout flow is critically broken, causing a white screen crash.
+- A new feature to remove watermarks from old documents after a purchase has been implemented on the backend and partially on the frontend, but is not fully verified.
+- The premium screen has been redesigned, and a new  page has been created.
+- The admin dashboard has been enhanced to show user details in a modal, and the build process has been fixed to deploy updates correctly.
+- Avatar upload functionality has been added to both the frontend and backend, but has a persistence bug.
 
 **Last working item**:
-    - Last item agent was working: Fixing the broken In-App Purchase (IAP) flow for the fourth time. The agent identified two critical errors from user-provided logs:
-        1.  **Subscriptions**: The code was throwing a No offer token available error because it was looking for the subscription details in the old, stale state store instead of using the fresh details (which contained the token) it had just fetched.
-        2.  **One-time Purchases**: The  call was still using the wrong payload format ( instead of the correct ), causing an Invalid request error.
-        The agent applied fixes for both of these issues in  but did not get to restart the services or ask the user to test the changes.
+    - Last item agent was working: Implementing a login and return flow for guest users. When a guest tries to purchase from the premium screen, they should be redirected to the login screen, and after a successful login, they should be sent back to the premium screen. The agent modified  to handle the initial redirect and was about to modify  to handle the  parameter.
     - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use? The next agent must guide the user to perform a new EAS production build and test on a real device via the Google Play Console's Internal Testing track.
+    - Which testing method agent to use? The IAP and logout issues require a new EAS production build and on-device testing via Google Play's Internal Testing track. The agent must guide the user through this process.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: In-App Purchases (IAP) are not working. (P0)
+  - Issue 1: In-App Purchases (IAP) for subscriptions are failing. (P0)
   - Issue 2: App crashes to a white screen on logout. (P0)
-  - Issue 3: Email service is not sending emails to users. (P1)
-  - Issue 4: Google Sign-In functionality is not fully verified. (P1)
-  - Issue 5: Web preview is broken. (P2)
-
+  - Issue 3: Canceling a one-time purchase incorrectly marks it as successful. (P0)
+  - Issue 4: User avatar does not persist after restarting the app. (P1)
+  - Issue 5: Email service is not sending emails to users. (P1)
+  - Issue 6: Admin dashboard user detail modal is not working. (P2)
+  - Issue 7: Auth persistence fix needs verification. (P1)
+  
   Issues Detail:
-  - Issue 1: **In-App Purchases (IAP) are not working**
-     - Attempted fixes: The agent has attempted to fix this four times. The main problem has been incorrect usage of the  v14 API. The agent repeatedly mixed up the payload formats for  and the correct functions to fetch products/subscriptions. The last set of fixes (in message 390-392) appear to be correct but have not been tested.
+  - Issue 1: **In-App Purchases (IAP) for subscriptions are failing**
+     - Attempted fixes: The agent has tried numerous fixes. The latest attempt (in message 479) was to simplify the  call inside  in . The user's log shows a , indicating a fundamental problem with how  is being called from the Zustand store.
      - Next debug checklist:
-        1. Review the final changes made to  to confirm the logic for one-time purchases and subscriptions is now correct for v14.7+.
-        2. Restart the frontend server (expo: ERROR (not running)
-expo: ERROR (abnormal termination)).
-        3. Guide the user to create a new production build (An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username).
-        4. Instruct the user to upload the new AAB to the Play Console Internal Testing track and test all three purchase options on a physical device.
-        5. If it fails again, obtain fresh  output from the user's device.
-     - Why fix this issue and what will be achieved with the fix?: This is the app's core monetization feature. It is a complete blocker.
+        1.  Review  again, focusing on the  function.
+        2.  The error  points to  being the problem. The v14 docs recommend using the  hook, which is not feasible inside a Zustand store. The agent needs to find a stable way to call  outside of a React component or refactor the logic.
+        3.  A potential fix is to ensure  is successfully called and awaited before any other IAP function.
+     - Why fix this issue and what will be achieved with the fix?: This is the app's primary monetization method and a complete blocker for the user.
      - Status:  IN PROGRESS
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend (on-device testing is mandatory).
+     - Should Test frontend/backend/both after fix?: Frontend (mandatory on-device testing).
      - Blocked on other issue: None
 
   - Issue 2: **App crashes to a white screen on logout**
-     - Attempted fixes: User logs showed a Maximum update depth exceeded error originating from . The agent identified this as an infinite re-render loop when the user auth state becomes null. Several fixes were applied to  to stabilize  hooks, use more specific state selectors, and add guards.
+     - Attempted fixes: The agent identified this as a Maximum update depth exceeded error in . Fixes were applied to  to redirect directly to a guest session (message 413) and to  to add more guards against re-renders when the user state is null (message 485). These fixes are unverified.
      - Next debug checklist:
-        1. This issue can only be verified on a new build.
-        2. Guide the user to test the logout functionality (especially after a Google Sign-In session) on the new build created for the IAP fix.
-        3. If the crash persists, re-examine  and how its state dependencies (, ) change during the logout process.
+        1.  This can only be verified with a new build. Guide the user to test the logout flow on the next build.
+        2.  If it persists, the root cause is that a component is trying to access properties of a  object that has become  during logout, causing an infinite re-render loop. The entire navigation flow during logout needs to be re-examined as suggested by the user's ChatGPT analysis (resetting the navigation stack).
      - Why fix this issue and what will be achieved with the fix?: Fixes a critical crash that makes the app unusable after logging out.
-     - Status:  USER VERIFICATION PENDING
+     - Status:  IN PROGRESS
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
      - Blocked on other issue: None
 
-  - Issue 3: **Email service is not sending emails to users**
-     - Attempted fixes: Agent implemented a Resend-based email service. When testing failed, the agent found two issues: 1) The API key wasn't loading due to being called before  was initialized (fixed). 2) Resend's sandbox mode only allows sending emails to the user's own verified email address.
-     - Next debug checklist: This issue is blocked on the user. The agent has correctly identified the cause and provided instructions. The next agent must re-iterate this to the user.
-        1. Remind the user they need to add a custom domain to their Resend account to send emails to their app's users.
-        2. Provide the link again: .
-        3. Once the user confirms the domain is verified, the agent needs to update the  variable in .
-     - Why fix this issue and what will be achieved with the fix?: Enables critical user-facing features like email verification and password reset.
-     - Status:  BLOCKED (waiting on user action).
+  - Issue 3: **Canceling a one-time purchase incorrectly marks it as successful**
+     - Attempted fixes: The agent identified that  was the bug, as an empty array  (which is returned on cancellation) is truthy in JavaScript. The fix was to change the check to  in  within  (message 475).
+     - Next debug checklist: This needs to be verified on the next build.
+     - Why fix this issue and what will be achieved with the fix?: Prevents users from getting premium features for free by simply canceling the payment.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
+
+  - Issue 4: **User avatar does not persist after restarting the app**
+     - Attempted fixes: The agent found that the backend  model was missing  and . Fixes were applied to  to add these fields to the  and  models and the  function, ensuring the  endpoint returns the avatar URL (messages 427-435).
+     - Next debug checklist: This needs to be verified on the next build by logging in, uploading an avatar, restarting the app, and checking if the avatar is still there.
+     - Why fix this issue and what will be achieved with the fix?: Improves user experience and personalization.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both.
+
+  - Issue 5: **Email service is not sending emails to users**
+     - Attempted fixes: This is blocked by the user. The agent correctly identified that the Resend account is in sandbox mode and requires a custom domain to be configured.
+     - Next debug checklist: Remind the user they need to add a custom domain to their Resend account.
+     - Why fix this issue and what will be achieved with the fix?: Enables email verification and password reset.
+     - Status:  BLOCKED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Backend.
-     - Blocked on other issue: None
 
-  - Issue 4: **Google Sign-In functionality is not fully verified**
-     - Attempted fixes: The agent updated  multiple times with new SHA-1 keys provided by the user. It also added more detailed error logging in . The user briefly confirmed login works (Msg 242) but this was immediately followed by the logout crash.
-     - Next debug checklist:
-        1. The success of the login part needs to be re-verified on a new build, as it's unclear if the user was testing the latest version.
-        2. The entire auth flow (login -> use app -> logout) must be tested as a whole.
-     - Why fix this issue and what will be achieved with the fix?: Critical user authentication path.
-     - Status:  USER VERIFICATION PENDING
+  - Issue 6: **Admin dashboard user detail modal is not working**
+     - Attempted fixes: Agent fixed a  bug and a build asset deployment issue by changing  to build directly into . The user was advised that  is now part of the git repo.
+     - Next debug checklist: Ask the user to do a hard refresh on the admin dashboard page to see if the modal now works.
+     - Status: USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (Web).
+
+  - Issue 7: **Auth persistence fix needs verification**
+     - Attempted fixes: The agent fixed a bug in  where users were being logged out on every app start. The logic was changed to properly await  before navigating.
+     - Next debug checklist: This needs to be verified on the next build.
+     - Status: USER VERIFICATION PENDING
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
-     - Blocked on other issue: Issue 2 (Logout Crash)
-
-  - Issue 5: **App web preview is broken due to native-only modules**
-     - Attempted fixes: In a previous session, the agent attempted to fix this by creating platform-specific files (, ) but the fix was not completed. This issue was not worked on in the current session.
-     - Next debug checklist:
-        1. Verify that  and  exist and have correct content (native code vs. a mock component).
-        2. Ensure components import  without an extension.
-        3. This is a low-priority development convenience and should only be addressed after critical bugs are fixed.
-     - Why fix this issue and what will be achieved with the fix?: Improves the development workflow by allowing UI changes to be tested in the web preview.
-     - Status: NOT STARTED
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend (web preview).
 
 **In progress Task List**:
-  - None.
+  - Task 1: **Complete the Login and Return flow for guest purchases (P1)**
+     - Where to resume: The agent has modified  to redirect guests to the login page with a  parameter. The next step is to modify  to read this parameter from  and use  to navigate back to the specified path after a successful login.
+     - What will be achieved with this?: A seamless experience for new users who want to purchase a subscription.
+     - Status:  IN PROGRESS
+     - Should Test frontend/backend/both after fix?: Frontend.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - (P1) Implement email verification flow on the frontend (e.g., a screen that asks the user to check their email and a backend endpoint to handle the verification link click).
-    - (P1) Implement password reset flow on the frontend (UI for Forgot Password and for entering a new password).
-    - (P1) Implement logic to send purchase confirmation emails by calling the new backend endpoint after a successful IAP.
+    - (P1) Implement frontend UI for email verification (a screen prompting the user to check their email).
+    - (P1) Implement frontend UI for the password reset flow.
+    - (P1) Implement logic to send purchase confirmation emails.
     - (P2) Implement search icon functionality on the main screen ().
 - **Future Tasks**:
     - Refactor the monolithic  into smaller, more manageable routers.
-    - Refactor large frontend components into smaller sub-components.
     - Implement push notifications using Firebase.
 
 **Completed work in this session**
-- **Email System Implementation (Backend)**: Installed  and created . Added new endpoints (, , etc.) and integrated welcome/verification email sending into the  flow.
-- **Registration Error UI**: Updated the registration screen () to display an inline error message if signup fails (e.g., Email already registered).
-- **Watermark Fix**: Modified the  function in  to generate a single, centered watermark instead of multiple tiling ones.
-- **Firebase Analytics Integration**: Correctly installed  and  and configured them in . Created an analytics service () and added tracking for screen views and purchase events.
-- **Onboarding Navigation Fix**: Fixed a bug where closing the premium screen after onboarding led to a white screen by ensuring the user is authenticated as a guest first.
-
-**Earlier issues found/mentioned but not fixed**
-   - All known issues are captured in the **All Pending/In progress Issue list**. The agent was very focused on the critical user-reported issues.
-
-**Known issue recurrence from previous fork**
-  - **IAP Failures**: This is the most significant recurring issue. The agent has struggled with the  v14 API across multiple sessions, repeatedly implementing incorrect payload formats. Recurrence count: 4+ in this session alone. Status: IN PROGRESS.
-  - **Google Sign-in/Auth issues**: Recurring problem with  and now a new crash on logout. Recurrence count: 2+. Status: IN PROGRESS / USER VERIFICATION PENDING.
-  - **Build Failures**: While the user did not face major build failures in this session, the previous summary highlighted it as a recurring problem.
+- **Watermark Removal on Purchase**: Implemented the full backend and frontend logic to remove watermarks from a user's existing documents after they become a premium user or purchase the remove ads feature.
+- **Auth Persistence Fix**: Corrected a critical flaw in  that was logging users out on every app launch.
+-**Fake Upgrade Button Removal**: Removed a non-functional Upgrade button from the profile page and replaced it with a link to the Google Play subscription management page.
+- **UI Redesign & Refinement**: Redesigned the  screen based on user feedback and created a new dedicated  screen and flow.
+- **Admin Dashboard Deployment Fix**: Resolved a persistent issue where the admin dashboard would not update by reconfiguring the Vite build process to output files directly into a directory served by the backend ().
+- **Avatar Upload Feature**: Implemented the complete flow for users to upload a profile avatar, including frontend UI () and a backend endpoint ().
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **In-App Purchases (react-native-iap v14.7):** The core challenge. Correct usage requires distinct payloads for Android/iOS and for one-time vs. subscription purchases. For Android subscriptions,  must be called with a  array containing a valid  obtained from . For Android one-time purchases, the payload must be .
-- **Firebase Integration (React Native Firebase):** The proper method for Expo is using the  and  packages combined with the  plugin in .
-- **Zustand State Management:** The app uses Zustand for global state (, ). A key bug was caused by components re-rendering due to broad state selection (e.g., ) instead of specific selectors (e.g., ).
-- **Backend Email Service (Resend):** A new service was added to the FastAPI backend to send transactional emails. It's currently in a sandbox state, limited to sending emails to the developer's verified address until a custom domain is configured by the user on the Resend platform.
+- **In-App Purchases ( v14.7):** This remains the biggest technical challenge. The agent correctly identified the v14 payload structure () but is still facing a  with . The problem likely lies in how these native module functions are being called from within a non-component file (Zustand store).
+- **Zustand State Management:**  and  manage global state. The logout crash is a side effect of components reacting improperly to auth state changes.
+- **Expo Router:** File-based routing is used. The new login and return feature relies on passing search parameters () between routes.
+- **FastAPI Backend serving static files:** The backend now serves the built React admin dashboard from the  directory. This fixed a deployment issue the user was facing.
 
 **key DB schema**
-  - **users**: Implicitly updated in  to include new fields for the email system:
-    -  (default: )
+  - **users**: Implicitly updated in  to include:
     - 
     - 
-    - 
-
-**changes in tech stack**
-  - **Frontend**:
+  - **documents**: The  array within the documents collection was updated. Each page object now includes:
     - 
     - 
-  - **Backend**:
-    -  (Python package)
 
 **All files of reference**
-- : **CRITICAL**. This file has been the source of the most persistent bug. The latest version (after message 392) is believed to be correct but needs immediate verification.
-- : **CRITICAL**. This component was the source of a crash on logout. The fixes need to be verified.
-- : **IMPORTANT**. The new email service. It is currently blocked waiting for the user to configure a domain in Resend.
-- : Contains the core business logic, including the new email endpoints and fixed watermark logic.
-- : Contains the Firebase config. It has been updated with all the user's SHA-1 keys.
-
-**Areas that need refactoring**:
-- The  file has been patched multiple times. While the latest version might be functional, it would benefit from a clean review to ensure there are no redundant or conflicting pieces of logic left over from previous failed attempts.
-
-**key api endpoints**
-- **POST** : MODIFIED to send welcome and verification emails.
-- **POST** : NEW endpoint to generate and email a password reset token.
-- **POST** : NEW endpoint to set a new password using a reset token.
-- **GET** : NEW endpoint to handle email verification link clicks.
+- : **CRITICAL & BUGGY**. This is the source of all IAP issues. The latest fixes for subscription failure and incorrect purchase cancellation are here but are unverified.
+- : **CRITICAL & BUGGY**. This is the source of the logout crash. The latest fixes are unverified.
+- : Contains the logout button logic and the new avatar upload UI.
+- : Contains all new backend logic for watermarks, avatars, and admin details.
+- : Contains the new login and return logic.
+- : Needs to be modified to complete the login and return flow.
 
 **Critical Info for New Agent**
-- **IAP is the top priority.** The user is blocked. The latest changes in  are your best starting point. Do not trust previous implementations; they were flawed. The key is the v14.7 API format. For subscriptions on Android, you must fetch the  first and then use it in the  call. For one-time purchases, the payload must be wrapped, e.g., .
-- **The Logout Crash is the second priority.** The  component is fragile. The fixes are unverified. Test the login-logout flow thoroughly.
-- **The email service is blocked by the user.** You must explain to the user that they need to add a domain to their Resend account to make it work. Do not spend time debugging the email code until they have done so.
-- **Always guide the user to do a clean EAS build.** Do not recommend local builds. The sequence is , , yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.37s., An Expo user account is required to proceed.
+- **The user is frustrated and has been waiting a long time for a working build.** Prioritize fixing the P0 issues (IAP Subscription, Logout Crash, Purchase Cancellation) above all else.
+- **You MUST provide the user with clear instructions for a new An Expo user account is required to proceed.
 
 Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username.
-- **IAP can only be tested on a real device via Google Play Internal Testing.** Do not try to test it in the web preview or an emulator.
-
-**documents created in this job**
-  - 
-  - 
-  -  (User-provided log file)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username after you apply fixes.** These bugs can only be verified on a new production AAB installed on a real device via Google Play Internal Testing.
+- **IAP Subscription Bug:** The  on  is the main blocker. The v14 docs for  heavily favor the  hook. Since you're in a Zustand store, this is not possible. You must find a stable way to call  and . Ensure  is completed successfully first.
+- **Logout Crash:** The user's ChatGPT analysis is likely correct: the issue is a combination of state becoming null and the navigation stack not being reset properly. The agent's fix in  (message 413) of calling  and then  is a good step but might not be enough. A full navigation stack reset might be necessary.
+- **Login and Return Task:** This is the last active task. You need to modify  to read the  search parameter and redirect the user after a successful login.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Reports IAP is still not working and provides a detailed log file (the one from ). (IN PROGRESS)
-2.  **User:** Asks what needs to be done for the non-critical warnings (, ). (RESOLVED - Agent explained they can be ignored or were fixed).
-3.  **User:** Asks agent to fix the Firebase/AdMob warning. (COMPLETED - Agent re-ordered initialization logic).
-4.  **User:** Reports IAP is still not working and provides new logs. (IN PROGRESS)
-5.  **User:** Provides analysis from ChatGPT which correctly identifies the root cause of the IAP issues. (ADDRESSED - Agent used this to rewrite the IAP store).
-6.  **User:** Reports IAP is *still* not working and provides the latest logs. These logs are key to the final fix. (IN PROGRESS - Agent applied a fix based on these logs but hasn't tested).
-7.  **User:** Asks if the domain for the email service needs to be added from the backend. (RESOLVED - Agent explained it's done on the Resend website).
-8.  **User:** Reports a new bug: the document watermark is tiling across the whole page instead of being a single mark. (COMPLETED - Agent fixed the backend logic).
-9.  **User:** Reports that email registration is not working (no email received). (IN PROGRESS - Blocked on user).
-10. **User:** Reports a new crash: Maximum update depth exceeded and a white screen on logout after a successful Google login. (IN PROGRESS).
+1.  **Msg 502:** User asks to add a Continue as Free option and implement the login and return flow. (IN PROGRESS)
+2.  **Msg 500:** User asks about the purchase flow for a new user. (ADDRESSED)
+3.  **Msg 467:** User provides a critical report with logs: subscriptions still fail, canceling a purchase marks it as successful, and logout still crashes. (IN PROGRESS)
+4.  **Msg 440:** User is confused why their GitHub repo doesn't have the latest IAP changes. (ADDRESSED - Agent confirmed the code is on GitHub).
+5.  **Msg 403:** User reports two bugs: avatar not persisting on app restart, and the logout crash continues. Provides a ChatGPT analysis of the logout issue. (IN PROGRESS)
+6.  **Msg 384:** User expresses frustration with the IAP bug and asks the agent to check the official npm page. (ADDRESSED)
+7.  **Msg 363:** User provides a detailed ChatGPT analysis of the IAP bug, correctly pointing out the API misuse. (ADDRESSED)
+8.  **Msg 328:** User reports that IAP and logout issues persist after a new build. Provides logs. (ADDRESSED)
+9.  **Msg 317:** User asks for clarification on where to run the admin dashboard build command. (ADDRESSED)
+10. **Msg 304:** User questions why the admin dashboard build process isn't automated on their deployment platform (Railway). (ADDRESSED)
 
 **Project Health Check:**
 - **Broken**:
-    - In-App Purchases (all types).
-    - Logout functionality (crashes the app).
-- **Mocked**:
-    -  is likely a mock/empty component (from a previous session).
+    - In-App Purchases (Subscriptions).
+    - Logout functionality (crashes to a white screen).
+    - In-App Purchases (One-time purchase cancellation flow).
 - **Incomplete**:
-    - The email system is implemented on the backend but is non-operational for end-users until the user configures a domain on Resend. The frontend UI for password reset/verification is not built.
+    - The login and return feature for guest purchases.
+    - Avatar persistence on app restart is not verified.
+    - Email system (blocked by user).
 
 **3rd Party Integrations**
-- **Resend:** For sending transactional emails. Requires user to provide an API Key and configure a custom domain.
+- **Resend:** For transactional emails. Requires a user-provided API key and domain configuration.
 - **React Native IAP ():** For In-App Purchases.
 - **React Native Firebase (, ):** For analytics.
 - **React Native Google Sign-In ():** For Google authentication.
 - **Google AdMob ():** For displaying ads.
+- **Expo Image Picker ():** For avatar uploads.
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Agent relied on user testing and log analysis).
-  - Troubleshoot agent used after agent stuck in loop: YES (Used to diagnose the white screen and initial analytics issue).
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: YES (Used to diagnose the admin dashboard deployment issue).
   - Test files created: []
-  - Known regressions: IAP and Google Sign-In have been in a broken state for most of the session, with multiple attempted fixes. The logout crash is a new regression in this session.
+  - Known regressions: The logout crash is a major regression. The IAP issues are persistent failures rather than regressions.
 
 **Credentials to test flow:**
-- **Resend API Key**: Available in .
-- **IAP Product IDs**:
-  - 
-  - 
-  - 
-- Testing IAP requires an AAB uploaded to the Play Console Internal Testing track and a licensed tester account.
+- **IAP Product IDs**: , , .
+- Testing IAP and the logout crash requires an AAB uploaded to the Play Console Internal Testing track and a licensed tester account.
 
 **What agent forgot to execute**
-- The agent has not implemented the frontend UI for the new email features (password reset, email verification prompt).
-- The agent did not get to implement the search feature requested in a previous session. This was correctly deprioritized in favor of critical bug fixes.
-
+- The agent has not yet completed the login and return flow by modifying .
+- The agent has not implemented the frontend UI for the email features (password reset, email verification prompt).
+- The agent has not implemented the search feature requested in a previous session (correctly de-prioritized).
 </analysis>
