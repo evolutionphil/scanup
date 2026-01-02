@@ -207,7 +207,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase ONE-TIME product (like Remove Ads)
   purchaseProduct: async (productId: string) => {
-    if (Platform.OS === 'web' || !requestPurchase) {
+    if (Platform.OS === 'web') {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -216,37 +216,26 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // v14 API: request object with platform-specific params and type
-      const purchaseParams = {
-        request: {
-          apple: { sku: productId },
-          google: { skus: [productId] },
-        },
-        type: 'inapp' as const,
-      };
-      
-      console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
-      const purchase = await requestPurchase(purchaseParams);
+      // v14 API: use skus array
+      console.log('[PurchaseStore] requestPurchase with skus:', [productId]);
+      const purchase = await requestPurchase({ skus: [productId] });
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
-      // CRITICAL: Check if purchase is valid (not empty, not cancelled)
-      const isValidPurchase = purchase && 
-        (Array.isArray(purchase) ? purchase.length > 0 : true) &&
-        (purchase.purchaseToken || purchase.transactionId || purchase.productId);
+      // Get purchase data
+      const p = Array.isArray(purchase) ? purchase[0] : purchase;
       
-      console.log('[PurchaseStore] Is valid purchase:', isValidPurchase);
-      
-      if (!isValidPurchase) {
+      // Validate purchase
+      if (!p || !p.purchaseToken) {
         console.log('[PurchaseStore] Purchase cancelled or invalid');
         set({ isLoading: false });
         return false;
       }
       
       // Acknowledge purchase on Android
-      if (Platform.OS === 'android' && purchase.purchaseToken && acknowledgePurchaseAndroid) {
+      if (Platform.OS === 'android') {
         try {
-          await acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+          await acknowledgePurchaseAndroid({ token: p.purchaseToken });
           console.log('[PurchaseStore] Purchase acknowledged');
         } catch (ackError) {
           console.log('[PurchaseStore] Acknowledge error:', ackError);
@@ -254,9 +243,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       }
       
       // Finish transaction on iOS
-      if (Platform.OS === 'ios' && finishTransaction) {
+      if (Platform.OS === 'ios') {
         try {
-          await finishTransaction({ purchase, isConsumable: false });
+          await finishTransaction({ purchase: p, isConsumable: false });
           console.log('[PurchaseStore] Transaction finished');
         } catch (finishError) {
           console.log('[PurchaseStore] Finish error:', finishError);
