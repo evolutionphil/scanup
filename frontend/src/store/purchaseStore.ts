@@ -119,16 +119,16 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       });
       
       // Initialize IAP (only on native)
-      if (Platform.OS !== 'web' && RNIap) {
+      if (Platform.OS !== 'web' && initConnection) {
         try {
           // Connect to store
-          await RNIap.initConnection();
+          await initConnection();
           console.log('[PurchaseStore] IAP connected');
           
           // Clear pending purchases on Android
-          if (Platform.OS === 'android') {
+          if (Platform.OS === 'android' && flushFailedPurchasesCachedAsPendingAndroid) {
             try {
-              await RNIap.flushFailedPurchasesCachedAsPendingAndroid();
+              await flushFailedPurchasesCachedAsPendingAndroid();
             } catch (e) {
               // Ignore
             }
