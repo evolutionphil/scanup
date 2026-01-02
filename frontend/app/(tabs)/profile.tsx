@@ -242,9 +242,20 @@ export default function ProfileScreen() {
 
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: theme.surface }]}>
-          <View style={styles.avatarContainer}>
-            {user?.picture ? (
-              <Image source={{ uri: user.picture }} style={styles.avatar} />
+          <TouchableOpacity 
+            style={styles.avatarContainer} 
+            onPress={handleAvatarPress}
+            disabled={uploadingAvatar}
+          >
+            {uploadingAvatar ? (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
+                <ActivityIndicator size="large" color={theme.primary} />
+              </View>
+            ) : user?.photo_url || user?.picture || user?.avatar_url ? (
+              <Image 
+                source={{ uri: user.photo_url || user.picture || user.avatar_url }} 
+                style={styles.avatar} 
+              />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
                 <Text style={[styles.avatarText, { color: theme.primary }]}>
@@ -257,7 +268,13 @@ export default function ProfileScreen() {
                 <Ionicons name="star" size={12} color="#FFF" />
               </View>
             )}
-          </View>
+            {/* Edit icon overlay */}
+            {!isGuest && (
+              <View style={[styles.editAvatarBadge, { backgroundColor: theme.primary }]}>
+                <Ionicons name="camera" size={14} color="#FFF" />
+              </View>
+            )}
+          </TouchableOpacity>
           <Text style={[styles.userName, { color: theme.text }]}>{user?.name || t('guest_user', 'Guest User')}</Text>
           <Text style={[styles.userEmail, { color: theme.textMuted }]}>
             {isGuest ? t('not_signed_in', 'Not signed in') : user?.email}
