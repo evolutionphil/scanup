@@ -5636,23 +5636,64 @@ async def get_admin_users(
             ]
         
         if filter == "premium":
-            query["is_premium"] = True
+            query["subscription_type"] = "premium"
+        elif filter == "trial":
+            query["subscription_type"] = "trial"
+        elif filter == "ad-free":
+            query["has_removed_ads"] = True
         elif filter == "free":
-            query["is_premium"] = {"$ne": True}
+            query["$and"] = [
+                {"subscription_type": {"$nin": ["premium", "trial"]}},
+                {"has_removed_ads": {"$ne": True}}
+            ]
+        elif filter == "google":
+            query["auth_provider"] = "google"
         elif filter == "recent":
             week_ago = datetime.now(timezone.utc) - timedelta(days=7)
             query["created_at"] = {"$gte": week_ago.isoformat()}
         
         users = await db.users.find(query, {"_id": 0, "password_hash": 0}).sort("created_at", -1).limit(limit).to_list(limit)
         
-        # Add document count for each user
+        # Add document count and scan count for each user
         for user in users:
             user["document_count"] = await db.documents.count_documents({"user_id": user.get("user_id")})
+            # Check if is_premium based on subscription_type for backward compatibility
+            if not user.get("is_premium"):
+                user["is_premium"] = user.get("subscription_type") == "premium"
         
         return {"users": users}
     except Exception as e:
         logger.error(f"Admin users error: {e}")
         return {"users": []}
+
+
+@api_router.get("/admin/users/{user_id}")
+async def get_admin_user_detail(user_id: str, admin: dict = Depends(get_admin_user)):
+    """Get detailed user info for admin"""
+    try:
+        user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Add document and usage counts
+        user["document_count"] = await db.documents.count_documents({"user_id": user_id})
+        
+        # Check if user has password set (for OAuth users)
+        full_user = await db.users.find_one({"user_id": user_id})
+        user["has_password"] = bool(full_user.get("password_hash"))
+        
+        # Backward compatibility for is_premium
+        if not user.get("is_premium"):
+            user["is_premium"] = user.get("subscription_type") == "premium"
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin user detail error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @api_router.delete("/admin/users/{user_id}")
 async def delete_admin_user(user_id: str, admin: dict = Depends(get_admin_user)):
