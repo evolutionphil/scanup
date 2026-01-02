@@ -291,7 +291,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase SUBSCRIPTION (uses same requestPurchase on modern react-native-iap)
   purchaseSubscription: async (productId: string) => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' || !RNIap) {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -300,7 +300,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const RNIap = require('react-native-iap');
       
       let purchase;
       
