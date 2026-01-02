@@ -119,6 +119,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     }
 
     if (isSDKInitialized || isInitializing) return;
+    if (!mountedRef.current) return;
 
     isInitializing = true;
 
@@ -145,6 +146,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
       const adsModule = getAdsModule();
       if (!adsModule) {
         console.log('[AdManager] Ads module not available');
+        isInitializing = false;
         return;
       }
       
@@ -152,6 +154,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
       console.log('[AdManager] Initializing AdMob SDK...');
       
       await mobileAds().initialize();
+      
+      if (!mountedRef.current) {
+        console.log('[AdManager] Component unmounted during init');
+        return;
+      }
       
       console.log('[AdManager] AdMob SDK initialized');
       isSDKInitialized = true;
