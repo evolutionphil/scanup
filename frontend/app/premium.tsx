@@ -292,10 +292,22 @@ export default function PremiumScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.continueButtonText}>
-              {t('continue', 'Continue')}
+              {isGuest || !isAuthenticated 
+                ? t('login_to_purchase', 'Login to Purchase')
+                : t('continue', 'Continue')
+              }
             </Text>
           )}
         </TouchableOpacity>
+
+        {/* Continue as Free - Only show for guest/non-authenticated */}
+        {(isGuest || !isAuthenticated) && (
+          <TouchableOpacity style={styles.continueFreeButton} onPress={handleContinueFree}>
+            <Text style={styles.continueFreeText}>
+              {t('continue_as_free', 'Continue as Free')}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Error Message */}
         {error && (
