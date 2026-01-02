@@ -221,7 +221,11 @@ export default function RemoveAdsScreen() {
         <View style={styles.priceCard}>
           <View style={styles.priceContent}>
             <Text style={styles.priceLabel}>{t('one_time', 'One-time payment')}</Text>
-            <Text style={styles.priceText}>{removeAdsPrice}</Text>
+            {isPriceLoaded ? (
+              <Text style={styles.priceText}>{removeAdsPrice}</Text>
+            ) : (
+              <ActivityIndicator size="small" color={BRAND_GREEN} />
+            )}
           </View>
           <View style={styles.lifetimeBadge}>
             <Text style={styles.lifetimeText}>{t('lifetime', 'Lifetime')}</Text>
