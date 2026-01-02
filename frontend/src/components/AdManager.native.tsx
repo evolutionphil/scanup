@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useAdStore } from '../store/adStore';
 import { useAuthStore } from '../store/authStore';
@@ -10,6 +10,9 @@ interface AdManagerProps {
 
 // Check if native environment
 const isNativeEnvironment = Platform.OS !== 'web';
+
+// Track if component is mounted to prevent state updates on unmounted component
+let isMounted = false;
 
 // Ad Unit IDs
 const AD_UNITS = {
