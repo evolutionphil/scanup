@@ -142,23 +142,30 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     const confirmLogout = async () => {
       try {
-        // First continue as guest to prevent white screen
-        const { continueAsGuest } = useAuthStore.getState();
+        console.log('[Profile] Starting logout...');
         
-        // Clear current session
+        // CRITICAL: First set guest state BEFORE clearing auth
+        // This prevents the "null user" state that causes infinite loops
+        const { continueAsGuest } = useAuthStore.getState();
+        continueAsGuest();
+        
+        // Then clear the session (this won't cause null state now)
         await logout();
         
-        // Immediately set as guest user to prevent blank state
-        continueAsGuest();
+        console.log('[Profile] Logout complete, state is now guest');
         
-        // Navigate to home (tabs)
-        router.replace('/(tabs)');
+        // Small delay to let state stabilize before navigation
+        setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 100);
       } catch (e) {
         console.error('Logout error:', e);
-        // Fallback: still try to navigate
+        // Fallback: ensure we're in guest state
         const { continueAsGuest } = useAuthStore.getState();
         continueAsGuest();
-        router.replace('/(tabs)');
+        setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 100);
       }
     };
 
