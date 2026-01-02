@@ -2,26 +2,21 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Only import IAP on native platforms
-const RNIap = Platform.OS !== 'web' ? require('react-native-iap') : null;
+// Static imports from react-native-iap v14 (ESM compatible)
+import {
+  initConnection,
+  getSubscriptions,
+  getProducts,
+  requestPurchase,
+  getAvailablePurchases,
+  acknowledgePurchaseAndroid,
+  finishTransaction,
+  flushFailedPurchasesCachedAsPendingAndroid,
+} from 'react-native-iap';
 
-// Extract functions (will be null on web)
-const initConnection = RNIap?.initConnection;
-const getSubscriptions = RNIap?.getSubscriptions;
-const getProducts = RNIap?.getProducts;
-const requestPurchase = RNIap?.requestPurchase;
-const getAvailablePurchases = RNIap?.getAvailablePurchases;
-const acknowledgePurchaseAndroid = RNIap?.acknowledgePurchaseAndroid;
-const finishTransaction = RNIap?.finishTransaction;
-const flushFailedPurchasesCachedAsPendingAndroid = RNIap?.flushFailedPurchasesCachedAsPendingAndroid;
-
+// Log that IAP is loaded (only on native)
 if (Platform.OS !== 'web') {
-  console.log('[PurchaseStore] IAP functions loaded:', {
-    initConnection: !!initConnection,
-    getSubscriptions: !!getSubscriptions,
-    getProducts: !!getProducts,
-    requestPurchase: !!requestPurchase,
-  });
+  console.log('[PurchaseStore] IAP module loaded with static imports');
 }
 
 // Product IDs - Must match Google Play Console / App Store Connect
