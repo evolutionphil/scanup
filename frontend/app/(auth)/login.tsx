@@ -237,7 +237,7 @@ export default function LoginScreen() {
         if (appleLogin) {
           await appleLogin(data);
         }
-        router.replace('/(tabs)');
+        navigateAfterLogin();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Apple authentication failed');
