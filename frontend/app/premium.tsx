@@ -315,7 +315,9 @@ export default function PremiumScreen() {
             <Text style={styles.continueButtonText}>
               {isGuest || !isAuthenticated 
                 ? t('login_to_purchase', 'Login to Purchase')
-                : t('continue', 'Continue')
+                : selectedPlan === 'monthly'
+                  ? t('start_free_trial', 'Start Free Trial')
+                  : t('subscribe_now', 'Subscribe Now')
               }
             </Text>
           )}
