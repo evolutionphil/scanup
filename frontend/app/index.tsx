@@ -76,7 +76,11 @@ export default function Index() {
         // For web, skip AsyncStorage check and go directly to tabs
         if (Platform.OS === 'web') {
           console.log('[Index] Web platform - navigating to tabs');
-          continueAsGuest();
+          // Only continue as guest if not already authenticated
+          const { isAuthenticated } = useAuthStore.getState();
+          if (!isAuthenticated) {
+            continueAsGuest();
+          }
           router.replace('/(tabs)');
           return;
         }
@@ -93,13 +97,23 @@ export default function Index() {
         if (!completed) {
           router.replace('/onboarding');
         } else {
-          continueAsGuest();
+          // Check if user is already authenticated (from loadStoredAuth)
+          const { isAuthenticated } = useAuthStore.getState();
+          console.log('[Index] User authenticated:', isAuthenticated);
+          
+          // Only continue as guest if NOT already authenticated
+          if (!isAuthenticated) {
+            continueAsGuest();
+          }
           router.replace('/(tabs)');
         }
       } catch (error) {
         console.error('[Index] Navigation error:', error);
         // Fallback - just go to tabs
-        continueAsGuest();
+        const { isAuthenticated } = useAuthStore.getState();
+        if (!isAuthenticated) {
+          continueAsGuest();
+        }
         router.replace('/(tabs)');
       }
     };
