@@ -86,16 +86,17 @@ export default function PremiumScreen() {
   }, []);
 
   // Get prices from fetched products
-  const getPrice = (productId: string, defaultPrice: string) => {
+  const getPrice = (productId: string) => {
     const sub = subscriptions.find(s => s.productId === productId);
     if (sub) return sub.localizedPrice;
     const prod = products.find(p => p.productId === productId);
     if (prod) return prod.localizedPrice;
-    return defaultPrice;
+    return ''; // Return empty if not loaded
   };
 
-  const monthlyPrice = getPrice(PRODUCT_IDS.PREMIUM_MONTHLY, '€5.99');
-  const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY, '€35.99');
+  const monthlyPrice = getPrice(PRODUCT_IDS.PREMIUM_MONTHLY);
+  const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY);
+  const arePricesLoaded = monthlyPrice !== '' || yearlyPrice !== '';
 
   const handlePurchase = async () => {
     // Check if user is logged in (not guest)
