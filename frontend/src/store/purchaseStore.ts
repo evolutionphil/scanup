@@ -151,7 +151,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   fetchProducts: async () => {
-    if (Platform.OS === 'web' || !RNIap) return;
+    if (Platform.OS === 'web' || !getSubscriptions) return;
     
     console.log('[PurchaseStore] Fetching products...');
     set({ isLoading: true, error: null });
@@ -160,7 +160,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch subscriptions
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
-        const subs = await RNIap.getSubscriptions({ skus: SUBSCRIPTION_SKUS });
+        const subs = await getSubscriptions({ skus: SUBSCRIPTION_SKUS });
         console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
         
         const formattedSubs: Product[] = (subs || []).map((sub: any) => {
@@ -199,10 +199,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch one-time products
       try {
         console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
-        const products = await RNIap.getProducts({ skus: PRODUCT_SKUS });
-        console.log('[PurchaseStore] Raw products:', JSON.stringify(products, null, 2));
+        const prods = await getProducts({ skus: PRODUCT_SKUS });
+        console.log('[PurchaseStore] Raw products:', JSON.stringify(prods, null, 2));
         
-        const formattedProducts: Product[] = (products || []).map((prod: any) => ({
+        const formattedProducts: Product[] = (prods || []).map((prod: any) => ({
           productId: prod.productId,
           title: prod.title || prod.productId,
           description: prod.description || '',
