@@ -487,13 +487,13 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   restorePurchases: async () => {
-    if (Platform.OS === 'web' || !RNIap) return;
+    if (Platform.OS === 'web' || !getAvailablePurchases) return;
     
     console.log('[PurchaseStore] Restoring purchases...');
     set({ isLoading: true, error: null });
     
     try {
-      const purchases = await RNIap.getAvailablePurchases();
+      const purchases = await getAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
       
       let foundPremium = false;
