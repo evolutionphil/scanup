@@ -30,12 +30,11 @@ const FREE_SCANS_PER_MONTH = 100;
 const FREE_OCR_PER_DAY = 3;
 
 export default function ProfileScreen() {
-  const { user, token, isGuest, logout, updateUser, startTrial } = useAuthStore();
+  const { user, token, isGuest, logout, updateUser } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t } = useI18n();
   const { isPremium, hasRemovedAds } = usePurchaseStore();
   const [upgrading, setUpgrading] = useState(false);
-  const [startingTrial, setStartingTrial] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Avatar upload handler
