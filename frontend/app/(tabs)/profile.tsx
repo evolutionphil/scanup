@@ -327,21 +327,20 @@ export default function ProfileScreen() {
             </View>
 
             {/* Show trial banner for free users who haven't used trial */}
-            {!user?.is_premium && !user?.is_trial && (
-              <View style={[styles.trialBanner, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}>
+            {!user?.is_premium && !user?.is_trial && !isPremium && (
+              <TouchableOpacity 
+                style={[styles.trialBanner, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
+                onPress={() => router.push('/premium')}
+              >
                 <Ionicons name="gift-outline" size={20} color={theme.success} />
                 <View style={styles.trialBannerText}>
                   <Text style={[styles.trialBannerTitle, { color: theme.success }]}>{t('try_premium_free', 'Try Premium Free')}</Text>
-                  <Text style={[styles.trialBannerSubtitle, { color: theme.textMuted }]}>{t('seven_day_trial', '7-day trial, no credit card needed')}</Text>
+                  <Text style={[styles.trialBannerSubtitle, { color: theme.textMuted }]}>{t('seven_day_trial_google', '7 days free, then auto-renews')}</Text>
                 </View>
-                <TouchableOpacity 
-                  style={[styles.trialButton, { backgroundColor: theme.success }]}
-                  onPress={handleStartTrial}
-                  disabled={startingTrial}
-                >
-                  <Text style={styles.trialButtonText}>{startingTrial ? '...' : t('start', 'Start')}</Text>
-                </TouchableOpacity>
-              </View>
+                <View style={[styles.trialButton, { backgroundColor: theme.success }]}>
+                  <Ionicons name="chevron-forward" size={18} color="#fff" />
+                </View>
+              </TouchableOpacity>
             )}
 
             <Button
