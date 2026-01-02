@@ -451,21 +451,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
-  commercialLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  commercialText: {
-    color: BRAND_BLUE,
-    fontSize: 16,
-    marginRight: 4,
-  },
   footerLinks: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 40,
+    marginTop: 20,
     marginBottom: 20,
   },
   footerLinkText: {
