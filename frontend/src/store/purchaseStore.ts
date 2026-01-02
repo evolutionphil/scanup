@@ -92,10 +92,8 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       });
       
       // Initialize IAP (only on native)
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== 'web' && RNIap) {
         try {
-          const RNIap = require('react-native-iap');
-          
           // Connect to store
           await RNIap.initConnection();
           console.log('[PurchaseStore] IAP connected');
