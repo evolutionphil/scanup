@@ -54,6 +54,7 @@ const getAdsModule = () => {
  */
 export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const mountedRef = useRef(true);
+  const lastAdsEnabledRef = useRef<boolean | null>(null);
   
   const setAdLoaded = useAdStore((state) => state.setAdLoaded);
   const setAdShowing = useAdStore((state) => state.setAdShowing);
@@ -61,7 +62,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   const recordAdShown = useAdStore((state) => state.recordAdShown);
   
   // Use stable selectors to prevent unnecessary re-renders
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  // CRITICAL: Use default values to prevent crashes when user is null
   const userIsPremium = useAuthStore((state) => state.user?.is_premium ?? false);
   const userIsTrial = useAuthStore((state) => state.user?.is_trial ?? false);
   
@@ -86,15 +87,17 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
 
   // Initialize purchase store (only once on mount)
   useEffect(() => {
-    if (!purchasesInitStarted && !purchaseInitialized) {
+    if (!purchasesInitStarted && !purchaseInitialized && mountedRef.current) {
       setPurchasesInitStarted(true);
       initializePurchases().catch(err => {
-        console.log('[AdManager] Purchase init error:', err);
+        if (mountedRef.current) {
+          console.log('[AdManager] Purchase init error:', err);
+        }
       });
     }
   }, [purchasesInitStarted, purchaseInitialized, initializePurchases]);
 
-  // Update ads enabled based on premium status
+  // Update ads enabled based on premium status - with debounce to prevent loops
   useEffect(() => {
     // Don't update if not mounted
     if (!mountedRef.current) return;
@@ -104,11 +107,18 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     
     // Calculate if ads should be disabled
     const shouldDisableAds = userIsPremium || userIsTrial || isPremium || hasRemovedAds;
+    const newAdsEnabled = !shouldDisableAds;
+    
+    // CRITICAL: Only update if value actually changed to prevent infinite loops
+    if (lastAdsEnabledRef.current === newAdsEnabled) {
+      return;
+    }
     
     console.log('[AdManager] Ads check - userPremium:', userIsPremium, 'userTrial:', userIsTrial, 
       'isPremium:', isPremium, 'hasRemovedAds:', hasRemovedAds, 'disable:', shouldDisableAds);
     
-    setAdsEnabled(!shouldDisableAds);
+    lastAdsEnabledRef.current = newAdsEnabled;
+    setAdsEnabled(newAdsEnabled);
   }, [purchaseInitialized, userIsPremium, userIsTrial, isPremium, hasRemovedAds, setAdsEnabled]);
 
   // Initialize SDK
