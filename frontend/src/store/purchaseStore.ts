@@ -370,6 +370,19 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
         set({ isPremium: true, activeSubscription: productId, isLoading: false });
         
+        // Sync with backend and remove watermarks
+        // Get auth token from authStore
+        try {
+          const { useAuthStore } = require('./authStore');
+          const { token, user } = useAuthStore.getState();
+          if (token && user?.user_id) {
+            console.log('[PurchaseStore] Syncing premium status with backend...');
+            await get().syncWithBackend(token, user.user_id);
+          }
+        } catch (syncError) {
+          console.log('[PurchaseStore] Sync after purchase error:', syncError);
+        }
+        
         return true;
       }
       
