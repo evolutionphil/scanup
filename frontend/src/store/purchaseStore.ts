@@ -300,75 +300,108 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // v14 API: First fetch subscription to get offerToken for Android
       console.log('[PurchaseStore] === SUBSCRIPTION PURCHASE ===');
-      console.log('[PurchaseStore] Step 1: Fetching subscription details for:', productId);
       
-      // Fetch subscription to get offer details
-      await RNIap.getSubscriptions({ skus: [productId] });
+      let offerToken: string | undefined;
       
-      // Get from store state
-      const { subscriptions } = get();
-      const subscription = subscriptions.find(s => s.productId === productId);
-      
-      console.log('[PurchaseStore] Step 2: Subscription found:', !!subscription);
-      
-      // Build purchase request - v14 API format
-      let purchaseParams: any = {
-        request: {
-          apple: { sku: productId },
-          google: { skus: [productId] },
-        },
-        type: 'subs' as const,
-      };
-      
-      // For Android subscriptions, add subscriptionOffers if available
-      if (Platform.OS === 'android' && subscription?.offerToken) {
-        console.log('[PurchaseStore] Step 3: Adding offerToken for Android');
-        purchaseParams.request.google.subscriptionOffers = [{
-          sku: productId,
-          offerToken: subscription.offerToken,
-        }];
+      // For Android, we need to get the offerToken first
+      if (Platform.OS === 'android') {
+        console.log('[PurchaseStore] Step 1: Getting offerToken for Android');
+        
+        try {
+          // Fetch fresh subscription data
+          const subs = await RNIap.getSubscriptions({ skus: [productId] });
+          console.log('[PurchaseStore] Step 2: Got subscriptions:', subs?.length);
+          
+          if (subs && subs.length > 0) {
+            const sub = subs[0];
+            // Get offerToken from subscriptionOfferDetails
+            const offerDetails = sub.subscriptionOfferDetailsAndroid || sub.subscriptionOfferDetails;
+            if (offerDetails && offerDetails.length > 0) {
+              offerToken = offerDetails[0].offerToken;
+              console.log('[PurchaseStore] Step 3: Got offerToken:', !!offerToken);
+            }
+          }
+        } catch (fetchError) {
+          console.log('[PurchaseStore] Error fetching subscription details:', fetchError);
+        }
       }
       
-      console.log('[PurchaseStore] Step 4: Calling requestPurchase');
-      console.log('[PurchaseStore] Params:', JSON.stringify(purchaseParams));
+      // Build purchase params
+      let purchaseParams: any;
+      
+      if (Platform.OS === 'android') {
+        if (offerToken) {
+          // With offerToken (preferred)
+          purchaseParams = {
+            subscriptionOffers: [{
+              sku: productId,
+              offerToken: offerToken,
+            }],
+          };
+          console.log('[PurchaseStore] Step 4: Using subscriptionOffers format');
+        } else {
+          // Fallback without offerToken
+          purchaseParams = {
+            skus: [productId],
+          };
+          console.log('[PurchaseStore] Step 4: Using simple skus format (no offerToken)');
+        }
+      } else {
+        // iOS
+        purchaseParams = {
+          sku: productId,
+        };
+        console.log('[PurchaseStore] Step 4: Using iOS format');
+      }
+      
+      console.log('[PurchaseStore] Step 5: Calling requestPurchase with:', JSON.stringify(purchaseParams));
       
       const purchase = await RNIap.requestPurchase(purchaseParams);
       
-      console.log('[PurchaseStore] Step 5: Purchase result received');
-      console.log('[PurchaseStore] Subscription result:', JSON.stringify(purchase, null, 2));
+      console.log('[PurchaseStore] Step 6: Purchase result:', JSON.stringify(purchase, null, 2));
       
-      if (purchase) {
-        // Acknowledge on Android
-        if (Platform.OS === 'android' && purchase.purchaseToken) {
-          try {
-            await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
-            console.log('[PurchaseStore] Subscription acknowledged');
-          } catch (ackError) {
-            console.log('[PurchaseStore] Acknowledge error:', ackError);
-          }
-        }
-        
-        // Finish on iOS
-        if (Platform.OS === 'ios') {
-          try {
-            await RNIap.finishTransaction({ purchase, isConsumable: false });
-          } catch (finishError) {
-            console.log('[PurchaseStore] Finish error:', finishError);
-          }
-        }
-        
-        // Update state
-        await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
-        await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
-        set({ isPremium: true, activeSubscription: productId, isLoading: false });
-        
-        // Sync with backend and remove watermarks
-        // Get auth token from authStore
+      // CRITICAL: Validate purchase result
+      const isValidPurchase = purchase && 
+        (Array.isArray(purchase) ? purchase.length > 0 : true) &&
+        (purchase.purchaseToken || purchase.transactionId || purchase.productId);
+      
+      console.log('[PurchaseStore] Is valid purchase:', isValidPurchase);
+      
+      if (!isValidPurchase) {
+        console.log('[PurchaseStore] Subscription cancelled or invalid');
+        set({ isLoading: false });
+        return false;
+      }
+      
+      // Acknowledge on Android
+      if (Platform.OS === 'android' && purchase.purchaseToken) {
         try {
-          const { useAuthStore } = require('./authStore');
-          const { token, user } = useAuthStore.getState();
+          await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+          console.log('[PurchaseStore] Subscription acknowledged');
+        } catch (ackError) {
+          console.log('[PurchaseStore] Acknowledge error:', ackError);
+        }
+      }
+      
+      // Finish on iOS
+      if (Platform.OS === 'ios') {
+        try {
+          await RNIap.finishTransaction({ purchase, isConsumable: false });
+        } catch (finishError) {
+          console.log('[PurchaseStore] Finish error:', finishError);
+        }
+      }
+      
+      // Update state ONLY after valid purchase
+      await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
+      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
+      set({ isPremium: true, activeSubscription: productId, isLoading: false });
+      
+      // Sync with backend and remove watermarks
+      try {
+        const { useAuthStore } = require('./authStore');
+        const { token, user } = useAuthStore.getState();
           if (token && user?.user_id) {
             console.log('[PurchaseStore] Syncing premium status with backend...');
             await get().syncWithBackend(token, user.user_id);
