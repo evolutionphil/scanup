@@ -289,28 +289,41 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       let purchase;
       
       if (Platform.OS === 'android') {
-        // Android: Need offerToken for subscriptions
-        const { subscriptions } = get();
-        const sub = subscriptions.find(s => s.productId === productId);
+        // First, fetch fresh subscription data to get the offerToken
+        console.log('[PurchaseStore] Fetching fresh subscription data...');
+        const freshSubs = await iap.getSubscriptions({ skus: [productId] });
+        console.log('[PurchaseStore] Fresh subs:', JSON.stringify(freshSubs, null, 2));
         
-        if (sub?.offerToken) {
-          console.log('[PurchaseStore] Using offerToken:', sub.offerToken);
-          
-          // CORRECT API for Android subscriptions with offerToken
-          purchase = await iap.requestPurchase({
+        if (!freshSubs || freshSubs.length === 0) {
+          throw new Error('Subscription not found in store');
+        }
+        
+        const sub = freshSubs[0];
+        
+        // Get offerToken from subscriptionOfferDetailsAndroid
+        const offerDetails = sub.subscriptionOfferDetailsAndroid || sub.subscriptionOfferDetails;
+        const offerToken = offerDetails?.[0]?.offerToken;
+        
+        if (!offerToken) {
+          console.log('[PurchaseStore] No offerToken found, sub details:', JSON.stringify(sub, null, 2));
+          throw new Error('No offer token available - check Play Console subscription configuration');
+        }
+        
+        console.log('[PurchaseStore] Using offerToken:', offerToken);
+        
+        // For react-native-iap v14+, Android subscriptions need this format
+        const purchaseParams = {
+          android: {
             skus: [productId],
             subscriptionOffers: [{
               sku: productId,
-              offerToken: sub.offerToken,
+              offerToken: offerToken,
             }],
-          });
-        } else {
-          console.log('[PurchaseStore] No offerToken, trying basic request');
-          // Try without offerToken
-          purchase = await iap.requestPurchase({
-            skus: [productId],
-          });
-        }
+          },
+        };
+        
+        console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
+        purchase = await iap.requestPurchase(purchaseParams);
       } else {
         // iOS: Simple request
         purchase = await iap.requestPurchase({
