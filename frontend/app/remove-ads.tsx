@@ -79,10 +79,12 @@ export default function RemoveAdsScreen() {
   const getPrice = () => {
     const prod = products.find(p => p.productId === PRODUCT_IDS.REMOVE_ADS);
     if (prod) return prod.localizedPrice;
-    return '€2.99';
+    // Return empty string if not loaded yet - will show loading state
+    return '';
   };
 
   const removeAdsPrice = getPrice();
+  const isPriceLoaded = removeAdsPrice !== '';
 
   const handlePurchase = async () => {
     // Check if user is logged in (not guest)
