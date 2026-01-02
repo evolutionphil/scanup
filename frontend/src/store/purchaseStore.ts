@@ -296,7 +296,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const iap = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
       let purchase;
       
@@ -305,7 +305,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         console.log('[PurchaseStore] === ANDROID SUBSCRIPTION PURCHASE ===');
         console.log('[PurchaseStore] Step 1: Fetching fresh subscription data for:', productId);
         
-        const freshSubs = await iap.getSubscriptions({ skus: [productId] });
+        const freshSubs = await RNIap.getSubscriptions({ skus: [productId] });
         console.log('[PurchaseStore] Step 2: Got fresh subs count:', freshSubs?.length);
         
         if (!freshSubs || freshSubs.length === 0) {
