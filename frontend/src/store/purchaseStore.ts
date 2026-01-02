@@ -420,7 +420,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      
       const purchases = await RNIap.getAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
       
