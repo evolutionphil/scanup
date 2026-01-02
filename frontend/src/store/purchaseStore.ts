@@ -204,12 +204,25 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     try {
       const iap = require('react-native-iap');
       
-      // CORRECT API: Use requestPurchase with skus array
-      console.log('[PurchaseStore] Calling requestPurchase with skus:', [productId]);
+      // For react-native-iap v14+, we need to use the correct format
+      // Android requires nested 'android' key
+      let purchaseParams: any;
       
-      const purchase = await iap.requestPurchase({
-        skus: [productId],
-      });
+      if (Platform.OS === 'android') {
+        purchaseParams = {
+          android: {
+            skus: [productId],
+          },
+        };
+      } else {
+        purchaseParams = {
+          sku: productId,
+        };
+      }
+      
+      console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
+      
+      const purchase = await iap.requestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
