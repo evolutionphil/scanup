@@ -2070,12 +2070,19 @@ async def create_document(
     document_id = f"doc_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
     
-    # Check if user needs watermark (free users)
+    # Check if user needs watermark (free users without premium or remove_ads)
     is_premium = current_user.subscription_type in ["premium", "trial"]
     if current_user.subscription_type == "trial" and current_user.trial_start_date:
         trial_end = current_user.trial_start_date + timedelta(days=TRIAL_DURATION_DAYS)
         if datetime.now(timezone.utc) >= trial_end.replace(tzinfo=timezone.utc):
             is_premium = False
+    
+    # Also check if user has removed ads (they shouldn't get watermarks either)
+    user_data = await db.users.find_one({"user_id": current_user.user_id})
+    has_removed_ads = user_data.get("has_removed_ads", False) if user_data else False
+    
+    # No watermark if premium OR has_removed_ads
+    skip_watermark = is_premium or has_removed_ads
     
     # Process pages - create thumbnails, add watermark for free users, upload to S3
     processed_pages = []
@@ -2085,12 +2092,12 @@ async def create_document(
         page_dict["page_id"] = page_id
         page_dict["order"] = i
         
-        # Store original image and add watermark for free users
+        # Store original image and add watermark for free users (unless they removed ads)
         original_image_base64 = page.image_base64
         image_base64 = page.image_base64
         has_watermark = False
         
-        if not is_premium:
+        if not skip_watermark:
             image_base64 = add_watermark(image_base64, "ScanUp")
             has_watermark = True
         
