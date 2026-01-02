@@ -25,16 +25,31 @@ export default function Index() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Mark as client-side rendered
+  const [authLoaded, setAuthLoaded] = useState(false);
+
+  // Mark as client-side rendered and load auth
   useEffect(() => {
     setIsClient(true);
     loadTheme();
-    loadStoredAuth();
+    
+    // Load stored auth and mark as complete
+    const initAuth = async () => {
+      try {
+        await loadStoredAuth();
+        console.log('[Index] Auth loaded from storage');
+      } catch (e) {
+        console.error('[Index] Auth load error:', e);
+      } finally {
+        setAuthLoaded(true);
+      }
+    };
+    
+    initAuth();
   }, []);
 
-  // Handle navigation after client is ready
+  // Handle navigation after client is ready AND auth is loaded
   useEffect(() => {
-    if (!isClient || hasNavigated.current) return;
+    if (!isClient || !authLoaded || hasNavigated.current) return;
 
     // Start animations
     Animated.parallel([
@@ -57,15 +72,15 @@ export default function Index() {
       }),
     ]).start();
 
-    // Navigate after delay
+    // Navigate after shorter delay (auth is already loaded)
     const timer = setTimeout(() => {
       if (hasNavigated.current) return;
       hasNavigated.current = true;
       setShouldNavigate(true);
-    }, 2500);
+    }, 1500);
 
     return () => clearTimeout(timer);
-  }, [isClient]);
+  }, [isClient, authLoaded]);
 
   // Perform navigation
   useEffect(() => {
