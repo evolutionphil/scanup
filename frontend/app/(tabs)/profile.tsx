@@ -144,15 +144,10 @@ export default function ProfileScreen() {
       try {
         console.log('[Profile] Starting logout...');
         
-        // CRITICAL: First set guest state BEFORE clearing auth
-        // This prevents the "null user" state that causes infinite loops
-        const { continueAsGuest } = useAuthStore.getState();
-        continueAsGuest();
-        
-        // Then clear the session (this won't cause null state now)
+        // Just call logout - it now transitions to guest state automatically
         await logout();
         
-        console.log('[Profile] Logout complete, state is now guest');
+        console.log('[Profile] Logout complete, now in guest state');
         
         // Small delay to let state stabilize before navigation
         setTimeout(() => {
@@ -160,9 +155,6 @@ export default function ProfileScreen() {
         }, 100);
       } catch (e) {
         console.error('Logout error:', e);
-        // Fallback: ensure we're in guest state
-        const { continueAsGuest } = useAuthStore.getState();
-        continueAsGuest();
         setTimeout(() => {
           router.replace('/(tabs)');
         }, 100);
