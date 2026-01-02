@@ -288,7 +288,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase SUBSCRIPTION (uses requestPurchase with subscriptionOffers for Android v14)
   purchaseSubscription: async (productId: string) => {
-    if (Platform.OS === 'web' || !requestPurchase) {
+    if (Platform.OS === 'web') {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -313,7 +313,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         }
         
         // If no cached offerToken, fetch fresh
-        if (!offerToken && getSubscriptions) {
+        if (!offerToken) {
           console.log('[PurchaseStore] Step 2: Fetching fresh subscription data');
           try {
             const subs = await getSubscriptions({ skus: [productId] });
@@ -338,7 +338,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           return false;
         }
         
-        // KEY FIX: Use requestPurchase with BOTH skus AND subscriptionOffers (v14 API)
+        // KEY: Use requestPurchase with BOTH skus AND subscriptionOffers (v14 API)
         console.log('[PurchaseStore] Step 3: Calling requestPurchase with subscriptionOffers');
         const purchaseParams = {
           skus: [productId],
@@ -355,23 +355,21 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         console.log('[PurchaseStore] Step 4: Purchase result:', JSON.stringify(purchase, null, 2));
         
         // Get purchase data (could be array or single object)
-        const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
+        const p = Array.isArray(purchase) ? purchase[0] : purchase;
         
         // Validate purchase
-        if (!purchaseData || !purchaseData.purchaseToken) {
+        if (!p || !p.purchaseToken) {
           console.log('[PurchaseStore] Subscription cancelled or invalid');
           set({ isLoading: false });
           return false;
         }
         
         // Acknowledge on Android
-        if (acknowledgePurchaseAndroid) {
-          try {
-            await acknowledgePurchaseAndroid({ token: purchaseData.purchaseToken });
-            console.log('[PurchaseStore] Subscription acknowledged');
-          } catch (ackError) {
-            console.log('[PurchaseStore] Acknowledge error:', ackError);
-          }
+        try {
+          await acknowledgePurchaseAndroid({ token: p.purchaseToken });
+          console.log('[PurchaseStore] Subscription acknowledged');
+        } catch (ackError) {
+          console.log('[PurchaseStore] Acknowledge error:', ackError);
         }
         
         // Update state ONLY after valid purchase
@@ -401,20 +399,18 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         
         console.log('[PurchaseStore] Step 2: Purchase result:', JSON.stringify(purchase, null, 2));
         
-        const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
+        const p = Array.isArray(purchase) ? purchase[0] : purchase;
         
-        if (!purchaseData || !purchaseData.transactionId) {
+        if (!p || !p.transactionId) {
           set({ isLoading: false });
           return false;
         }
         
         // Finish transaction on iOS
-        if (finishTransaction) {
-          try {
-            await finishTransaction({ purchase: purchaseData, isConsumable: false });
-          } catch (finishError) {
-            console.log('[PurchaseStore] Finish error:', finishError);
-          }
+        try {
+          await finishTransaction({ purchase: p, isConsumable: false });
+        } catch (finishError) {
+          console.log('[PurchaseStore] Finish error:', finishError);
         }
         
         await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
@@ -449,7 +445,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   restorePurchases: async () => {
-    if (Platform.OS === 'web' || !getAvailablePurchases) return;
+    if (Platform.OS === 'web') return;
     
     console.log('[PurchaseStore] Restoring purchases...');
     set({ isLoading: true, error: null });
