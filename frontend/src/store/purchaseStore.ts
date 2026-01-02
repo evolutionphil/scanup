@@ -318,7 +318,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase SUBSCRIPTION (uses requestSubscription for subscriptions)
   purchaseSubscription: async (productId: string) => {
-    if (Platform.OS === 'web' || !RNIap) {
+    if (Platform.OS === 'web' || !requestSubscription) {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -343,10 +343,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         }
         
         // If no cached offerToken, fetch fresh
-        if (!offerToken) {
+        if (!offerToken && getSubscriptions) {
           console.log('[PurchaseStore] Step 2: Fetching fresh subscription data');
           try {
-            const subs = await RNIap.getSubscriptions({ skus: [productId] });
+            const subs = await getSubscriptions({ skus: [productId] });
             console.log('[PurchaseStore] Got', subs?.length, 'subscriptions');
             
             if (subs && subs.length > 0) {
@@ -381,7 +381,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         
         console.log('[PurchaseStore] Purchase params:', JSON.stringify(purchaseParams));
         
-        const purchase = await RNIap.requestSubscription(purchaseParams);
+        const purchase = await requestSubscription(purchaseParams);
         
         console.log('[PurchaseStore] Step 4: Purchase result:', JSON.stringify(purchase, null, 2));
         
