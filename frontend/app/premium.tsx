@@ -238,7 +238,7 @@ export default function PremiumScreen() {
 
         {/* Pricing Cards */}
         <View style={styles.pricingSection}>
-          {/* Monthly Plan */}
+          {/* Monthly Plan - With Free Trial */}
           <TouchableOpacity
             style={[
               styles.pricingCard,
@@ -246,12 +246,22 @@ export default function PremiumScreen() {
             ]}
             onPress={() => setSelectedPlan('monthly')}
           >
-            <Text style={[
-              styles.priceText,
-              selectedPlan === 'monthly' && styles.priceTextSelected
-            ]}>
-              {monthlyPrice}/month
-            </Text>
+            <View style={styles.monthlyContent}>
+              <Text style={[
+                styles.priceText,
+                selectedPlan === 'monthly' && styles.priceTextSelected
+              ]}>
+                {monthlyPrice}/month
+              </Text>
+              <Text style={styles.trialText}>
+                {t('free_7_day_trial', '7 days FREE trial')}
+              </Text>
+            </View>
+            {selectedPlan === 'monthly' && (
+              <View style={styles.trialBadge}>
+                <Text style={styles.trialBadgeText}>FREE TRIAL</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Yearly Plan */}
@@ -271,15 +281,26 @@ export default function PremiumScreen() {
                 ]}>
                   {yearlyPrice}/year
                 </Text>
-                <Text style={styles.trialText}>
-                  {t('free_trial', 'Free 3 day trial')}
+                <Text style={styles.savingsText}>
+                  {t('save_50_percent', 'Save 50%')}
                 </Text>
               </View>
               <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>50% Off</Text>
+                <Text style={styles.discountText}>BEST VALUE</Text>
               </View>
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* Trial Info */}
+        <View style={styles.trialInfo}>
+          <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
+          <Text style={styles.trialInfoText}>
+            {selectedPlan === 'monthly' 
+              ? t('trial_info_monthly', 'Start with 7 days free. Cancel anytime before trial ends to avoid charges.')
+              : t('trial_info_yearly', 'Best value! One payment for the whole year.')
+            }
+          </Text>
         </View>
 
         {/* Continue Button */}
