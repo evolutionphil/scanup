@@ -133,7 +133,7 @@ export default function LoginScreen() {
           
           // Send to backend for authentication
           await googleLoginNative(tokens.idToken, data.user);
-          router.replace('/(tabs)');
+          navigateAfterLogin();
         } else {
           console.log('[GoogleLogin] Response was not success:', JSON.stringify(response));
           throw new Error('Google sign-in did not return success response');
