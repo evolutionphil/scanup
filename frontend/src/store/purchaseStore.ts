@@ -472,6 +472,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     try {
       const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
       
+      // First update premium status
       const response = await fetch(`${BACKEND_URL}/api/user/update-premium`, {
         method: 'POST',
         headers: {
@@ -479,6 +480,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          user_id: userId,
           is_premium: isPremium,
           has_removed_ads: hasRemovedAds,
           subscription_type: activeSubscription || (hasRemovedAds ? 'remove_ads' : 'free'),
@@ -487,6 +489,24 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       if (response.ok) {
         console.log('[PurchaseStore] Synced with backend');
+        
+        // Then remove watermarks from existing documents
+        try {
+          const watermarkResponse = await fetch(`${BACKEND_URL}/api/documents/remove-watermarks`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (watermarkResponse.ok) {
+            const result = await watermarkResponse.json();
+            console.log('[PurchaseStore] Watermarks removed:', result);
+          }
+        } catch (wmError) {
+          console.log('[PurchaseStore] Watermark removal error (non-critical):', wmError);
+        }
       }
     } catch (error) {
       console.error('[PurchaseStore] Sync error:', error);
