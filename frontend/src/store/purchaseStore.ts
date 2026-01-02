@@ -202,7 +202,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const iap = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
       // For react-native-iap v14+, we need to use the correct format
       // Android requires nested 'android' key
@@ -222,7 +222,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
       
-      const purchase = await iap.requestPurchase(purchaseParams);
+      const purchase = await RNIap.requestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
