@@ -401,9 +401,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         }
         
         // Acknowledge on Android
-        if (purchaseData.purchaseToken) {
+        if (purchaseData.purchaseToken && acknowledgePurchaseAndroid) {
           try {
-            await RNIap.acknowledgePurchaseAndroid({ token: purchaseData.purchaseToken });
+            await acknowledgePurchaseAndroid({ token: purchaseData.purchaseToken });
             console.log('[PurchaseStore] Subscription acknowledged');
           } catch (ackError) {
             console.log('[PurchaseStore] Acknowledge error:', ackError);
@@ -433,7 +433,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         // iOS - use requestSubscription with sku
         console.log('[PurchaseStore] Step 1: iOS subscription purchase');
         
-        const purchase = await RNIap.requestSubscription({ sku: productId });
+        const purchase = await requestSubscription({ sku: productId });
         
         console.log('[PurchaseStore] Step 2: Purchase result:', JSON.stringify(purchase, null, 2));
         
@@ -447,10 +447,12 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         }
         
         // Finish transaction on iOS
-        try {
-          await RNIap.finishTransaction({ purchase: purchaseData, isConsumable: false });
-        } catch (finishError) {
-          console.log('[PurchaseStore] Finish error:', finishError);
+        if (finishTransaction) {
+          try {
+            await finishTransaction({ purchase: purchaseData, isConsumable: false });
+          } catch (finishError) {
+            console.log('[PurchaseStore] Finish error:', finishError);
+          }
         }
         
         await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
