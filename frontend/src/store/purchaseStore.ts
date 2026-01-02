@@ -7,7 +7,6 @@ let initConnection: any = null;
 let endConnection: any = null;
 let getSubscriptions: any = null;
 let getProducts: any = null;
-let requestSubscription: any = null;
 let requestPurchase: any = null;
 let getAvailablePurchases: any = null;
 let acknowledgePurchaseAndroid: any = null;
@@ -21,7 +20,6 @@ if (Platform.OS !== 'web') {
     endConnection = RNIap.endConnection;
     getSubscriptions = RNIap.getSubscriptions;
     getProducts = RNIap.getProducts;
-    requestSubscription = RNIap.requestSubscription;
     requestPurchase = RNIap.requestPurchase;
     getAvailablePurchases = RNIap.getAvailablePurchases;
     acknowledgePurchaseAndroid = RNIap.acknowledgePurchaseAndroid;
@@ -32,7 +30,7 @@ if (Platform.OS !== 'web') {
       initConnection: !!initConnection,
       getSubscriptions: !!getSubscriptions,
       getProducts: !!getProducts,
-      requestSubscription: !!requestSubscription,
+      requestPurchase: !!requestPurchase,
     });
   } catch (e) {
     console.log('[PurchaseStore] react-native-iap not available:', e);
