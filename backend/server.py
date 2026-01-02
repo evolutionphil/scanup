@@ -140,6 +140,8 @@ class User(BaseModel):
     email: str
     name: str
     picture: Optional[str] = None
+    photo_url: Optional[str] = None
+    avatar_url: Optional[str] = None
     subscription_type: str = "free"  # free, premium, trial
     subscription_expires_at: Optional[datetime] = None
     ocr_usage_today: int = 0
