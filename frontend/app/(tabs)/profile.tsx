@@ -99,74 +99,28 @@ export default function ProfileScreen() {
     }
 
     if (user?.is_premium) {
+      // Premium user - show manage subscription options
       Alert.alert(
-        t('cancel_premium', 'Cancel Premium'),
-        t('cancel_premium_confirm', 'Are you sure you want to cancel your premium subscription?'),
+        t('manage_subscription', 'Manage Subscription'),
+        t('manage_subscription_info', 'To manage or cancel your subscription, please visit your device\'s subscription settings.'),
         [
-          { text: t('no', 'No'), style: 'cancel' },
+          { text: t('ok', 'OK'), style: 'cancel' },
           {
-            text: t('yes_cancel', 'Yes, Cancel'),
-            style: 'destructive',
-            onPress: async () => {
-              setUpgrading(true);
-              try {
-                const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ subscription_type: 'free' }),
-                });
-
-                if (response.ok) {
-                  const updatedUser = await response.json();
-                  updateUser(updatedUser);
-                  Alert.alert(t('success', 'Success'), t('subscription_cancelled', 'Your premium subscription has been cancelled.'));
-                }
-              } catch (e) {
-                Alert.alert(t('error', 'Error'), t('something_went_wrong', 'Something went wrong'));
-              } finally {
-                setUpgrading(false);
+            text: t('open_settings', 'Open Settings'),
+            onPress: () => {
+              // Open platform-specific subscription management
+              if (Platform.OS === 'ios') {
+                Linking.openURL('https://apps.apple.com/account/subscriptions');
+              } else {
+                Linking.openURL('https://play.google.com/store/account/subscriptions');
               }
             },
           },
         ]
       );
     } else {
-      Alert.alert(
-        t('upgrade_to_pro', 'Upgrade to Pro'),
-        `${t('unlock_premium_features', 'Unlock all premium features')}:\n\n• ${t('unlimited_ocr', 'Unlimited OCR')}\n• ${t('cloud_sync', 'Cloud sync across devices')}\n• ${t('no_watermarks', 'No watermarks on exports')}`,
-        [
-          { text: t('cancel', 'Cancel'), style: 'cancel' },
-          {
-            text: t('upgrade_now', 'Upgrade Now'),
-            onPress: async () => {
-              setUpgrading(true);
-              try {
-                const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ subscription_type: 'premium', duration_days: 30 }),
-                });
-
-                if (response.ok) {
-                  const updatedUser = await response.json();
-                  updateUser(updatedUser);
-                  Alert.alert(`🎉 ${t('premium_activated', 'Premium Activated!')}`, t('enjoy_premium_features', 'Enjoy all premium features!'));
-                }
-              } catch (e) {
-                Alert.alert(t('error', 'Error'), t('something_went_wrong', 'Something went wrong'));
-              } finally {
-                setUpgrading(false);
-              }
-            },
-          },
-        ]
-      );
+      // Not premium - redirect to premium screen for real IAP
+      router.push('/premium');
     }
   };
 
