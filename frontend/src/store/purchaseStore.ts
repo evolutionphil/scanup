@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Import react-native-iap conditionally for native platforms
+let RNIap: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    RNIap = require('react-native-iap');
+  } catch (e) {
+    console.log('[PurchaseStore] react-native-iap not available');
+  }
+}
+
 // Product IDs - Must match Google Play Console / App Store Connect
 export const PRODUCT_IDS = {
   PREMIUM_MONTHLY: 'scanup_premium_monthly',
