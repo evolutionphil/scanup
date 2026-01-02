@@ -346,11 +346,11 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         };
         
         console.log('[PurchaseStore] Step 7: Calling requestPurchase with:', JSON.stringify(purchaseParams));
-        purchase = await iap.requestPurchase(purchaseParams);
+        purchase = await RNIap.requestPurchase(purchaseParams);
         console.log('[PurchaseStore] Step 8: Purchase result received');
       } else {
         // iOS: Simple request
-        purchase = await iap.requestPurchase({
+        purchase = await RNIap.requestPurchase({
           sku: productId,
         });
       }
