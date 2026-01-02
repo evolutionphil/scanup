@@ -251,6 +251,18 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         if (productId === PRODUCT_IDS.REMOVE_ADS) {
           await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
           set({ hasRemovedAds: true });
+          
+          // Sync with backend and remove watermarks
+          try {
+            const { useAuthStore } = require('./authStore');
+            const { token, user } = useAuthStore.getState();
+            if (token && user?.user_id) {
+              console.log('[PurchaseStore] Syncing remove-ads status with backend...');
+              await get().syncWithBackend(token, user.user_id);
+            }
+          } catch (syncError) {
+            console.log('[PurchaseStore] Sync after purchase error:', syncError);
+          }
         }
         
         set({ isLoading: false });
