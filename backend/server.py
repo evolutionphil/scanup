@@ -1947,6 +1947,72 @@ async def update_premium_status(
     return {"success": True, "updated": update_data}
 
 
+class AvatarUploadRequest(BaseModel):
+    avatar_base64: str
+
+
+@api_router.post("/user/avatar")
+async def upload_avatar(
+    request: AvatarUploadRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload user avatar image"""
+    try:
+        avatar_base64 = request.avatar_base64
+        
+        # Remove data URL prefix if present
+        if avatar_base64.startswith('data:'):
+            avatar_base64 = avatar_base64.split(',')[1]
+        
+        avatar_url = None
+        
+        # Try to upload to S3
+        if s3_client:
+            try:
+                # Generate avatar key
+                avatar_key = f"avatars/{current_user.user_id}/avatar.jpg"
+                
+                # Decode and upload
+                image_data = base64.b64decode(avatar_base64)
+                
+                s3_client.put_object(
+                    Bucket=AWS_S3_BUCKET_NAME,
+                    Key=avatar_key,
+                    Body=image_data,
+                    ContentType='image/jpeg',
+                )
+                
+                avatar_url = f"https://{AWS_S3_BUCKET_NAME}.s3.amazonaws.com/{avatar_key}?t={int(datetime.now().timestamp())}"
+                logger.info(f"✅ Avatar uploaded to S3 for user {current_user.user_id}")
+            except Exception as s3_err:
+                logger.warning(f"S3 avatar upload failed: {s3_err}")
+        
+        # If S3 failed or not available, store as base64 in DB
+        if not avatar_url:
+            # Store small version in DB (limit to 100KB)
+            if len(avatar_base64) > 100000:
+                raise HTTPException(status_code=400, detail="Avatar image too large. Please use a smaller image.")
+            avatar_url = f"data:image/jpeg;base64,{avatar_base64}"
+        
+        # Update user document
+        await db.users.update_one(
+            {"user_id": current_user.user_id},
+            {"$set": {
+                "avatar_url": avatar_url,
+                "photo_url": avatar_url,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {"success": True, "avatar_url": avatar_url}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload avatar")
+
+
 @api_router.post("/documents/remove-watermarks")
 async def remove_watermarks_from_documents(
     current_user: User = Depends(get_current_user)
