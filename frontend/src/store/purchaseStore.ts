@@ -271,40 +271,51 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const { requestPurchase, fetchProducts, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
+      const { requestPurchase, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
       
       let purchase;
       
       if (Platform.OS === 'android') {
-        // Get fresh subscription with offer token using v14 API
-        const subs = await fetchProducts({ skus: [productId], type: 'subs' });
-        console.log('[PurchaseStore] Fresh subs:', JSON.stringify(subs, null, 2));
+        // For Android subscriptions, we need the offerToken from existing subscriptions state
+        const { subscriptions } = get();
+        const sub = subscriptions.find(s => s.productId === productId);
         
-        if (!subs || subs.length === 0) {
-          throw new Error('Subscription not found in store');
+        if (!sub?.offerToken) {
+          console.log('[PurchaseStore] No offerToken found, using basic request');
+          // Try without offerToken (may work for simple subscriptions)
+          purchase = await requestPurchase({
+            request: {
+              google: {
+                skus: [productId],
+              },
+            },
+            type: 'subs',
+          });
+        } else {
+          console.log('[PurchaseStore] Using offerToken:', sub.offerToken);
+          
+          // V14.7 API for Android subscriptions with offerToken
+          purchase = await requestPurchase({
+            request: {
+              google: {
+                skus: [productId],
+                subscriptionOffers: [{ 
+                  sku: productId, 
+                  offerToken: sub.offerToken 
+                }],
+              },
+            },
+            type: 'subs',
+          });
         }
-        
-        const sub = subs[0];
-        const offerToken = sub.subscriptionOfferDetails?.[0]?.offerToken;
-        
-        if (!offerToken) {
-          throw new Error('No offer token available');
-        }
-        
-        console.log('[PurchaseStore] Using offerToken:', offerToken);
-        
-        // V14 API for Android subscriptions
-        purchase = await requestPurchase({
-          request: {
-            skus: [productId],
-            subscriptionOffers: [{ sku: productId, offerToken }],
-          },
-          type: 'subs',
-        });
       } else {
         // iOS - use requestPurchase with subs type
         purchase = await requestPurchase({
-          request: { sku: productId },
+          request: {
+            apple: {
+              sku: productId,
+            },
+          },
           type: 'subs',
         });
       }
