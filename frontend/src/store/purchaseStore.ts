@@ -194,17 +194,31 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     try {
       const { requestPurchase, finishTransaction, acknowledgePurchaseAndroid } = require('react-native-iap');
       
-      // V14 API - Must use platform-specific nested object
-      let request: any;
+      // V14.7 API - Must use platform-specific nested object with 'google' or 'apple' key
+      let purchaseRequest: any;
       if (Platform.OS === 'android') {
-        request = { skus: [productId] };
+        purchaseRequest = {
+          request: {
+            google: {
+              skus: [productId],
+            },
+          },
+          type: 'in-app',
+        };
       } else {
-        request = { sku: productId };
+        purchaseRequest = {
+          request: {
+            apple: {
+              sku: productId,
+            },
+          },
+          type: 'in-app',
+        };
       }
       
-      console.log('[PurchaseStore] requestPurchase with:', JSON.stringify(request));
+      console.log('[PurchaseStore] requestPurchase with:', JSON.stringify(purchaseRequest));
       
-      const purchase = await requestPurchase({ request });
+      const purchase = await requestPurchase(purchaseRequest);
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
