@@ -115,19 +115,20 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     try {
       const { fetchProducts } = require('react-native-iap');
       
-      // Fetch subscriptions using v14 API
+      // Fetch subscriptions using v14.7 API
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
         const subs = await fetchProducts({
           skus: SUBSCRIPTION_SKUS,
-          type: 'subs',
+          type: 'subs',  // or 'subscription'
         });
         console.log('[PurchaseStore] Subscriptions:', JSON.stringify(subs, null, 2));
         
-        const formattedSubs: Product[] = subs.map((sub: any) => {
+        const formattedSubs: Product[] = (subs || []).map((sub: any) => {
           let offerToken = undefined;
-          let price = sub.localizedPrice || '€4.99';
+          let price = sub.localizedPrice || sub.price || '€4.99';
           
+          // Android subscription details
           if (Platform.OS === 'android' && sub.subscriptionOfferDetails?.length > 0) {
             offerToken = sub.subscriptionOfferDetails[0].offerToken;
             const phases = sub.subscriptionOfferDetails[0].pricingPhases?.pricingPhaseList;
@@ -136,9 +137,14 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             }
           }
           
+          // Also check subscriptionOfferDetailsAndroid
+          if (Platform.OS === 'android' && sub.subscriptionOfferDetailsAndroid?.length > 0) {
+            offerToken = offerToken || sub.subscriptionOfferDetailsAndroid[0].offerToken;
+          }
+          
           return {
-            productId: sub.productId,
-            title: sub.title || sub.productId,
+            productId: sub.productId || sub.id,
+            title: sub.title || sub.productId || sub.id,
             description: sub.description || '',
             price: sub.price || '0',
             localizedPrice: price,
@@ -147,32 +153,34 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           };
         });
         
+        console.log('[PurchaseStore] Formatted subscriptions:', formattedSubs);
         set({ subscriptions: formattedSubs });
       } catch (subError: any) {
-        console.log('[PurchaseStore] Subscriptions error:', subError.message);
+        console.log('[PurchaseStore] Subscriptions error:', subError.message || subError);
       }
       
-      // Fetch one-time products using v14 API
+      // Fetch one-time products using v14.7 API
       try {
         console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
         const products = await fetchProducts({
           skus: PRODUCT_SKUS,
-          type: 'inapp',
+          type: 'in-app',  // Use 'in-app' not 'inapp'
         });
         console.log('[PurchaseStore] Products:', JSON.stringify(products, null, 2));
         
-        const formattedProducts: Product[] = products.map((prod: any) => ({
-          productId: prod.productId,
-          title: prod.title || prod.productId,
+        const formattedProducts: Product[] = (products || []).map((prod: any) => ({
+          productId: prod.productId || prod.id,
+          title: prod.title || prod.productId || prod.id,
           description: prod.description || '',
           price: prod.price || '0',
-          localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetails?.formattedPrice || '€4.99',
+          localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetails?.formattedPrice || prod.price || '€4.99',
           currency: prod.currency || 'EUR',
         }));
         
+        console.log('[PurchaseStore] Formatted products:', formattedProducts);
         set({ products: formattedProducts });
       } catch (prodError: any) {
-        console.log('[PurchaseStore] Products error:', prodError.message);
+        console.log('[PurchaseStore] Products error:', prodError.message || prodError);
       }
       
       set({ isLoading: false });
