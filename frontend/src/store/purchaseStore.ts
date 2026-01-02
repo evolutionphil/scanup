@@ -132,7 +132,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   fetchProducts: async () => {
-    if (Platform.OS === 'web' || !getSubscriptions) return;
+    if (Platform.OS === 'web') return;
     
     console.log('[PurchaseStore] Fetching products...');
     set({ isLoading: true, error: null });
