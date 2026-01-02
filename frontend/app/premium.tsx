@@ -466,8 +466,46 @@ const styles = StyleSheet.create({
   },
   trialText: {
     fontSize: 14,
+    color: '#22C55E',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  savingsText: {
+    fontSize: 14,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  monthlyContent: {
+    flex: 1,
+  },
+  trialBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 10,
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  trialBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  trialInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  trialInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
   },
   discountBadge: {
     backgroundColor: BRAND_BLUE,
