@@ -9,9 +9,11 @@ import {
   Alert,
   Platform,
   BackHandler,
+  Linking,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
@@ -19,27 +21,22 @@ import { usePurchaseStore, PRODUCT_IDS } from '../src/store/purchaseStore';
 import { useAuthStore } from '../src/store/authStore';
 import { logScreenView, logEvent, logPurchaseEvent, AnalyticsEvents } from '../src/services/analytics';
 
-const BRAND_BLUE = '#3B82F6';
+const BRAND_BLUE = '#4361EE';
+const { width } = Dimensions.get('window');
 
-// Premium features list
+// Premium features list - matching the design
 const PREMIUM_FEATURES = [
-  { icon: 'ban-outline', key: 'no_ads', fallback: 'No Ads' },
-  { icon: 'water-outline', key: 'no_watermark', fallback: 'No Watermark on Exports' },
-  { icon: 'infinite-outline', key: 'unlimited_scans', fallback: 'Unlimited Scans' },
-  { icon: 'cloud-outline', key: 'cloud_storage', fallback: '10 GB Cloud Storage' },
-  { icon: 'text-outline', key: 'unlimited_ocr', fallback: 'Unlimited OCR Text Extraction' },
-  { icon: 'lock-closed-outline', key: 'pdf_password', fallback: 'PDF Password Protection' },
-  { icon: 'layers-outline', key: 'batch_export', fallback: 'Batch Export' },
-  { icon: 'color-filter-outline', key: 'all_filters', fallback: 'All Premium Filters' },
-  { icon: 'finger-print-outline', key: 'unlimited_signatures', fallback: 'Unlimited Signatures' },
-  { icon: 'headset-outline', key: 'priority_support', fallback: 'Priority Support' },
+  { key: 'unlimited_documents', fallback: 'Unlimited documents' },
+  { key: 'no_ads', fallback: 'No ADS' },
+  { key: 'private_documents', fallback: 'Private documents' },
+  { key: 'remove_mark', fallback: 'Remove the mark' },
+  { key: 'signature', fallback: 'Signature' },
 ];
 
 export default function PremiumScreen() {
   const { theme } = useThemeStore();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { isAuthenticated, isGuest, continueAsGuest } = useAuthStore();
   const {
     isInitialized,
@@ -57,37 +54,29 @@ export default function PremiumScreen() {
     setError,
   } = usePurchaseStore();
   
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | 'removeAds'>('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
   useEffect(() => {
     initialize();
-    // Log screen view for analytics
     logScreenView('Premium', 'PremiumScreen');
     logEvent(AnalyticsEvents.PREMIUM_SCREEN_VIEWED);
   }, []);
 
-  // Handle back button - always go to main tabs
+  // Handle back button
   const handleClose = () => {
     try {
-      // If user is not authenticated and not a guest, make them a guest first
       if (!isAuthenticated && !isGuest) {
-        console.log('[Premium] User not authenticated, setting as guest before navigation');
         continueAsGuest();
       }
-      
-      // Small delay to ensure auth state is updated before navigation
       setTimeout(() => {
         router.replace('/(tabs)');
       }, 50);
     } catch (e) {
-      console.log('[Premium] Navigation error:', e);
-      // Fallback - set as guest and try again
       continueAsGuest();
       router.push('/(tabs)');
     }
   };
 
-  // Handle hardware back button on Android
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       handleClose();
@@ -96,20 +85,17 @@ export default function PremiumScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Get prices from fetched products (or use defaults)
+  // Get prices from fetched products
   const getPrice = (productId: string, defaultPrice: string) => {
     const sub = subscriptions.find(s => s.productId === productId);
     if (sub) return sub.localizedPrice;
-    
     const prod = products.find(p => p.productId === productId);
     if (prod) return prod.localizedPrice;
-    
     return defaultPrice;
   };
 
-  const monthlyPrice = getPrice(PRODUCT_IDS.PREMIUM_MONTHLY, '€4.99');
-  const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY, '€29.99');
-  const removeAdsPrice = getPrice(PRODUCT_IDS.REMOVE_ADS, '€4.99');
+  const monthlyPrice = getPrice(PRODUCT_IDS.PREMIUM_MONTHLY, '€5.99');
+  const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY, '€35.99');
 
   const handlePurchase = async () => {
     setError(null);
@@ -121,14 +107,10 @@ export default function PremiumScreen() {
       productId = PRODUCT_IDS.PREMIUM_MONTHLY;
       logPurchaseEvent('started', productId);
       success = await purchaseSubscription(productId);
-    } else if (selectedPlan === 'yearly') {
+    } else {
       productId = PRODUCT_IDS.PREMIUM_YEARLY;
       logPurchaseEvent('started', productId);
       success = await purchaseSubscription(productId);
-    } else if (selectedPlan === 'removeAds') {
-      productId = PRODUCT_IDS.REMOVE_ADS;
-      logPurchaseEvent('started', productId);
-      success = await purchaseProduct(productId);
     }
     
     if (success) {
@@ -162,467 +144,356 @@ export default function PremiumScreen() {
     }
   };
 
-  // If already premium, show different UI
+  const openTerms = () => {
+    Linking.openURL('https://scanup.app/terms');
+  };
+
+  // If already premium
   if (isPremium) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.text} />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.headerBlue}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            {t('premium', 'Premium')}
-          </Text>
-          <View style={{ width: 40 }} />
+          <View style={styles.headerContent}>
+            <View style={styles.titleRow}>
+              <Text style={styles.headerTitle}>Go Premium</Text>
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
+            </View>
+            <Text style={styles.headerSubtitle}>
+              You're already a premium member!
+            </Text>
+          </View>
         </View>
         
-        <View style={styles.premiumActiveContainer}>
-          <View style={styles.crownContainer}>
-            <Ionicons name="diamond" size={80} color={BRAND_BLUE} />
-          </View>
+        <View style={styles.premiumActiveContent}>
+          <Ionicons name="checkmark-circle" size={80} color="#22C55E" />
           <Text style={[styles.premiumActiveTitle, { color: theme.text }]}>
             {t('you_are_premium', "You're Premium!")}
           </Text>
           <Text style={[styles.premiumActiveSubtitle, { color: theme.textSecondary }]}>
             {t('enjoy_premium_features', 'Enjoy all premium features')}
           </Text>
-          
-          <View style={styles.activeFeatures}>
-            {PREMIUM_FEATURES.map((feature, index) => (
-              <View key={index} style={styles.activeFeatureRow}>
-                <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
-                <Text style={[styles.activeFeatureText, { color: theme.text }]}>
-                  {t(`premium_feature_${feature.key}`, feature.fallback)}
-                </Text>
-              </View>
-            ))}
-          </View>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose} style={styles.backButton}>
-          <Ionicons name="close" size={24} color={theme.text} />
+    <View style={styles.container}>
+      {/* Blue Header */}
+      <View style={[styles.headerBlue, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <Ionicons name="close" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          {t('go_premium', 'Go Premium')}
-        </Text>
-        <TouchableOpacity onPress={handleRestore} disabled={isLoading}>
-          <Text style={[styles.restoreText, { color: BRAND_BLUE }]}>
-            {t('restore', 'Restore')}
+        <View style={styles.headerContent}>
+          <View style={styles.titleRow}>
+            <Text style={styles.headerTitle}>Go Premium</Text>
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
+          </View>
+          <Text style={styles.headerSubtitle}>
+            {t('premium_subtitle', 'Unlock all the amazing features and save your time')}
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView 
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="diamond" size={60} color={BRAND_BLUE} />
-          </View>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>
-            {t('unlock_full_potential', 'Unlock Full Potential')}
-          </Text>
-          <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
-            {t('premium_description', 'Get unlimited access to all features')}
-          </Text>
-        </View>
-
         {/* Features List */}
         <View style={styles.featuresSection}>
-          {PREMIUM_FEATURES.slice(0, 6).map((feature, index) => (
+          {PREMIUM_FEATURES.map((feature, index) => (
             <View key={index} style={styles.featureRow}>
-              <View style={[styles.featureIcon, { backgroundColor: BRAND_BLUE + '15' }]}>
-                <Ionicons name={feature.icon as any} size={22} color={BRAND_BLUE} />
+              <View style={styles.checkIcon}>
+                <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
               </View>
-              <Text style={[styles.featureText, { color: theme.text }]}>
+              <Text style={styles.featureText}>
                 {t(`premium_feature_${feature.key}`, feature.fallback)}
               </Text>
             </View>
           ))}
         </View>
 
-        {/* Pricing Plans */}
-        <View style={styles.plansSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            {t('choose_plan', 'Choose Your Plan')}
-          </Text>
-          
-          {/* Yearly Plan - Best Value */}
-          <TouchableOpacity
-            style={[
-              styles.planCard,
-              { 
-                backgroundColor: theme.card,
-                borderColor: selectedPlan === 'yearly' ? BRAND_BLUE : theme.border,
-                borderWidth: selectedPlan === 'yearly' ? 2 : 1,
-              }
-            ]}
-            onPress={() => setSelectedPlan('yearly')}
-          >
-            <View style={styles.planBadge}>
-              <Text style={styles.planBadgeText}>{t('best_value', 'BEST VALUE')}</Text>
-            </View>
-            <View style={styles.planHeader}>
-              <View style={[
-                styles.radioButton,
-                selectedPlan === 'yearly' && styles.radioButtonSelected
-              ]}>
-                {selectedPlan === 'yearly' && <View style={styles.radioButtonInner} />}
-              </View>
-              <View style={styles.planInfo}>
-                <Text style={[styles.planName, { color: theme.text }]}>
-                  {t('yearly_plan', 'Yearly')}
-                </Text>
-                <Text style={[styles.planSavings, { color: '#22C55E' }]}>
-                  {t('save_50', 'Save 50%')}
-                </Text>
-              </View>
-              <View style={styles.planPricing}>
-                <Text style={[styles.planPrice, { color: theme.text }]}>{yearlyPrice}</Text>
-                <Text style={[styles.planPeriod, { color: theme.textSecondary }]}>
-                  /{t('year', 'year')}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
+        {/* Pricing Cards */}
+        <View style={styles.pricingSection}>
           {/* Monthly Plan */}
           <TouchableOpacity
             style={[
-              styles.planCard,
-              { 
-                backgroundColor: theme.card,
-                borderColor: selectedPlan === 'monthly' ? BRAND_BLUE : theme.border,
-                borderWidth: selectedPlan === 'monthly' ? 2 : 1,
-              }
+              styles.pricingCard,
+              selectedPlan === 'monthly' && styles.pricingCardSelected,
             ]}
             onPress={() => setSelectedPlan('monthly')}
           >
-            <View style={styles.planHeader}>
-              <View style={[
-                styles.radioButton,
-                selectedPlan === 'monthly' && styles.radioButtonSelected
-              ]}>
-                {selectedPlan === 'monthly' && <View style={styles.radioButtonInner} />}
-              </View>
-              <View style={styles.planInfo}>
-                <Text style={[styles.planName, { color: theme.text }]}>
-                  {t('monthly_plan', 'Monthly')}
-                </Text>
-              </View>
-              <View style={styles.planPricing}>
-                <Text style={[styles.planPrice, { color: theme.text }]}>{monthlyPrice}</Text>
-                <Text style={[styles.planPeriod, { color: theme.textSecondary }]}>
-                  /{t('month', 'month')}
-                </Text>
-              </View>
-            </View>
+            <Text style={[
+              styles.priceText,
+              selectedPlan === 'monthly' && styles.priceTextSelected
+            ]}>
+              {monthlyPrice}/month
+            </Text>
           </TouchableOpacity>
 
-          {/* Remove Ads - One Time */}
+          {/* Yearly Plan */}
           <TouchableOpacity
             style={[
-              styles.planCard,
-              { 
-                backgroundColor: theme.card,
-                borderColor: selectedPlan === 'removeAds' ? BRAND_BLUE : theme.border,
-                borderWidth: selectedPlan === 'removeAds' ? 2 : 1,
-              }
+              styles.pricingCard,
+              styles.pricingCardYearly,
+              selectedPlan === 'yearly' && styles.pricingCardSelected,
             ]}
-            onPress={() => setSelectedPlan('removeAds')}
+            onPress={() => setSelectedPlan('yearly')}
           >
-            <View style={styles.planHeader}>
-              <View style={[
-                styles.radioButton,
-                selectedPlan === 'removeAds' && styles.radioButtonSelected
-              ]}>
-                {selectedPlan === 'removeAds' && <View style={styles.radioButtonInner} />}
-              </View>
-              <View style={styles.planInfo}>
-                <Text style={[styles.planName, { color: theme.text }]}>
-                  {t('remove_ads', 'Remove Ads')}
+            <View style={styles.yearlyContent}>
+              <View>
+                <Text style={[
+                  styles.priceText,
+                  selectedPlan === 'yearly' && styles.priceTextSelected
+                ]}>
+                  {yearlyPrice}/year
                 </Text>
-                <Text style={[styles.planDescription, { color: theme.textSecondary }]}>
-                  {t('one_time_purchase', 'One-time purchase')}
+                <Text style={styles.trialText}>
+                  {t('free_trial', 'Free 3 day trial')}
                 </Text>
               </View>
-              <View style={styles.planPricing}>
-                <Text style={[styles.planPrice, { color: theme.text }]}>{removeAdsPrice}</Text>
-                <Text style={[styles.planPeriod, { color: theme.textSecondary }]}>
-                  {t('forever', 'forever')}
-                </Text>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>50% Off</Text>
               </View>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Error Message */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={20} color="#EF4444" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        {/* Terms */}
-        <Text style={[styles.termsText, { color: theme.textMuted }]}>
-          {t('subscription_terms', 'Subscriptions auto-renew unless cancelled. Cancel anytime in your app store settings.')}
-        </Text>
-      </ScrollView>
-
-      {/* Purchase Button */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16, backgroundColor: theme.background }]}>
+        {/* Continue Button */}
         <TouchableOpacity
-          style={[styles.purchaseButton, isLoading && styles.purchaseButtonDisabled]}
+          style={[styles.continueButton, isLoading && styles.continueButtonDisabled]}
           onPress={handlePurchase}
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.purchaseButtonText}>
-              {selectedPlan === 'removeAds' 
-                ? t('remove_ads_now', 'Remove Ads Now')
-                : t('start_premium', 'Start Premium')}
+            <Text style={styles.continueButtonText}>
+              {t('continue', 'Continue')}
             </Text>
           )}
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+
+        {/* Error Message */}
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+
+        {/* Commercial User Link */}
+        <TouchableOpacity style={styles.commercialLink}>
+          <Text style={styles.commercialText}>
+            {t('commercial_user', 'Are you a commercial user?')}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={BRAND_BLUE} />
+        </TouchableOpacity>
+
+        {/* Footer Links */}
+        <View style={styles.footerLinks}>
+          <TouchableOpacity onPress={handleRestore}>
+            <Text style={styles.footerLinkText}>
+              {t('already_paid', 'Already Paid?')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={openTerms}>
+            <Text style={styles.footerLinkText}>
+              {t('terms_of_use', 'Terms of Use')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  headerBlue: {
+    backgroundColor: BRAND_BLUE,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
   },
-  backButton: {
+  closeButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  headerContent: {
+    marginTop: 10,
   },
-  restoreText: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+    fontStyle: 'italic',
+  },
+  proBadge: {
+    backgroundColor: '#FF7A00',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  proBadgeText: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-  },
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: BRAND_BLUE + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    textAlign: 'center',
+    paddingHorizontal: 24,
   },
   featuresSection: {
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: 30,
+    marginBottom: 30,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    marginBottom: 18,
   },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  checkIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: BRAND_BLUE,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
   featureText: {
-    fontSize: 15,
-    fontWeight: '500',
-    flex: 1,
-  },
-  plansSection: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16,
+    color: '#1a1a1a',
   },
-  planCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    position: 'relative',
-    overflow: 'hidden',
+  pricingSection: {
+    gap: 12,
+    marginBottom: 24,
   },
-  planBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: BRAND_BLUE,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 12,
-  },
-  planBadgeText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  planHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radioButton: {
-    width: 24,
-    height: 24,
+  pricingCard: {
+    backgroundColor: '#fff',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  radioButtonSelected: {
+  pricingCardYearly: {
+    borderWidth: 2,
     borderColor: BRAND_BLUE,
   },
-  radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: BRAND_BLUE,
+  pricingCardSelected: {
+    borderWidth: 2,
+    borderColor: BRAND_BLUE,
+    backgroundColor: '#F8FAFF',
   },
-  planInfo: {
-    flex: 1,
-  },
-  planName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  planDescription: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  planSavings: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  planPricing: {
-    alignItems: 'flex-end',
-  },
-  planPrice: {
+  priceText: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#1a1a1a',
   },
-  planPeriod: {
-    fontSize: 12,
+  priceTextSelected: {
+    color: BRAND_BLUE,
   },
-  errorContainer: {
+  yearlyContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    padding: 12,
+  },
+  trialText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  discountBadge: {
+    backgroundColor: BRAND_BLUE,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  discountText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  continueButton: {
+    backgroundColor: BRAND_BLUE,
     borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  continueButtonDisabled: {
+    opacity: 0.7,
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
   errorText: {
     color: '#EF4444',
-    marginLeft: 8,
-    flex: 1,
-  },
-  termsText: {
-    fontSize: 12,
     textAlign: 'center',
-    lineHeight: 18,
     marginBottom: 16,
+    fontSize: 14,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  purchaseButton: {
-    backgroundColor: BRAND_BLUE,
-    borderRadius: 16,
-    paddingVertical: 18,
+  commercialLink: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  purchaseButtonDisabled: {
-    opacity: 0.7,
-  },
-  purchaseButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  premiumActiveContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 40,
-  },
-  crownContainer: {
+    justifyContent: 'center',
     marginBottom: 24,
+  },
+  commercialText: {
+    color: BRAND_BLUE,
+    fontSize: 16,
+    marginRight: 4,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+    marginBottom: 20,
+  },
+  footerLinkText: {
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  premiumActiveContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
   },
   premiumActiveTitle: {
     fontSize: 28,
     fontWeight: '700',
-    marginBottom: 8,
+    marginTop: 20,
   },
   premiumActiveSubtitle: {
     fontSize: 16,
-    marginBottom: 32,
-  },
-  activeFeatures: {
-    alignSelf: 'stretch',
-  },
-  activeFeatureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  activeFeatureText: {
-    fontSize: 15,
-    marginLeft: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
