@@ -417,13 +417,12 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   restorePurchases: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || !RNIap) return;
     
     console.log('[PurchaseStore] Restoring purchases...');
     set({ isLoading: true, error: null });
     
     try {
-      const RNIap = require('react-native-iap');
       
       const purchases = await RNIap.getAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
