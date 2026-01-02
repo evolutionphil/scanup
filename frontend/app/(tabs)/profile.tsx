@@ -595,6 +595,29 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
   },
+  removeAdsRow: {
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  removeAdsBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  removeAdsBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  adFreeRow: {
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
   logoutButton: {
     marginHorizontal: 20,
     marginTop: 8,
