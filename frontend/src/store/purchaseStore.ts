@@ -456,33 +456,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       return false;
     }
   },
-      set({ isPremium: true, activeSubscription: productId, isLoading: false });
-      
-      // Sync with backend and remove watermarks
-      try {
-        const { useAuthStore } = require('./authStore');
-        const { token, user } = useAuthStore.getState();
-        if (token && user?.user_id) {
-          console.log('[PurchaseStore] Syncing premium status with backend...');
-          await get().syncWithBackend(token, user.user_id);
-        }
-      } catch (syncError) {
-        console.log('[PurchaseStore] Sync after purchase error:', syncError);
-      }
-      
-      return true;
-    } catch (error: any) {
-      console.error('[PurchaseStore] Subscription error:', error);
-      
-      if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled')) {
-        set({ isLoading: false });
-        return false;
-      }
-      
-      set({ isLoading: false, error: error.message || 'Subscription failed' });
-      return false;
-    }
-  },
 
   restorePurchases: async () => {
     if (Platform.OS === 'web' || !RNIap) return;
