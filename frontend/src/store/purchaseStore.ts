@@ -222,51 +222,59 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
-      if (purchase) {
-        // Acknowledge purchase on Android
-        if (Platform.OS === 'android' && purchase.purchaseToken) {
-          try {
-            await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
-            console.log('[PurchaseStore] Purchase acknowledged');
-          } catch (ackError) {
-            console.log('[PurchaseStore] Acknowledge error:', ackError);
-          }
-        }
-        
-        // Finish transaction on iOS
-        if (Platform.OS === 'ios') {
-          try {
-            await RNIap.finishTransaction({ purchase, isConsumable: false });
-            console.log('[PurchaseStore] Transaction finished');
-          } catch (finishError) {
-            console.log('[PurchaseStore] Finish error:', finishError);
-          }
-        }
-        
-        // Update state
-        if (productId === PRODUCT_IDS.REMOVE_ADS) {
-          await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
-          set({ hasRemovedAds: true });
-          
-          // Sync with backend and remove watermarks
-          try {
-            const { useAuthStore } = require('./authStore');
-            const { token, user } = useAuthStore.getState();
-            if (token && user?.user_id) {
-              console.log('[PurchaseStore] Syncing remove-ads status with backend...');
-              await get().syncWithBackend(token, user.user_id);
-            }
-          } catch (syncError) {
-            console.log('[PurchaseStore] Sync after purchase error:', syncError);
-          }
-        }
-        
+      // CRITICAL: Check if purchase is valid (not empty, not cancelled)
+      const isValidPurchase = purchase && 
+        (Array.isArray(purchase) ? purchase.length > 0 : true) &&
+        (purchase.purchaseToken || purchase.transactionId || purchase.productId);
+      
+      console.log('[PurchaseStore] Is valid purchase:', isValidPurchase);
+      
+      if (!isValidPurchase) {
+        console.log('[PurchaseStore] Purchase cancelled or invalid');
         set({ isLoading: false });
-        return true;
+        return false;
+      }
+      
+      // Acknowledge purchase on Android
+      if (Platform.OS === 'android' && purchase.purchaseToken) {
+        try {
+          await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+          console.log('[PurchaseStore] Purchase acknowledged');
+        } catch (ackError) {
+          console.log('[PurchaseStore] Acknowledge error:', ackError);
+        }
+      }
+      
+      // Finish transaction on iOS
+      if (Platform.OS === 'ios') {
+        try {
+          await RNIap.finishTransaction({ purchase, isConsumable: false });
+          console.log('[PurchaseStore] Transaction finished');
+        } catch (finishError) {
+          console.log('[PurchaseStore] Finish error:', finishError);
+        }
+      }
+      
+      // Update state ONLY after valid purchase
+      if (productId === PRODUCT_IDS.REMOVE_ADS) {
+        await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
+        set({ hasRemovedAds: true });
+        
+        // Sync with backend and remove watermarks
+        try {
+          const { useAuthStore } = require('./authStore');
+          const { token, user } = useAuthStore.getState();
+          if (token && user?.user_id) {
+            console.log('[PurchaseStore] Syncing remove-ads status with backend...');
+            await get().syncWithBackend(token, user.user_id);
+          }
+        } catch (syncError) {
+          console.log('[PurchaseStore] Sync after purchase error:', syncError);
+        }
       }
       
       set({ isLoading: false });
-      return false;
+      return true;
     } catch (error: any) {
       console.error('[PurchaseStore] Purchase error:', error);
       
