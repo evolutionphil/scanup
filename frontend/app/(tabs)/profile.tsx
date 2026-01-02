@@ -36,6 +36,108 @@ export default function ProfileScreen() {
   const { isPremium, hasRemovedAds } = usePurchaseStore();
   const [upgrading, setUpgrading] = useState(false);
   const [startingTrial, setStartingTrial] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Avatar upload handler
+  const handleAvatarPress = async () => {
+    if (isGuest) {
+      Alert.alert(
+        t('sign_in_required', 'Sign In Required'),
+        t('sign_in_to_change_avatar', 'Please sign in to change your avatar'),
+        [
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
+          { text: t('sign_in', 'Sign In'), onPress: () => router.push('/(auth)/login') }
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('change_avatar', 'Change Avatar'),
+      t('choose_avatar_source', 'Choose a photo source'),
+      [
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
+        { text: t('camera', 'Camera'), onPress: () => pickImage('camera') },
+        { text: t('gallery', 'Gallery'), onPress: () => pickImage('gallery') },
+      ]
+    );
+  };
+
+  const pickImage = async (source: 'camera' | 'gallery') => {
+    try {
+      // Request permissions
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('permission_denied', 'Permission Denied'), t('camera_permission_needed', 'Camera permission is needed to take photos.'));
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('permission_denied', 'Permission Denied'), t('gallery_permission_needed', 'Gallery permission is needed to select photos.'));
+          return;
+        }
+      }
+
+      // Launch picker
+      const result = source === 'camera' 
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+            base64: true,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+            base64: true,
+          });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAvatar(result.assets[0].base64 || '');
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert(t('error', 'Error'), t('failed_to_pick_image', 'Failed to pick image'));
+    }
+  };
+
+  const uploadAvatar = async (base64Image: string) => {
+    if (!token || !base64Image) return;
+
+    setUploadingAvatar(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/user/avatar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatar_base64: base64Image }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update local user data
+        if (data.avatar_url) {
+          updateUser({ ...user, photo_url: data.avatar_url, avatar_url: data.avatar_url });
+        }
+        Alert.alert(t('success', 'Success'), t('avatar_updated', 'Avatar updated successfully!'));
+      } else {
+        const error = await response.json();
+        Alert.alert(t('error', 'Error'), error.detail || t('failed_to_upload_avatar', 'Failed to upload avatar'));
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      Alert.alert(t('error', 'Error'), t('failed_to_upload_avatar', 'Failed to upload avatar'));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
