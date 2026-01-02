@@ -310,16 +310,16 @@ export default function Users() {
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleViewUser(user)}
+                          onClick={(e) => { e.stopPropagation(); handleViewUser(user); }}
                           className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
                           title="View Details"
                         >
                           <Eye size={18} />
                         </button>
                         <button
-                          onClick={() => { setSelectedUser(user); setShowDeleteModal(true); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setShowDeleteModal(true); }}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                           title="Delete User"
                         >
