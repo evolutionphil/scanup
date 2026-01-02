@@ -206,14 +206,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = get().token;
     const wasGuest = get().isGuest;
     
-    // Clear state FIRST to prevent re-renders during logout
-    set({ user: null, token: null, isAuthenticated: false, isGuest: false, isLoading: false });
+    // CRITICAL: Set to guest state immediately to prevent null user causing infinite loops
+    // Do NOT set user to null - always transition to guest state
+    set({ user: guestUser, token: null, isAuthenticated: true, isGuest: true, isLoading: false });
     
     // Then clean up storage
     await removeStorage(TOKEN_KEY);
     await removeStorage(USER_KEY);
-    await removeStorage(GUEST_KEY);
     await removeStorage(MIGRATED_KEY);
+    await setStorage(GUEST_KEY, 'true');
     
     // If was logged in user, try to call logout API (non-blocking)
     if (token && !wasGuest) {
