@@ -1946,6 +1946,114 @@ async def update_premium_status(
     
     return {"success": True, "updated": update_data}
 
+
+@api_router.post("/documents/remove-watermarks")
+async def remove_watermarks_from_documents(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove watermarks from all user's documents after becoming premium.
+    Replaces watermarked images with original (non-watermarked) versions.
+    """
+    # Check if user is premium
+    is_premium = current_user.subscription_type in ["premium", "trial"]
+    if current_user.subscription_type == "trial" and current_user.trial_start_date:
+        trial_end = current_user.trial_start_date + timedelta(days=TRIAL_DURATION_DAYS)
+        if datetime.now(timezone.utc) >= trial_end.replace(tzinfo=timezone.utc):
+            is_premium = False
+    
+    # Also check has_removed_ads flag (one-time purchase)
+    user_data = await db.users.find_one({"user_id": current_user.user_id})
+    has_removed_ads = user_data.get("has_removed_ads", False) if user_data else False
+    
+    if not is_premium and not has_removed_ads:
+        raise HTTPException(status_code=403, detail="Only premium users can remove watermarks")
+    
+    # Get all user's documents
+    documents = await db.documents.find({"user_id": current_user.user_id}).to_list(length=1000)
+    
+    updated_count = 0
+    pages_updated = 0
+    
+    for doc in documents:
+        doc_updated = False
+        updated_pages = []
+        
+        for page in doc.get("pages", []):
+            page_updated = False
+            
+            # Check if page has watermark
+            if page.get("has_watermark", False):
+                # S3 storage: Replace image_url with original_image_url
+                if page.get("original_image_url"):
+                    page["image_url"] = page["original_image_url"]
+                    # Generate new thumbnail from original
+                    try:
+                        # Download original from S3
+                        original_url = page["original_image_url"]
+                        if s3_client and original_url:
+                            # Extract S3 key from URL
+                            s3_key = original_url.split(f"{AWS_S3_BUCKET_NAME}/")[-1] if AWS_S3_BUCKET_NAME in original_url else None
+                            if s3_key:
+                                response = s3_client.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=s3_key)
+                                image_data = response['Body'].read()
+                                image_base64 = base64.b64encode(image_data).decode('utf-8')
+                                
+                                # Create new thumbnail
+                                new_thumbnail_base64 = create_thumbnail(image_base64)
+                                
+                                # Upload new thumbnail
+                                new_thumbnail_url = upload_to_s3(
+                                    new_thumbnail_base64, 
+                                    current_user.user_id, 
+                                    doc["document_id"], 
+                                    page["page_id"], 
+                                    "thumbnail"
+                                )
+                                if new_thumbnail_url:
+                                    page["thumbnail_url"] = new_thumbnail_url
+                    except Exception as e:
+                        logger.warning(f"Failed to update thumbnail for page {page.get('page_id')}: {e}")
+                    
+                    # Clean up original_image_url field
+                    page.pop("original_image_url", None)
+                    page["has_watermark"] = False
+                    page_updated = True
+                    pages_updated += 1
+                
+                # Base64 storage: Replace image_base64 with original_image_base64
+                elif page.get("original_image_base64"):
+                    page["image_base64"] = page["original_image_base64"]
+                    # Create new thumbnail
+                    page["thumbnail_base64"] = create_thumbnail(page["original_image_base64"])
+                    # Clean up
+                    page.pop("original_image_base64", None)
+                    page["has_watermark"] = False
+                    page_updated = True
+                    pages_updated += 1
+            
+            updated_pages.append(page)
+            if page_updated:
+                doc_updated = True
+        
+        # Update document in database if any page was updated
+        if doc_updated:
+            await db.documents.update_one(
+                {"document_id": doc["document_id"]},
+                {"$set": {"pages": updated_pages}}
+            )
+            updated_count += 1
+    
+    logger.info(f"✅ Removed watermarks for user {current_user.user_id}: {updated_count} documents, {pages_updated} pages")
+    
+    return {
+        "success": True,
+        "documents_updated": updated_count,
+        "pages_updated": pages_updated,
+        "message": f"Watermarks removed from {pages_updated} pages across {updated_count} documents"
+    }
+
+
 # ==================== DOCUMENT ENDPOINTS ====================
 
 @api_router.post("/documents", response_model=Document)
