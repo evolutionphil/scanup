@@ -379,6 +379,8 @@ def user_to_response(user: User) -> UserResponse:
         email=user.email,
         name=user.name,
         picture=user.picture,
+        photo_url=getattr(user, 'photo_url', None) or getattr(user, 'avatar_url', None) or user.picture,
+        avatar_url=getattr(user, 'avatar_url', None) or getattr(user, 'photo_url', None) or user.picture,
         subscription_type=user.subscription_type,
         is_premium=is_premium,
         is_trial=is_trial,
