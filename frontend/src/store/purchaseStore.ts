@@ -226,7 +226,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase ONE-TIME product (like Remove Ads)
   purchaseProduct: async (productId: string) => {
-    if (Platform.OS === 'web' || !RNIap) {
+    if (Platform.OS === 'web' || !requestPurchase) {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -245,7 +245,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       };
       
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
-      const purchase = await RNIap.requestPurchase(purchaseParams);
+      const purchase = await requestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
       
@@ -263,9 +263,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       }
       
       // Acknowledge purchase on Android
-      if (Platform.OS === 'android' && purchase.purchaseToken) {
+      if (Platform.OS === 'android' && purchase.purchaseToken && acknowledgePurchaseAndroid) {
         try {
-          await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+          await acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
           console.log('[PurchaseStore] Purchase acknowledged');
         } catch (ackError) {
           console.log('[PurchaseStore] Acknowledge error:', ackError);
@@ -273,9 +273,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       }
       
       // Finish transaction on iOS
-      if (Platform.OS === 'ios') {
+      if (Platform.OS === 'ios' && finishTransaction) {
         try {
-          await RNIap.finishTransaction({ purchase, isConsumable: false });
+          await finishTransaction({ purchase, isConsumable: false });
           console.log('[PurchaseStore] Transaction finished');
         } catch (finishError) {
           console.log('[PurchaseStore] Finish error:', finishError);
