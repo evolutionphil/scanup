@@ -420,9 +420,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const iap = require('react-native-iap');
+      const RNIap = require('react-native-iap');
       
-      const purchases = await iap.getAvailablePurchases();
+      const purchases = await RNIap.getAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
       
       let foundPremium = false;
