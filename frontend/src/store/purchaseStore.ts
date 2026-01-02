@@ -208,24 +208,16 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // For react-native-iap v14+, we need to use the correct format
-      // Android requires nested 'android' key
-      let purchaseParams: any;
-      
-      if (Platform.OS === 'android') {
-        purchaseParams = {
-          android: {
-            skus: [productId],
-          },
-        };
-      } else {
-        purchaseParams = {
-          sku: productId,
-        };
-      }
+      // v14 API: request object with platform-specific params and type
+      const purchaseParams = {
+        request: {
+          apple: { sku: productId },
+          google: { skus: [productId] },
+        },
+        type: 'inapp' as const,
+      };
       
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
-      
       const purchase = await RNIap.requestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
