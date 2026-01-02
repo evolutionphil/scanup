@@ -98,6 +98,19 @@ export default function PremiumScreen() {
   const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY, '€35.99');
 
   const handlePurchase = async () => {
+    // Check if user is logged in (not guest)
+    if (isGuest || !isAuthenticated) {
+      Alert.alert(
+        t('login_required', 'Login Required'),
+        t('please_login_to_purchase', 'Please login to purchase premium features.'),
+        [
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
+          { text: t('login', 'Login'), onPress: () => router.push('/(auth)/login') }
+        ]
+      );
+      return;
+    }
+    
     setError(null);
     
     let success = false;
