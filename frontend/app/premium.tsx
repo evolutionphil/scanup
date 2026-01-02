@@ -287,14 +287,6 @@ export default function PremiumScreen() {
           <Text style={styles.errorText}>{error}</Text>
         )}
 
-        {/* Commercial User Link */}
-        <TouchableOpacity style={styles.commercialLink}>
-          <Text style={styles.commercialText}>
-            {t('commercial_user', 'Are you a commercial user?')}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={BRAND_BLUE} />
-        </TouchableOpacity>
-
         {/* Footer Links */}
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={handleRestore}>
