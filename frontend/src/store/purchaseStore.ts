@@ -230,7 +230,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         // Acknowledge purchase on Android
         if (Platform.OS === 'android' && purchase.purchaseToken) {
           try {
-            await iap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
+            await RNIap.acknowledgePurchaseAndroid({ token: purchase.purchaseToken });
             console.log('[PurchaseStore] Purchase acknowledged');
           } catch (ackError) {
             console.log('[PurchaseStore] Acknowledge error:', ackError);
@@ -240,7 +240,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         // Finish transaction on iOS
         if (Platform.OS === 'ios') {
           try {
-            await iap.finishTransaction({ purchase, isConsumable: false });
+            await RNIap.finishTransaction({ purchase, isConsumable: false });
             console.log('[PurchaseStore] Transaction finished');
           } catch (finishError) {
             console.log('[PurchaseStore] Finish error:', finishError);
