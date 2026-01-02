@@ -53,6 +53,9 @@ if (Platform.OS !== 'web') {
 export default function LoginScreen() {
   const { theme, mode } = useThemeStore();
   const { t } = useI18n();
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = params.returnTo;
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -60,6 +63,16 @@ export default function LoginScreen() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const { login, googleLogin, googleLoginNative, appleLogin } = useAuthStore();
+  
+  // Helper function to navigate after successful login
+  const navigateAfterLogin = () => {
+    if (returnTo) {
+      // Navigate to the returnTo path (e.g., /premium)
+      router.replace(returnTo as any);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   useEffect(() => {
     // Check if Apple Sign-In is available
