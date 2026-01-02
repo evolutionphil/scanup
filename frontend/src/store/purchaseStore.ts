@@ -316,9 +316,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     }
   },
 
-  // Purchase SUBSCRIPTION (uses requestSubscription for subscriptions)
+  // Purchase SUBSCRIPTION (uses requestPurchase with subscriptionOffers for Android v14)
   purchaseSubscription: async (productId: string) => {
-    if (Platform.OS === 'web' || !requestSubscription) {
+    if (Platform.OS === 'web' || !requestPurchase) {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -339,7 +339,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         const cachedSub = get().subscriptions.find(s => s.productId === productId);
         if (cachedSub?.offerToken) {
           offerToken = cachedSub.offerToken;
-          console.log('[PurchaseStore] Step 2: Got offerToken from cache');
+          console.log('[PurchaseStore] Step 2: Got offerToken from cache:', offerToken?.substring(0, 30) + '...');
         }
         
         // If no cached offerToken, fetch fresh
@@ -351,12 +351,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             
             if (subs && subs.length > 0) {
               const sub = subs[0];
-              console.log('[PurchaseStore] Subscription data:', JSON.stringify(sub, null, 2));
-              
               const offerDetails = sub.subscriptionOfferDetails;
               if (offerDetails && offerDetails.length > 0) {
                 offerToken = offerDetails[0].offerToken;
-                console.log('[PurchaseStore] Got offerToken:', offerToken?.substring(0, 50) + '...');
+                console.log('[PurchaseStore] Got offerToken:', offerToken?.substring(0, 30) + '...');
               }
             }
           } catch (fetchError: any) {
@@ -370,9 +368,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           return false;
         }
         
-        // Use requestSubscription with subscriptionOffers (required for Android)
-        console.log('[PurchaseStore] Step 3: Calling requestSubscription');
+        // KEY FIX: Use requestPurchase with BOTH skus AND subscriptionOffers (v14 API)
+        console.log('[PurchaseStore] Step 3: Calling requestPurchase with subscriptionOffers');
         const purchaseParams = {
+          skus: [productId],
           subscriptionOffers: [{
             sku: productId,
             offerToken: offerToken,
@@ -381,27 +380,22 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         
         console.log('[PurchaseStore] Purchase params:', JSON.stringify(purchaseParams));
         
-        const purchase = await requestSubscription(purchaseParams);
+        const purchase = await requestPurchase(purchaseParams);
         
         console.log('[PurchaseStore] Step 4: Purchase result:', JSON.stringify(purchase, null, 2));
         
-        // CRITICAL: Validate purchase result
-        // If purchase is array, check if it has items
-        // If cancelled, purchase will be null or empty array
+        // Get purchase data (could be array or single object)
         const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
-        const isValidPurchase = purchaseData && 
-          (purchaseData.purchaseToken || purchaseData.transactionId || purchaseData.productId);
         
-        console.log('[PurchaseStore] Is valid purchase:', isValidPurchase);
-        
-        if (!isValidPurchase) {
+        // Validate purchase
+        if (!purchaseData || !purchaseData.purchaseToken) {
           console.log('[PurchaseStore] Subscription cancelled or invalid');
           set({ isLoading: false });
           return false;
         }
         
         // Acknowledge on Android
-        if (purchaseData.purchaseToken && acknowledgePurchaseAndroid) {
+        if (acknowledgePurchaseAndroid) {
           try {
             await acknowledgePurchaseAndroid({ token: purchaseData.purchaseToken });
             console.log('[PurchaseStore] Subscription acknowledged');
@@ -430,18 +424,16 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         return true;
         
       } else {
-        // iOS - use requestSubscription with sku
+        // iOS - use requestPurchase with sku
         console.log('[PurchaseStore] Step 1: iOS subscription purchase');
         
-        const purchase = await requestSubscription({ sku: productId });
+        const purchase = await requestPurchase({ sku: productId });
         
         console.log('[PurchaseStore] Step 2: Purchase result:', JSON.stringify(purchase, null, 2));
         
         const purchaseData = Array.isArray(purchase) ? purchase[0] : purchase;
-        const isValidPurchase = purchaseData && 
-          (purchaseData.transactionId || purchaseData.productId);
         
-        if (!isValidPurchase) {
+        if (!purchaseData || !purchaseData.transactionId) {
           set({ isLoading: false });
           return false;
         }
