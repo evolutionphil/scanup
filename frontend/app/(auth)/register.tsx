@@ -85,7 +85,7 @@ export default function RegisterScreen() {
       console.log('[Register] Calling register API...');
       await register(email, password, name);
       console.log('[Register] Success! Navigating...');
-      router.replace('/(tabs)');
+      navigateAfterLogin();
     } catch (error: any) {
       console.error('[Register] Error:', error.message);
       const msg = error.message || t('please_try_again', 'Please try again');
