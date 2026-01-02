@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const { user, token, isGuest, logout, updateUser, startTrial } = useAuthStore();
   const { theme, mode, toggleTheme } = useThemeStore();
   const { t } = useI18n();
+  const { isPremium, hasRemovedAds } = usePurchaseStore();
   const [upgrading, setUpgrading] = useState(false);
   const [startingTrial, setStartingTrial] = useState(false);
 
