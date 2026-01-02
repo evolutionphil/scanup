@@ -174,6 +174,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   // Load interstitial
   const loadInterstitial = useCallback(() => {
     if (!isNativeEnvironment || !isSDKInitialized) return;
+    if (!mountedRef.current) return;
 
     try {
       const adsModule = getAdsModule();
@@ -195,7 +196,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         AdEventType.LOADED,
         () => {
           console.log('[AdManager] Interstitial loaded');
-          setAdLoaded(true);
+          if (isMounted) setAdLoaded(true);
         }
       );
 
@@ -203,10 +204,12 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         AdEventType.CLOSED,
         () => {
           console.log('[AdManager] Interstitial closed');
-          setAdShowing(false);
-          recordAdShown();
+          if (isMounted) {
+            setAdShowing(false);
+            recordAdShown();
+          }
           // Reload for next time
-          loadInterstitial();
+          if (isMounted) loadInterstitial();
         }
       );
 
@@ -214,9 +217,9 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         AdEventType.ERROR,
         (error: any) => {
           console.log('[AdManager] Ad error:', error);
-          setAdLoaded(false);
+          if (isMounted) setAdLoaded(false);
           // Retry after delay
-          setTimeout(loadInterstitial, 30000);
+          if (isMounted) setTimeout(loadInterstitial, 30000);
         }
       );
 
