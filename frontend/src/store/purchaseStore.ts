@@ -1,40 +1,27 @@
 import { create } from 'zustand';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import react-native-iap functions directly for native platforms
-let initConnection: any = null;
-let endConnection: any = null;
-let getSubscriptions: any = null;
-let getProducts: any = null;
-let requestPurchase: any = null;
-let getAvailablePurchases: any = null;
-let acknowledgePurchaseAndroid: any = null;
-let finishTransaction: any = null;
-let flushFailedPurchasesCachedAsPendingAndroid: any = null;
+// Only import IAP on native platforms
+const RNIap = Platform.OS !== 'web' ? require('react-native-iap') : null;
+
+// Extract functions (will be null on web)
+const initConnection = RNIap?.initConnection;
+const getSubscriptions = RNIap?.getSubscriptions;
+const getProducts = RNIap?.getProducts;
+const requestPurchase = RNIap?.requestPurchase;
+const getAvailablePurchases = RNIap?.getAvailablePurchases;
+const acknowledgePurchaseAndroid = RNIap?.acknowledgePurchaseAndroid;
+const finishTransaction = RNIap?.finishTransaction;
+const flushFailedPurchasesCachedAsPendingAndroid = RNIap?.flushFailedPurchasesCachedAsPendingAndroid;
 
 if (Platform.OS !== 'web') {
-  try {
-    const RNIap = require('react-native-iap');
-    initConnection = RNIap.initConnection;
-    endConnection = RNIap.endConnection;
-    getSubscriptions = RNIap.getSubscriptions;
-    getProducts = RNIap.getProducts;
-    requestPurchase = RNIap.requestPurchase;
-    getAvailablePurchases = RNIap.getAvailablePurchases;
-    acknowledgePurchaseAndroid = RNIap.acknowledgePurchaseAndroid;
-    finishTransaction = RNIap.finishTransaction;
-    flushFailedPurchasesCachedAsPendingAndroid = RNIap.flushFailedPurchasesCachedAsPendingAndroid;
-    
-    console.log('[PurchaseStore] IAP functions loaded:', {
-      initConnection: !!initConnection,
-      getSubscriptions: !!getSubscriptions,
-      getProducts: !!getProducts,
-      requestPurchase: !!requestPurchase,
-    });
-  } catch (e) {
-    console.log('[PurchaseStore] react-native-iap not available:', e);
-  }
+  console.log('[PurchaseStore] IAP functions loaded:', {
+    initConnection: !!initConnection,
+    getSubscriptions: !!getSubscriptions,
+    getProducts: !!getProducts,
+    requestPurchase: !!requestPurchase,
+  });
 }
 
 // Product IDs - Must match Google Play Console / App Store Connect
