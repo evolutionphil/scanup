@@ -1977,36 +1977,54 @@ async def create_document(
         page_dict["page_id"] = page_id
         page_dict["order"] = i
         
-        # Add watermark for free users
+        # Store original image and add watermark for free users
+        original_image_base64 = page.image_base64
         image_base64 = page.image_base64
+        has_watermark = False
+        
         if not is_premium:
             image_base64 = add_watermark(image_base64, "ScanUp")
+            has_watermark = True
         
-        # Create thumbnail
+        # Create thumbnail (from watermarked image if applicable)
         thumbnail_base64 = create_thumbnail(image_base64)
         
         # Upload to S3 if configured
         if s3_client:
-            # Upload main image
+            # Upload main image (watermarked for free users)
             image_url = upload_to_s3(image_base64, current_user.user_id, document_id, page_id, "page")
             thumbnail_url = upload_to_s3(thumbnail_base64, current_user.user_id, document_id, page_id, "thumbnail")
+            
+            # Also upload original (non-watermarked) for free users
+            original_image_url = None
+            if has_watermark:
+                original_image_url = upload_to_s3(original_image_base64, current_user.user_id, document_id, page_id, "original")
             
             if image_url and thumbnail_url:
                 # Store URLs instead of base64
                 page_dict["image_url"] = image_url
                 page_dict["thumbnail_url"] = thumbnail_url
+                page_dict["has_watermark"] = has_watermark
+                if original_image_url:
+                    page_dict["original_image_url"] = original_image_url
                 page_dict.pop("image_base64", None)
                 page_dict.pop("thumbnail_base64", None)
-                logger.info(f"✅ Page {page_id} uploaded to S3")
+                logger.info(f"✅ Page {page_id} uploaded to S3 (watermark: {has_watermark})")
             else:
                 # Fallback to base64 if S3 upload fails
                 page_dict["image_base64"] = image_base64
                 page_dict["thumbnail_base64"] = thumbnail_base64
+                page_dict["has_watermark"] = has_watermark
+                if has_watermark:
+                    page_dict["original_image_base64"] = original_image_base64
                 logger.warning(f"⚠️ S3 upload failed, storing base64 for page {page_id}")
         else:
             # No S3, store base64 in MongoDB
             page_dict["image_base64"] = image_base64
             page_dict["thumbnail_base64"] = thumbnail_base64
+            page_dict["has_watermark"] = has_watermark
+            if has_watermark:
+                page_dict["original_image_base64"] = original_image_base64
         
         processed_pages.append(page_dict)
     
