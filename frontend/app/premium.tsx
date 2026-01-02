@@ -248,12 +248,16 @@ export default function PremiumScreen() {
             onPress={() => setSelectedPlan('monthly')}
           >
             <View style={styles.monthlyContent}>
-              <Text style={[
-                styles.priceText,
-                selectedPlan === 'monthly' && styles.priceTextSelected
-              ]}>
-                {monthlyPrice}/month
-              </Text>
+              {monthlyPrice ? (
+                <Text style={[
+                  styles.priceText,
+                  selectedPlan === 'monthly' && styles.priceTextSelected
+                ]}>
+                  {monthlyPrice}/month
+                </Text>
+              ) : (
+                <ActivityIndicator size="small" color={BRAND_BLUE} />
+              )}
               <Text style={styles.trialText}>
                 {t('free_7_day_trial', '7 days FREE trial')}
               </Text>
@@ -276,12 +280,16 @@ export default function PremiumScreen() {
           >
             <View style={styles.yearlyContent}>
               <View>
-                <Text style={[
-                  styles.priceText,
-                  selectedPlan === 'yearly' && styles.priceTextSelected
-                ]}>
-                  {yearlyPrice}/year
-                </Text>
+                {yearlyPrice ? (
+                  <Text style={[
+                    styles.priceText,
+                    selectedPlan === 'yearly' && styles.priceTextSelected
+                  ]}>
+                    {yearlyPrice}/year
+                  </Text>
+                ) : (
+                  <ActivityIndicator size="small" color={BRAND_BLUE} />
+                )}
                 <Text style={styles.savingsText}>
                   {t('save_50_percent', 'Save 50%')}
                 </Text>
