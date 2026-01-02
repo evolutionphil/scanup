@@ -2,13 +2,40 @@ import { create } from 'zustand';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import react-native-iap conditionally for native platforms
-let RNIap: any = null;
+// Import react-native-iap functions directly for native platforms
+let initConnection: any = null;
+let endConnection: any = null;
+let getSubscriptions: any = null;
+let getProducts: any = null;
+let requestSubscription: any = null;
+let requestPurchase: any = null;
+let getAvailablePurchases: any = null;
+let acknowledgePurchaseAndroid: any = null;
+let finishTransaction: any = null;
+let flushFailedPurchasesCachedAsPendingAndroid: any = null;
+
 if (Platform.OS !== 'web') {
   try {
-    RNIap = require('react-native-iap');
+    const RNIap = require('react-native-iap');
+    initConnection = RNIap.initConnection;
+    endConnection = RNIap.endConnection;
+    getSubscriptions = RNIap.getSubscriptions;
+    getProducts = RNIap.getProducts;
+    requestSubscription = RNIap.requestSubscription;
+    requestPurchase = RNIap.requestPurchase;
+    getAvailablePurchases = RNIap.getAvailablePurchases;
+    acknowledgePurchaseAndroid = RNIap.acknowledgePurchaseAndroid;
+    finishTransaction = RNIap.finishTransaction;
+    flushFailedPurchasesCachedAsPendingAndroid = RNIap.flushFailedPurchasesCachedAsPendingAndroid;
+    
+    console.log('[PurchaseStore] IAP functions loaded:', {
+      initConnection: !!initConnection,
+      getSubscriptions: !!getSubscriptions,
+      getProducts: !!getProducts,
+      requestSubscription: !!requestSubscription,
+    });
   } catch (e) {
-    console.log('[PurchaseStore] react-native-iap not available');
+    console.log('[PurchaseStore] react-native-iap not available:', e);
   }
 }
 
