@@ -140,38 +140,51 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      isGuest ? t('exit_guest_mode', 'Exit Guest Mode') : t('logout', 'Logout'),
-      isGuest ? t('exit_guest_confirm', 'Are you sure you want to exit?') : t('logout_confirm', 'Are you sure you want to logout?'),
-      [
-        { text: t('cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: isGuest ? t('exit', 'Exit') : t('logout', 'Logout'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // First continue as guest to prevent white screen
-              const { continueAsGuest } = useAuthStore.getState();
-              
-              // Clear current session
-              await logout();
-              
-              // Immediately set as guest user to prevent blank state
-              continueAsGuest();
-              
-              // Navigate to home (tabs)
-              router.replace('/(tabs)');
-            } catch (e) {
-              console.error('Logout error:', e);
-              // Fallback: still try to navigate
-              const { continueAsGuest } = useAuthStore.getState();
-              continueAsGuest();
-              router.replace('/(tabs)');
-            }
+    const confirmLogout = async () => {
+      try {
+        // First continue as guest to prevent white screen
+        const { continueAsGuest } = useAuthStore.getState();
+        
+        // Clear current session
+        await logout();
+        
+        // Immediately set as guest user to prevent blank state
+        continueAsGuest();
+        
+        // Navigate to home (tabs)
+        router.replace('/(tabs)');
+      } catch (e) {
+        console.error('Logout error:', e);
+        // Fallback: still try to navigate
+        const { continueAsGuest } = useAuthStore.getState();
+        continueAsGuest();
+        router.replace('/(tabs)');
+      }
+    };
+
+    // On web, use window.confirm; on native, use Alert
+    if (Platform.OS === 'web') {
+      const message = isGuest 
+        ? t('exit_guest_confirm', 'Are you sure you want to exit?')
+        : t('logout_confirm', 'Are you sure you want to logout?');
+      
+      if (window.confirm(message)) {
+        confirmLogout();
+      }
+    } else {
+      Alert.alert(
+        isGuest ? t('exit_guest_mode', 'Exit Guest Mode') : t('logout', 'Logout'),
+        isGuest ? t('exit_guest_confirm', 'Are you sure you want to exit?') : t('logout_confirm', 'Are you sure you want to logout?'),
+        [
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
+          {
+            text: isGuest ? t('exit', 'Exit') : t('logout', 'Logout'),
+            style: 'destructive',
+            onPress: confirmLogout,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleStartTrial = async () => {
