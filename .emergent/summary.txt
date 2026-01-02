@@ -1,249 +1,238 @@
 <analysis>
 
 **original_problem_statement**:
-The user's initial goal was a UI overhaul and fixing bugs. This evolved into a series of critical tasks. The primary blocker was a native Android app crash caused by the Google AdMob integration. After resolving the crash, the user requested:
-1.  **Ad Logic Refinement:** Change ad triggers from just new document creation to include adding new pages, exporting as PDF, sharing, and applying filters. The user later requested that sharing/exporting/filtering trigger ads immediately, while scanning pages remains on a counter.
-2.  **Premium Features:** Implement a Go Premium feature with both monthly/yearly subscriptions and a one-time Remove Ads purchase, without using RevenueCat.
-3.  **Language Picker Fix:** The in-app language picker was hardcoded and missing languages (Turkish, Russian) that were available on the backend. The app should dynamically fetch and display all available languages.
-4.  **Guest Subscription Handling:** A user who buys a subscription as a guest should have it linked to their account when they log in.
-5.  **Critical Bug Fixes (from user testing):**
-    *   Google Sign-In fails with .
-    *   In-app purchases (subscriptions and one-time) are not working, showing errors like missing purchase request configuration or undefined is not a function.
-    *   The 'X' (close) button on the premium screen leads to a white page instead of returning to the app.
-    *   PDF password protection fails in the release APK.
-6.  **Build & Deployment:** The user repeatedly faced local and cloud build failures (, ,  errors, missing Gradle wrapper) and needed guidance to generate a production AAB for the Play Store. The backend needed to be pointed to the user's Railway deployment instead of the temporary preview URL.
+The user's initial request for a UI overhaul evolved into fixing critical bugs and implementing monetization. The main goals are:
+1.  **Fix In-App Purchases (IAP):** The core monetization feature is broken. All purchase attempts (monthly/yearly subscriptions, one-time remove ads) fail on release builds with various errors. This is the highest priority.
+2.  **Fix Google Sign-In:** Users cannot log in with Google, receiving a . After logging in, logging out causes the app to crash to a white screen.
+3.  **Implement Email System:** Implement a complete email system for user registration (welcome/verification emails), password resets, and purchase confirmations.
+4.  **Fix Bugs:**
+    *   The X (close) button on the premium screen after onboarding led to a white screen.
+    *   Firebase Analytics was not showing data.
+    *   A watermark for non-premium users was tiling across the entire document instead of appearing as a single, centered mark.
 
-**User's preferred language**: The user converses primarily in English, but uses German (Warnung) and Turkish (düzeltir misin, Tamamlandı) and receives some responses in Turkish. The next agent should primarily respond in English but be prepared to understand and respond in Turkish if the user switches.
+**User's preferred language**: The user communicates in English but occasionally uses German (Warnung) and Turkish (düzeltir misin). The next agent should primarily respond in English but be prepared to understand and potentially respond in Turkish.
 
 **what currently exists?**
-The application is a full-stack Expo (React Native) app with a FastAPI backend hosted on Railway.
-- The critical native build crash related to AdMob has been resolved.
-- Ad logic has been implemented to trigger ads immediately on sharing/exporting/filtering and every 3 pages for scanning.
-- An in-app purchase system using  has been integrated. This includes a  paywall screen and a  to manage IAP logic. The  now checks for premium status to hide ads.
-- The language picker on the  page has been refactored to dynamically display languages fetched from the backend, fixing the missing languages issue.
-- A system to sync a guest user's purchases to their account upon login has been implemented on both the frontend () and backend ( endpoint).
-- All backend API calls have been successfully pointed to the user's Railway URL ().
-- Numerous build-time issues ( errors,  misconfiguration, icon dimensions, package mismatches) have been resolved to enable successful EAS builds.
+The project is a full-stack Expo (React Native) app with a FastAPI backend.
+- A basic IAP implementation exists using , but it is non-functional due to repeated incorrect API usage for version 14+.
+- Google Sign-In is partially integrated but has a critical crash on logout.
+- A new email service using Resend has been added to the backend, with new endpoints for registration, verification, and password reset. However, it's in a sandbox mode and cannot send emails to users until the user configures a custom domain in their Resend account.
+- The backend watermark logic has been updated to place a single watermark.
+- Firebase Analytics has been integrated using .
+- The app version has been updated to  with .
 
 **Last working item**:
-    - Last item agent was working: The agent was fixing a series of errors reported by  that were causing the user's EAS build to fail. The fixes included:
-        1. Resizing the app icon to be perfectly square.
-        2. Adding the  and  directories to  to ensure EAS uses the prebuild workflow correctly.
-        3. Removing the  file to resolve lock file conflicts.
-        4. Running env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_TOKEN
-Dependencies are up to date to correct package version mismatches.
-        5. Correcting a peer dependency mismatch between  and .
-        The goal was to create a clean project state for a successful production build.
-    - Status: USER VERIFICATION PENDING
+    - Last item agent was working: Fixing the broken In-App Purchase (IAP) flow for the fourth time. The agent identified two critical errors from user-provided logs:
+        1.  **Subscriptions**: The code was throwing a No offer token available error because it was looking for the subscription details in the old, stale state store instead of using the fresh details (which contained the token) it had just fetched.
+        2.  **One-time Purchases**: The  call was still using the wrong payload format ( instead of the correct ), causing an Invalid request error.
+        The agent applied fixes for both of these issues in  but did not get to restart the services or ask the user to test the changes.
+    - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use? The user will perform manual testing via a production build (An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username). The next agent needs to guide the user to pull the latest code and run the build. IAP testing requires uploading the AAB to the Play Console Internal Testing track.
-    - User Testing Done: N (The user was blocked by build failures).
+    - Which testing method agent to use? The next agent must guide the user to perform a new EAS production build and test on a real device via the Google Play Console's Internal Testing track.
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
   - Issue 1: In-App Purchases (IAP) are not working. (P0)
-  - Issue 2: Google Sign-In fails with . (P0)
-  - Issue 3: App web preview is broken due to native-only modules. (P2)
-  - Issue 4: Several features implemented in previous sessions have not been verified by the user on a stable build. (P2)
+  - Issue 2: App crashes to a white screen on logout. (P0)
+  - Issue 3: Email service is not sending emails to users. (P1)
+  - Issue 4: Google Sign-In functionality is not fully verified. (P1)
+  - Issue 5: Web preview is broken. (P2)
 
   Issues Detail:
   - Issue 1: **In-App Purchases (IAP) are not working**
-     - Description: User reported that on a release build, attempting to purchase a subscription or the remove ads feature results in errors like missing purchase request configuration or undefined is not a function.
-     - Attempted fixes: The agent correctly identified that  was updated to v14, which has a breaking API change. The  was rewritten multiple times to match the new v14 syntax for fetching products and initiating purchases, based on documentation and  advice.
-     - Next debug checklist: The code in  is now believed to be correct for v14. The issue can only be verified by the user with a new build.
-        1. Guide the user to perform a clean EAS build: , yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.34s., An Expo user account is required to proceed.
+     - Attempted fixes: The agent has attempted to fix this four times. The main problem has been incorrect usage of the  v14 API. The agent repeatedly mixed up the payload formats for  and the correct functions to fetch products/subscriptions. The last set of fixes (in message 390-392) appear to be correct but have not been tested.
+     - Next debug checklist:
+        1. Review the final changes made to  to confirm the logic for one-time purchases and subscriptions is now correct for v14.7+.
+        2. Restart the frontend server (expo: ERROR (not running)
+expo: ERROR (abnormal termination)).
+        3. Guide the user to create a new production build (An Expo user account is required to proceed.
 
 Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username.
-        2. Instruct the user to upload the generated AAB to the **Internal Testing track** in the Google Play Console.
-        3. Ensure the user has added their Google account as a **licensed tester**.
-        4. Ask the user to install the app from the Play Store (internal track link) and re-test all three purchase options (monthly, yearly, remove ads).
-        5. If it still fails, ask for the exact error message and any logs from Android Studio's Logcat connected to the device.
-     - Why fix this issue and what will be achieved with the fix?: This is a core monetization feature and a complete blocker for the app's business model.
-     - Status:  USER VERIFICATION PENDING
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend (on a real device via Play Store internal testing).
-     - Blocked on other issue: None.
-
-  - Issue 2: **Google Sign-In fails with **
-     - Description: User reports that Google Sign-In is not working on the release build. This error almost always indicates a mismatch between the app's signing certificate (SHA-1 fingerprint) and the configuration in Firebase.
-     - Attempted fixes:
-        1. The agent found and fixed hardcoded, incorrect client IDs in  and .
-        2. The agent guided the user to add **two** SHA-1 fingerprints to their Firebase project settings: one from their local upload keystore and one from the Google Play Console's App Signing page.
-        3. The user provided an updated  containing these new fingerprints, which the agent integrated into the project.
-     - Next debug checklist: The configuration is now believed to be correct.
-        1. The user must test this on the new production build generated for Issue 1.
-        2. If it fails, confirm with the user that the exact SHA-1 fingerprints from the App signing page in Play Console and their local keystore are present in the Firebase project settings.
-     - Why fix this issue and what will be achieved with the fix?: This is a critical authentication path for users.
-     - Status:  USER VERIFICATION PENDING
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend (on a release build).
-     - Blocked on other issue: None.
-
-  - Issue 3: **App web preview is broken due to native-only modules**
-     - Description: The Expo web preview crashes with an error  This is caused by .
-     - Attempted fixes: The agent correctly identified the cause and attempted to fix it by creating platform-specific files ( and ). However, due to Metro bundler caching, the fix didn't immediately take effect, and the agent moved on to more critical issues.
-     - Next debug checklist: The approach was correct, but needs to be finalized.
-        1. Verify that  contains the full ad logic and  contains a mock/empty implementation.
-        2. Ensure there is no  acting as an index, and that components import  directly, letting Metro resolve the extension.
-        3. Restart the expo server with a cache clear: [21:12:27] Starting project at /app/frontend.
-     - Why fix this issue and what will be achieved with the fix?: While not a production blocker, fixing this improves the development experience by allowing the agent to use the web preview for non-native UI work.
+Input is required, but stdin is not readable. Failed to display prompt: Email or username).
+        4. Instruct the user to upload the new AAB to the Play Console Internal Testing track and test all three purchase options on a physical device.
+        5. If it fails again, obtain fresh  output from the user's device.
+     - Why fix this issue and what will be achieved with the fix?: This is the app's core monetization feature. It is a complete blocker.
      - Status:  IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend (web preview).
-     - Blocked on other issue: None.
-
-  - Issue 4: **Pending user verification for previously implemented features**
-     - Description: The following features were implemented but have not been tested by the user on a stable, working build.
-        *   Annotation/Signature saving.
-        *   PDF password protection (the backend endpoint works, but the full flow in-app needs testing).
-        *   Watermark visibility for non-premium users.
-        *   Sort by modal translations.
-     - Status: TESTING PENDING
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Frontend.
+     - Should Test frontend/backend/both after fix?: Frontend (on-device testing is mandatory).
+     - Blocked on other issue: None
+
+  - Issue 2: **App crashes to a white screen on logout**
+     - Attempted fixes: User logs showed a Maximum update depth exceeded error originating from . The agent identified this as an infinite re-render loop when the user auth state becomes null. Several fixes were applied to  to stabilize  hooks, use more specific state selectors, and add guards.
+     - Next debug checklist:
+        1. This issue can only be verified on a new build.
+        2. Guide the user to test the logout functionality (especially after a Google Sign-In session) on the new build created for the IAP fix.
+        3. If the crash persists, re-examine  and how its state dependencies (, ) change during the logout process.
+     - Why fix this issue and what will be achieved with the fix?: Fixes a critical crash that makes the app unusable after logging out.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
+     - Blocked on other issue: None
+
+  - Issue 3: **Email service is not sending emails to users**
+     - Attempted fixes: Agent implemented a Resend-based email service. When testing failed, the agent found two issues: 1) The API key wasn't loading due to being called before  was initialized (fixed). 2) Resend's sandbox mode only allows sending emails to the user's own verified email address.
+     - Next debug checklist: This issue is blocked on the user. The agent has correctly identified the cause and provided instructions. The next agent must re-iterate this to the user.
+        1. Remind the user they need to add a custom domain to their Resend account to send emails to their app's users.
+        2. Provide the link again: .
+        3. Once the user confirms the domain is verified, the agent needs to update the  variable in .
+     - Why fix this issue and what will be achieved with the fix?: Enables critical user-facing features like email verification and password reset.
+     - Status:  BLOCKED (waiting on user action).
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Backend.
+     - Blocked on other issue: None
+
+  - Issue 4: **Google Sign-In functionality is not fully verified**
+     - Attempted fixes: The agent updated  multiple times with new SHA-1 keys provided by the user. It also added more detailed error logging in . The user briefly confirmed login works (Msg 242) but this was immediately followed by the logout crash.
+     - Next debug checklist:
+        1. The success of the login part needs to be re-verified on a new build, as it's unclear if the user was testing the latest version.
+        2. The entire auth flow (login -> use app -> logout) must be tested as a whole.
+     - Why fix this issue and what will be achieved with the fix?: Critical user authentication path.
+     - Status:  USER VERIFICATION PENDING
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
+     - Blocked on other issue: Issue 2 (Logout Crash)
+
+  - Issue 5: **App web preview is broken due to native-only modules**
+     - Attempted fixes: In a previous session, the agent attempted to fix this by creating platform-specific files (, ) but the fix was not completed. This issue was not worked on in the current session.
+     - Next debug checklist:
+        1. Verify that  and  exist and have correct content (native code vs. a mock component).
+        2. Ensure components import  without an extension.
+        3. This is a low-priority development convenience and should only be addressed after critical bugs are fixed.
+     - Why fix this issue and what will be achieved with the fix?: Improves the development workflow by allowing UI changes to be tested in the web preview.
+     - Status: NOT STARTED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Frontend (web preview).
 
 **In progress Task List**:
   - None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - (P1) Implement functionality for the search icon on the main screen ().
+    - (P1) Implement email verification flow on the frontend (e.g., a screen that asks the user to check their email and a backend endpoint to handle the verification link click).
+    - (P1) Implement password reset flow on the frontend (UI for Forgot Password and for entering a new password).
+    - (P1) Implement logic to send purchase confirmation emails by calling the new backend endpoint after a successful IAP.
+    - (P2) Implement search icon functionality on the main screen ().
 - **Future Tasks**:
     - Refactor the monolithic  into smaller, more manageable routers.
-    - Refactor large frontend components like  into smaller sub-components.
+    - Refactor large frontend components into smaller sub-components.
+    - Implement push notifications using Firebase.
 
 **Completed work in this session**
-- **Critical Crash Fix (DONE)**: Resolved the native Android crash by fixing AdMob configuration and guiding the user through numerous local build environment issues (,  memory, SDK path, keystores).
-- **Ad Logic Implementation (DONE)**: Implemented new ad trigger points for scanning, sharing, exporting, and filtering, including logic for immediate display vs. a counter. Refactored the ad store () to be more robust.
-- **In-App Purchase/Premium Feature (IMPLEMENTED)**:
-  - Installed and configured .
-  - Created  paywall screen.
-  - Created  to handle IAP logic, including updating it for the v14 API.
-  - Fixed navigation bugs on the premium screen.
-- **Backend Migration (DONE)**: All API calls and configurations (, , ) were updated to use the user's production Railway backend URL.
-- **Language Picker Fix (DONE)**: Refactored  to use a dynamic language list from the  instead of a hardcoded array.
-- **Guest Subscription Sync (DONE)**: Implemented frontend () and backend () logic to associate purchases made by a guest user with their account after they log in.
-- **Google Sign-In Fix (ATTEMPTED)**: Corrected hardcoded  and  and integrated a new  with the user's correct SHA-1 fingerprints.
-- **Build System Hygiene (DONE)**: Fixed numerous  errors, including correcting the  file, resolving package mismatches, fixing the app icon dimensions, and removing conflicting lock files to enable successful EAS builds.
-- **App Versioning (DONE)**: Updated the app version to  and  to  in  and  as requested by the user.
+- **Email System Implementation (Backend)**: Installed  and created . Added new endpoints (, , etc.) and integrated welcome/verification email sending into the  flow.
+- **Registration Error UI**: Updated the registration screen () to display an inline error message if signup fails (e.g., Email already registered).
+- **Watermark Fix**: Modified the  function in  to generate a single, centered watermark instead of multiple tiling ones.
+- **Firebase Analytics Integration**: Correctly installed  and  and configured them in . Created an analytics service () and added tracking for screen views and purchase events.
+- **Onboarding Navigation Fix**: Fixed a bug where closing the premium screen after onboarding led to a white screen by ensuring the user is authenticated as a guest first.
 
 **Earlier issues found/mentioned but not fixed**
-   - All known issues are captured in the **All Pending/In progress Issue list**.
+   - All known issues are captured in the **All Pending/In progress Issue list**. The agent was very focused on the critical user-reported issues.
 
 **Known issue recurrence from previous fork**
-  - **App Crash:** The initial app crash was a new, overriding issue in this fork, now resolved.
-  - **Build Failures:** The user has consistently struggled with their local build environment, leading to recurring issues with Gradle, keystores, and dependencies.
-  - **IAP/Auth:** The IAP and Google Sign-in issues are recurring within this session, with multiple fixes attempted. The latest fixes are pending verification.
+  - **IAP Failures**: This is the most significant recurring issue. The agent has struggled with the  v14 API across multiple sessions, repeatedly implementing incorrect payload formats. Recurrence count: 4+ in this session alone. Status: IN PROGRESS.
+  - **Google Sign-in/Auth issues**: Recurring problem with  and now a new crash on logout. Recurrence count: 2+. Status: IN PROGRESS / USER VERIFICATION PENDING.
+  - **Build Failures**: While the user did not face major build failures in this session, the previous summary highlighted it as a recurring problem.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **In-App Purchases (IAP):** Using  (v14) to handle one-time purchases and subscriptions directly with Google Play Billing and Apple StoreKit. Requires testing on a physical device with a licensed tester account via a build from the Play Console internal track.
-- **Native Build Debugging (Android):** Diagnosing and fixing a wide range of Gradle issues, including  (fixed by editing ), missing SDK location (fixed with ), and missing Gradle wrapper (fixed with ).
-- **Google Sign-In Authentication Flow:** Understanding that  is caused by a SHA-1 fingerprint mismatch and the need to include fingerprints from both the local upload key and the Play App Signing key in the Firebase project's .
-- **Expo Prebuild & EAS Build:** Correctly configuring  to let EAS manage the native projects. Fixing  issues to ensure clean cloud builds.
-- **Platform-Specific Files:** Using  and  extensions to split code for native-only libraries like  to prevent web preview crashes.
-- **State Management (Zustand):** Creating and modifying multiple stores (, , ) to manage global app state for ads, internationalization, and premium features.
+- **In-App Purchases (react-native-iap v14.7):** The core challenge. Correct usage requires distinct payloads for Android/iOS and for one-time vs. subscription purchases. For Android subscriptions,  must be called with a  array containing a valid  obtained from . For Android one-time purchases, the payload must be .
+- **Firebase Integration (React Native Firebase):** The proper method for Expo is using the  and  packages combined with the  plugin in .
+- **Zustand State Management:** The app uses Zustand for global state (, ). A key bug was caused by components re-rendering due to broad state selection (e.g., ) instead of specific selectors (e.g., ).
+- **Backend Email Service (Resend):** A new service was added to the FastAPI backend to send transactional emails. It's currently in a sandbox state, limited to sending emails to the developer's verified address until a custom domain is configured by the user on the Resend platform.
 
 **key DB schema**
-  - **users** collection: The user model was implicitly updated on the backend to handle  and  fields, managed via the new  endpoint.
+  - **users**: Implicitly updated in  to include new fields for the email system:
+    -  (default: )
+    - 
+    - 
+    - 
 
 **changes in tech stack**
-  - Added  for in-app purchases.
-  - Added  as a peer dependency for .
+  - **Frontend**:
+    - 
+    - 
+  - **Backend**:
+    -  (Python package)
 
 **All files of reference**
-- : **CRITICAL**. Contains all logic for In-App Purchases. Has been rewritten for the  v14 API and is the primary file to check if IAP issues persist.
-- : **CRITICAL**. Contains configurations for Android version, Google Sign-in, and other plugins.
-- : **CRITICAL**. Contains Firebase configuration, including API keys and OAuth client IDs linked to the app's SHA-1 signing certificates. This is key for Google Sign-In to work.
-- : Contains the Google Sign-In button logic and .
-- : Defines build profiles and environment variables like the backend URL for cloud builds.
-- : Contains memory settings for Gradle, crucial for preventing local build failures.
+- : **CRITICAL**. This file has been the source of the most persistent bug. The latest version (after message 392) is believed to be correct but needs immediate verification.
+- : **CRITICAL**. This component was the source of a crash on logout. The fixes need to be verified.
+- : **IMPORTANT**. The new email service. It is currently blocked waiting for the user to configure a domain in Resend.
+- : Contains the core business logic, including the new email endpoints and fixed watermark logic.
+- : Contains the Firebase config. It has been updated with all the user's SHA-1 keys.
 
 **Areas that need refactoring**:
-- The  platform-specific file implementation (, ) was started but may not have been fully cleaned up due to focus on more critical issues. This should be verified to ensure it's a clean implementation.
+- The  file has been patched multiple times. While the latest version might be functional, it would benefit from a clean review to ensure there are no redundant or conflicting pieces of logic left over from previous failed attempts.
 
 **key api endpoints**
-- **POST** : New endpoint in  to update a user's premium status, used for syncing guest purchases.
-- **POST** : Existing endpoint used for password-protecting PDFs. Its functionality was verified against the user's Railway backend.
+- **POST** : MODIFIED to send welcome and verification emails.
+- **POST** : NEW endpoint to generate and email a password reset token.
+- **POST** : NEW endpoint to set a new password using a reset token.
+- **GET** : NEW endpoint to handle email verification link clicks.
 
 **Critical Info for New Agent**
-- **The user's highest priorities are fixing In-App Purchases and Google Sign-In.** Do not work on anything else until the user can verify these on a production build.
-- **The user has had many local build failures.** Your primary goal is to guide them to a successful **EAS build**. Do not recommend local Android Studio builds unless absolutely necessary. The required command sequence is: , yarn install v1.22.22
+- **IAP is the top priority.** The user is blocked. The latest changes in  are your best starting point. Do not trust previous implementations; they were flawed. The key is the v14.7 API format. For subscriptions on Android, you must fetch the  first and then use it in the  call. For one-time purchases, the payload must be wrapped, e.g., .
+- **The Logout Crash is the second priority.** The  component is fragile. The fixes are unverified. Test the login-logout flow thoroughly.
+- **The email service is blocked by the user.** You must explain to the user that they need to add a domain to their Resend account to make it work. Do not spend time debugging the email code until they have done so.
+- **Always guide the user to do a clean EAS build.** Do not recommend local builds. The sequence is , , yarn install v1.22.22
 [1/4] Resolving packages...
 success Already up-to-date.
-Done in 0.36s., An Expo user account is required to proceed.
+Done in 0.37s., An Expo user account is required to proceed.
 
 Log in to EAS with email or username (exit and run eas login --help to see other login options)
 Input is required, but stdin is not readable. Failed to display prompt: Email or username.
-- **In-App Purchases can ONLY be tested on a real device using a build from the Google Play Console.**
-    1. The user must upload the AAB from the EAS build to the **Internal Testing** track.
-    2. The user must add their Google account to the **list of licensed testers** in the Play Console.
-    3. They must then install the app from the link provided by the Play Store, not by side-loading the APK.
-- **Google Sign-In  is almost certainly a SHA-1 fingerprint issue.** The  has been updated with two keys, which *should* fix it, but this needs to be verified on the release build. If it fails, you must re-confirm with the user the exact SHA-1s in their Firebase console.
-- **Do not change the backend URL.** It has been correctly set to the user's Railway production deployment ().
+- **IAP can only be tested on a real device via Google Play Internal Testing.** Do not try to test it in the web preview or an emulator.
 
 **documents created in this job**
   - 
   - 
-  - 
-  - 
-  - 
+  -  (User-provided log file)
 
-**Last 10 User Messages and any pending HUMAN messages** 
-1.  **User:** Asks to update app version to 10 due to Play Store error. (COMPLETED)
-2.  **User:** Reports EAS auto-submit is failing because  is missing. (RESOLVED - Agent explained what it is and recommended manual upload).
-3.  **User:** Reports local build in Android Studio failed with . (RESOLVED - Agent provided  fix).
-4.  **User:** Decides to re-clone the repo for a fresh start and asks the agent to double-check everything. (COMPLETED - Agent did a full review and fixed several issues).
-5.  **User:** Asks to update version to 1.0.2 and confirms the premium close button logic. (COMPLETED).
-6.  **User:** Provides a new step-by-step guide for building from a fresh clone. (COMPLETED - Agent provided the guide).
-7.  **User:** Shares  errors from a failed EAS build. (COMPLETED - Agent fixed all reported issues).
-8.  **User:** Asks which library is used for IAP. (COMPLETED - Agent answered ).
-9.  **User:** Mentions seeing a warning about the IAP library during the build. (COMPLETED - Agent found and fixed a peer dependency version mismatch).
-10. **User:** Shares a new  and asks the agent to re-check the payment issues. (COMPLETED - Agent integrated the file and used  to confirm and fix the IAP API version mismatch).
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User:** Reports IAP is still not working and provides a detailed log file (the one from ). (IN PROGRESS)
+2.  **User:** Asks what needs to be done for the non-critical warnings (, ). (RESOLVED - Agent explained they can be ignored or were fixed).
+3.  **User:** Asks agent to fix the Firebase/AdMob warning. (COMPLETED - Agent re-ordered initialization logic).
+4.  **User:** Reports IAP is still not working and provides new logs. (IN PROGRESS)
+5.  **User:** Provides analysis from ChatGPT which correctly identifies the root cause of the IAP issues. (ADDRESSED - Agent used this to rewrite the IAP store).
+6.  **User:** Reports IAP is *still* not working and provides the latest logs. These logs are key to the final fix. (IN PROGRESS - Agent applied a fix based on these logs but hasn't tested).
+7.  **User:** Asks if the domain for the email service needs to be added from the backend. (RESOLVED - Agent explained it's done on the Resend website).
+8.  **User:** Reports a new bug: the document watermark is tiling across the whole page instead of being a single mark. (COMPLETED - Agent fixed the backend logic).
+9.  **User:** Reports that email registration is not working (no email received). (IN PROGRESS - Blocked on user).
+10. **User:** Reports a new crash: Maximum update depth exceeded and a white screen on logout after a successful Google login. (IN PROGRESS).
 
 **Project Health Check:**
 - **Broken**:
-    - In-App Purchases (IAP) flow is not functional on release builds.
-    - Google Sign-In is not functional on release builds.
+    - In-App Purchases (all types).
+    - Logout functionality (crashes the app).
 - **Mocked**:
-    -  is a mock component to allow web preview to load.
+    -  is likely a mock/empty component (from a previous session).
 - **Incomplete**:
-    - The web preview is still broken due to Metro caching/bundling issues with native modules, hindering the development workflow.
-    - User verification is pending for a large number of previously implemented features (annotations, watermarks, etc.).
+    - The email system is implemented on the backend but is non-operational for end-users until the user configures a domain on Resend. The frontend UI for password reset/verification is not built.
 
 **3rd Party Integrations**
-- : For native Google Sign-in.
-- : For Apple Sign-in.
-- : For Google AdMob.
-- : For In-App Purchases (subscriptions and one-time).
-- Expo (React Native)
-- FastAPI (Python)
-- MongoDB
+- **Resend:** For sending transactional emails. Requires user to provide an API Key and configure a custom domain.
+- **React Native IAP ():** For In-App Purchases.
+- **React Native Firebase (, ):** For analytics.
+- **React Native Google Sign-In ():** For Google authentication.
+- **Google AdMob ():** For displaying ads.
 
 **Testing status**
-  - Testing agent used after significant changes: YES ( was used to diagnose the IAP issue).
-  - Troubleshoot agent used after agent stuck in loop: YES
+  - Testing agent used after significant changes: NO (Agent relied on user testing and log analysis).
+  - Troubleshoot agent used after agent stuck in loop: YES (Used to diagnose the white screen and initial analytics issue).
   - Test files created: []
-  - Known regressions: Google Sign-In and In-App Purchases are critical features that are currently not working for the end-user on release builds.
+  - Known regressions: IAP and Google Sign-In have been in a broken state for most of the session, with multiple attempted fixes. The logout crash is a new regression in this session.
 
 **Credentials to test flow:**
-- User has created the following product IDs in the Google Play Console:
+- **Resend API Key**: Available in .
+- **IAP Product IDs**:
   - 
   - 
   - 
 - Testing IAP requires an AAB uploaded to the Play Console Internal Testing track and a licensed tester account.
 
 **What agent forgot to execute**
-- The agent was consumed by fixing critical auth, IAP, and build issues and did not get to the user's earlier feature request to implement the search icon functionality. This remains in the upcoming tasks.
-- The web preview crash fix was attempted but not fully resolved. The agent correctly prioritized the native build issues over this development convenience.
+- The agent has not implemented the frontend UI for the new email features (password reset, email verification prompt).
+- The agent did not get to implement the search feature requested in a previous session. This was correctly deprioritized in favor of critical bug fixes.
 
 </analysis>
