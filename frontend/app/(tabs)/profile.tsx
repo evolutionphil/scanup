@@ -150,14 +150,23 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // First continue as guest to prevent white screen
+              const { continueAsGuest } = useAuthStore.getState();
+              
+              // Clear current session
               await logout();
-              // Use longer timeout to ensure state is fully cleared before navigation
-              setTimeout(() => {
-                router.replace('/');
-              }, 300);
+              
+              // Immediately set as guest user to prevent blank state
+              continueAsGuest();
+              
+              // Navigate to home (tabs)
+              router.replace('/(tabs)');
             } catch (e) {
               console.error('Logout error:', e);
-              router.replace('/');
+              // Fallback: still try to navigate
+              const { continueAsGuest } = useAuthStore.getState();
+              continueAsGuest();
+              router.replace('/(tabs)');
             }
           },
         },
