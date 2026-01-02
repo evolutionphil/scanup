@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useI18n } from '../../src/store/i18nStore';
+import { usePurchaseStore } from '../../src/store/purchaseStore';
 import Button from '../../src/components/Button';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
