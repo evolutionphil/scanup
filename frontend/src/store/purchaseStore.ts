@@ -80,6 +80,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   initialize: async () => {
     if (get().isInitialized) return;
+    if (Platform.OS === 'web') {
+      set({ isInitialized: true });
+      return;
+    }
     
     console.log('[PurchaseStore] Initializing...');
     set({ isLoading: true });
@@ -98,29 +102,26 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         activeSubscription,
       });
       
-      // Initialize IAP (only on native)
-      if (Platform.OS !== 'web' && initConnection) {
-        try {
-          // Connect to store
-          await initConnection();
-          console.log('[PurchaseStore] IAP connected');
-          
-          // Clear pending purchases on Android
-          if (Platform.OS === 'android' && flushFailedPurchasesCachedAsPendingAndroid) {
-            try {
-              await flushFailedPurchasesCachedAsPendingAndroid();
-            } catch (e) {
-              // Ignore
-            }
+      // Initialize IAP
+      try {
+        await initConnection();
+        console.log('[PurchaseStore] IAP connected');
+        
+        // Clear pending purchases on Android
+        if (Platform.OS === 'android') {
+          try {
+            await flushFailedPurchasesCachedAsPendingAndroid();
+          } catch (e) {
+            // Ignore
           }
-          
-          // Fetch products
-          await get().fetchProducts();
-          
-        } catch (iapError: any) {
-          console.error('[PurchaseStore] IAP init error:', iapError);
-          set({ error: iapError.message });
         }
+        
+        // Fetch products
+        await get().fetchProducts();
+        
+      } catch (iapError: any) {
+        console.error('[PurchaseStore] IAP init error:', iapError);
+        set({ error: iapError.message });
       }
       
       set({ isInitialized: true, isLoading: false });
