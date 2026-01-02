@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   continueButtonDisabled: {
     opacity: 0.7,
@@ -471,6 +471,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  continueFreeButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  continueFreeText: {
+    color: '#6B7280',
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
   errorText: {
     color: '#EF4444',
