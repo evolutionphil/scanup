@@ -100,7 +100,7 @@ export default function LoginScreen() {
       console.log('Attempting login...');
       await login(email, password);
       console.log('Login successful, navigating...');
-      router.replace('/(tabs)');
+      navigateAfterLogin();
     } catch (error: any) {
       console.error('Login error:', error);
       Alert.alert(t('login_failed', 'Login Failed'), error.message || t('check_credentials', 'Please check your credentials'));
