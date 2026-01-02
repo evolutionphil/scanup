@@ -302,6 +302,33 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
 
+          {/* Remove Ads Button - Only show if not premium and hasn't removed ads */}
+          {!isPremium && !hasRemovedAds && (
+            <TouchableOpacity 
+              style={[styles.settingRow, styles.removeAdsRow]} 
+              onPress={() => router.push('/remove-ads')}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="ban-outline" size={22} color="#22C55E" />
+                <Text style={[styles.settingLabel, { color: '#22C55E', fontWeight: '600' }]}>{t('remove_ads', 'Remove Ads')}</Text>
+              </View>
+              <View style={styles.removeAdsBadge}>
+                <Text style={styles.removeAdsBadgeText}>{t('one_time', 'One-time')}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Show Ad-Free badge if already removed */}
+          {(isPremium || hasRemovedAds) && (
+            <View style={[styles.settingRow, styles.adFreeRow]}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="checkmark-circle" size={22} color="#22C55E" />
+                <Text style={[styles.settingLabel, { color: '#22C55E' }]}>{t('ad_free', 'Ad-Free')}</Text>
+              </View>
+              <Ionicons name="checkmark" size={20} color="#22C55E" />
+            </View>
+          )}
+
           <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/legal?type=support')}>
             <View style={styles.settingLeft}>
               <Ionicons name="help-circle-outline" size={22} color={theme.textSecondary} />
