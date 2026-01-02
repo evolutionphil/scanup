@@ -289,27 +289,38 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       let purchase;
       
       if (Platform.OS === 'android') {
-        // First, fetch fresh subscription data to get the offerToken
-        console.log('[PurchaseStore] Fetching fresh subscription data...');
+        // CRITICAL: Fetch fresh subscription data to get the offerToken
+        console.log('[PurchaseStore] === ANDROID SUBSCRIPTION PURCHASE ===');
+        console.log('[PurchaseStore] Step 1: Fetching fresh subscription data for:', productId);
+        
         const freshSubs = await iap.getSubscriptions({ skus: [productId] });
-        console.log('[PurchaseStore] Fresh subs:', JSON.stringify(freshSubs, null, 2));
+        console.log('[PurchaseStore] Step 2: Got fresh subs count:', freshSubs?.length);
         
         if (!freshSubs || freshSubs.length === 0) {
           throw new Error('Subscription not found in store');
         }
         
         const sub = freshSubs[0];
+        console.log('[PurchaseStore] Step 3: Sub keys:', Object.keys(sub));
         
-        // Get offerToken from subscriptionOfferDetailsAndroid
-        const offerDetails = sub.subscriptionOfferDetailsAndroid || sub.subscriptionOfferDetails;
-        const offerToken = offerDetails?.[0]?.offerToken;
+        // Try multiple property names for offer details
+        const offerDetails = sub.subscriptionOfferDetailsAndroid 
+          || sub.subscriptionOfferDetails 
+          || sub.offerDetails;
         
-        if (!offerToken) {
-          console.log('[PurchaseStore] No offerToken found, sub details:', JSON.stringify(sub, null, 2));
-          throw new Error('No offer token available - check Play Console subscription configuration');
+        console.log('[PurchaseStore] Step 4: offerDetails found:', !!offerDetails, 'length:', offerDetails?.length);
+        
+        if (offerDetails && offerDetails.length > 0) {
+          console.log('[PurchaseStore] Step 5: First offer keys:', Object.keys(offerDetails[0]));
         }
         
-        console.log('[PurchaseStore] Using offerToken:', offerToken);
+        const offerToken = offerDetails?.[0]?.offerToken;
+        console.log('[PurchaseStore] Step 6: offerToken found:', !!offerToken, 'value:', offerToken?.substring(0, 30) + '...');
+        
+        if (!offerToken) {
+          console.log('[PurchaseStore] ERROR: No offerToken! Full sub object:', JSON.stringify(sub, null, 2));
+          throw new Error('No offer token available - check Play Console subscription configuration');
+        }
         
         // For react-native-iap v14+, Android subscriptions need this format
         const purchaseParams = {
@@ -322,8 +333,9 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           },
         };
         
-        console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
+        console.log('[PurchaseStore] Step 7: Calling requestPurchase with:', JSON.stringify(purchaseParams));
         purchase = await iap.requestPurchase(purchaseParams);
+        console.log('[PurchaseStore] Step 8: Purchase result received');
       } else {
         // iOS: Simple request
         purchase = await iap.requestPurchase({
