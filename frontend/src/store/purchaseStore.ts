@@ -457,6 +457,20 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       });
       
       console.log('[PurchaseStore] Restore complete:', { foundPremium, foundRemoveAds });
+      
+      // Sync with backend if restored purchases exist
+      if (foundPremium || foundRemoveAds) {
+        try {
+          const { useAuthStore } = require('./authStore');
+          const { token, user } = useAuthStore.getState();
+          if (token && user?.user_id) {
+            console.log('[PurchaseStore] Syncing restored purchases with backend...');
+            await get().syncWithBackend(token, user.user_id);
+          }
+        } catch (syncError) {
+          console.log('[PurchaseStore] Sync after restore error:', syncError);
+        }
+      }
     } catch (error: any) {
       console.error('[PurchaseStore] Restore error:', error);
       set({ isLoading: false, error: error.message });
