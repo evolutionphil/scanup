@@ -199,7 +199,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   // Purchase ONE-TIME product (like Remove Ads)
   purchaseProduct: async (productId: string) => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' || !RNIap) {
       set({ error: 'Not available on web' });
       return false;
     }
@@ -208,8 +208,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const RNIap = require('react-native-iap');
-      
       // For react-native-iap v14+, we need to use the correct format
       // Android requires nested 'android' key
       let purchaseParams: any;
