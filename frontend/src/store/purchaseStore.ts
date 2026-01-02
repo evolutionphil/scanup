@@ -124,14 +124,12 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   fetchProducts: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || !RNIap) return;
     
     console.log('[PurchaseStore] Fetching products...');
     set({ isLoading: true, error: null });
     
     try {
-      const RNIap = require('react-native-iap');
-      
       // Fetch subscriptions
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
