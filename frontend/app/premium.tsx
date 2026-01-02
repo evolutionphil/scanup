@@ -100,14 +100,8 @@ export default function PremiumScreen() {
   const handlePurchase = async () => {
     // Check if user is logged in (not guest)
     if (isGuest || !isAuthenticated) {
-      Alert.alert(
-        t('login_required', 'Login Required'),
-        t('please_login_to_purchase', 'Please login to purchase premium features.'),
-        [
-          { text: t('cancel', 'Cancel'), style: 'cancel' },
-          { text: t('login', 'Login'), onPress: () => router.push('/(auth)/login') }
-        ]
-      );
+      // Redirect to login with return path to premium screen
+      router.push('/(auth)/login?returnTo=/premium');
       return;
     }
     
@@ -136,6 +130,14 @@ export default function PremiumScreen() {
     } else if (error) {
       logPurchaseEvent('failed', productId, undefined, undefined, error);
     }
+  };
+
+  const handleContinueFree = () => {
+    // Continue as guest/free user
+    if (!isAuthenticated && !isGuest) {
+      continueAsGuest();
+    }
+    router.replace('/(tabs)');
   };
 
   const handleRestore = async () => {
