@@ -292,61 +292,43 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      let purchase;
+      // v14 API: First fetch subscription to get offerToken for Android
+      console.log('[PurchaseStore] === SUBSCRIPTION PURCHASE ===');
+      console.log('[PurchaseStore] Step 1: Fetching subscription details for:', productId);
       
-      if (Platform.OS === 'android') {
-        // Android: Use simple requestPurchase with skus array
-        console.log('[PurchaseStore] === ANDROID SUBSCRIPTION PURCHASE ===');
-        
-        // First get subscription details to get offerToken
-        console.log('[PurchaseStore] Step 1: Getting subscription details for:', productId);
-        const subs = await RNIap.getSubscriptions({ skus: [productId] });
-        console.log('[PurchaseStore] Step 2: Got subs:', subs?.length);
-        
-        if (!subs || subs.length === 0) {
-          throw new Error('Subscription not found in store');
-        }
-        
-        const sub = subs[0];
-        console.log('[PurchaseStore] Step 3: Sub object keys:', Object.keys(sub));
-        
-        // Get offer token from subscription details
-        const offerDetails = sub.subscriptionOfferDetailsAndroid 
-          || sub.subscriptionOfferDetails;
-        
-        if (offerDetails && offerDetails.length > 0) {
-          const offerToken = offerDetails[0].offerToken;
-          console.log('[PurchaseStore] Step 4: offerToken found:', !!offerToken);
-          
-          if (offerToken) {
-            // Use subscriptionOffers format for Android
-            const purchaseParams = {
-              subscriptionOffers: [{
-                sku: productId,
-                offerToken: offerToken,
-              }],
-            };
-            console.log('[PurchaseStore] Step 5: Calling requestPurchase with subscriptionOffers');
-            purchase = await RNIap.requestPurchase(purchaseParams);
-          } else {
-            // Fallback: simple skus array
-            console.log('[PurchaseStore] Step 5: No offerToken, using simple skus');
-            purchase = await RNIap.requestPurchase({ skus: [productId] });
-          }
-        } else {
-          // Fallback: simple skus array
-          console.log('[PurchaseStore] Step 4: No offerDetails, using simple skus');
-          purchase = await RNIap.requestPurchase({ skus: [productId] });
-        }
-        
-        console.log('[PurchaseStore] Step 6: Purchase result received');
-      } else {
-        // iOS: Simple request
-        purchase = await RNIap.requestPurchase({
+      // Fetch subscription to get offer details
+      await RNIap.getSubscriptions({ skus: [productId] });
+      
+      // Get from store state
+      const { subscriptions } = get();
+      const subscription = subscriptions.find(s => s.productId === productId);
+      
+      console.log('[PurchaseStore] Step 2: Subscription found:', !!subscription);
+      
+      // Build purchase request - v14 API format
+      let purchaseParams: any = {
+        request: {
+          apple: { sku: productId },
+          google: { skus: [productId] },
+        },
+        type: 'subs' as const,
+      };
+      
+      // For Android subscriptions, add subscriptionOffers if available
+      if (Platform.OS === 'android' && subscription?.offerToken) {
+        console.log('[PurchaseStore] Step 3: Adding offerToken for Android');
+        purchaseParams.request.google.subscriptionOffers = [{
           sku: productId,
-        });
+          offerToken: subscription.offerToken,
+        }];
       }
       
+      console.log('[PurchaseStore] Step 4: Calling requestPurchase');
+      console.log('[PurchaseStore] Params:', JSON.stringify(purchaseParams));
+      
+      const purchase = await RNIap.requestPurchase(purchaseParams);
+      
+      console.log('[PurchaseStore] Step 5: Purchase result received');
       console.log('[PurchaseStore] Subscription result:', JSON.stringify(purchase, null, 2));
       
       if (purchase) {
