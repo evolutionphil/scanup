@@ -85,6 +85,19 @@ export default function RemoveAdsScreen() {
   const removeAdsPrice = getPrice();
 
   const handlePurchase = async () => {
+    // Check if user is logged in (not guest)
+    if (isGuest || !isAuthenticated) {
+      Alert.alert(
+        t('login_required', 'Login Required'),
+        t('please_login_to_purchase', 'Please login to remove ads.'),
+        [
+          { text: t('cancel', 'Cancel'), style: 'cancel' },
+          { text: t('login', 'Login'), onPress: () => router.push('/(auth)/login') }
+        ]
+      );
+      return;
+    }
+    
     setError(null);
     
     const productId = PRODUCT_IDS.REMOVE_ADS;
