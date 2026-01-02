@@ -300,57 +300,54 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      
       let purchase;
       
       if (Platform.OS === 'android') {
-        // CRITICAL: Fetch fresh subscription data to get the offerToken
+        // Android: Use simple requestPurchase with skus array
         console.log('[PurchaseStore] === ANDROID SUBSCRIPTION PURCHASE ===');
-        console.log('[PurchaseStore] Step 1: Fetching fresh subscription data for:', productId);
         
-        const freshSubs = await RNIap.getSubscriptions({ skus: [productId] });
-        console.log('[PurchaseStore] Step 2: Got fresh subs count:', freshSubs?.length);
+        // First get subscription details to get offerToken
+        console.log('[PurchaseStore] Step 1: Getting subscription details for:', productId);
+        const subs = await RNIap.getSubscriptions({ skus: [productId] });
+        console.log('[PurchaseStore] Step 2: Got subs:', subs?.length);
         
-        if (!freshSubs || freshSubs.length === 0) {
+        if (!subs || subs.length === 0) {
           throw new Error('Subscription not found in store');
         }
         
-        const sub = freshSubs[0];
-        console.log('[PurchaseStore] Step 3: Sub keys:', Object.keys(sub));
+        const sub = subs[0];
+        console.log('[PurchaseStore] Step 3: Sub object keys:', Object.keys(sub));
         
-        // Try multiple property names for offer details
+        // Get offer token from subscription details
         const offerDetails = sub.subscriptionOfferDetailsAndroid 
-          || sub.subscriptionOfferDetails 
-          || sub.offerDetails;
-        
-        console.log('[PurchaseStore] Step 4: offerDetails found:', !!offerDetails, 'length:', offerDetails?.length);
+          || sub.subscriptionOfferDetails;
         
         if (offerDetails && offerDetails.length > 0) {
-          console.log('[PurchaseStore] Step 5: First offer keys:', Object.keys(offerDetails[0]));
+          const offerToken = offerDetails[0].offerToken;
+          console.log('[PurchaseStore] Step 4: offerToken found:', !!offerToken);
+          
+          if (offerToken) {
+            // Use subscriptionOffers format for Android
+            const purchaseParams = {
+              subscriptionOffers: [{
+                sku: productId,
+                offerToken: offerToken,
+              }],
+            };
+            console.log('[PurchaseStore] Step 5: Calling requestPurchase with subscriptionOffers');
+            purchase = await RNIap.requestPurchase(purchaseParams);
+          } else {
+            // Fallback: simple skus array
+            console.log('[PurchaseStore] Step 5: No offerToken, using simple skus');
+            purchase = await RNIap.requestPurchase({ skus: [productId] });
+          }
+        } else {
+          // Fallback: simple skus array
+          console.log('[PurchaseStore] Step 4: No offerDetails, using simple skus');
+          purchase = await RNIap.requestPurchase({ skus: [productId] });
         }
         
-        const offerToken = offerDetails?.[0]?.offerToken;
-        console.log('[PurchaseStore] Step 6: offerToken found:', !!offerToken, 'value:', offerToken?.substring(0, 30) + '...');
-        
-        if (!offerToken) {
-          console.log('[PurchaseStore] ERROR: No offerToken! Full sub object:', JSON.stringify(sub, null, 2));
-          throw new Error('No offer token available - check Play Console subscription configuration');
-        }
-        
-        // For react-native-iap v14+, Android subscriptions need this format
-        const purchaseParams = {
-          android: {
-            skus: [productId],
-            subscriptionOffers: [{
-              sku: productId,
-              offerToken: offerToken,
-            }],
-          },
-        };
-        
-        console.log('[PurchaseStore] Step 7: Calling requestPurchase with:', JSON.stringify(purchaseParams));
-        purchase = await RNIap.requestPurchase(purchaseParams);
-        console.log('[PurchaseStore] Step 8: Purchase result received');
+        console.log('[PurchaseStore] Step 6: Purchase result received');
       } else {
         // iOS: Simple request
         purchase = await RNIap.requestPurchase({
