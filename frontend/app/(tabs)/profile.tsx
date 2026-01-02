@@ -162,15 +162,9 @@ export default function ProfileScreen() {
       }
     };
 
-    // On web, use window.confirm; on native, use Alert
+    // On web, directly logout (iframe doesn't allow confirm dialogs)
     if (Platform.OS === 'web') {
-      const message = isGuest 
-        ? t('exit_guest_confirm', 'Are you sure you want to exit?')
-        : t('logout_confirm', 'Are you sure you want to logout?');
-      
-      if (window.confirm(message)) {
-        confirmLogout();
-      }
+      confirmLogout();
     } else {
       Alert.alert(
         isGuest ? t('exit_guest_mode', 'Exit Guest Mode') : t('logout', 'Logout'),
