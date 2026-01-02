@@ -402,19 +402,15 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       try {
         const { useAuthStore } = require('./authStore');
         const { token, user } = useAuthStore.getState();
-          if (token && user?.user_id) {
-            console.log('[PurchaseStore] Syncing premium status with backend...');
-            await get().syncWithBackend(token, user.user_id);
-          }
-        } catch (syncError) {
-          console.log('[PurchaseStore] Sync after purchase error:', syncError);
+        if (token && user?.user_id) {
+          console.log('[PurchaseStore] Syncing premium status with backend...');
+          await get().syncWithBackend(token, user.user_id);
         }
-        
-        return true;
+      } catch (syncError) {
+        console.log('[PurchaseStore] Sync after purchase error:', syncError);
       }
       
-      set({ isLoading: false });
-      return false;
+      return true;
     } catch (error: any) {
       console.error('[PurchaseStore] Subscription error:', error);
       
