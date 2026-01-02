@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
   base: '/admin/',
+  build: {
+    // Output directly to backend/admin-static for Railway deployment
+    outDir: path.resolve(__dirname, '../backend/admin-static'),
+    emptyOutDir: true,
+  },
   server: {
     port: 3001,
     proxy: {
