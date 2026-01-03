@@ -211,54 +211,61 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     }
   },
 
-  // Purchase ONE-TIME product (like Remove Ads)
+  // Purchase ONE-TIME product (like Remove Ads) - v14 API
   purchaseProduct: async (productId: string) => {
     if (Platform.OS === 'web') {
       set({ error: 'Not available on web' });
       return false;
     }
     
-    console.log('[PurchaseStore] Purchasing product:', productId);
+    console.log('[PurchaseStore] Purchasing product with v14 API:', productId);
     set({ isLoading: true, error: null });
     
     try {
-      // v14 API: use skus array
-      console.log('[PurchaseStore] requestPurchase with skus:', [productId]);
-      const purchase = await requestPurchase({ skus: [productId] });
+      // v14 API: use request object with platform-specific properties
+      const purchaseParams = {
+        request: {
+          apple: { sku: productId },
+          google: { skus: [productId] },
+        },
+        type: 'in-app' as const,
+      };
       
-      console.log('[PurchaseStore] Purchase result:', JSON.stringify(purchase, null, 2));
+      console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
       
-      // Get purchase data
-      const p = Array.isArray(purchase) ? purchase[0] : purchase;
+      // Note: v14 is event-based, requestPurchase doesn't return purchase directly
+      // Instead, listen for events via purchaseUpdatedListener
+      await requestPurchase(purchaseParams);
       
-      // Validate purchase
-      if (!p || !p.purchaseToken) {
-        console.log('[PurchaseStore] Purchase cancelled or invalid');
+      console.log('[PurchaseStore] Purchase request sent successfully');
+      
+      // For now, we'll wait a bit and check available purchases
+      // In production, you should use purchaseUpdatedListener
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check if purchase was successful
+      const purchases = await getAvailablePurchases();
+      console.log('[PurchaseStore] Available purchases after request:', JSON.stringify(purchases, null, 2));
+      
+      const purchasedProduct = purchases.find((p: any) => 
+        p.productId === productId || p.id === productId
+      );
+      
+      if (!purchasedProduct) {
+        console.log('[PurchaseStore] Purchase not found in available purchases - may have been cancelled');
         set({ isLoading: false });
         return false;
       }
       
-      // Acknowledge purchase on Android
-      if (Platform.OS === 'android') {
-        try {
-          await acknowledgePurchaseAndroid({ token: p.purchaseToken });
-          console.log('[PurchaseStore] Purchase acknowledged');
-        } catch (ackError) {
-          console.log('[PurchaseStore] Acknowledge error:', ackError);
-        }
+      // Finish transaction
+      try {
+        await finishTransaction({ purchase: purchasedProduct, isConsumable: false });
+        console.log('[PurchaseStore] Transaction finished');
+      } catch (finishError) {
+        console.log('[PurchaseStore] Finish error (may be already finished):', finishError);
       }
       
-      // Finish transaction on iOS
-      if (Platform.OS === 'ios') {
-        try {
-          await finishTransaction({ purchase: p, isConsumable: false });
-          console.log('[PurchaseStore] Transaction finished');
-        } catch (finishError) {
-          console.log('[PurchaseStore] Finish error:', finishError);
-        }
-      }
-      
-      // Update state ONLY after valid purchase
+      // Update state
       if (productId === PRODUCT_IDS.REMOVE_ADS) {
         await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
         set({ hasRemovedAds: true });
@@ -282,7 +289,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       console.error('[PurchaseStore] Purchase error:', error);
       
       // User cancelled - don't show error
-      if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled')) {
+      if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled') || error.message?.includes('Cancelled')) {
         set({ isLoading: false });
         return false;
       }
