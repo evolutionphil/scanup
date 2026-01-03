@@ -134,23 +134,24 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   fetchProducts: async () => {
     if (Platform.OS === 'web') return;
     
-    console.log('[PurchaseStore] Fetching products...');
+    console.log('[PurchaseStore] Fetching products with v14 API...');
     set({ isLoading: true, error: null });
     
     try {
+      // v14 API: Use fetchProducts with type parameter
       // Fetch subscriptions
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
-        const subs = await getSubscriptions({ skus: SUBSCRIPTION_SKUS });
+        const subs = await fetchProducts({ skus: SUBSCRIPTION_SKUS, type: 'subs' });
         console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
         
         const formattedSubs: Product[] = (subs || []).map((sub: any) => {
           let offerToken = undefined;
           let price = sub.localizedPrice || '€4.99';
           
-          // Android: Get offer token from subscriptionOfferDetails
-          if (Platform.OS === 'android') {
-            const offerDetails = sub.subscriptionOfferDetails || sub.subscriptionOfferDetailsAndroid;
+          // Android: Get offer token from subscriptionOfferDetailsAndroid
+          if (Platform.OS === 'android' && sub.subscriptionOfferDetailsAndroid) {
+            const offerDetails = sub.subscriptionOfferDetailsAndroid;
             if (offerDetails && offerDetails.length > 0) {
               offerToken = offerDetails[0].offerToken;
               const phases = offerDetails[0].pricingPhases?.pricingPhaseList;
@@ -160,9 +161,14 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             }
           }
           
+          // iOS: Use localizedPrice directly
+          if (Platform.OS === 'ios') {
+            price = sub.localizedPrice || price;
+          }
+          
           return {
-            productId: sub.productId,
-            title: sub.title || sub.productId,
+            productId: sub.id || sub.productId,
+            title: sub.title || sub.id || sub.productId,
             description: sub.description || '',
             price: sub.price || '0',
             localizedPrice: price,
@@ -180,15 +186,15 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch one-time products
       try {
         console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
-        const prods = await getProducts({ skus: PRODUCT_SKUS });
+        const prods = await fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
         console.log('[PurchaseStore] Raw products:', JSON.stringify(prods, null, 2));
         
         const formattedProducts: Product[] = (prods || []).map((prod: any) => ({
-          productId: prod.productId,
-          title: prod.title || prod.productId,
+          productId: prod.id || prod.productId,
+          title: prod.title || prod.id || prod.productId,
           description: prod.description || '',
           price: prod.price || '0',
-          localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetails?.formattedPrice || '€4.99',
+          localizedPrice: prod.localizedPrice || prod.oneTimePurchaseOfferDetailsAndroid?.formattedPrice || '€4.99',
           currency: prod.currency || 'EUR',
         }));
         
