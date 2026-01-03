@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Firebase iOS Fix Plugin for v18.x
+ * Firebase iOS Fix Plugin for v23.x
  * 
- * Adds modular_headers for specific Firebase dependencies that need it.
- * This approach is more targeted than global use_modular_headers!
+ * Adds $RNFirebaseAsStaticFramework = true which is required
+ * when using use_frameworks! :linkage => :static
  */
 const withFirebaseFix = (config) => {
   return withDangerousMod(config, [
@@ -21,34 +21,19 @@ const withFirebaseFix = (config) => {
       let content = fs.readFileSync(podfilePath, 'utf8');
       
       // Check if already modified
-      if (content.includes('# RNFirebase Modular Headers Fix')) {
+      if (content.includes('$RNFirebaseAsStaticFramework')) {
         console.log('[Firebase Fix] Already applied');
         return config;
       }
 
-      // Add targeted modular headers for Firebase dependencies
-      // This goes before target block
-      const modularHeadersFix = `
-# RNFirebase Modular Headers Fix
-# Required for Firebase Swift pods with static frameworks
-pod 'GoogleUtilities', :modular_headers => true
-pod 'FirebaseCore', :modular_headers => true
-pod 'FirebaseCoreInternal', :modular_headers => true
-pod 'FirebaseInstallations', :modular_headers => true
-pod 'FirebaseCoreExtension', :modular_headers => true
-pod 'GoogleDataTransport', :modular_headers => true
-pod 'nanopb', :modular_headers => true
-
-`;
-
-      // Find the first target and insert before it
-      const targetMatch = content.match(/(target\s+['"][^'"]+['"]\s+do)/);
-      if (targetMatch) {
+      // Add $RNFirebaseAsStaticFramework = true after platform declaration
+      const platformRegex = /(platform\s+:ios[^\n]*\n)/;
+      if (platformRegex.test(content)) {
         content = content.replace(
-          targetMatch[0],
-          modularHeadersFix + targetMatch[0]
+          platformRegex,
+          `$1\n# React Native Firebase - Required for static frameworks\n$RNFirebaseAsStaticFramework = true\n`
         );
-        console.log('[Firebase Fix] Added modular headers for Firebase dependencies');
+        console.log('[Firebase Fix] Added $RNFirebaseAsStaticFramework = true');
       }
 
       fs.writeFileSync(podfilePath, content);
