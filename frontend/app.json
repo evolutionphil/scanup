@@ -57,6 +57,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withFirebaseFix.js",
       "expo-dev-client",
       "@react-native-firebase/app",
       [
