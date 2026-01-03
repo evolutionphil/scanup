@@ -222,6 +222,27 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      // Ensure IAP is initialized
+      if (!get().isInitialized) {
+        console.log('[PurchaseStore] IAP not initialized, initializing now...');
+        await get().initialize();
+      }
+      
+      // Check if product was fetched
+      const product = get().products.find(p => p.productId === productId);
+      if (!product) {
+        console.log('[PurchaseStore] Product not found in fetched products, fetching now...');
+        await get().fetchProducts();
+        
+        // Check again
+        const refetchedProduct = get().products.find(p => p.productId === productId);
+        if (!refetchedProduct) {
+          console.error('[PurchaseStore] Product still not found after fetch:', productId);
+          set({ isLoading: false, error: 'Product not available. Please check your App Store Connect configuration.' });
+          return false;
+        }
+      }
+      
       // v14 API: use request object with platform-specific properties
       const purchaseParams = {
         request: {
@@ -234,7 +255,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
       
       // Note: v14 is event-based, requestPurchase doesn't return purchase directly
-      // Instead, listen for events via purchaseUpdatedListener
       await requestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase request sent successfully');
