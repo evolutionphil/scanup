@@ -16,12 +16,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
-        "NSPhotoLibraryAddUsagesDescription": "ScanUp needs permission to save scanned documents to your photo library",
+        "NSPhotoLibraryAddUsageDescription": "ScanUp needs permission to save scanned documents to your photo library",
         "NSMicrophoneUsageDescription": "ScanUp may use the microphone for video capture",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "entitlements": {
-        "com.apple.developer.in-app-payments": []
       },
       "config": {
         "usesNonExemptEncryption": false
