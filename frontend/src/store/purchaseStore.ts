@@ -116,15 +116,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         await initConnection();
         console.log('[PurchaseStore] IAP connected');
         
-        // Clear pending purchases on Android
-        if (Platform.OS === 'android') {
-          try {
-            await flushFailedPurchasesCachedAsPendingAndroid();
-          } catch (e) {
-            // Ignore
-          }
-        }
-        
         // Fetch products
         await get().fetchProducts();
         
