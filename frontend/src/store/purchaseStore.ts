@@ -5,18 +5,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Static imports from react-native-iap v14 (ESM compatible)
 import {
   initConnection,
-  getSubscriptions,
-  getProducts,
+  fetchProducts,
   requestPurchase,
   getAvailablePurchases,
-  acknowledgePurchaseAndroid,
   finishTransaction,
-  flushFailedPurchasesCachedAsPendingAndroid,
 } from 'react-native-iap';
 
 // Log that IAP is loaded (only on native)
 if (Platform.OS !== 'web') {
-  console.log('[PurchaseStore] IAP module loaded with static imports');
+  console.log('[PurchaseStore] IAP module loaded with react-native-iap v14');
 }
 
 // Product IDs - Platform specific
