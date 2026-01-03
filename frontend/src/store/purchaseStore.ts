@@ -19,14 +19,26 @@ if (Platform.OS !== 'web') {
   console.log('[PurchaseStore] IAP module loaded with static imports');
 }
 
-// Product IDs - Must match Google Play Console / App Store Connect
+// Product IDs - Platform specific
 export const PRODUCT_IDS = {
-  PREMIUM_MONTHLY: 'scanup_premium_monthly',
-  PREMIUM_YEARLY: 'scanup_premium_yearly',
-  REMOVE_ADS: 'scanup_remove_ads',
+  PREMIUM_MONTHLY: Platform.OS === 'ios' 
+    ? 'com.visiongo.scanupp.premium.monthly' 
+    : 'scanup_premium_monthly',
+  
+  PREMIUM_YEARLY: Platform.OS === 'ios'
+    ? 'com.visiongo.scanupp.premium.yearly'
+    : 'scanup_premium_yearly',
+    
+  REMOVE_ADS: Platform.OS === 'ios'
+    ? 'com.visiongo.scanupp.removeads'
+    : 'scanup_remove_ads',
 };
 
-export const SUBSCRIPTION_SKUS = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY];
+export const SUBSCRIPTION_SKUS = [
+  PRODUCT_IDS.PREMIUM_MONTHLY,
+  PRODUCT_IDS.PREMIUM_YEARLY,
+];
+
 export const PRODUCT_SKUS = [PRODUCT_IDS.REMOVE_ADS];
 export const ALL_SKUS = [...SUBSCRIPTION_SKUS, ...PRODUCT_SKUS];
 
