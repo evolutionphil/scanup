@@ -19,7 +19,7 @@ from PIL import Image
 import time
 
 # Configuration
-BACKEND_URL = "https://bugfixes-iap.preview.emergentagent.com/api"
+BACKEND_URL = "https://apppolisher.preview.emergentagent.com/api"
 TEST_EMAIL = "testuser@scanup.com"
 TEST_PASSWORD = "testpass123"
 TEST_NAME = "Test User"
