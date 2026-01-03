@@ -134,9 +134,22 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     isInitializing = true;
 
     try {
-      // Firebase temporarily disabled for iOS build compatibility
-      // TODO: Re-enable Firebase when compatibility issues are resolved
-      console.log('[AdManager] Firebase integration temporarily disabled');
+      // Initialize Firebase Analytics (optional, for ad tracking)
+      try {
+        const firebaseApp = require('@react-native-firebase/app').default;
+        if (!firebaseApp.apps.length) {
+          console.log('[AdManager] Firebase not initialized yet - will be initialized by app');
+        } else {
+          console.log('[AdManager] Firebase already initialized');
+        }
+        
+        // Enable analytics for ad tracking
+        const analytics = require('@react-native-firebase/analytics').default;
+        await analytics().setAnalyticsCollectionEnabled(true);
+        console.log('[AdManager] Firebase Analytics enabled for ads');
+      } catch (firebaseError) {
+        console.log('[AdManager] Firebase not available (non-critical):', firebaseError);
+      }
 
       // Now initialize AdMob
       const adsModule = getAdsModule();
