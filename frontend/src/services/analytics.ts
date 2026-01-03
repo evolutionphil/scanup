@@ -1,8 +1,19 @@
 import { Platform } from 'react-native';
 
-// Firebase Analytics using React Native Firebase
+// Firebase Analytics - temporarily disabled for iOS build
+// TODO: Re-enable Firebase when compatibility issues are resolved
 let analytics: any = null;
 let isInitialized = false;
+
+// Check if Firebase is available
+const isFirebaseAvailable = () => {
+  try {
+    require.resolve('@react-native-firebase/analytics');
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 // Initialize analytics (call this at app startup)
 export const initAnalytics = async () => {
@@ -13,6 +24,13 @@ export const initAnalytics = async () => {
   
   if (isInitialized) {
     console.log('[Analytics] Already initialized');
+    return;
+  }
+  
+  // Firebase temporarily disabled - skip initialization
+  if (!isFirebaseAvailable()) {
+    console.log('[Analytics] Firebase not available, analytics disabled');
+    isInitialized = true; // Mark as "initialized" to prevent repeated attempts
     return;
   }
   
@@ -31,6 +49,7 @@ export const initAnalytics = async () => {
     await analytics.logEvent('app_open');
   } catch (error) {
     console.error('[Analytics] Failed to initialize:', error);
+    isInitialized = true; // Mark as "initialized" to prevent repeated attempts
   }
 };
 
