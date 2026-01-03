@@ -36,7 +36,8 @@
         "buildType": "app-bundle"
       },
       "ios": {
-        "resourceClass": "m1-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
