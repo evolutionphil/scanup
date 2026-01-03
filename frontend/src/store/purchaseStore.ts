@@ -332,6 +332,28 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     try {
       console.log('[PurchaseStore] === SUBSCRIPTION PURCHASE v14 ===');
       
+      // Ensure IAP is initialized
+      if (!get().isInitialized) {
+        console.log('[PurchaseStore] IAP not initialized, initializing now...');
+        await get().initialize();
+      }
+      
+      // Check if subscription was fetched (for iOS validation)
+      if (Platform.OS === 'ios') {
+        const subscription = get().subscriptions.find(s => s.productId === productId);
+        if (!subscription) {
+          console.log('[PurchaseStore] Subscription not found, fetching now...');
+          await get().fetchProducts();
+          
+          const refetchedSub = get().subscriptions.find(s => s.productId === productId);
+          if (!refetchedSub) {
+            console.error('[PurchaseStore] Subscription still not found after fetch:', productId);
+            set({ isLoading: false, error: 'Subscription not available. Please check your App Store Connect configuration.' });
+            return false;
+          }
+        }
+      }
+      
       // For Android, we need the offerToken
       let subscriptionOffers: Array<{ sku: string; offerToken: string }> = [];
       
