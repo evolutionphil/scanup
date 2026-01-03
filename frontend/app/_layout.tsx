@@ -6,11 +6,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
 import { AdManager } from '../src/components/AdManager';
-import { initAnalytics } from '../src/services/analytics';
+import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
+import { useAuthStore } from '../src/store/authStore';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
+  const user = useAuthStore((state) => state.user);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -19,14 +21,28 @@ export default function RootLayout() {
       loadTheme();
       initializeI18n();
       
-      // Initialize Firebase Analytics on native platforms
+      // Initialize Firebase services on native platforms
       if (Platform.OS !== 'web') {
-        initAnalytics().catch(err => {
-          console.log('[RootLayout] Analytics init error:', err);
+        initializeFirebase().then(() => {
+          // Setup push notifications after Firebase is initialized
+          setupPushNotifications(user?.user_id).catch(err => {
+            console.log('[RootLayout] Push notification setup error:', err);
+          });
+        }).catch(err => {
+          console.log('[RootLayout] Firebase init error:', err);
         });
       }
     }
   }, []);
+
+  // Update user context when user changes
+  useEffect(() => {
+    if (Platform.OS !== 'web' && user && !user.is_guest) {
+      setUserContext(user.user_id, user.email, user.is_premium).catch(err => {
+        console.log('[RootLayout] Set user context error:', err);
+      });
+    }
+  }, [user?.user_id, user?.is_premium]);
 
   return (
     <SafeAreaProvider style={[styles.container, { backgroundColor: theme.background }]}>
