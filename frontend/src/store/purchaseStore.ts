@@ -299,45 +299,45 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     }
   },
 
-  // Purchase SUBSCRIPTION (uses requestPurchase with subscriptionOffers for Android v14)
+  // Purchase SUBSCRIPTION - v14 API with proper request structure
   purchaseSubscription: async (productId: string) => {
     if (Platform.OS === 'web') {
       set({ error: 'Not available on web' });
       return false;
     }
     
-    console.log('[PurchaseStore] Purchasing subscription:', productId);
+    console.log('[PurchaseStore] Purchasing subscription with v14 API:', productId);
     set({ isLoading: true, error: null });
     
     try {
-      console.log('[PurchaseStore] === SUBSCRIPTION PURCHASE ===');
+      console.log('[PurchaseStore] === SUBSCRIPTION PURCHASE v14 ===');
       
-      // For Android, we MUST get the offerToken
+      // For Android, we need the offerToken
+      let subscriptionOffers: Array<{ sku: string; offerToken: string }> = [];
+      
       if (Platform.OS === 'android') {
-        console.log('[PurchaseStore] Step 1: Getting subscription details');
-        
-        let offerToken: string | undefined;
+        console.log('[PurchaseStore] Android: Getting offerToken');
         
         // Try to get from cached subscriptions first
         const cachedSub = get().subscriptions.find(s => s.productId === productId);
         if (cachedSub?.offerToken) {
-          offerToken = cachedSub.offerToken;
-          console.log('[PurchaseStore] Step 2: Got offerToken from cache:', offerToken?.substring(0, 30) + '...');
+          subscriptionOffers = [{ sku: productId, offerToken: cachedSub.offerToken }];
+          console.log('[PurchaseStore] Got offerToken from cache');
         }
         
         // If no cached offerToken, fetch fresh
-        if (!offerToken) {
-          console.log('[PurchaseStore] Step 2: Fetching fresh subscription data');
+        if (subscriptionOffers.length === 0) {
+          console.log('[PurchaseStore] Fetching fresh subscription data');
           try {
-            const subs = await getSubscriptions({ skus: [productId] });
-            console.log('[PurchaseStore] Got', subs?.length, 'subscriptions');
+            const subs = await fetchProducts({ skus: [productId], type: 'subs' });
+            console.log('[PurchaseStore] Fetched subs:', JSON.stringify(subs, null, 2));
             
             if (subs && subs.length > 0) {
-              const sub = subs[0];
-              const offerDetails = sub.subscriptionOfferDetails;
+              const sub = subs[0] as any;
+              const offerDetails = sub.subscriptionOfferDetailsAndroid;
               if (offerDetails && offerDetails.length > 0) {
-                offerToken = offerDetails[0].offerToken;
-                console.log('[PurchaseStore] Got offerToken:', offerToken?.substring(0, 30) + '...');
+                subscriptionOffers = [{ sku: productId, offerToken: offerDetails[0].offerToken }];
+                console.log('[PurchaseStore] Got fresh offerToken');
               }
             }
           } catch (fetchError: any) {
@@ -345,109 +345,80 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           }
         }
         
-        if (!offerToken) {
-          console.error('[PurchaseStore] No offerToken found - cannot purchase subscription');
+        if (subscriptionOffers.length === 0) {
+          console.error('[PurchaseStore] No offerToken found for Android subscription');
           set({ isLoading: false, error: 'Could not load subscription details. Please try again.' });
           return false;
         }
-        
-        // KEY: Use requestPurchase with BOTH skus AND subscriptionOffers (v14 API)
-        console.log('[PurchaseStore] Step 3: Calling requestPurchase with subscriptionOffers');
-        const purchaseParams = {
-          skus: [productId],
-          subscriptionOffers: [{
-            sku: productId,
-            offerToken: offerToken,
-          }],
-        };
-        
-        console.log('[PurchaseStore] Purchase params:', JSON.stringify(purchaseParams));
-        
-        const purchase = await requestPurchase(purchaseParams);
-        
-        console.log('[PurchaseStore] Step 4: Purchase result:', JSON.stringify(purchase, null, 2));
-        
-        // Get purchase data (could be array or single object)
-        const p = Array.isArray(purchase) ? purchase[0] : purchase;
-        
-        // Validate purchase
-        if (!p || !p.purchaseToken) {
-          console.log('[PurchaseStore] Subscription cancelled or invalid');
-          set({ isLoading: false });
-          return false;
-        }
-        
-        // Acknowledge on Android
-        try {
-          await acknowledgePurchaseAndroid({ token: p.purchaseToken });
-          console.log('[PurchaseStore] Subscription acknowledged');
-        } catch (ackError) {
-          console.log('[PurchaseStore] Acknowledge error:', ackError);
-        }
-        
-        // Update state ONLY after valid purchase
-        await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
-        await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
-        set({ isPremium: true, activeSubscription: productId, isLoading: false });
-        
-        // Sync with backend and remove watermarks
-        try {
-          const { useAuthStore } = require('./authStore');
-          const { token, user } = useAuthStore.getState();
-          if (token && user?.user_id) {
-            console.log('[PurchaseStore] Syncing premium status with backend...');
-            await get().syncWithBackend(token, user.user_id);
-          }
-        } catch (syncError) {
-          console.log('[PurchaseStore] Sync after purchase error:', syncError);
-        }
-        
-        return true;
-        
-      } else {
-        // iOS - use requestPurchase with sku
-        console.log('[PurchaseStore] Step 1: iOS subscription purchase');
-        
-        const purchase = await requestPurchase({ sku: productId });
-        
-        console.log('[PurchaseStore] Step 2: Purchase result:', JSON.stringify(purchase, null, 2));
-        
-        const p = Array.isArray(purchase) ? purchase[0] : purchase;
-        
-        if (!p || !p.transactionId) {
-          set({ isLoading: false });
-          return false;
-        }
-        
-        // Finish transaction on iOS
-        try {
-          await finishTransaction({ purchase: p, isConsumable: false });
-        } catch (finishError) {
-          console.log('[PurchaseStore] Finish error:', finishError);
-        }
-        
-        await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
-        await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
-        set({ isPremium: true, activeSubscription: productId, isLoading: false });
-        
-        // Sync with backend
-        try {
-          const { useAuthStore } = require('./authStore');
-          const { token, user } = useAuthStore.getState();
-          if (token && user?.user_id) {
-            await get().syncWithBackend(token, user.user_id);
-          }
-        } catch (syncError) {
-          console.log('[PurchaseStore] Sync after purchase error:', syncError);
-        }
-        
-        return true;
       }
+      
+      // v14 API: Use request object with type: 'subs'
+      const purchaseParams = {
+        request: {
+          apple: { sku: productId },
+          google: { 
+            skus: [productId],
+            subscriptionOffers: subscriptionOffers.length > 0 ? subscriptionOffers : undefined,
+          },
+        },
+        type: 'subs' as const,
+      };
+      
+      console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
+      
+      // v14 is event-based - requestPurchase triggers the purchase flow
+      await requestPurchase(purchaseParams);
+      
+      console.log('[PurchaseStore] Purchase request sent successfully');
+      
+      // Wait for purchase to complete and check available purchases
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check if purchase was successful
+      const purchases = await getAvailablePurchases();
+      console.log('[PurchaseStore] Available purchases after request:', JSON.stringify(purchases, null, 2));
+      
+      const purchasedSub = purchases.find((p: any) => 
+        p.productId === productId || p.id === productId
+      );
+      
+      if (!purchasedSub) {
+        console.log('[PurchaseStore] Subscription not found - may have been cancelled');
+        set({ isLoading: false });
+        return false;
+      }
+      
+      // Finish transaction
+      try {
+        await finishTransaction({ purchase: purchasedSub, isConsumable: false });
+        console.log('[PurchaseStore] Subscription transaction finished');
+      } catch (finishError) {
+        console.log('[PurchaseStore] Finish error (may be already finished):', finishError);
+      }
+      
+      // Update state
+      await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
+      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION, productId);
+      set({ isPremium: true, activeSubscription: productId, isLoading: false });
+      
+      // Sync with backend and remove watermarks
+      try {
+        const { useAuthStore } = require('./authStore');
+        const { token, user } = useAuthStore.getState();
+        if (token && user?.user_id) {
+          console.log('[PurchaseStore] Syncing premium status with backend...');
+          await get().syncWithBackend(token, user.user_id);
+        }
+      } catch (syncError) {
+        console.log('[PurchaseStore] Sync after purchase error:', syncError);
+      }
+      
+      return true;
       
     } catch (error: any) {
       console.error('[PurchaseStore] Subscription error:', error);
       
-      if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled')) {
+      if (error.code === 'E_USER_CANCELLED' || error.message?.includes('cancelled') || error.message?.includes('Cancelled')) {
         set({ isLoading: false });
         return false;
       }
