@@ -12,13 +12,18 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.visiongo.scanupp",
-      "buildNumber": "2",
+      "buildNumber": "3",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
         "NSPhotoLibraryAddUsageDescription": "ScanUp needs permission to save scanned documents to your photo library",
         "NSMicrophoneUsageDescription": "ScanUp may use the microphone for video capture",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "entitlements": {
+        "aps-environment": "production"
       },
       "config": {
         "usesNonExemptEncryption": false
