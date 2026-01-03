@@ -353,12 +353,14 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       }
       
       // v14 API: Use request object with type: 'subs'
+      // Android REQUIRES subscriptionOffers, iOS does not need it
       const purchaseParams = {
         request: {
           apple: { sku: productId },
           google: { 
             skus: [productId],
-            subscriptionOffers: subscriptionOffers.length > 0 ? subscriptionOffers : undefined,
+            // Android MUST have subscriptionOffers - we already validated this above
+            subscriptionOffers: subscriptionOffers,
           },
         },
         type: 'subs' as const,
