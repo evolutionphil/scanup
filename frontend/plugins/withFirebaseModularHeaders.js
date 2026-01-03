@@ -3,7 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * This plugin adds use_modular_headers! to fix Firebase Swift pod issues
+ * Firebase iOS Fix Plugin for v18.x
+ * 
+ * Adds modular_headers for specific Firebase dependencies that need it.
+ * This approach is more targeted than global use_modular_headers!
  */
 const withFirebaseFix = (config) => {
   return withDangerousMod(config, [
@@ -17,28 +20,38 @@ const withFirebaseFix = (config) => {
       
       let content = fs.readFileSync(podfilePath, 'utf8');
       
-      // Skip if already modified
-      if (content.includes('use_modular_headers!') || content.includes('# Firebase Fix Applied')) {
+      // Check if already modified
+      if (content.includes('# RNFirebase Modular Headers Fix')) {
         console.log('[Firebase Fix] Already applied');
         return config;
       }
-      
-      // Add use_modular_headers! right after use_frameworks!
-      if (content.includes('use_frameworks!')) {
+
+      // Add targeted modular headers for Firebase dependencies
+      // This goes before target block
+      const modularHeadersFix = `
+# RNFirebase Modular Headers Fix
+# Required for Firebase Swift pods with static frameworks
+pod 'GoogleUtilities', :modular_headers => true
+pod 'FirebaseCore', :modular_headers => true
+pod 'FirebaseCoreInternal', :modular_headers => true
+pod 'FirebaseInstallations', :modular_headers => true
+pod 'FirebaseCoreExtension', :modular_headers => true
+pod 'GoogleDataTransport', :modular_headers => true
+pod 'nanopb', :modular_headers => true
+
+`;
+
+      // Find the first target and insert before it
+      const targetMatch = content.match(/(target\s+['"][^'"]+['"]\s+do)/);
+      if (targetMatch) {
         content = content.replace(
-          /(use_frameworks![^\n]*)/g,
-          `$1\n\n# Firebase Fix Applied\nuse_modular_headers!`
+          targetMatch[0],
+          modularHeadersFix + targetMatch[0]
         );
-      } else {
-        // Add at the beginning of the target block
-        content = content.replace(
-          /(target\s+['"][^'"]+['"]\s+do)/,
-          `# Firebase Fix Applied\nuse_modular_headers!\n\n$1`
-        );
+        console.log('[Firebase Fix] Added modular headers for Firebase dependencies');
       }
-      
+
       fs.writeFileSync(podfilePath, content);
-      console.log('[Firebase Fix] Added use_modular_headers!');
       
       return config;
     },
