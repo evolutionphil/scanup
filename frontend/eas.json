@@ -46,9 +46,12 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "YOUR_APPLE_ID@email.com",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+        "appleId": "info@visiongo.at",
+        "ascAppId": "6757320007",
+        "appleTeamId": "M6T85HP76P",
+        "ascApiKeyId": "DM6AAZ4JG8",
+        "ascApiKeyIssuerId": "c065b0bb-35e7-46c8-8ab4-71d078008ebb",
+        "ascApiKeyPath": "./AuthKey_DM6AAZ4JG8.p8"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
