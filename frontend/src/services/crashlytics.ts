@@ -1,167 +1,64 @@
 import { Platform } from 'react-native';
 
-// Firebase Crashlytics Service
-let crashlytics: any = null;
+// Firebase Crashlytics Service - TEMPORARILY DISABLED
+// Crashlytics causes iOS build issues with modular headers
+// TODO: Re-enable when Firebase fixes the Swift pod compatibility
+
 let isInitialized = false;
 
-// Check if Firebase Crashlytics is available
-const isCrashlyticsAvailable = () => {
-  if (Platform.OS === 'web') return false;
-  try {
-    require.resolve('@react-native-firebase/crashlytics');
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// Initialize Crashlytics (call this at app startup)
+// Initialize Crashlytics - NO-OP for now
 export const initCrashlytics = async () => {
-  if (Platform.OS === 'web') {
-    console.log('[Crashlytics] Skipping on web platform');
-    return;
-  }
-  
-  if (isInitialized) {
-    console.log('[Crashlytics] Already initialized');
-    return;
-  }
-  
-  if (!isCrashlyticsAvailable()) {
-    console.log('[Crashlytics] Firebase Crashlytics not available');
-    isInitialized = true;
-    return;
-  }
-  
-  try {
-    const firebaseCrashlytics = require('@react-native-firebase/crashlytics').default;
-    crashlytics = firebaseCrashlytics();
-    
-    // Enable Crashlytics collection
-    await crashlytics.setCrashlyticsCollectionEnabled(true);
-    
-    isInitialized = true;
-    console.log('[Crashlytics] Firebase Crashlytics initialized successfully');
-    
-    // Log that app started
-    crashlytics.log('App started');
-  } catch (error) {
-    console.error('[Crashlytics] Failed to initialize:', error);
-    isInitialized = true;
-  }
+  console.log('[Crashlytics] Temporarily disabled due to iOS build issues');
+  isInitialized = true;
 };
 
-// Log a message for context in crash reports
+// Log a message - NO-OP
 export const log = (message: string) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    console.log(`[Crashlytics] Log (not sent): ${message}`);
-    return;
-  }
-  
-  try {
-    crashlytics.log(message);
-  } catch (error) {
-    console.error('[Crashlytics] Failed to log:', error);
-  }
+  console.log(`[Crashlytics] Log (disabled): ${message}`);
 };
 
-// Set user ID for crash reports
+// Set user ID - NO-OP
 export const setUserId = async (userId: string) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    console.log(`[Crashlytics] User ID (not sent): ${userId}`);
-    return;
-  }
-  
-  try {
-    await crashlytics.setUserId(userId);
-    console.log(`[Crashlytics] User ID set`);
-  } catch (error) {
-    console.error('[Crashlytics] Failed to set user ID:', error);
-  }
+  console.log(`[Crashlytics] User ID (disabled): ${userId}`);
 };
 
-// Set custom attributes for crash reports
+// Set custom attributes - NO-OP
 export const setAttribute = async (key: string, value: string) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    return;
-  }
-  
-  try {
-    await crashlytics.setAttribute(key, value);
-  } catch (error) {
-    console.error('[Crashlytics] Failed to set attribute:', error);
-  }
+  // Disabled
 };
 
-// Set multiple attributes at once
+// Set multiple attributes - NO-OP
 export const setAttributes = async (attributes: Record<string, string>) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    return;
-  }
-  
-  try {
-    await crashlytics.setAttributes(attributes);
-  } catch (error) {
-    console.error('[Crashlytics] Failed to set attributes:', error);
-  }
+  // Disabled
 };
 
-// Record a non-fatal error
+// Record a non-fatal error - Log to console only
 export const recordError = (error: Error, jsErrorName?: string) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    console.error(`[Crashlytics] Error (not sent):`, error);
-    return;
-  }
-  
-  try {
-    crashlytics.recordError(error, jsErrorName);
-    console.log('[Crashlytics] Error recorded');
-  } catch (err) {
-    console.error('[Crashlytics] Failed to record error:', err);
-  }
+  console.error(`[Crashlytics] Error (disabled):`, error);
 };
 
-// Force a crash (for testing only!)
+// Force a crash - NO-OP
 export const crash = () => {
-  if (!crashlytics || Platform.OS === 'web') {
-    console.warn('[Crashlytics] Crash not available on this platform');
-    return;
-  }
-  
-  crashlytics.crash();
+  console.warn('[Crashlytics] Crash disabled');
 };
 
-// Check if Crashlytics collection is enabled
+// Check if enabled - always false for now
 export const isCrashlyticsCollectionEnabled = (): boolean => {
-  if (!crashlytics || Platform.OS === 'web') {
-    return false;
-  }
-  
-  return crashlytics.isCrashlyticsCollectionEnabled;
+  return false;
 };
 
-// Enable/Disable Crashlytics collection (for GDPR compliance)
+// Enable/Disable - NO-OP
 export const setCrashlyticsCollectionEnabled = async (enabled: boolean) => {
-  if (!crashlytics || Platform.OS === 'web') {
-    return;
-  }
-  
-  try {
-    await crashlytics.setCrashlyticsCollectionEnabled(enabled);
-    console.log(`[Crashlytics] Collection ${enabled ? 'enabled' : 'disabled'}`);
-  } catch (error) {
-    console.error('[Crashlytics] Failed to set collection enabled:', error);
-  }
+  console.log(`[Crashlytics] Collection toggle disabled`);
 };
 
-// Helper to catch and record async errors
+// Helper wrapper - just run the function
 export const wrapAsync = <T>(
   asyncFn: () => Promise<T>,
   errorContext?: string
 ): Promise<T | undefined> => {
   return asyncFn().catch((error) => {
-    log(`Error in ${errorContext || 'async operation'}`);
-    recordError(error instanceof Error ? error : new Error(String(error)));
+    console.error(`[Crashlytics] Error in ${errorContext || 'async operation'}:`, error);
     return undefined;
   });
 };
