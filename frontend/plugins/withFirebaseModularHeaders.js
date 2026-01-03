@@ -4,9 +4,12 @@ const path = require('path');
 
 /**
  * Expo config plugin to fix Firebase iOS build issues
- * Adds use_modular_headers! to Podfile for Firebase Swift dependencies
+ * Adds $RNFirebaseAsStaticFramework = true to Podfile
+ * 
+ * This is required when using use_frameworks! :linkage => :static
+ * (which expo-build-properties adds automatically)
  */
-const withFirebaseModularHeaders = (config) => {
+const withFirebaseStaticFramework = (config) => {
   return withDangerousMod(config, [
     'ios',
     async (config) => {
@@ -14,44 +17,30 @@ const withFirebaseModularHeaders = (config) => {
       
       // Check if Podfile exists (it may not exist until prebuild)
       if (!fs.existsSync(podfilePath)) {
-        console.log('[withFirebaseModularHeaders] Podfile not found, skipping...');
+        console.log('[withFirebaseStaticFramework] Podfile not found, skipping...');
         return config;
       }
       
       let podfileContent = fs.readFileSync(podfilePath, 'utf8');
       
-      // Check if use_modular_headers! is already present
-      if (podfileContent.includes('use_modular_headers!')) {
-        console.log('[withFirebaseModularHeaders] use_modular_headers! already present');
+      // Check if $RNFirebaseAsStaticFramework is already present
+      if (podfileContent.includes('$RNFirebaseAsStaticFramework')) {
+        console.log('[withFirebaseStaticFramework] $RNFirebaseAsStaticFramework already present');
         return config;
       }
       
-      // Add use_modular_headers! after use_frameworks! :linkage => :static
-      // or at the beginning of the target block
-      
-      // Pattern 1: After use_frameworks!
-      if (podfileContent.includes('use_frameworks!')) {
+      // Add $RNFirebaseAsStaticFramework = true at the top of the file, after platform declaration
+      const platformRegex = /(platform\s+:ios[^\n]*\n)/;
+      if (platformRegex.test(podfileContent)) {
         podfileContent = podfileContent.replace(
-          /(use_frameworks![^\n]*\n)/,
-          '$1use_modular_headers!\n'
+          platformRegex,
+          '$1\n# React Native Firebase requires this when using static frameworks\n$RNFirebaseAsStaticFramework = true\n'
         );
-        console.log('[withFirebaseModularHeaders] Added use_modular_headers! after use_frameworks!');
+        console.log('[withFirebaseStaticFramework] Added $RNFirebaseAsStaticFramework = true after platform declaration');
       } else {
-        // Pattern 2: Add before the first target
-        podfileContent = podfileContent.replace(
-          /(target\s+['"][^'"]+['"]\s+do)/,
-          'use_modular_headers!\n\n$1'
-        );
-        console.log('[withFirebaseModularHeaders] Added use_modular_headers! before target');
-      }
-      
-      // Also add $RNFirebaseAsStaticFramework = true if not present
-      if (!podfileContent.includes('$RNFirebaseAsStaticFramework')) {
-        podfileContent = podfileContent.replace(
-          /(platform\s+:ios[^\n]*\n)/,
-          '$1\n# React Native Firebase - Static Framework\n$RNFirebaseAsStaticFramework = true\n'
-        );
-        console.log('[withFirebaseModularHeaders] Added $RNFirebaseAsStaticFramework = true');
+        // If no platform declaration found, add at the very beginning
+        podfileContent = '# React Native Firebase requires this when using static frameworks\n$RNFirebaseAsStaticFramework = true\n\n' + podfileContent;
+        console.log('[withFirebaseStaticFramework] Added $RNFirebaseAsStaticFramework = true at top');
       }
       
       fs.writeFileSync(podfilePath, podfileContent);
@@ -61,4 +50,4 @@ const withFirebaseModularHeaders = (config) => {
   ]);
 };
 
-module.exports = withFirebaseModularHeaders;
+module.exports = withFirebaseStaticFramework;
