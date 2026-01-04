@@ -2,18 +2,25 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Static imports from react-native-iap v14 (ESM compatible)
-import {
-  initConnection,
-  fetchProducts,
-  requestPurchase,
-  getAvailablePurchases,
-  finishTransaction,
-} from 'react-native-iap';
+// Conditional imports for react-native-iap (not available on web)
+let initConnection: any = null;
+let fetchProducts: any = null;
+let requestPurchase: any = null;
+let getAvailablePurchases: any = null;
+let finishTransaction: any = null;
 
-// Log that IAP is loaded (only on native)
 if (Platform.OS !== 'web') {
-  console.log('[PurchaseStore] IAP module loaded with react-native-iap v14');
+  try {
+    const iap = require('react-native-iap');
+    initConnection = iap.initConnection;
+    fetchProducts = iap.fetchProducts;
+    requestPurchase = iap.requestPurchase;
+    getAvailablePurchases = iap.getAvailablePurchases;
+    finishTransaction = iap.finishTransaction;
+    console.log('[PurchaseStore] IAP module loaded successfully');
+  } catch (e) {
+    console.log('[PurchaseStore] IAP module not available:', e);
+  }
 }
 
 // Product IDs - Platform specific
