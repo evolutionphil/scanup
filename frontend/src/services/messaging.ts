@@ -146,6 +146,34 @@ export const getPushToken = async (): Promise<string | null> => {
   }
 };
 
+// Save push token to backend
+export const savePushTokenToBackend = async (token: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/notifications/register-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        platform: Platform.OS,
+        deviceId: Device.osInternalBuildId || 'unknown',
+      }),
+    });
+
+    if (response.ok) {
+      console.log('[Notifications] Push token saved to backend');
+      return true;
+    } else {
+      console.error('[Notifications] Failed to save token to backend:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('[Notifications] Save token to backend error:', error);
+    return false;
+  }
+};
+
 // Delete/clear push token
 export const deletePushToken = async () => {
   try {
