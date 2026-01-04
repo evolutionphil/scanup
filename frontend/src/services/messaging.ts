@@ -207,6 +207,9 @@ export const deletePushToken = async () => {
   try {
     await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
     console.log('[Notifications] Push token cleared');
+    
+    // Also remove from backend
+    await removePushTokenFromBackend();
   } catch (error) {
     console.error('[Notifications] Delete token error:', error);
   }
