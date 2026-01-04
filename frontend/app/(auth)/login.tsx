@@ -336,14 +336,17 @@ export default function LoginScreen() {
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
             </View>
 
-            <Button
-              title={t('continue_with_google', 'Continue with Google')}
-              onPress={handleGoogleLogin}
-              variant="secondary"
-              size="large"
-              loading={googleLoading}
-              icon={<Ionicons name="logo-google" size={20} color={theme.text} />}
-            />
+            {/* Google Sign-In Button - hidden on iOS until iOS Client ID is configured */}
+            {(Platform.OS !== 'ios' || googleSignInConfigured) && (
+              <Button
+                title={t('continue_with_google', 'Continue with Google')}
+                onPress={handleGoogleLogin}
+                variant="secondary"
+                size="large"
+                loading={googleLoading}
+                icon={<Ionicons name="logo-google" size={20} color={theme.text} />}
+              />
+            )}
 
             {/* Apple Sign-In Button - only shown on iOS */}
             {appleAvailable && (
