@@ -120,6 +120,11 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       // Initialize IAP
       try {
+        if (!initConnection) {
+          console.log('[PurchaseStore] IAP module not available');
+          set({ isInitialized: true, isLoading: false });
+          return;
+        }
         await initConnection();
         console.log('[PurchaseStore] IAP connected');
         
