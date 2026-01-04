@@ -125,7 +125,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
           set({ isInitialized: true, isLoading: false });
           return;
         }
-        await initConnection();
+        await iapInitConnection();
         console.log('[PurchaseStore] IAP connected');
         
         // Fetch products
@@ -158,7 +158,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch subscriptions
       try {
         console.log('[PurchaseStore] Getting subscriptions:', SUBSCRIPTION_SKUS);
-        const subs = await fetchProducts({ skus: SUBSCRIPTION_SKUS, type: 'subs' });
+        const subs = await iapFetchProducts({ skus: SUBSCRIPTION_SKUS, type: 'subs' });
         console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
         
         const formattedSubs: Product[] = (subs || []).map((sub: any) => {
@@ -202,7 +202,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       // Fetch one-time products
       try {
         console.log('[PurchaseStore] Getting products:', PRODUCT_SKUS);
-        const prods = await fetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
+        const prods = await iapFetchProducts({ skus: PRODUCT_SKUS, type: 'in-app' });
         console.log('[PurchaseStore] Raw products:', JSON.stringify(prods, null, 2));
         
         const formattedProducts: Product[] = (prods || []).map((prod: any) => ({
@@ -271,7 +271,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
       
       // Note: v14 is event-based, requestPurchase doesn't return purchase directly
-      await requestPurchase(purchaseParams);
+      await iapRequestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase request sent successfully');
       
@@ -280,7 +280,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Check if purchase was successful
-      const purchases = await getAvailablePurchases();
+      const purchases = await iapGetAvailablePurchases();
       console.log('[PurchaseStore] Available purchases after request:', JSON.stringify(purchases, null, 2));
       
       const purchasedProduct = purchases.find((p: any) => 
@@ -295,7 +295,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       // Finish transaction
       try {
-        await finishTransaction({ purchase: purchasedProduct, isConsumable: false });
+        await iapFinishTransaction({ purchase: purchasedProduct, isConsumable: false });
         console.log('[PurchaseStore] Transaction finished');
       } catch (finishError) {
         console.log('[PurchaseStore] Finish error (may be already finished):', finishError);
@@ -387,7 +387,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         if (subscriptionOffers.length === 0) {
           console.log('[PurchaseStore] Fetching fresh subscription data');
           try {
-            const subs = await fetchProducts({ skus: [productId], type: 'subs' });
+            const subs = await iapFetchProducts({ skus: [productId], type: 'subs' });
             console.log('[PurchaseStore] Fetched subs:', JSON.stringify(subs, null, 2));
             
             if (subs && subs.length > 0) {
@@ -427,7 +427,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       console.log('[PurchaseStore] requestPurchase params:', JSON.stringify(purchaseParams));
       
       // v14 is event-based - requestPurchase triggers the purchase flow
-      await requestPurchase(purchaseParams);
+      await iapRequestPurchase(purchaseParams);
       
       console.log('[PurchaseStore] Purchase request sent successfully');
       
@@ -435,7 +435,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Check if purchase was successful
-      const purchases = await getAvailablePurchases();
+      const purchases = await iapGetAvailablePurchases();
       console.log('[PurchaseStore] Available purchases after request:', JSON.stringify(purchases, null, 2));
       
       const purchasedSub = purchases.find((p: any) => 
@@ -450,7 +450,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       // Finish transaction
       try {
-        await finishTransaction({ purchase: purchasedSub, isConsumable: false });
+        await iapFinishTransaction({ purchase: purchasedSub, isConsumable: false });
         console.log('[PurchaseStore] Subscription transaction finished');
       } catch (finishError) {
         console.log('[PurchaseStore] Finish error (may be already finished):', finishError);
@@ -495,7 +495,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const purchases = await getAvailablePurchases();
+      const purchases = await iapGetAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', JSON.stringify(purchases, null, 2));
       
       let foundPremium = false;
