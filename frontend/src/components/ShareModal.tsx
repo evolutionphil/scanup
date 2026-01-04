@@ -20,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import { useI18n } from '../store/i18nStore';
 import { useAdStore } from '../store/adStore';
+import { useAuthStore } from '../store/authStore';
+import { usePurchaseStore } from '../store/purchaseStore';
 import { showGlobalInterstitial } from './AdManager';
 
 import Constants from 'expo-constants';
