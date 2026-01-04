@@ -178,6 +178,30 @@ export const savePushTokenToBackend = async (token: string): Promise<boolean> =>
   }
 };
 
+// Remove push token from backend (on logout)
+export const removePushTokenFromBackend = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/notifications/unregister-token', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await AsyncStorage.getItem('@scanup_auth_token')}`,
+      },
+    });
+
+    if (response.ok) {
+      console.log('[Notifications] Push token removed from backend');
+      return true;
+    } else {
+      console.error('[Notifications] Failed to remove token from backend:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('[Notifications] Remove token from backend error:', error);
+    return false;
+  }
+};
+
 // Delete/clear push token
 export const deletePushToken = async () => {
   try {
