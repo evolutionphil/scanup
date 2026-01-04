@@ -198,22 +198,40 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     }
   }, []);
 
-  // Load interstitial
+  // Load interstitial with better logging
   const loadInterstitial = useCallback(() => {
-    if (!isNativeEnvironment || !isSDKInitialized) return;
-    if (!mountedRef.current) return;
+    console.log('[AdManager] loadInterstitial called - isNative:', isNativeEnvironment, 'sdkInit:', isSDKInitialized);
+    
+    if (!isNativeEnvironment) {
+      console.log('[AdManager] Skipping loadInterstitial - not native');
+      return;
+    }
+    
+    if (!isSDKInitialized) {
+      console.log('[AdManager] Skipping loadInterstitial - SDK not initialized');
+      return;
+    }
+    
+    if (!mountedRef.current) {
+      console.log('[AdManager] Skipping loadInterstitial - component unmounted');
+      return;
+    }
 
     try {
       const adsModule = getAdsModule();
-      if (!adsModule) return;
+      if (!adsModule) {
+        console.log('[AdManager] ❌ Ads module not available for loading');
+        return;
+      }
       
       const { InterstitialAd, AdEventType } = adsModule;
       
+      // Use test ads in development, real ads in production
       const adUnitId = __DEV__ 
         ? (Platform.OS === 'ios' ? AD_UNITS.test.interstitial.ios : AD_UNITS.test.interstitial.android)
         : (Platform.OS === 'ios' ? AD_UNITS.interstitial.ios : AD_UNITS.interstitial.android);
       
-      console.log('[AdManager] Loading interstitial:', adUnitId);
+      console.log('[AdManager] 📢 Loading interstitial ad:', adUnitId, '(__DEV__:', __DEV__, ')');
       
       globalInterstitial = InterstitialAd.createForAdRequest(adUnitId, {
         requestNonPersonalizedAdsOnly: true,
@@ -222,7 +240,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
       const unsubscribeLoaded = globalInterstitial.addAdEventListener(
         AdEventType.LOADED,
         () => {
-          console.log('[AdManager] Interstitial loaded');
+          console.log('[AdManager] ✅ Interstitial LOADED and ready to show!');
           if (isMounted) setAdLoaded(true);
         }
       );
@@ -230,26 +248,33 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
       const unsubscribeClosed = globalInterstitial.addAdEventListener(
         AdEventType.CLOSED,
         () => {
-          console.log('[AdManager] Interstitial closed');
+          console.log('[AdManager] Interstitial closed by user');
           if (isMounted) {
             setAdShowing(false);
             recordAdShown();
           }
           // Reload for next time
-          if (isMounted) loadInterstitial();
+          if (isMounted) {
+            console.log('[AdManager] Reloading interstitial for next time...');
+            loadInterstitial();
+          }
         }
       );
 
       const unsubscribeError = globalInterstitial.addAdEventListener(
         AdEventType.ERROR,
         (error: any) => {
-          console.log('[AdManager] Ad error:', error);
+          console.log('[AdManager] ❌ Ad loading error:', error?.message || error);
           if (isMounted) setAdLoaded(false);
-          // Retry after delay
-          if (isMounted) setTimeout(loadInterstitial, 30000);
+          // Retry after shorter delay (10 seconds instead of 30)
+          if (isMounted) {
+            console.log('[AdManager] Will retry loading ad in 10 seconds...');
+            setTimeout(loadInterstitial, 10000);
+          }
         }
       );
 
+      console.log('[AdManager] Calling globalInterstitial.load()...');
       globalInterstitial.load();
 
       return () => {
@@ -257,8 +282,8 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         unsubscribeClosed();
         unsubscribeError();
       };
-    } catch (error) {
-      console.error('[AdManager] Load interstitial error:', error);
+    } catch (error: any) {
+      console.error('[AdManager] ❌ loadInterstitial exception:', error?.message || error);
     }
   }, [setAdLoaded, setAdShowing, recordAdShown]);
 
