@@ -55,11 +55,21 @@ export default function PremiumScreen() {
   } = usePurchaseStore();
   
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    initialize();
-    logScreenView('Premium', 'PremiumScreen');
-    logEvent(AnalyticsEvents.PREMIUM_SCREEN_VIEWED);
+    // Safe initialization with error handling
+    const safeInit = async () => {
+      try {
+        await initialize();
+        logScreenView('Premium', 'PremiumScreen');
+        logEvent(AnalyticsEvents.PREMIUM_SCREEN_VIEWED);
+      } catch (e: any) {
+        console.error('[PremiumScreen] Init error:', e);
+        setInitError(e?.message || 'Failed to load premium options');
+      }
+    };
+    safeInit();
   }, []);
 
   // Handle back button
