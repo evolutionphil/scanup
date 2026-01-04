@@ -320,34 +320,46 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
  * Call this when you want to show an ad (e.g., after scan)
  */
 export const showGlobalInterstitial = async (): Promise<boolean> => {
+  console.log('[showInterstitial] === TRYING TO SHOW AD ===');
+  console.log('[showInterstitial] isNativeEnvironment:', isNativeEnvironment);
+  console.log('[showInterstitial] isSDKInitialized:', isSDKInitialized);
+  console.log('[showInterstitial] globalInterstitial exists:', !!globalInterstitial);
+  
   if (!isNativeEnvironment) {
-    console.log('[showInterstitial] Skipping - web');
+    console.log('[showInterstitial] ❌ Skipping - web platform');
     return false;
   }
 
   if (!isSDKInitialized) {
-    console.log('[showInterstitial] SDK not initialized');
+    console.log('[showInterstitial] ❌ SDK not initialized');
     return false;
   }
 
   if (!globalInterstitial) {
-    console.log('[showInterstitial] No interstitial');
+    console.log('[showInterstitial] ❌ No interstitial object - ad not loaded yet');
     return false;
   }
 
   try {
-    const { isAdLoaded } = useAdStore.getState();
+    const { isAdLoaded, adsEnabled } = useAdStore.getState();
+    console.log('[showInterstitial] Store state - isAdLoaded:', isAdLoaded, 'adsEnabled:', adsEnabled);
     
     if (!isAdLoaded) {
-      console.log('[showInterstitial] Ad not ready');
+      console.log('[showInterstitial] ❌ Ad not loaded/ready');
+      return false;
+    }
+    
+    if (!adsEnabled) {
+      console.log('[showInterstitial] ❌ Ads disabled (premium user)');
       return false;
     }
 
-    console.log('[showInterstitial] Showing...');
+    console.log('[showInterstitial] ✅ Showing interstitial ad NOW!');
     await globalInterstitial.show();
+    console.log('[showInterstitial] ✅ Ad shown successfully');
     return true;
-  } catch (error) {
-    console.log('[showInterstitial] Error:', error);
+  } catch (error: any) {
+    console.log('[showInterstitial] ❌ Error showing ad:', error?.message || error);
     return false;
   }
 };
