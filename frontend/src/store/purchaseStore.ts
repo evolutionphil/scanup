@@ -145,6 +145,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   fetchProducts: async () => {
     if (Platform.OS === 'web') return;
+    if (!fetchProducts) {
+      console.log('[PurchaseStore] fetchProducts not available');
+      return;
+    }
     
     console.log('[PurchaseStore] Fetching products with v14 API...');
     set({ isLoading: true, error: null });
