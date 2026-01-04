@@ -183,16 +183,27 @@ export default function ScannerScreen() {
           
           // Increment scan count for each page added and potentially show ad (for free users)
           // Use getState to get fresh store values
-          const { incrementAndCheckAd } = useAdStore.getState();
+          const adState = useAdStore.getState();
+          console.log('[Scanner] Ad state before increment:', {
+            adsEnabled: adState.adsEnabled,
+            isAdLoaded: adState.isAdLoaded,
+            scanCount: adState.scanCount,
+            scansBetweenAds: adState.scansBetweenAds
+          });
+          
+          const { incrementAndCheckAd } = adState;
           let shouldShow = false;
           for (let i = 0; i < newPages.length; i++) {
             shouldShow = incrementAndCheckAd();
           }
           
+          console.log('[Scanner] Should show ad:', shouldShow);
+          
           if (shouldShow) {
             console.log('[Scanner] Showing interstitial ad after adding pages');
             try {
-              await showGlobalInterstitial();
+              const shown = await showGlobalInterstitial();
+              console.log('[Scanner] Ad shown result:', shown);
             } catch (e) {
               console.log('[Scanner] Could not show ad:', e);
             }
