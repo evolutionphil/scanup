@@ -9,6 +9,7 @@ import Analytics from './pages/Analytics';
 import Localization from './pages/Localization';
 import LegalPages from './pages/LegalPages';
 import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }) {
