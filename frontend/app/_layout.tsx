@@ -8,11 +8,13 @@ import { useI18n } from '../src/store/i18nStore';
 import { AdManager } from '../src/components/AdManager';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
+import { usePurchaseStore } from '../src/store/purchaseStore';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
   const user = useAuthStore((state) => state.user);
+  const initializePurchases = usePurchaseStore((state) => state.initialize);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -21,8 +23,18 @@ export default function RootLayout() {
       loadTheme();
       initializeI18n();
       
-      // Initialize Firebase services on native platforms
+      // Initialize on native platforms
       if (Platform.OS !== 'web') {
+        // Initialize IAP FIRST - critical for purchases and ads to work properly
+        initializePurchases()
+          .then(() => {
+            console.log('[RootLayout] IAP initialized successfully');
+          })
+          .catch(err => {
+            console.log('[RootLayout] IAP init error (non-critical):', err);
+          });
+        
+        // Initialize Firebase services
         initializeFirebase().then(() => {
           // Setup push notifications after Firebase is initialized
           setupPushNotifications(user?.user_id).catch(err => {
