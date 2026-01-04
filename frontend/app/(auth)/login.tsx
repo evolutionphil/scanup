@@ -51,15 +51,14 @@ if (Platform.OS !== 'web') {
       googleSignInConfigured = true;
       console.log('[GoogleSignIn] Configured for Android');
     } else if (Platform.OS === 'ios') {
-      // iOS: Need iOS OAuth Client ID - temporarily disabled until configured
-      // TODO: Add iOS Client ID from Google Cloud Console
-      // GoogleSignin.configure({
-      //   iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-      //   webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
-      //   offlineAccess: true,
-      // });
-      console.log('[GoogleSignIn] iOS - Not configured (needs iOS OAuth Client ID). Use Apple Sign-In instead.');
-      googleSignInConfigured = false;
+      // iOS OAuth Client ID from Google Cloud Console
+      GoogleSignin.configure({
+        iosClientId: '159628540720-b7ud87nk02prots1ur3o7mmel82htk65.apps.googleusercontent.com',
+        webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
+        offlineAccess: true,
+      });
+      googleSignInConfigured = true;
+      console.log('[GoogleSignIn] Configured for iOS with iosClientId');
     }
   } catch (e) {
     console.log('Google Sign-In not available:', e);
