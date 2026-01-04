@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.visiongo.scanupp",
-      "buildNumber": "3",
+      "buildNumber": "10",
       "infoPlist": {
         "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
