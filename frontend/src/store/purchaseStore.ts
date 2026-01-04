@@ -120,7 +120,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       
       // Initialize IAP
       try {
-        if (!initConnection) {
+        if (!iapInitConnection) {
           console.log('[PurchaseStore] IAP module not available');
           set({ isInitialized: true, isLoading: false });
           return;
@@ -145,7 +145,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   fetchProducts: async () => {
     if (Platform.OS === 'web') return;
-    if (!fetchProducts) {
+    if (!iapFetchProducts) {
       console.log('[PurchaseStore] fetchProducts not available');
       return;
     }
