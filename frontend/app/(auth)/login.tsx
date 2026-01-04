@@ -28,6 +28,7 @@ let GoogleSignin: any = null;
 let statusCodes: any = null;
 let isSuccessResponse: any = null;
 let isErrorWithCode: any = null;
+let googleSignInConfigured = false;
 
 if (Platform.OS !== 'web') {
   try {
@@ -38,15 +39,28 @@ if (Platform.OS !== 'web') {
     isErrorWithCode = googleSignInModule.isErrorWithCode;
     
     // Configure Google Sign-In
-    // webClientId: OAuth 2.0 Web Client ID (for both platforms)
-    // iosClientId: OAuth 2.0 iOS Client ID (required for iOS without GoogleService-Info.plist)
-    GoogleSignin.configure({
-      webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
-      iosClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
-      offlineAccess: true,
-      forceCodeForRefreshToken: true,
-    });
-    console.log('[GoogleSignIn] Configured with webClientId and iosClientId');
+    // Note: iOS requires a separate iOS OAuth Client ID from Google Cloud Console
+    // Create one at: https://console.cloud.google.com/apis/credentials
+    // Application type: iOS, Bundle ID: com.visiongo.scanupp
+    if (Platform.OS === 'android') {
+      GoogleSignin.configure({
+        webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
+        offlineAccess: true,
+        forceCodeForRefreshToken: true,
+      });
+      googleSignInConfigured = true;
+      console.log('[GoogleSignIn] Configured for Android');
+    } else if (Platform.OS === 'ios') {
+      // iOS: Need iOS OAuth Client ID - temporarily disabled until configured
+      // TODO: Add iOS Client ID from Google Cloud Console
+      // GoogleSignin.configure({
+      //   iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+      //   webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
+      //   offlineAccess: true,
+      // });
+      console.log('[GoogleSignIn] iOS - Not configured (needs iOS OAuth Client ID). Use Apple Sign-In instead.');
+      googleSignInConfigured = false;
+    }
   } catch (e) {
     console.log('Google Sign-In not available:', e);
   }
