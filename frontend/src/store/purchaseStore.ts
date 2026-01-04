@@ -102,10 +102,10 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     }
     
     console.log('[PurchaseStore] Initializing...');
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     
     try {
-      // Load saved state
+      // Load saved state first
       const [isPremiumStr, hasRemovedAdsStr, activeSubscription] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM),
         AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS),
@@ -118,23 +118,36 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         activeSubscription,
       });
       
-      // Initialize IAP - wrapped in try-catch to prevent crashes
+      // Initialize IAP connection - CRITICAL for purchases to work
       if (iapInitConnection) {
         try {
+          console.log('[PurchaseStore] Calling initConnection...');
           await iapInitConnection();
-          console.log('[PurchaseStore] IAP connected');
+          console.log('[PurchaseStore] IAP connection established successfully');
           
-          // Fetch products
+          // Mark as initialized AFTER connection is established
+          set({ isInitialized: true });
+          
+          // Fetch products after connection is ready
           await get().fetchProducts();
         } catch (iapError: any) {
-          console.error('[PurchaseStore] IAP init error:', iapError?.message || iapError);
-          // Don't set error state - just log it, app should continue working
+          const errorMessage = iapError?.message || String(iapError);
+          console.error('[PurchaseStore] IAP init error:', errorMessage);
+          
+          // Still mark as initialized so the app works, but set error for debugging
+          set({ 
+            isInitialized: true, 
+            isLoading: false,
+            error: `IAP setup failed: ${errorMessage}` 
+          });
+          return;
         }
       } else {
-        console.log('[PurchaseStore] IAP module not available - skipping initialization');
+        console.log('[PurchaseStore] IAP module not available - running in limited mode');
+        set({ isInitialized: true });
       }
       
-      set({ isInitialized: true, isLoading: false });
+      set({ isLoading: false });
     } catch (error: any) {
       console.error('[PurchaseStore] Init error:', error?.message || error);
       set({ isInitialized: true, isLoading: false });
