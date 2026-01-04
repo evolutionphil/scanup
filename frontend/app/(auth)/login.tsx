@@ -29,8 +29,15 @@ let statusCodes: any = null;
 let isSuccessResponse: any = null;
 let isErrorWithCode: any = null;
 let googleSignInConfigured = false;
+let googleSignInInitialized = false;
 
-if (Platform.OS !== 'web') {
+// Lazy initialization to prevent crashes on app startup
+const initializeGoogleSignIn = () => {
+  if (googleSignInInitialized) return;
+  googleSignInInitialized = true;
+  
+  if (Platform.OS === 'web') return;
+  
   try {
     const googleSignInModule = require('@react-native-google-signin/google-signin');
     GoogleSignin = googleSignInModule.GoogleSignin;
@@ -39,9 +46,6 @@ if (Platform.OS !== 'web') {
     isErrorWithCode = googleSignInModule.isErrorWithCode;
     
     // Configure Google Sign-In
-    // Note: iOS requires a separate iOS OAuth Client ID from Google Cloud Console
-    // Create one at: https://console.cloud.google.com/apis/credentials
-    // Application type: iOS, Bundle ID: com.visiongo.scanupp
     if (Platform.OS === 'android') {
       GoogleSignin.configure({
         webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
@@ -51,7 +55,6 @@ if (Platform.OS !== 'web') {
       googleSignInConfigured = true;
       console.log('[GoogleSignIn] Configured for Android');
     } else if (Platform.OS === 'ios') {
-      // iOS OAuth Client ID from Google Cloud Console
       GoogleSignin.configure({
         iosClientId: '159628540720-b7ud87nk02prots1ur3o7mmel82htk65.apps.googleusercontent.com',
         webClientId: '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com',
@@ -61,9 +64,9 @@ if (Platform.OS !== 'web') {
       console.log('[GoogleSignIn] Configured for iOS with iosClientId');
     }
   } catch (e) {
-    console.log('Google Sign-In not available:', e);
+    console.log('[GoogleSignIn] Not available:', e);
   }
-}
+};
 
 export default function LoginScreen() {
   const { theme, mode } = useThemeStore();
