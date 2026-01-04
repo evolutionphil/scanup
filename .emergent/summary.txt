@@ -1,237 +1,250 @@
 <analysis>
 **original_problem_statement**:
 The user's primary goals are to fix critical bugs preventing the app from launching and monetizing, and to implement several related features.
-1.  **Fix In-App Purchases (IAP) (P0):** The core monetization feature is broken. Subscriptions fail with a . Additionally, canceling a one-time purchase incorrectly marks it as successful.
-2.  **Fix Logout Crash (P0):** Logging out causes the app to crash to a white screen with a Maximum update depth exceeded error. This was also observed on the web preview.
-3.  **Fix Auth Persistence (P0):** Users were being logged out every time they closed and reopened the app.
-4.  **Implement Watermark Removal on Purchase (P1):** When a user becomes premium, watermarks should be removed from their previously scanned documents.
-5.  **Refine Purchase Flow (P1):** Guest users should not be able to make purchases from any premium screen (, ). They should be prompted to log in, and after logging in, they should be returned to the screen they were on.
-6.  **UI/UX improvements:** Redesign the premium screen, add a dedicated Remove Ads screen, and replace the manual trial system with official Google Play/App Store free trials.
-7.  **iOS Release (P0):** Prepare the app for iOS, configure all necessary credentials, and successfully create a build for TestFlight. This includes adding Apple Sign In.
+1.  **Fix In-App Purchases (IAP) (P0):** The core monetization feature is broken. Initially, subscriptions failed. After a rewrite, IAP was confirmed to be working, but subsequent changes to fix a startup crash have caused a major regression. IAP is now broken on both iOS and Android, with errors like missing purchase request configuration and could not load subscription detail.
+2.  **Fix App Crash (P0):** The app crashes on first launch and when navigating to the Go Premium screen on iOS. This seems related to the initialization of a native module (IAP or Google Sign-In).
+3.  **Integrate Firebase (P1):** The user wants full Firebase integration (Analytics, Crashlytics, Messaging) on both iOS and Android. This was attempted but repeatedly failed the iOS build, leading to its complete removal from iOS as a temporary measure.
+4.  **Implement Push Notifications (P1):** Since Firebase Messaging was removed from iOS,  was implemented as a replacement.
+5.  **Add New Features (P2):** The user has requested an analysis and future implementation of Widgets, a Share Extension, and Batch PDF Export.
+6.  **Fix Minor Bugs:** A bug where watermarks are not showing for guest users was reported but not addressed.
 
-**User's preferred language**: Turkish. The user communicates in a mix of English, Turkish, and German. The next agent MUST respond in Turkish.
+**User's preferred language**: Turkish. The user communicates in a mix of Turkish, English, and German. The next agent MUST respond in Turkish.
 
 **what currently exists?**
-The project is a full-stack Expo (React Native) app with a FastAPI backend.
-- The IAP subscription flow has been completely rewritten to use the correct  v14 API, but this fix is unverified.
-- The logout crash has a potential robust fix applied, also unverified.
-- A login and return flow has been implemented for all purchase screens (, ).
-- The trial system has been refactored to support official Google Play and App Store introductory offers.
-- All necessary credentials and configuration for an iOS build and submission via EAS have been added (, , platform-specific product IDs).
-- The iOS build is currently blocked by a persistent  compilation error.
+-   The project is a full-stack Expo (React Native) app with a FastAPI backend.
+-   Firebase has been completely removed from the iOS build process to achieve successful builds. It remains on Android.
+-   Push notifications have been re-implemented using  for both platforms, including a backend endpoint () to store tokens and an admin UI to send notifications.
+-   The IAP logic in  was correctly refactored for  v14. However, recent changes to make initialization lazy (to prevent a crash) have broken it again.
+-   Google Sign-In for iOS has been configured with the correct  and URL schemes, but its initialization was also made lazy to prevent a startup crash.
 
 **Last working item**:
-- Last item agent was working: Debugging a persistent iOS build failure related to  (). After multiple failed attempts with plugins, the agent's last plan was to temporarily and completely remove the Firebase packages from  to get a successful initial iOS build.
-- Status: IN PROGRESS
-- Agent Testing Done: N
-- Which testing method agent to use? To verify the iOS build fix, the agent must run An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username. To verify the Android fixes, the agent must guide the user to create a new An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username and test on a device.
-- User Testing Done: N
+-   Last item agent was working: Investigating a persistent app crash on iOS that occurs on startup and when navigating to the premium screen. The agent hypothesized that eager initialization of native modules (IAP or Google Sign-In) was the cause. The implemented fix involved making the initialization lazy (i.e., calling it just before it's needed, instead of on app startup).
+-   Status: **IN PROGRESS** (The fix was implemented but failed. It did not solve the crash and caused a critical regression in IAP functionality).
+-   Agent Testing Done: N
+-   Which testing method agent to use? The next agent must build for iOS and Android and test on a physical device to replicate the crash and IAP failures. Manual testing is required.
+-   User Testing Done: Y (User has confirmed the crash still exists and IAP is now broken).
 
 **All Pending/In progress Issue list**:
-- Issue 1: iOS build fails due to  compilation errors. (P0 - BLOCKER)
-- Issue 2: In-App Purchases (IAP) for subscriptions are failing on Android. (P0 - FIX PENDING VERIFICATION)
-- Issue 3: App crashes on logout. (P0 - FIX PENDING VERIFICATION)
-- Issue 4: Canceling a one-time purchase incorrectly marks it as successful. (P0 - FIX PENDING VERIFICATION)
-- Issue 5: Prices on purchase screens are hardcoded and don't match the dynamic prices from Google Play. (P1 - FIX PENDING VERIFICATION)
-- Issue 6: User avatar does not persist after restarting the app. (P1 - FIX PENDING VERIFICATION)
-- Issue 7: Email service is not sending emails to users. (P1 - BLOCKED)
+-   Issue 1: IAP is broken on both iOS and Android (P0 - CRITICAL REGRESSION)
+-   Issue 2: App crashes on iOS on startup and when opening the premium screen (P0 - CRITICAL)
+-   Issue 3: Re-integrate Firebase on iOS (P1 - BLOCKED)
+-   Issue 4: Watermark is not displayed for guest users (P2)
+-   Issue 5: Unverified Fixes (Logout crash, etc.) (P2)
 
 **Issues Detail**:
-- **Issue 1: iOS build fails due to  compilation errors**
-    - Attempted fixes:
-        1.  Created a custom plugin () to add  to the Podfile. This did not work.
-        2.  Used  to set . This did not work.
-        3.  Created a  to disable autolinking for Firebase on iOS. This also failed.
-    - Next debug checklist:
-        1.  The last proposed plan was the most direct: temporarily remove all  packages from .
-        2.  Run yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.33s. to update .
-        3.  Run An Expo user account is required to proceed.
+-   **Issue 1: IAP is broken on both iOS and Android**
+    -   **Description**: After being fixed, IAP is now failing again on both platforms. The user reports errors like missing purchase request configuration and could not load subscription detail please try again. This is a major regression.
+    -   **Attempted fixes**: The agent made the IAP initialization lazy within  to try and fix a startup crash. This change is the likely cause of the IAP failure, as  is probably not being called early enough or at all.
+    -   **Next debug checklist**:
+        1.  Review . The lazy initialization logic must be reverted or re-thought.
+        2.  The  function (which calls ) should be called once when the app starts. The best place is likely in a  in the root layout file, .
+        3.  Ensure the initialization is wrapped in a  block to prevent it from causing the startup crash (Issue #2).
+        4.  Verify that  is called after a successful initialization.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the app's core monetization feature. It is a business-critical P0 bug.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (on-device testing for both iOS and Android is mandatory).
 
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username to attempt a build without Firebase.
-        4.  If successful, the app can be tested on TestFlight. Firebase can be re-integrated later as a separate task.
-    - Why fix this issue and what will be achieved with the fix?: This is a complete blocker for releasing the app on iOS.
-    - Status: IN PROGRESS
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend (iOS Build).
+-   **Issue 2: App crashes on iOS on startup and when opening the premium screen**
+    -   **Description**: The app crashes with a  signal, and the crash log points to an error in . This is a generic error for a native module failure. It happens on app launch and when navigating to the premium screen.
+    -   **Attempted fixes**: The agent correctly identified that early initialization of native modules could be the cause. It made Google Sign-In initialization lazy, which was a good step. However, the crash persists. The root cause is likely the IAP module initialization.
+    -   **Next debug checklist**:
+        1.  Fixing Issue #1 by moving IAP initialization to the root layout should be done carefully to not worsen this crash.
+        2.  Wrap the  call in  inside a  and a  block.
+        3.  Log any errors from the  call to the console to see what is failing.
+        4.  The  screen calls  in a . This is redundant if initialization is done in the root layout and could be a source of the crash. This call should probably be removed and replaced with a call to  only.
+    -   **Why fix this issue and what will be achieved with the fix?**: The app is unusable on iOS due to this crash.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (iOS on-device testing).
 
-- **Issue 2: In-App Purchases (IAP) for subscriptions are failing on Android**
-    - Attempted fixes: This has been a recurring P0 bug. The agent, with significant help from the user and ChatGPT, completely rewrote the IAP logic in . The final fix involves:
-        1.  Using static  for  functions instead of conditional .
-        2.  Using  with both  and  parameters, which is the correct format for  v14.
-    - Next debug checklist: This fix is highly promising but unverified. Guide the user to create a new Android production build and test the subscription flow with a license tester account.
-    - Why fix this issue and what will be achieved with the fix?: This is the app's primary monetization method. Fixing it is critical for the business.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend (Android on-device testing).
+-   **Issue 3: Re-integrate Firebase on iOS**
+    -   **Description**: The user wants Firebase Analytics, Crashlytics, and Messaging on iOS. All previous attempts failed due to native build errors (non-modular headers, dependency conflicts with Google Sign-In).
+    -   **Attempted fixes**: Multiple attempts were made: custom plugins, downgrading/upgrading versions, removing specific modules. All failed. Firebase is currently removed from the iOS project.
+    -   **Next debug checklist**:
+        1.  **DO NOT ATTEMPT THIS UNTIL ISSUES #1 AND #2 ARE FIXED AND VERIFIED BY THE USER.**
+        2.  When this is prioritized, a fresh start is needed. Research compatible versions of , 
+  Usage: expo [command] [options]
 
-- **Issue 3: App crashes on logout**
-    - Attempted fixes: The agent identified this as a Maximum update depth exceeded error. A robust fix was implemented:
-        1.  In , the  function now transitions the user to a guest state instead of setting the user object to .
-        2.  In , the root navigator  was given a  to force a full remount on user change, preventing inconsistent state.
-    - Next debug checklist: Verify on the next Android/iOS build.
-    - Why fix this issue and what will be achieved with the fix?: Fixes a critical crash that makes the app unusable after logging out.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? Y
-    - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
+  Options:
+  
+    -V, --version                     output the version number
+    --non-interactive                 Fail, if an interactive prompt would be required to continue.
+    -h, --help                        output usage information
+  
+  Commands:
 
-- **Issue 4: Canceling a one-time purchase incorrectly marks it as successful**
-    - Attempted fixes: The check was changed from  to .
-    - Next debug checklist: Verify on the next Android/iOS build.
-    - Why fix this issue and what will be achieved with the fix?: Prevents a revenue-losing bug.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
+    init [name]                       Create a new Expo project
+    start [path]                      Start a local dev server for the app
+    start:web [path]                  Start a Webpack dev server for the web app
+    export [path]                     Export the static files of the app for hosting it on a web server
+    install [packages...]             Install a module or other package to a project
+    run:android [path]                Run the Android app binary locally
+    run:ios [path]                    Run the iOS app binary locally
+    send [path]                       Share the project's URL to an email address
 
-- **Issue 5: Prices on purchase screens are hardcoded**
-    - Attempted fixes: The agent implemented logic in  and  to show a loading state while prices are fetched from . The underlying fetch was failing due to the IAP subscription bug.
-    - Next debug checklist: This should be fixed automatically once Issue #2 (IAP Subscription Failure) is resolved, as the products will be fetched successfully. Verify on the next build.
-    - Why fix this issue and what will be achieved with the fix?: Ensures price consistency and avoids user confusion.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: Frontend (on-device testing).
-    - Blocked on other issue: Issue 2: In-App Purchases (IAP) for subscriptions are failing on Android.
+    login                             Login to an Expo account
+    logout                            Logout of an Expo account
+    register                          Sign up for a new Expo account
+    whoami                            Return the currently authenticated account
 
-- **Issue 6: User avatar does not persist after restarting the app**
-    - Attempted fixes: Backend  model was updated to include .
-    - Next debug checklist: Verify on the next build.
-    - Status: USER VERIFICATION PENDING
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: Both.
+    client:install:ios                Install Expo Go for iOS on the simulator
+    client:install:android            Install Expo Go for Android on a connected device or emulator
 
-- **Issue 7: Email service is not sending emails**
-    - Attempted fixes: Identified that the user's Resend account is in sandbox mode.
-    - Next debug checklist: Remind the user they need to add a custom domain to their Resend account.
-    - Status: BLOCKED
-    - Is recurring issue? N
-    - Should Test frontend/backend/both after fix?: Backend.
+    config [path]                     Show the project config
+    doctor [path]                     Diagnose issues with the project
+    upgrade [sdk-version]             Upgrade the project packages and config for the given SDK version
 
-**In progress Task List**:
-- **Task 1: Achieve a successful iOS build (P0)**
-    - Where to resume: Follow the plan to temporarily remove  packages from , run yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.33s., and then run An Expo user account is required to proceed.
+    customize:web [path]              Eject the default web files for customization
+    prebuild [path]                   Create native iOS and Android project files before building natively.
+                                      Learn more: https://docs.expo.dev/workflow/customizing/
 
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username.
-    - What will be achieved with this?: The first-ever testable iOS build for the user.
-    - Status: IN PROGRESS
+    build:web [path]                  Build the web app for production
+
+    credentials:manager [path]        Superseded by eas credentials in eas-cli
+
+    url [path]                        Log a URL for opening the project in Expo Go
+    url:ipa [path]                    Log the download URL for the standalone iOS binary
+    url:apk [path]                    Log the download URL for the standalone Android binary
+
+    webhooks [path]                   List all webhooks for a project
+    webhooks:add [path]               Add a webhook to a project
+    webhooks:remove [path]            Delete a webhook
+    webhooks:update [path]            Update an existing webhook
+
+    build:ios [path]                  Superseded by eas build in eas-cli
+    build:android [path]              Superseded by eas build in eas-cli
+    build:status [path]               Superseded by eas build:list in eas-cli
+    eject [path]                      Superseded by expo prebuild
+    fetch:ios:certs [path]            Superseded by eas credentials in eas-cli
+    fetch:android:keystore [path]     Superseded by eas credentials in eas-cli
+    fetch:android:hashes [path]       Superseded by eas credentials in eas-cli
+    fetch:android:upload-cert [path]  Superseded by eas credentials in eas-cli
+    publish [path]                    Superseded by eas update in eas-cli
+    publish:set [path]                Superseded by eas update:republish in eas-cli
+    publish:rollback [path]           Superseded by eas update:republish in eas-cli
+    publish:history [path]            Superseded by eas update:list in eas-cli
+    publish:details [path]            Superseded by eas update:view in eas-cli
+    push:android:upload [path]        Superseded by eas credentials in eas-cli
+    push:android:show [path]          Superseded by eas credentials in eas-cli
+    push:android:clear [path]         Superseded by eas credentials in eas-cli
+    upload:android [path]             Superseded by eas submit in eas-cli
+    upload:ios [path]                 Superseded by eas submit in eas-cli
+    client:ios [path]                 Superseded by Expo Dev Clients
+
+[12:33:51]   Run a command with --help for more info 💡
+[12:33:51]     $ expo start --help
+[12:33:51], all  packages, and .
+        3.  Use  to set .
+        4.  Consider using a Firebase BOM (Bill of Materials) or an official Expo-Firebase starter if one exists to ensure version compatibility.
+    -   **Why fix this issue and what will be achieved with the fix?**: Provides critical analytics and crash reporting.
+    -   **Status**: NOT STARTED (Effectively, as the previous work was reverted).
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (iOS build and runtime).
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks**:
-    - (P0) Guide the user to create a new Android build and test all the pending fixes (IAP, Logout, etc.).
-    - (P1) Guide the user to test the first successful iOS build on TestFlight.
-    - (P2) Re-integrate Firebase on iOS correctly, possibly by finding compatible versions or a working patch.
-- **Future Tasks**:
-    - Implement frontend UI for email verification and password reset.
-    - Implement search icon functionality on the main screen.
+-   **Upcoming Tasks**:
+    -   (P1) **Verify all previously completed fixes** once a stable build is achieved. This includes the logout crash, IAP cancellation flow, dynamic price display, and avatar persistence.
+    -   (P2) **Batch Export**: Implement UI to select multiple documents and merge them into a single PDF using the existing  library.
+    -   (P2) **Address Guest Watermark Bug**: Investigate why watermarks are not showing for guest users on iOS.
+-   **Future Tasks**:
+    -   (P3) **Share Extension**: Implement using  to allow importing files from other apps.
+    -   (P3) **Widgets**: Implement home screen widgets (Android first, as it's easier).
+    -   (P3) Implement search icon functionality.
+    -   (P3) Implement frontend UI for email verification and password reset.
 
 **Completed work in this session**
-- **IAP Subscription Refactor**: Completely rewrote the IAP subscription logic in  to use static imports and the correct  v14 API ( with ).
-- **Logout Crash Fix**: Implemented a robust fix for the Maximum update depth exceeded error by ensuring the user state never becomes null and forcing a navigator remount.
-- **Login and Return Flow**: Implemented and extended the redirect flow for guest users to both the login and register screens, ensuring they are returned to their original page ( or ) after authentication.
-- **Official Free Trial Implementation**: Refactored the app to remove the manual backend trial system. The UI now supports official Google Play/App Store introductory offers.
-- **Dynamic Price Loading UI**: Added loading states to purchase screens to wait for prices to be fetched from the store, preventing display of hardcoded prices.
-- **iOS Release Preparation**:
-    - Configured platform-specific IAP Product IDs.
-    - Added full iOS submission configuration to  using the user's Apple Developer credentials and API key.
-    - Added the required  for Firebase.
-    - Updated the app icon to the required 1024x1024 resolution.
-- **Minor Fixes**:
-    - Resolved  warning by deleting .
-    - Made logout confirmation platform-specific to avoid errors in the web preview.
+-   **Firebase Removal (iOS)**: Successfully removed all Firebase packages, plugins, and configurations from the iOS build to resolve persistent build failures.
+-   **Push Notifications with Expo**: Implemented  as a cross-platform replacement for Firebase Messaging. This included:
+    -   Frontend logic to request permissions and get the Expo push token.
+    -   Backend endpoint () to save user tokens.
+    -   A new admin dashboard page () with a UI to send notifications to all users via a new backend endpoint ().
+-   **iOS Google Sign-In Fix**: Correctly configured Google Sign-In for iOS by providing the  in  and the required URL scheme in .
+-   **Build Number/Version Code Fixes**: Correctly identified and incremented  (Android) and  (iOS) to resolve submission errors.
+-   **Apple Push Key Management**: Guided the user on how to handle the maximum number of keys error by uploading an existing  key to EAS.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1: Watermark for Guest Users**
+    -   **Description**: User mentioned in message 68 that the watermark feature was not working for guest users on the new iOS build.
+    -   **Debug checklist**:
+        1.  Examine the code that decides whether to show a watermark.
+        2.  Check the state of the  for a guest user.
+        3.  Verify the logic correctly identifies a guest and applies the watermark overlay.
+    -   **Why to solve this issue and what will be achieved with this?**: This is a monetization-related feature, encouraging users to upgrade to remove the watermark.
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Is recurring issue?**: N
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **In-App Purchases ( v14.7):** The correct way to purchase a subscription with an offer is . All functions must be imported statically ().
-- **iOS Build Process (EAS):** Requires  for Firebase.  has a known compilation issue () with recent React Native versions. The current strategy is to temporarily remove Firebase from the iOS build entirely.
-- **Expo/EAS Configuration:**  is configured for automatic submission to App Store Connect using an API key.  is used to define plugins and platform-specific settings like  and .
-- **Zustand State Management:** The logout crash was fixed by preventing the  state from becoming  in  and instead transitioning to a defined  state.
-
-**key DB schema**
-No changes in this session.
+-   **IAP v14 ()**: The current implementation in  uses the correct API syntax but fails due to the timing of its initialization ().
+-   **Expo Notifications**: The app now uses Expo's push notification service. The implementation is end-to-end, with token registration on the backend.
+-   **Native Module Crashes ()**: The app is sensitive to when and how native modules are initialized on iOS. The crash is happening during startup/navigation, likely caused by .
+-   **EAS Build/Credentials**: The user has issues with build numbers (/) and Apple credentials (APNs Push Keys). These are configuration issues that need careful guidance.
 
 **All files of reference**
-- : **CRITICAL**. Contains the unverified fix for the P0 IAP subscription bug.
-- : **CRITICAL**. Controls plugins for the build. Firebase plugins were removed to debug the iOS build.
-- : **CRITICAL**. Contains all credentials for automatic App Store submission.
-- : **CRITICAL**. The next step is to modify this file to remove Firebase packages.
--  & : Contain the unverified fix for the logout crash.
+-   : **CRITICAL**. The source of the IAP regression. Needs to be fixed first.
+-   : **CRITICAL**. Contains the Google Sign-In logic. The lazy initialization here should be checked.
+-   : **CRITICAL**. The screen that triggers the crash.
+-   : Important for app-wide initialization. The IAP init logic should likely be moved here.
+-   : All build-time configuration is here.
 
 **Critical Info for New Agent**
-- **PRIORITY #1 - iOS BUILD:** The immediate task is to get a successful iOS build. The last plan was to temporarily remove all  packages from , run yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.27s., and then trigger a new build with An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username. Do this first.
-- **PRIORITY #2 - ANDROID VERIFICATION:** As soon as the iOS build is running, you must proactively guide the user to create a new **Android build**. A huge number of critical fixes (IAP Subscriptions, Logout Crash) are waiting for user verification on Android. The user will not do this unless you tell them to.
-- **The IAP fix in  is solid.** It's based on the user's correct feedback and follows the latest best practices for  v14. It has a high chance of success.
-- **The Logout Crash fix is also solid.** It addresses the root cause by managing state correctly and forcing a navigator remount. It also has a high chance of success.
+-   **PRIORITY #1: FIX IAP & CRASHES.** Do not work on anything else until the app is stable and IAP works on both platforms.
+-   **The IAP regression is the main problem.** The lazy initialization fix for the crash was incorrect and broke IAP. The immediate task is to devise a new initialization strategy. **Proposed Plan:**
+    1.  In , add a  to call  once on app startup. Wrap this call in a  block and log any errors.
+    2.  In , remove any complex lazy-loading logic. The functions  etc. should be available, but only called after the  function in  has successfully completed.
+    3.  In , remove the  call. It should only need to fetch products, assuming initialization is already done.
+-   **Firebase on iOS is a trap.** It has caused dozens of failed builds. Do not attempt to re-integrate it until all other P0 issues are resolved and the user explicitly prioritizes it.
+-   The user is frustrated. Communicate clearly, acknowledge the previous failures, and focus on delivering a stable, working app.
 
 **documents created in this job**
--  (Attempted fix, now obsolete)
--  (Attempted fix, now obsolete)
-- 
-- New  in 
+-   
+-    (rebuilt with notification page)
+-    (Created, modified, but now unused as Firebase is removed from iOS)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Msg 425:** User asks if the iOS build issues are solved now and provides a new build log.
-2.  **Msg 421:** User reports the iOS build failed again with the Firebase  error.
-3.  **Msg 405:** User reports the iOS build failed with a Firebase  error.
-4.  **Msg 403:** User reports a  conflict in .
-5.  **Msg 389:** User reports the iOS build failed with the Firebase  error.
-6.  **Msg 373:** User reports the iOS build failed with the Firebase  error.
-7.  **Msg 361:** User asks if the build will fail due to the small icon size.
-8.  **Msg 353:** User asks if a 1024x1024 app icon exists.
-9.  **Msg 351:** User is confused by the native code instructions in the Firebase console.
-10. **Msg 343:** User has downloaded the  file.
+1.  **Msg 612:** Provides the latest crash log. States the app is still crashing on launch and the premium screen. Reports IAP is broken on both Android and iOS with missing purchase request and could not load subscription errors. Expresses extreme frustration.
+2.  **Msg 610:** States the app is still crashing on first opening because the premium screen has an issue.
+3.  **Msg 572:** User asks if it's correct that EAS is bumping build number from 4 to 5, while the agent set it to 11. (Indicates a  was missed).
+4.  **Msg 570:** User is told to  and build again after build number was incremented to 11.
+5.  **Msg 565:** Reports iOS submission failed because the build number was already used.
+6.  **Msg 561:** Asks to confirm if the iOS client ID is now present in the code.
+7.  **Msg 554:** Provides a crash log from an old build and asks why it's crashing now when it worked before.
+8.  **Msg 549:** Provides a crash log. Asks what the problem is, since they haven't made a new build yet.
+9.  **Msg 510:** Reports that the Go Premium screen is crashing and the app is crashing on first opening.
+10. **Msg 502:** Reports an Android submission error: This version cannot be introduced... ( issue).
 
 **Project Health Check:**
-- **Broken**:
-    - iOS build process.
-- **Mocked**:
-    - None.
-- **Pending Verification**:
-    - In-App Purchases (Subscriptions) on Android.
-    - Logout functionality on all platforms.
-    - IAP one-time purchase cancellation flow.
-    - Dynamic pricing display.
-    - Avatar persistence.
+-   **Broken**:
+    -   In-App Purchases (iOS & Android) - Critical Regression.
+    -   App Stability (iOS) - Crashing on startup and on premium screen.
+-   **Mocked**:
+    -   None.
+-   **Pending Verification**:
+    -   Logout functionality.
+    -   IAP one-time purchase cancellation.
+    -   Dynamic price display.
+    -   Avatar persistence.
 
 **3rd Party Integrations**
-- **Resend:** For emails. Blocked by user.
-- **React Native IAP ():** For In-App Purchases.
-- **React Native Firebase (, ):** For analytics. **Currently causing iOS build to fail.**
-- **React Native Google Sign-In ():** For Google auth.
-- **Expo Apple Authentication ():** For Apple Sign In.
-- **Google AdMob ():** For ads.
-- **Expo Image Picker ():** For avatar uploads.
+-   **react-native-iap**: For In-App Purchases. **Currently misconfigured/broken.**
+-   **@react-native-google-signin/google-signin**: For Google auth. **Configured but was a source of crashes.**
+-   **expo-notifications**: For Push Notifications. Implemented and appears correct.
+-   **expo-apple-authentication**: For Apple Sign In.
+-   **react-native-google-mobile-ads**: For ads.
+-   **Resend**: For emails (Blocked by user).
+-   **@react-native-firebase/*** (Analytics, etc.): **Only on Android.** Removed from iOS due to build issues.
 
 **Testing status**
-- Testing agent used after significant changes: NO
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: []
-- Known regressions: None, but the iOS build is critically broken.
-
-**Credentials to test flow:**
-- IAP and logout testing requires a build installed via Google Play Internal Testing or Apple TestFlight using a licensed/sandbox tester account.
-- Apple Developer credentials and API key are configured in  for automatic submission.
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: YES
+-   Test files created: []
+-   Known regressions: **In-App Purchases are a critical regression.**
 
 **What agent forgot to execute**
-- The agent has correctly prioritized the critical build and monetization issues. Lower priority tasks like the search feature or UI for email flows have been correctly deferred. The main miss was not successfully resolving the iOS build issue, which is the immediate next step.
+-   The agent did not address the user's report of the guest user watermark bug (Msg 68).
+-   The agent got stuck in a loop trying to fix the iOS crash, and in doing so, broke the previously working IAP feature. The focus shifted from fixing IAP to fixing the crash, leading to a regression.
 
 </analysis>
