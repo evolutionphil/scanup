@@ -227,13 +227,14 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     }
   }, [setAdLoaded, setAdShowing, recordAdShown]);
 
-  // Initialize on mount (delayed for stability)
+  // Initialize on mount (minimal delay for stability)
   useEffect(() => {
     if (!isNativeEnvironment) return;
 
+    // Reduced delay from 2000ms to 500ms for faster ad loading
     const timer = setTimeout(() => {
       initializeSDK();
-    }, 2000);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [initializeSDK]);
