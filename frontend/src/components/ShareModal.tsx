@@ -153,14 +153,57 @@ export default function ShareModal({
   };
 
   const generatePdf = async (): Promise<string> => {
+    // Check if user should see watermark (free users only)
+    const { user, isGuest } = useAuthStore.getState();
+    const { isPremium, hasRemovedAds } = usePurchaseStore.getState();
+    
+    // Show watermark for: guests, free users (not premium, not trial, not removed ads)
+    const shouldShowWatermark = isGuest || 
+      (!isPremium && !hasRemovedAds && 
+       user?.subscription_type !== 'premium' && 
+       user?.subscription_type !== 'trial');
+    
+    console.log('[ShareModal] generatePdf - shouldShowWatermark:', shouldShowWatermark, {
+      isGuest,
+      isPremium,
+      hasRemovedAds,
+      subscriptionType: user?.subscription_type
+    });
+    
     // Load images from any source
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
+
+    // Watermark HTML - diagonal text overlay
+    const watermarkHtml = shouldShowWatermark ? `
+      <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 72px;
+        font-weight: bold;
+        color: rgba(62, 81, 251, 0.15);
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+        letter-spacing: 8px;
+      ">ScanUp</div>
+    ` : '';
 
     const imageHtml = imagesBase64.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
       return `
-        <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
+        <div style="
+          page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; 
+          text-align: center; 
+          padding: 0; 
+          margin: 0;
+          position: relative;
+          min-height: 100vh;
+        ">
           <img src="${base64WithPrefix}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+          ${watermarkHtml}
         </div>
       `;
     }).join('');
