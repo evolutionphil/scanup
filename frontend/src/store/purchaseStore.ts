@@ -118,28 +118,26 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         activeSubscription,
       });
       
-      // Initialize IAP
-      try {
-        if (!iapInitConnection) {
-          console.log('[PurchaseStore] IAP module not available');
-          set({ isInitialized: true, isLoading: false });
-          return;
+      // Initialize IAP - wrapped in try-catch to prevent crashes
+      if (iapInitConnection) {
+        try {
+          await iapInitConnection();
+          console.log('[PurchaseStore] IAP connected');
+          
+          // Fetch products
+          await get().fetchProducts();
+        } catch (iapError: any) {
+          console.error('[PurchaseStore] IAP init error:', iapError?.message || iapError);
+          // Don't set error state - just log it, app should continue working
         }
-        await iapInitConnection();
-        console.log('[PurchaseStore] IAP connected');
-        
-        // Fetch products
-        await get().fetchProducts();
-        
-      } catch (iapError: any) {
-        console.error('[PurchaseStore] IAP init error:', iapError);
-        set({ error: iapError.message });
+      } else {
+        console.log('[PurchaseStore] IAP module not available - skipping initialization');
       }
       
       set({ isInitialized: true, isLoading: false });
     } catch (error: any) {
-      console.error('[PurchaseStore] Init error:', error);
-      set({ isInitialized: true, isLoading: false, error: error.message });
+      console.error('[PurchaseStore] Init error:', error?.message || error);
+      set({ isInitialized: true, isLoading: false });
     }
   },
 
