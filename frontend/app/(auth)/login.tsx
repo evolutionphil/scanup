@@ -126,10 +126,19 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
+    // Check if Google Sign-In is configured for this platform
+    if (Platform.OS === 'ios' && !googleSignInConfigured) {
+      Alert.alert(
+        t('google_signin_unavailable', 'Google Sign-In Unavailable'),
+        t('use_apple_signin', 'Please use Apple Sign-In on iOS devices.')
+      );
+      return;
+    }
+    
     setGoogleLoading(true);
     try {
       // Use native Google Sign-In on mobile platforms
-      if (Platform.OS !== 'web' && GoogleSignin) {
+      if (Platform.OS !== 'web' && GoogleSignin && googleSignInConfigured) {
         console.log('[GoogleLogin] Using native Google Sign-In');
         console.log('[GoogleLogin] Checking Play Services...');
         
