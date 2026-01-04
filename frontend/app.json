@@ -129,9 +129,7 @@
         {
           "microphonePermission": "Allow ScanUp to access your microphone for video capture"
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
