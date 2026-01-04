@@ -139,6 +139,9 @@ export const getPushToken = async (): Promise<string | null> => {
     // Store token locally
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
     
+    // Save token to backend
+    await savePushTokenToBackend(token);
+    
     return token;
   } catch (error) {
     console.error('[Notifications] Get push token error:', error);
