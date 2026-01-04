@@ -156,11 +156,12 @@ export const savePushTokenToBackend = async (token: string): Promise<boolean> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await AsyncStorage.getItem('@scanup_auth_token')}`,
       },
       body: JSON.stringify({
-        token,
-        platform: Platform.OS,
-        deviceId: Device.osInternalBuildId || 'unknown',
+        push_token: token,
+        device_type: Platform.OS,
+        device_id: Device.osInternalBuildId || 'unknown',
       }),
     });
 
