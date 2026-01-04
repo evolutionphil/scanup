@@ -128,29 +128,42 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     setAdsEnabled(newAdsEnabled);
   }, [purchaseInitialized, userIsPremium, userIsTrial, isPremium, hasRemovedAds, setAdsEnabled]);
 
-  // Initialize SDK
-  const initializeSDK = useCallback(async () => {
+  // Initialize SDK with retry mechanism
+  const initializeSDK = useCallback(async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     if (!isNativeEnvironment) {
       console.log('[AdManager] Skipping - web platform');
       return;
     }
 
-    if (isSDKInitialized || isInitializing) return;
+    if (isSDKInitialized) {
+      console.log('[AdManager] SDK already initialized, loading interstitial...');
+      loadInterstitial();
+      return;
+    }
+    
+    if (isInitializing) {
+      console.log('[AdManager] SDK initialization already in progress');
+      return;
+    }
+    
     if (!mountedRef.current) return;
 
     isInitializing = true;
+    console.log(`[AdManager] Initializing AdMob SDK... (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
 
     try {
       // Initialize AdMob
       const adsModule = getAdsModule();
       if (!adsModule) {
-        console.log('[AdManager] Ads module not available');
+        console.log('[AdManager] ❌ Ads module not available - react-native-google-mobile-ads may not be installed');
         isInitializing = false;
         return;
       }
       
       const mobileAds = adsModule.default;
-      console.log('[AdManager] Initializing AdMob SDK...');
+      console.log('[AdManager] Calling mobileAds().initialize()...');
       
       await mobileAds().initialize();
       
@@ -159,14 +172,29 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         return;
       }
       
-      console.log('[AdManager] AdMob SDK initialized');
+      console.log('[AdManager] ✅ AdMob SDK initialized successfully!');
       isSDKInitialized = true;
+      isInitializing = false;
       setSdkReady(true);
       
+      // Load interstitial immediately after SDK init
       loadInterstitial();
-    } catch (error) {
-      console.error('[AdManager] SDK init failed:', error);
+    } catch (error: any) {
+      console.error('[AdManager] ❌ SDK init failed:', error?.message || error);
       isInitializing = false;
+      
+      // Retry mechanism
+      if (retryCount < MAX_RETRIES && mountedRef.current) {
+        const delay = (retryCount + 1) * 2000; // 2s, 4s, 6s
+        console.log(`[AdManager] Retrying in ${delay/1000}s...`);
+        setTimeout(() => {
+          if (mountedRef.current) {
+            initializeSDK(retryCount + 1);
+          }
+        }, delay);
+      } else {
+        console.log('[AdManager] ❌ Max retries reached, ads will not be available');
+      }
     }
   }, []);
 
