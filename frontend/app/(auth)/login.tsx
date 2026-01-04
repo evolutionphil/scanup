@@ -128,6 +128,9 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
+    // Initialize Google Sign-In lazily
+    initializeGoogleSignIn();
+    
     // Check if Google Sign-In is configured for this platform
     if (Platform.OS === 'ios' && !googleSignInConfigured) {
       Alert.alert(
