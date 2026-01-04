@@ -349,6 +349,13 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       return false;
     }
     
+    // Check if IAP module is available
+    if (!iapRequestPurchase) {
+      console.log('[PurchaseStore] IAP module not available');
+      set({ error: 'In-app purchases not available on this device' });
+      return false;
+    }
+    
     console.log('[PurchaseStore] Purchasing subscription with v14 API:', productId);
     set({ isLoading: true, error: null });
     
