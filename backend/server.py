@@ -5618,6 +5618,135 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(sec
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid admin token")
 
+# ==================== PUSH NOTIFICATIONS API ====================
+
+class PushTokenRequest(BaseModel):
+    push_token: str
+    device_type: str = "unknown"  # ios, android
+    device_id: Optional[str] = None
+
+class SendNotificationRequest(BaseModel):
+    user_ids: Optional[List[str]] = None  # If None, send to all
+    title: str
+    body: str
+    data: Optional[Dict[str, Any]] = None
+
+@api_router.post("/notifications/register-token")
+async def register_push_token(request: PushTokenRequest, user: dict = Depends(get_current_user)):
+    """Register push token for a user"""
+    try:
+        # Update user with push token
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {
+                "$set": {
+                    "push_token": request.push_token,
+                    "device_type": request.device_type,
+                    "device_id": request.device_id,
+                    "push_token_updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"Push token registered for user {user['user_id']}")
+        return {"success": True, "message": "Push token registered"}
+    except Exception as e:
+        logger.error(f"Failed to register push token: {e}")
+        raise HTTPException(status_code=500, detail="Failed to register push token")
+
+@api_router.delete("/notifications/unregister-token")
+async def unregister_push_token(user: dict = Depends(get_current_user)):
+    """Remove push token for a user (on logout)"""
+    try:
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {
+                "$unset": {
+                    "push_token": "",
+                    "device_type": "",
+                    "device_id": ""
+                }
+            }
+        )
+        
+        logger.info(f"Push token removed for user {user['user_id']}")
+        return {"success": True, "message": "Push token removed"}
+    except Exception as e:
+        logger.error(f"Failed to unregister push token: {e}")
+        raise HTTPException(status_code=500, detail="Failed to unregister push token")
+
+@api_router.post("/admin/send-notification")
+async def send_push_notification(request: SendNotificationRequest, admin: dict = Depends(get_admin_user)):
+    """Send push notification to users (admin only)"""
+    try:
+        # Build query
+        query = {"push_token": {"$exists": True, "$ne": None}}
+        if request.user_ids:
+            query["user_id"] = {"$in": request.user_ids}
+        
+        # Get users with push tokens
+        users = await db.users.find(query, {"push_token": 1, "user_id": 1}).to_list(1000)
+        
+        if not users:
+            return {"success": True, "sent_count": 0, "message": "No users with push tokens found"}
+        
+        # Prepare push tokens
+        push_tokens = [u["push_token"] for u in users if u.get("push_token")]
+        
+        # Send via Expo Push Service
+        sent_count = 0
+        failed_count = 0
+        
+        # Expo Push API endpoint
+        expo_push_url = "https://exp.host/--/api/v2/push/send"
+        
+        # Send in batches of 100
+        async with httpx.AsyncClient() as client:
+            for i in range(0, len(push_tokens), 100):
+                batch = push_tokens[i:i+100]
+                messages = [
+                    {
+                        "to": token,
+                        "title": request.title,
+                        "body": request.body,
+                        "data": request.data or {},
+                        "sound": "default",
+                        "priority": "high"
+                    }
+                    for token in batch
+                ]
+                
+                try:
+                    response = await client.post(
+                        expo_push_url,
+                        json=messages,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        for ticket in result.get("data", []):
+                            if ticket.get("status") == "ok":
+                                sent_count += 1
+                            else:
+                                failed_count += 1
+                    else:
+                        failed_count += len(batch)
+                        logger.error(f"Expo push failed: {response.text}")
+                except Exception as e:
+                    failed_count += len(batch)
+                    logger.error(f"Expo push error: {e}")
+        
+        return {
+            "success": True,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "total_tokens": len(push_tokens)
+        }
+    except Exception as e:
+        logger.error(f"Failed to send notifications: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send notifications: {str(e)}")
+
 @api_router.get("/admin/me")
 async def admin_me(admin: dict = Depends(get_admin_user)):
     """Get current admin user"""
