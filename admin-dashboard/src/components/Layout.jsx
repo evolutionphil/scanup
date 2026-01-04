@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ScanLine,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/documents', icon: FileText, label: 'Documents' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/localization', icon: Globe, label: 'Localization' },
   { path: '/legal-pages', icon: Shield, label: 'Legal Pages' },
   { path: '/settings', icon: Settings, label: 'Settings' },
