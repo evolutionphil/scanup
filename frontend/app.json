@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.visiongo.scanupp",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#3B82F6"
