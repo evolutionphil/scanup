@@ -3,20 +3,20 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Conditional imports for react-native-iap (not available on web)
-let initConnection: any = null;
-let fetchProducts: any = null;
-let requestPurchase: any = null;
-let getAvailablePurchases: any = null;
-let finishTransaction: any = null;
+let iapInitConnection: any = null;
+let iapFetchProducts: any = null;
+let iapRequestPurchase: any = null;
+let iapGetAvailablePurchases: any = null;
+let iapFinishTransaction: any = null;
 
 if (Platform.OS !== 'web') {
   try {
     const iap = require('react-native-iap');
-    initConnection = iap.initConnection;
-    fetchProducts = iap.fetchProducts;
-    requestPurchase = iap.requestPurchase;
-    getAvailablePurchases = iap.getAvailablePurchases;
-    finishTransaction = iap.finishTransaction;
+    iapInitConnection = iap.initConnection;
+    iapFetchProducts = iap.fetchProducts;
+    iapRequestPurchase = iap.requestPurchase;
+    iapGetAvailablePurchases = iap.getAvailablePurchases;
+    iapFinishTransaction = iap.finishTransaction;
     console.log('[PurchaseStore] IAP module loaded successfully');
   } catch (e) {
     console.log('[PurchaseStore] IAP module not available:', e);
