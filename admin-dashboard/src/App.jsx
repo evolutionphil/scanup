@@ -45,6 +45,7 @@ function App() {
                   <Route path="/users" element={<Users />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   <Route path="/localization" element={<Localization />} />
                   <Route path="/legal-pages" element={<LegalPages />} />
                   <Route path="/settings" element={<Settings />} />
