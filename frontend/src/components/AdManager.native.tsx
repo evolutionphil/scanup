@@ -85,15 +85,22 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     };
   }, []);
 
-  // Initialize purchase store (only once on mount)
+  // Initialize purchase store immediately on mount (critical for IAP to work)
   useEffect(() => {
     if (!purchasesInitStarted && !purchaseInitialized && mountedRef.current) {
       setPurchasesInitStarted(true);
-      initializePurchases().catch(err => {
-        if (mountedRef.current) {
-          console.log('[AdManager] Purchase init error:', err);
-        }
-      });
+      console.log('[AdManager] Starting IAP initialization...');
+      
+      // Initialize immediately - don't wait
+      initializePurchases()
+        .then(() => {
+          console.log('[AdManager] IAP initialized successfully');
+        })
+        .catch(err => {
+          if (mountedRef.current) {
+            console.log('[AdManager] Purchase init error:', err);
+          }
+        });
     }
   }, [purchasesInitStarted, purchaseInitialized, initializePurchases]);
 
