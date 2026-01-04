@@ -1,50 +1,280 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
-// Messaging Service - Firebase removed due to iOS build issues
-// This is a NO-OP implementation
+const PUSH_TOKEN_KEY = '@scanup_push_token';
 
+// Configure how notifications are handled when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+// Initialize notifications
 export const initMessaging = async () => {
-  console.log('[Messaging] Push notifications disabled - Firebase not available');
+  if (Platform.OS === 'web') {
+    console.log('[Notifications] Skipping on web platform');
+    return;
+  }
+  
+  console.log('[Notifications] Expo Notifications initialized');
+  
+  // Set up notification channels for Android
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#4A90D9',
+      sound: 'default',
+    });
+    
+    await Notifications.setNotificationChannelAsync('promotions', {
+      name: 'Promotions',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'default',
+    });
+    
+    await Notifications.setNotificationChannelAsync('updates', {
+      name: 'App Updates',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+    });
+  }
 };
 
+// Request notification permissions
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  console.log('[Messaging] Permission request skipped - Firebase not available');
-  return false;
+  if (Platform.OS === 'web') {
+    return false;
+  }
+  
+  // Check if physical device (notifications don't work on simulators)
+  if (!Device.isDevice) {
+    console.log('[Notifications] Must use physical device for push notifications');
+    return false;
+  }
+  
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    if (finalStatus !== 'granted') {
+      console.log('[Notifications] Permission not granted');
+      return false;
+    }
+    
+    console.log('[Notifications] Permission granted');
+    return true;
+  } catch (error) {
+    console.error('[Notifications] Permission request error:', error);
+    return false;
+  }
 };
 
+// Check current permission status
 export const checkNotificationPermission = async (): Promise<boolean> => {
-  return false;
+  if (Platform.OS === 'web') {
+    return false;
+  }
+  
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch (error) {
+    console.error('[Notifications] Check permission error:', error);
+    return false;
+  }
 };
 
-export const getFCMToken = async (): Promise<string | null> => {
-  console.log('[Messaging] FCM Token not available - Firebase not installed');
-  return null;
+// Get Expo Push Token
+export const getPushToken = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  
+  if (!Device.isDevice) {
+    console.log('[Notifications] Push tokens require physical device');
+    return null;
+  }
+  
+  try {
+    // Check permission first
+    const hasPermission = await checkNotificationPermission();
+    if (!hasPermission) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        return null;
+      }
+    }
+    
+    // Get project ID from app config
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    
+    if (!projectId) {
+      console.error('[Notifications] No project ID found in app config');
+      return null;
+    }
+    
+    // Get Expo Push Token
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
+    
+    const token = tokenData.data;
+    console.log('[Notifications] Push token:', token.substring(0, 30) + '...');
+    
+    // Store token locally
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+    
+    return token;
+  } catch (error) {
+    console.error('[Notifications] Get push token error:', error);
+    return null;
+  }
 };
 
-export const deleteFCMToken = async () => {
-  // No-op
+// Delete/clear push token
+export const deletePushToken = async () => {
+  try {
+    await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+    console.log('[Notifications] Push token cleared');
+  } catch (error) {
+    console.error('[Notifications] Delete token error:', error);
+  }
 };
 
-export const onForegroundMessage = (callback: (message: any) => void) => {
-  return () => {}; // Return unsubscribe function
+// Get stored push token
+export const getStoredPushToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
 };
 
-export const onNotificationOpened = (callback: (message: any) => void) => {
-  return () => {};
+// Add listener for foreground notifications
+export const onForegroundNotification = (
+  callback: (notification: Notifications.Notification) => void
+) => {
+  const subscription = Notifications.addNotificationReceivedListener(callback);
+  return () => subscription.remove();
 };
 
-export const getInitialNotification = async () => {
-  return null;
+// Add listener for notification interactions (taps)
+export const onNotificationResponse = (
+  callback: (response: Notifications.NotificationResponse) => void
+) => {
+  const subscription = Notifications.addNotificationResponseReceivedListener(callback);
+  return () => subscription.remove();
 };
 
-export const subscribeToTopic = async (topic: string) => {
-  console.log(`[Messaging] Topic subscription skipped: ${topic}`);
+// Get last notification response (when app opened from notification)
+export const getLastNotificationResponse = async () => {
+  return await Notifications.getLastNotificationResponseAsync();
 };
 
-export const unsubscribeFromTopic = async (topic: string) => {
-  // No-op
+// Schedule a local notification
+export const scheduleLocalNotification = async (
+  title: string,
+  body: string,
+  data?: Record<string, any>,
+  trigger?: Notifications.NotificationTriggerInput
+) => {
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
+        sound: 'default',
+      },
+      trigger: trigger || null, // null = immediate
+    });
+    console.log('[Notifications] Scheduled notification:', id);
+    return id;
+  } catch (error) {
+    console.error('[Notifications] Schedule error:', error);
+    return null;
+  }
 };
 
+// Cancel a scheduled notification
+export const cancelNotification = async (notificationId: string) => {
+  await Notifications.cancelScheduledNotificationAsync(notificationId);
+};
+
+// Cancel all notifications
+export const cancelAllNotifications = async () => {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+};
+
+// Get badge count
+export const getBadgeCount = async (): Promise<number> => {
+  return await Notifications.getBadgeCountAsync();
+};
+
+// Set badge count
+export const setBadgeCount = async (count: number) => {
+  await Notifications.setBadgeCountAsync(count);
+};
+
+// Clear badge
+export const clearBadge = async () => {
+  await Notifications.setBadgeCountAsync(0);
+};
+
+// Show a simple notification alert
+export const showNotificationAlert = (
+  title: string,
+  body: string,
+  onPress?: () => void
+) => {
+  Alert.alert(
+    title,
+    body,
+    [
+      { text: 'Dismiss', style: 'cancel' },
+      ...(onPress ? [{ text: 'View', onPress }] : []),
+    ],
+    { cancelable: true }
+  );
+};
+
+// Setup notification handlers - call in app entry
+export const setupNotificationHandlers = (
+  onForeground?: (notification: Notifications.Notification) => void,
+  onTap?: (response: Notifications.NotificationResponse) => void
+) => {
+  const subscriptions: (() => void)[] = [];
+  
+  if (onForeground) {
+    subscriptions.push(onForegroundNotification(onForeground));
+  }
+  
+  if (onTap) {
+    subscriptions.push(onNotificationResponse(onTap));
+  }
+  
+  // Return cleanup function
+  return () => {
+    subscriptions.forEach(unsub => unsub());
+  };
+};
+
+// Notification Topics (for backend filtering)
 export const NotificationTopics = {
   ALL_USERS: 'all_users',
   PREMIUM_USERS: 'premium_users',
@@ -53,13 +283,14 @@ export const NotificationTopics = {
   PROMOTIONS: 'promotions',
 };
 
-export const showNotificationAlert = (title: string, body: string, onPress?: () => void) => {
-  // No-op
+// Legacy aliases for compatibility
+export const getFCMToken = getPushToken;
+export const deleteFCMToken = deletePushToken;
+export const subscribeToTopic = async (topic: string) => {
+  console.log(`[Notifications] Topic subscription: ${topic} (handled by backend)`);
 };
-
-export const setupNotificationHandlers = (
-  onForeground?: (message: any) => void,
-  onBackground?: (message: any) => void
-) => {
-  return () => {};
+export const unsubscribeFromTopic = async (topic: string) => {
+  console.log(`[Notifications] Topic unsubscription: ${topic} (handled by backend)`);
 };
+export const onNotificationOpened = onNotificationResponse;
+export const getInitialNotification = getLastNotificationResponse;
