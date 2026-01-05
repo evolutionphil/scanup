@@ -40,6 +40,9 @@ import HardPaywall from '../../src/components/HardPaywall';
 import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile, getImageBase64, loadImageAsBase64 } from '../../src/utils/localImageProcessor';
 // Offline queue for pending operations
 import { useOfflineQueue } from '../../src/hooks/useOfflineQueue';
+// Local signature/annotation processing using view-shot
+import { captureRef } from 'react-native-view-shot';
+import ViewShot from 'react-native-view-shot';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
