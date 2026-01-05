@@ -187,22 +187,26 @@ export default function ScannerScreen() {
           
           console.log('[Scanner] Pages added to document:', addToDocumentId);
           
-          // 1️⃣ Scan sayısını artır (AsyncStorage ile kalıcı)
-          const count = await increaseScanCount();
-          console.log('[Scanner] Total scan count:', count);
+          // 1️⃣ Camera/Scanner'ı KAPAT (state update)
+          setScannerActive(false);
+          await new Promise(r => setTimeout(r, 50)); // UI thread'e nefes aldır
           
-          // 2️⃣ 3 scan → reklam göster (sadece free userlar için)
-          let adShown = false;
-          if (count >= 3 && shouldShowAds()) {
-            console.log('[Scanner] 3 scans reached, showing ad...');
-            adShown = showInterstitialIfReady();
-            if (adShown) {
-              await resetScanCount();
-              console.log('[Scanner] Ad shown, count reset');
+          // 2️⃣ Scan sayısını artır ve reklam kontrol et
+          const adStore = useAdStore.getState();
+          const shouldShow = adStore.incrementScanCount();
+          
+          console.log('[Scanner] Should show ad:', shouldShow);
+          
+          // 3️⃣ Reklam göster (sadece free userlar için)
+          if (shouldShow && shouldShowAds()) {
+            console.log('[Scanner] Showing interstitial...');
+            const shown = adStore.show();
+            if (shown) {
+              adStore.resetScanCount();
             }
           }
           
-          // 3️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
+          // 4️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
           InteractionManager.runAfterInteractions(() => {
             try {
               router.replace(`/document/${addToDocumentId}`);
@@ -221,22 +225,26 @@ export default function ScannerScreen() {
         if (newDoc && newDoc.document_id) {
           console.log('[Scanner] Document created with ID:', newDoc.document_id);
           
-          // 1️⃣ Scan sayısını artır (AsyncStorage ile kalıcı)
-          const count = await increaseScanCount();
-          console.log('[Scanner] Total scan count:', count);
+          // 1️⃣ Camera/Scanner'ı KAPAT
+          setScannerActive(false);
+          await new Promise(r => setTimeout(r, 50));
           
-          // 2️⃣ 3 scan → reklam göster (sadece free userlar için)
-          let adShown = false;
-          if (count >= 3 && shouldShowAds()) {
-            console.log('[Scanner] 3 scans reached, showing ad...');
-            adShown = showInterstitialIfReady();
-            if (adShown) {
-              await resetScanCount();
-              console.log('[Scanner] Ad shown, count reset');
+          // 2️⃣ Scan sayısını artır ve reklam kontrol et
+          const adStore = useAdStore.getState();
+          const shouldShow = adStore.incrementScanCount();
+          
+          console.log('[Scanner] Should show ad:', shouldShow);
+          
+          // 3️⃣ Reklam göster
+          if (shouldShow && shouldShowAds()) {
+            console.log('[Scanner] Showing interstitial...');
+            const shown = adStore.show();
+            if (shown) {
+              adStore.resetScanCount();
             }
           }
           
-          // 3️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
+          // 4️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
           InteractionManager.runAfterInteractions(() => {
             try {
               router.replace(`/document/${newDoc.document_id}`);
