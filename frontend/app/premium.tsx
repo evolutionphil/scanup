@@ -95,17 +95,17 @@ export default function PremiumScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Get prices from fetched products
-  const getPrice = (productId: string) => {
-    const sub = subscriptions.find(s => s.productId === productId);
+  // Get prices from fetched products - using canonicalId
+  const getPrice = (canonicalId: string) => {
+    const sub = subscriptions.find(s => s.canonicalId === canonicalId);
     if (sub) return sub.localizedPrice;
-    const prod = products.find(p => p.productId === productId);
+    const prod = products.find(p => p.canonicalId === canonicalId);
     if (prod) return prod.localizedPrice;
     return ''; // Return empty if not loaded
   };
 
-  const monthlyPrice = getPrice(PRODUCT_IDS.PREMIUM_MONTHLY);
-  const yearlyPrice = getPrice(PRODUCT_IDS.PREMIUM_YEARLY);
+  const monthlyPrice = getPrice(CANONICAL_PRODUCTS.PREMIUM_MONTHLY);
+  const yearlyPrice = getPrice(CANONICAL_PRODUCTS.PREMIUM_YEARLY);
   const arePricesLoaded = monthlyPrice !== '' || yearlyPrice !== '';
 
   const handlePurchase = async () => {
@@ -119,27 +119,27 @@ export default function PremiumScreen() {
     setError(null);
     
     let success = false;
-    let productId = '';
+    let canonicalId = '';
     
     if (selectedPlan === 'monthly') {
-      productId = PRODUCT_IDS.PREMIUM_MONTHLY;
-      logPurchaseEvent('started', productId);
-      success = await purchaseSubscription(productId);
+      canonicalId = CANONICAL_PRODUCTS.PREMIUM_MONTHLY;
+      logPurchaseEvent('started', canonicalId);
+      success = await purchaseSubscription(canonicalId);
     } else {
-      productId = PRODUCT_IDS.PREMIUM_YEARLY;
-      logPurchaseEvent('started', productId);
-      success = await purchaseSubscription(productId);
+      canonicalId = CANONICAL_PRODUCTS.PREMIUM_YEARLY;
+      logPurchaseEvent('started', canonicalId);
+      success = await purchaseSubscription(canonicalId);
     }
     
     if (success) {
-      logPurchaseEvent('completed', productId);
+      logPurchaseEvent('completed', canonicalId);
       Alert.alert(
         t('purchase_success', 'Purchase Successful!'),
         t('purchase_success_message', 'Thank you for your purchase. Enjoy your premium features!'),
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } else if (error) {
-      logPurchaseEvent('failed', productId, undefined, undefined, error);
+      logPurchaseEvent('failed', canonicalId, undefined, undefined, error);
     }
   };
 
