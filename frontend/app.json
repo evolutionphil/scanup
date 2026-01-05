@@ -2,7 +2,7 @@
   "expo": {
     "name": "ScanUp",
     "slug": "scanup",
-    "version": "1.0.4",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scanup",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.visiongo.scanupp",
-      "buildNumber": "11",
+      "buildNumber": "19",
       "infoPlist": {
         "NSCameraUsageDescription": "ScanUp needs camera access to scan documents",
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
@@ -20,7 +20,9 @@
         "NSMicrophoneUsageDescription": "ScanUp may use the microphone for video capture",
         "NSUserTrackingUsageDescription": "This helps us show you relevant ads and keep ScanUp free.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "entitlements": {
         "aps-environment": "production"
