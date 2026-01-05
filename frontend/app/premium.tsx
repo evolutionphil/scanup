@@ -144,14 +144,14 @@ export default function PremiumScreen() {
     }
     
     if (success) {
-      logPurchaseEvent('completed', canonicalId);
+      logPurchaseEvent('completed', productId);
       Alert.alert(
         t('purchase_success', 'Purchase Successful!'),
         t('purchase_success_message', 'Thank you for your purchase. Enjoy your premium features!'),
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } else if (error) {
-      logPurchaseEvent('failed', canonicalId, undefined, undefined, error);
+      logPurchaseEvent('failed', productId, undefined, undefined, error);
     }
   };
 
