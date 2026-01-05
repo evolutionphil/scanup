@@ -21,18 +21,19 @@ import { useThemeStore } from '../store/themeStore';
 import { useI18n } from '../store/i18nStore';
 import { useAdStore } from '../store/adStore';
 import { useAuthStore } from '../store/authStore';
-import { usePurchaseStore } from '../store/purchaseStore';
+import { usePurchaseStore, canExportWithoutWatermark } from '../store/purchaseStore';
+import { useMonetizationStore } from '../store/monetizationStore';
 import { showGlobalInterstitial } from './AdManager';
+import SoftPaywall from './SoftPaywall';
 
 import Constants from 'expo-constants';
 
-// Backend URL for PDF password protection - use multiple fallbacks for reliability
+// Backend URL for PDF password protection
 const BACKEND_URL = 
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  'https://scanup-production.up.railway.app';  // Railway backend
+  'https://scanup-production.up.railway.app';
 
-// Brand colors (used for primary accent - stays the same in both themes)
 const BRAND_BLUE = '#3E51FB';
 
 // Helper to load image base64 from any source
