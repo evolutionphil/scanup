@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "scanup",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "owner": "visiongo",
     "ios": {
       "supportsTablet": true,
