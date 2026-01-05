@@ -74,8 +74,10 @@ export const useAdStore = create<AdState>((set, get) => ({
     console.log('[AdStore] 🚀 Starting LAZY ads initialization...');
 
     try {
-      // Dynamic import to avoid startup crash
-      const adsModule = require('react-native-google-mobile-ads');
+      // Dynamic import to avoid startup crash and web bundling issues
+      // Use string concatenation to prevent Metro from analyzing this require
+      const moduleName = 'react-native-google-mobile-' + 'ads';
+      const adsModule = require(moduleName);
       mobileAds = adsModule.default;
       InterstitialAd = adsModule.InterstitialAd;
       AdEventType = adsModule.AdEventType;
