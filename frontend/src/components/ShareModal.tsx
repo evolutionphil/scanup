@@ -340,10 +340,14 @@ export default function ShareModal({
           dialogTitle: `Share ${documentName}`,
         });
         
-        // Show ad after successful share
+        // ⭐ Increment export count after successful share
+        await incrementExportCount();
+        
+        // Show ad after successful share (respects monetization rules)
         await tryShowAd();
       } else {
         Alert.alert('Success', 'File saved successfully');
+        await incrementExportCount();
       }
       onClose();
     } catch (error: any) {
@@ -352,6 +356,13 @@ export default function ShareModal({
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Called when user dismisses paywall and wants to continue with watermark
+  const handlePaywallDismiss = () => {
+    setShowPaywall(false);
+    // User chose "Not now" - proceed with export (with watermark)
+    performExport();
   };
 
   const handleMail = async () => {
