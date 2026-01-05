@@ -9,13 +9,14 @@ import { AdManager } from '../src/components/AdManager';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
-import { initInterstitial } from '../src/services/adsService';
+import { useAdStore } from '../src/store/adStore';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
   const user = useAuthStore((state) => state.user);
   const initializePurchases = usePurchaseStore((state) => state.initialize);
+  const initAds = useAdStore((state) => state.init);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -29,8 +30,8 @@ export default function RootLayout() {
         // 1️⃣ iOS ATT (App Tracking Transparency) izni
         requestTrackingPermission();
         
-        // 2️⃣ Initialize Ads (yeni basit servis)
-        initInterstitial();
+        // 2️⃣ Initialize Ads (yeni zustand store)
+        initAds();
         
         // 3️⃣ Initialize IAP - critical for purchases
         initializePurchases()
