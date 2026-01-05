@@ -165,8 +165,13 @@ export default function ScannerScreen() {
       };
       
       if (addToDocumentId) {
-        // Adding pages to existing document
-        const existingDoc = documents.find(d => d.document_id === addToDocumentId);
+        // Adding pages to existing document - get fresh state
+        const { documents: currentDocs } = useDocumentStore.getState();
+        const existingDoc = currentDocs.find(d => d.document_id === addToDocumentId);
+        
+        console.log('[Scanner] Looking for document:', addToDocumentId);
+        console.log('[Scanner] Available documents:', currentDocs.map(d => d.document_id));
+        
         if (existingDoc) {
           const newPages = validImages.map((img, index) => ({
             page_id: generatePageId(),
