@@ -5,7 +5,6 @@ import { StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
-import { AdManager } from '../src/components/AdManager';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
@@ -27,15 +26,22 @@ export default function RootLayout() {
       
       // Initialize on native platforms
       if (Platform.OS !== 'web') {
-        // 1️⃣ iOS ATT (App Tracking Transparency) izni
-        requestTrackingPermission();
+        // 1️⃣ iOS ATT (App Tracking Transparency) izni - ÇOK GEÇ başlat
+        if (Platform.OS === 'ios') {
+          setTimeout(() => {
+            requestTrackingPermission();
+          }, 3000);
+        }
         
-        // 2️⃣ Initialize Ads (yeni zustand store) - delayed for stability
+        // 2️⃣ Initialize Ads - iOS'ta ÇOK GEÇ başlat (crash fix)
+        // iOS'ta ads startup'ta init edilirse crash yapıyor
+        const adsDelay = Platform.OS === 'ios' ? 5000 : 1000;
         setTimeout(() => {
+          console.log('[RootLayout] Initializing ads...');
           initAds();
-        }, 500);
+        }, adsDelay);
         
-        // 3️⃣ Initialize IAP - DELAYED to prevent TurboModule crash
+        // 3️⃣ Initialize IAP - DELAYED
         setTimeout(() => {
           initializePurchases()
             .then(() => {
@@ -44,17 +50,18 @@ export default function RootLayout() {
             .catch(err => {
               console.log('[RootLayout] IAP init error (non-critical):', err);
             });
-        }, 1000);
+        }, 2000);
         
-        // 4️⃣ Initialize Firebase services
-        initializeFirebase().then(() => {
-          // Setup push notifications after Firebase is initialized
-          setupPushNotifications(user?.user_id).catch(err => {
-            console.log('[RootLayout] Push notification setup error:', err);
+        // 4️⃣ Initialize Firebase services (Android only for now)
+        if (Platform.OS === 'android') {
+          initializeFirebase().then(() => {
+            setupPushNotifications(user?.user_id).catch(err => {
+              console.log('[RootLayout] Push notification setup error:', err);
+            });
+          }).catch(err => {
+            console.log('[RootLayout] Firebase init error:', err);
           });
-        }).catch(err => {
-          console.log('[RootLayout] Firebase init error:', err);
-        });
+        }
       }
     }
   }, []);
