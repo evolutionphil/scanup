@@ -438,18 +438,17 @@ export default function DocumentScreen() {
       
       // ⭐ LOCAL-FIRST: Save processed image to file system immediately
       let newFileUri = currentPage.image_file_uri;
-      if (finalImage && isLocalDoc) {
+      if (finalImage && isLocalDoc && Platform.OS !== 'web') {
         try {
-          const FileSystem = require('expo-file-system').default;
-          const imageDir = `${FileSystem.documentDirectory}images/`;
+          const imageDir = `${documentDirectory}images/`;
           // Ensure directory exists
-          const dirInfo = await FileSystem.getInfoAsync(imageDir);
+          const dirInfo = await getInfoAsync(imageDir);
           if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(imageDir, { intermediates: true });
+            await makeDirectoryAsync(imageDir, { intermediates: true });
           }
           const filename = `${currentDocument.document_id}_p${selectedPageIndex}_filtered_${Date.now()}.jpg`;
           const fileUri = `${imageDir}${filename}`;
-          await FileSystem.writeAsStringAsync(fileUri, finalImage, { encoding: FileSystem.EncodingType.Base64 });
+          await writeAsStringAsync(fileUri, finalImage, { encoding: EncodingType.Base64 });
           newFileUri = fileUri;
           console.log('[handleApplyFilter] ✅ Saved filtered image to:', fileUri);
         } catch (saveErr) {
