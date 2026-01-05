@@ -864,46 +864,70 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   updateDocument: async (token, documentId, data) => {
-    // If no token or local document, update locally
+    const { documents, currentDocument } = get();
+    const existingDoc = documents.find(d => d.document_id === documentId) || currentDocument;
+    
+    if (!existingDoc) {
+      console.error('[updateDocument] Document not found in state:', documentId);
+      throw new Error('Document not found');
+    }
+    
+    // ⭐ LOCAL-FIRST: Always update local state IMMEDIATELY
+    const updatedDoc: Document = {
+      ...existingDoc,
+      ...data,
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Update state immediately (INSTANT UI feedback)
+    set((state) => ({
+      documents: state.documents.map((d) =>
+        d.document_id === documentId ? updatedDoc : d
+      ),
+      currentDocument: state.currentDocument?.document_id === documentId ? updatedDoc : state.currentDocument,
+    }));
+    
+    console.log('[updateDocument] ✅ Local state updated immediately');
+    
+    // If no token or local document, just save locally
     if (!token || documentId.startsWith('local_')) {
-      const { documents } = get();
-      const existingDoc = documents.find(d => d.document_id === documentId);
-      if (!existingDoc) throw new Error('Document not found');
-      
-      const updatedDoc: Document = {
-        ...existingDoc,
-        ...data,
-        updated_at: new Date().toISOString(),
-      };
-      
-      set((state) => ({
-        documents: state.documents.map((d) =>
-          d.document_id === documentId ? updatedDoc : d
-        ),
-        currentDocument: state.currentDocument?.document_id === documentId ? updatedDoc : state.currentDocument,
-      }));
       await get().saveGuestDocuments();
       return updatedDoc;
     }
-
-    const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) throw new Error('Failed to update document');
-    const document = await response.json();
-    set((state) => ({
-      documents: state.documents.map((d) =>
-        d.document_id === documentId ? document : d
-      ),
-      currentDocument: state.currentDocument?.document_id === documentId ? document : state.currentDocument,
-    }));
-    return document;
+    
+    // ⭐ For server documents: Save to local cache first, then sync in BACKGROUND
+    await get().saveLocalCache();
+    
+    // Background sync - don't await, don't block UI
+    // Only sync if we have significant changes (not just in-memory base64 updates)
+    const shouldSyncToServer = data.name || data.folder_id || data.tags;
+    
+    if (shouldSyncToServer) {
+      // Fire and forget - sync in background
+      fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: data.name,
+          folder_id: data.folder_id,
+          tags: data.tags,
+          // Don't send pages with base64 - too slow
+        }),
+      }).then(response => {
+        if (response.ok) {
+          console.log('[updateDocument] ✅ Background sync complete');
+        } else {
+          console.error('[updateDocument] Background sync failed');
+        }
+      }).catch(err => {
+        console.error('[updateDocument] Background sync error:', err);
+      });
+    }
+    
+    return updatedDoc;
   },
 
   deleteDocument: async (token, documentId) => {
