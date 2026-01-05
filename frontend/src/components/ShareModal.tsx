@@ -110,6 +110,20 @@ export default function ShareModal({
   const [passwordProtect, setPasswordProtect] = useState(false);
   const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // Monetization store for export tracking
+  const { 
+    exportCount, 
+    canExportFree, 
+    shouldShowPaywall: checkPaywall,
+    shouldShowWatermark,
+    canShowAd,
+    incrementExportCount,
+    incrementAdsShown,
+  } = useMonetizationStore();
+  
+  const { isPremium } = usePurchaseStore();
 
   // Helper function to show ad IMMEDIATELY on share/export
   const tryShowAd = async () => {
