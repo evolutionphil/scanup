@@ -8,14 +8,12 @@ import { useI18n } from '../src/store/i18nStore';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
-import { useAdStore } from '../src/store/adStore';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
   const user = useAuthStore((state) => state.user);
   const initializePurchases = usePurchaseStore((state) => state.initialize);
-  const initAds = useAdStore((state) => state.init);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -26,22 +24,10 @@ export default function RootLayout() {
       
       // Initialize on native platforms
       if (Platform.OS !== 'web') {
-        // 1️⃣ iOS ATT (App Tracking Transparency) izni - ÇOK GEÇ başlat
-        if (Platform.OS === 'ios') {
-          setTimeout(() => {
-            requestTrackingPermission();
-          }, 3000);
-        }
+        // ⚠️ NO ADS INIT HERE - Ads will be initialized lazily after user action
+        // This prevents iOS crash with New Architecture
         
-        // 2️⃣ Initialize Ads - iOS'ta ÇOK GEÇ başlat (crash fix)
-        // iOS'ta ads startup'ta init edilirse crash yapıyor
-        const adsDelay = Platform.OS === 'ios' ? 5000 : 1000;
-        setTimeout(() => {
-          console.log('[RootLayout] Initializing ads...');
-          initAds();
-        }, adsDelay);
-        
-        // 3️⃣ Initialize IAP - DELAYED
+        // 1️⃣ Initialize IAP - DELAYED for stability
         setTimeout(() => {
           initializePurchases()
             .then(() => {
@@ -50,9 +36,9 @@ export default function RootLayout() {
             .catch(err => {
               console.log('[RootLayout] IAP init error (non-critical):', err);
             });
-        }, 2000);
+        }, 1500);
         
-        // 4️⃣ Initialize Firebase services (Android only for now)
+        // 2️⃣ Initialize Firebase services (Android only for now)
         if (Platform.OS === 'android') {
           initializeFirebase().then(() => {
             setupPushNotifications(user?.user_id).catch(err => {
