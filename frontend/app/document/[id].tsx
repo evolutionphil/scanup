@@ -767,6 +767,11 @@ export default function DocumentScreen() {
   const handleApplySignature = async (signatureBase64: string, position: { x: number; y: number }, scale: number) => {
     if (!currentDocument || processing) return;
     
+    console.log('[handleApplySignature] Starting...');
+    console.log('[handleApplySignature] Position:', position, 'Scale:', scale);
+    console.log('[handleApplySignature] Signature base64 length:', signatureBase64?.length);
+    console.log('[handleApplySignature] BACKEND_URL:', BACKEND_URL);
+    
     setShowSignaturePlacement(false);
     setProcessing(true);
     
@@ -776,8 +781,12 @@ export default function DocumentScreen() {
       
       // Use CURRENT image (with any filters/edits already applied), NOT original
       let currentImage = currentPage.image_base64;
+      console.log('[handleApplySignature] Current image from state length:', currentImage?.length || 0);
+      
       if (!currentImage || currentImage.length < 100) {
+        console.log('[handleApplySignature] Loading image from source...');
         currentImage = await loadImageBase64(currentPage);
+        console.log('[handleApplySignature] Loaded image length:', currentImage?.length || 0);
       }
       
       if (!currentImage || currentImage.length < 100) {
