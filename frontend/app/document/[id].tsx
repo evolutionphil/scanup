@@ -852,22 +852,30 @@ export default function DocumentScreen() {
       console.log('[handleApplySignature] Adding signature to current image (preserving filters)');
       
       const endpoint = `${BACKEND_URL}/api/images/apply-signature`;
+      console.log('[handleApplySignature] Making API call to:', endpoint);
+      console.log('[handleApplySignature] Request body sizes - image:', cleanImageBase64?.length, 'signature:', cleanSigBase64?.length);
+      
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token && !isLocalDoc) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
+      const requestBody = {
+        image_base64: cleanImageBase64,
+        signature_base64: cleanSigBase64,
+        position_x: position.x,
+        position_y: position.y,
+        scale: scale,
+      };
+      
+      console.log('[handleApplySignature] Sending request...');
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          image_base64: cleanImageBase64,
-          signature_base64: cleanSigBase64,
-          position_x: position.x,
-          position_y: position.y,
-          scale: scale,
-        }),
+        body: JSON.stringify(requestBody),
       });
+      
+      console.log('[handleApplySignature] Response status:', response.status);
       
       let finalImage = cleanImageBase64;
       
