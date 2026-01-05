@@ -69,6 +69,10 @@ export default function AnnotationEditor({
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
   
+  // ⭐ Ref for view-shot capture
+  const canvasRef = useRef<View>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
   // Get the image source - prefer base64, fallback to URL
   const getImageSource = () => {
     if (imageBase64 && imageBase64.length > 100) {
