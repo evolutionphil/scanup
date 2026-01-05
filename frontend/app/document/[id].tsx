@@ -318,8 +318,8 @@ export default function DocumentScreen() {
           }
         }
         
-        // Load original from file too if needed
-        if (page.original_file_uri && !page.original_image_base64) {
+        // Load original from file too if needed (native platforms only)
+        if (page.original_file_uri && !page.original_image_base64 && Platform.OS !== 'web') {
           try {
             const fileInfo = await getInfoAsync(page.original_file_uri);
             if (fileInfo.exists) {
