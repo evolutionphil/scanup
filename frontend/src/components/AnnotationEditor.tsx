@@ -339,13 +339,50 @@ export default function AnnotationEditor({
     setAnnotations([]);
   };
 
-  const handleSave = () => {
-    // Pass annotations back with display dimensions for proper scaling
-    const displayDimensions = imageLayout.width > 0 && imageLayout.height > 0 
-      ? { width: imageLayout.width, height: imageLayout.height }
-      : undefined;
-    onSave(annotations, imageBase64, displayDimensions);
-    onClose();
+  // ⭐ LOCAL-FIRST: Capture canvas with view-shot and save annotations
+  const handleSave = async () => {
+    if (annotations.length === 0) {
+      // No annotations, just close
+      onSave(annotations, imageBase64);
+      onClose();
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      let capturedBase64 = '';
+      
+      // Try to capture the canvas with view-shot
+      if (canvasRef.current) {
+        try {
+          console.log('[AnnotationEditor] ⭐ Capturing annotated image with view-shot...');
+          capturedBase64 = await captureRef(canvasRef, {
+            format: 'jpg',
+            quality: 0.9,
+            result: 'base64',
+          });
+          console.log('[AnnotationEditor] ✅ Captured annotated image, length:', capturedBase64?.length);
+        } catch (captureError) {
+          console.error('[AnnotationEditor] View-shot capture failed:', captureError);
+          // Fall back to passing original image with annotation metadata
+          capturedBase64 = '';
+        }
+      }
+      
+      // Pass annotations back with display dimensions and captured image for proper scaling
+      const displayDimensions = imageLayout.width > 0 && imageLayout.height > 0 
+        ? { width: imageLayout.width, height: imageLayout.height }
+        : undefined;
+      
+      // If we captured an image, use it; otherwise pass annotations for overlay rendering
+      onSave(annotations, capturedBase64 || imageBase64, displayDimensions);
+    } catch (error) {
+      console.error('[AnnotationEditor] Save error:', error);
+      onSave(annotations, imageBase64);
+    } finally {
+      setIsSaving(false);
+      onClose();
+    }
   };
 
   const renderAnnotation = (annotation: Annotation, isPreview = false) => {
