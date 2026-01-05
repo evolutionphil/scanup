@@ -1,16 +1,21 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  initConnection,
-  getSubscriptions,
-  getProducts,
-  requestPurchase,
-  getAvailablePurchases,
-  acknowledgePurchaseAndroid,
-  finishTransaction,
-  flushFailedPurchasesCachedAsPendingAndroid,
-} from 'react-native-iap';
+
+/* =========================
+   CONDITIONAL IAP IMPORT (TurboModule crash fix)
+========================= */
+let IAP: any = null;
+
+// Only import IAP on native platforms
+if (Platform.OS !== 'web') {
+  try {
+    IAP = require('react-native-iap');
+    console.log('[PurchaseStore] ✅ IAP module loaded');
+  } catch (e) {
+    console.log('[PurchaseStore] ❌ IAP module not available:', e);
+  }
+}
 
 /* =========================
    CANONICAL IDS
@@ -86,52 +91,86 @@ export const usePurchaseStore = create<State>((set, get) => ({
 
   /* ---------- INIT ---------- */
   init: async () => {
-    if (get().isInitialized || Platform.OS === 'web') return;
+    if (get().isInitialized) {
+      console.log('[PurchaseStore] Already initialized');
+      return;
+    }
     
-    set({ isLoading: true });
+    if (Platform.OS === 'web') {
+      console.log('[PurchaseStore] Web platform - skipping IAP');
+      set({ isInitialized: true });
+      return;
+    }
     
-    // Load saved state
-    const [isPremiumStr, hasRemovedAdsStr] = await Promise.all([
-      AsyncStorage.getItem(STORAGE.IS_PREMIUM),
-      AsyncStorage.getItem(STORAGE.REMOVE_ADS),
-    ]);
-    set({
-      isPremium: isPremiumStr === 'true',
-      hasRemovedAds: hasRemovedAdsStr === 'true',
-    });
-    
-    await initConnection();
-
-    // 🔥 iOS timing fix - StoreKit needs time
-    if (Platform.OS === 'ios') {
-      await new Promise(r => setTimeout(r, 400));
+    if (!IAP) {
+      console.log('[PurchaseStore] IAP module not available');
+      set({ isInitialized: true });
+      return;
     }
 
-    if (Platform.OS === 'android') {
-      await flushFailedPurchasesCachedAsPendingAndroid();
-    }
+    console.log('[PurchaseStore] Initializing...');
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Load saved state
+      const [isPremiumStr, hasRemovedAdsStr] = await Promise.all([
+        AsyncStorage.getItem(STORAGE.IS_PREMIUM),
+        AsyncStorage.getItem(STORAGE.REMOVE_ADS),
+      ]);
+      set({
+        isPremium: isPremiumStr === 'true',
+        hasRemovedAds: hasRemovedAdsStr === 'true',
+      });
 
-    await get().fetch();
-    set({ isLoading: false, isInitialized: true });
+      console.log('[PurchaseStore] Calling initConnection...');
+      await IAP.initConnection();
+      console.log('[PurchaseStore] ✅ IAP connected');
+
+      // 🔥 iOS timing fix - StoreKit needs time
+      if (Platform.OS === 'ios') {
+        console.log('[PurchaseStore] iOS: waiting for StoreKit...');
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      if (Platform.OS === 'android') {
+        try {
+          await IAP.flushFailedPurchasesCachedAsPendingAndroid();
+          console.log('[PurchaseStore] ✅ Flushed pending purchases');
+        } catch (flushErr) {
+          console.log('[PurchaseStore] Flush error (non-critical):', flushErr);
+        }
+      }
+
+      await get().fetch();
+      set({ isLoading: false, isInitialized: true });
+      console.log('[PurchaseStore] ✅ Initialization complete');
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Init error:', error?.message || error);
+      set({ isLoading: false, isInitialized: true, error: error?.message });
+    }
   },
   
   initialize: async () => get().init(),
 
   /* ---------- FETCH ---------- */
   fetch: async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || !IAP) return;
+    
+    console.log('[PurchaseStore] Fetching products...');
     
     try {
-      const subs = await getSubscriptions({
+      const subs = await IAP.getSubscriptions({
         skus: [sku(PRODUCTS.PREMIUM_MONTHLY), sku(PRODUCTS.PREMIUM_YEARLY)],
       });
+      console.log('[PurchaseStore] Raw subs:', subs?.length || 0);
 
-      const products = await getProducts({
+      const products = await IAP.getProducts({
         skus: [sku(PRODUCTS.REMOVE_ADS)],
       });
+      console.log('[PurchaseStore] Raw products:', products?.length || 0);
 
       set({
-        subscriptions: subs.map((s: any) => ({
+        subscriptions: (subs || []).map((s: any) => ({
           id:
             s.productId === sku(PRODUCTS.PREMIUM_MONTHLY)
               ? PRODUCTS.PREMIUM_MONTHLY
@@ -145,14 +184,16 @@ export const usePurchaseStore = create<State>((set, get) => ({
               : (s.subscriptionOfferDetails?.[0]?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice || ''),
           offerToken: s.subscriptionOfferDetails?.[0]?.offerToken,
         })),
-        products: products.map((p: any) => ({
+        products: (products || []).map((p: any) => ({
           id: PRODUCTS.REMOVE_ADS,
           title: p.title,
           price: p.localizedPrice || p.price || '',
         })),
       });
+      
+      console.log('[PurchaseStore] ✅ Products fetched');
     } catch (e: any) {
-      console.error('[PurchaseStore] fetch error:', e);
+      console.error('[PurchaseStore] ❌ Fetch error:', e?.message || e);
       set({ error: e?.message });
     }
   },
@@ -161,36 +202,49 @@ export const usePurchaseStore = create<State>((set, get) => ({
 
   /* ---------- SUBSCRIPTION ---------- */
   buySub: async (id: string) => {
+    if (Platform.OS === 'web' || !IAP) {
+      set({ error: 'Not available' });
+      return false;
+    }
+    
     set({ isLoading: true, error: null });
     
     try {
       const s = get().subscriptions.find(x => x.id === id);
+      const skuId = sku(id);
 
-      const purchase = await requestPurchase({
-        skus: [sku(id)],
-        ...(Platform.OS === 'android' && s?.offerToken
-          ? { subscriptionOffers: [{ sku: sku(id), offerToken: s.offerToken }] }
-          : {}),
-      });
+      const purchaseParams: any = { skus: [skuId] };
+      
+      // Android requires offerToken
+      if (Platform.OS === 'android' && s?.offerToken) {
+        purchaseParams.subscriptionOffers = [{ sku: skuId, offerToken: s.offerToken }];
+      }
 
+      console.log('[PurchaseStore] Purchasing:', purchaseParams);
+      const purchase = await IAP.requestPurchase(purchaseParams);
       const p = Array.isArray(purchase) ? purchase[0] : purchase;
       
       if (!p) {
+        console.log('[PurchaseStore] Purchase cancelled');
         set({ isLoading: false });
         return false;
       }
 
       if (Platform.OS === 'android' && p.purchaseToken) {
-        await acknowledgePurchaseAndroid({ token: p.purchaseToken });
-      } else {
-        await finishTransaction({ purchase: p, isConsumable: false });
+        await IAP.acknowledgePurchaseAndroid({ token: p.purchaseToken });
+        console.log('[PurchaseStore] ✅ Android acknowledged');
+      } else if (Platform.OS === 'ios') {
+        await IAP.finishTransaction({ purchase: p, isConsumable: false });
+        console.log('[PurchaseStore] ✅ iOS finished');
       }
 
       await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
       await AsyncStorage.setItem(STORAGE.ACTIVE_SUB, id);
       set({ isPremium: true, isLoading: false });
+      console.log('[PurchaseStore] ✅ Subscription purchased:', id);
       return true;
     } catch (e: any) {
+      console.error('[PurchaseStore] ❌ Purchase error:', e?.message || e);
       set({ isLoading: false, error: e?.message });
       return false;
     }
@@ -200,10 +254,16 @@ export const usePurchaseStore = create<State>((set, get) => ({
 
   /* ---------- ONE TIME ---------- */
   buyProduct: async (id: string) => {
+    if (Platform.OS === 'web' || !IAP) {
+      set({ error: 'Not available' });
+      return false;
+    }
+    
     set({ isLoading: true, error: null });
     
     try {
-      const purchase = await requestPurchase({ skus: [sku(id)] });
+      const skuId = sku(id);
+      const purchase = await IAP.requestPurchase({ skus: [skuId] });
       const p = Array.isArray(purchase) ? purchase[0] : purchase;
 
       if (!p) {
@@ -212,15 +272,16 @@ export const usePurchaseStore = create<State>((set, get) => ({
       }
 
       if (Platform.OS === 'android' && p.purchaseToken) {
-        await acknowledgePurchaseAndroid({ token: p.purchaseToken });
-      } else {
-        await finishTransaction({ purchase: p, isConsumable: false });
+        await IAP.acknowledgePurchaseAndroid({ token: p.purchaseToken });
+      } else if (Platform.OS === 'ios') {
+        await IAP.finishTransaction({ purchase: p, isConsumable: false });
       }
 
       await AsyncStorage.setItem(STORAGE.REMOVE_ADS, 'true');
       set({ hasRemovedAds: true, isLoading: false });
       return true;
     } catch (e: any) {
+      console.error('[PurchaseStore] ❌ Purchase error:', e?.message || e);
       set({ isLoading: false, error: e?.message });
       return false;
     }
@@ -230,9 +291,11 @@ export const usePurchaseStore = create<State>((set, get) => ({
 
   /* ---------- RESTORE ---------- */
   restore: async () => {
+    if (Platform.OS === 'web' || !IAP) return;
+    
     try {
-      const items = await getAvailablePurchases();
-      items.forEach((p: any) => {
+      const items = await IAP.getAvailablePurchases();
+      (items || []).forEach((p: any) => {
         if (p.productId.includes('premium')) {
           AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
           set({ isPremium: true });
