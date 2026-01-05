@@ -19,14 +19,13 @@ import Slider from './Slider';
 import Button from './Button';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
-import ViewShot, { captureRef } from 'react-native-view-shot';
-import { 
-  getCombinedMatrix, 
-  FilterType as LocalFilterType,
-  FilterAdjustments
-} from '../utils/localFilterProcessor';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Backend URL for filter processing
+const BACKEND_URL = 
+  process.env.EXPO_PUBLIC_BACKEND_URL ||
+  'https://scanup-production.up.railway.app';
 
 const FILTER_PRESETS = [
   { id: 'original', name: 'Original', icon: 'image' },
@@ -52,8 +51,8 @@ const loadImageFromUrl = async (url: string): Promise<string> => {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  } catch (e) {
-    console.error('[FilterEditor] Failed to load from URL:', e);
+  } catch (error) {
+    console.error('[FilterEditor] Failed to load from URL:', error);
     return '';
   }
 };
@@ -65,9 +64,8 @@ interface FilterEditorProps {
   imageUrl?: string;
   imageFileUri?: string;
   originalImageBase64?: string;
-  currentFilter: string;
-  onApply: (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }, processedImage?: string) => void;
-  isProcessing?: boolean;
+  currentFilter?: string;
+  onApply: (filter: string, adjustments: { brightness: number; contrast: number; saturation: number }, processedImage?: string) => void;
   token?: string | null;
 }
 
@@ -78,33 +76,31 @@ export default function FilterEditor({
   imageUrl,
   imageFileUri,
   originalImageBase64,
-  currentFilter,
+  currentFilter = 'original',
   onApply,
-  isProcessing = false,
   token,
 }: FilterEditorProps) {
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
-  const [selectedFilter, setSelectedFilter] = useState(currentFilter || 'original');
+  
+  const [selectedFilter, setSelectedFilter] = useState(currentFilter);
   const [brightness, setBrightness] = useState(50);
   const [contrast, setContrast] = useState(50);
   const [saturation, setSaturation] = useState(50);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [loadedBase64, setLoadedBase64] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [loadedBase64, setLoadedBase64] = useState<string>('');
   
-  // Live preview state
+  // Preview state
   const [previewImage, setPreviewImage] = useState<string>(imageBase64);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const previewTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const viewShotRef = useRef<any>(null);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load image from URL/file when modal opens if base64 is not available
+  // Load image from URL/file when modal opens
   useEffect(() => {
     const loadImage = async () => {
       if (!visible) return;
       
-      // Check if we have base64 already
       if (imageBase64 && imageBase64.length > 100) {
         setLoadedBase64(imageBase64);
         return;
@@ -112,7 +108,6 @@ export default function FilterEditor({
       
       setIsLoadingImage(true);
       
-      // Try to load from file URI first (native only)
       if (imageFileUri && Platform.OS !== 'web') {
         try {
           const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
@@ -130,7 +125,6 @@ export default function FilterEditor({
         }
       }
       
-      // Try to load from URL
       if (imageUrl) {
         const base64 = await loadImageFromUrl(imageUrl);
         if (base64) {
@@ -144,7 +138,6 @@ export default function FilterEditor({
     loadImage();
   }, [visible, imageBase64, imageUrl, imageFileUri]);
 
-  // Get the actual image to use
   const effectiveImageBase64 = loadedBase64 || imageBase64;
 
   // Reset when modal opens
@@ -154,30 +147,25 @@ export default function FilterEditor({
       setBrightness(50);
       setContrast(50);
       setSaturation(50);
-      // Start with original image for preview
       setPreviewImage(originalImageBase64 || effectiveImageBase64);
     }
   }, [visible, currentFilter, effectiveImageBase64, originalImageBase64]);
 
   /**
-   * LOCAL FILTER PROCESSING - NO BACKEND!
-   * Uses expo-image-manipulator for basic transforms
-   * Color filters are applied via CSS/style on the preview Image component
+   * Process filter using backend API
+   * This ensures filters work correctly on all platforms
    */
-  const processImageLocally = useCallback(async (
+  const processFilterWithBackend = useCallback(async (
     base64Image: string,
     filter: string,
     adjustments: { brightness: number; contrast: number; saturation: number }
   ): Promise<string> => {
     try {
-      console.log('[FilterEditor] Processing LOCALLY:', filter, adjustments);
-      
-      // Clean up base64
       const cleanBase64 = base64Image.startsWith('data:') 
         ? base64Image.split(',')[1] 
         : base64Image;
       
-      // For 'original' with no adjustments, return as-is
+      // For original with no adjustments, return as-is
       if (filter === 'original' && 
           adjustments.brightness === 0 && 
           adjustments.contrast === 0 && 
@@ -185,180 +173,96 @@ export default function FilterEditor({
         return cleanBase64;
       }
       
-      // Save to temp file for manipulation
-      const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
-      await FileSystem.writeAsStringAsync(tempPath, cleanBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      console.log('[FilterEditor] Processing filter via backend:', filter);
       
-      // Use expo-image-manipulator (handles basic operations)
-      // Note: For color filters, we apply CSS filters in the preview
-      const result = await ImageManipulator.manipulateAsync(
-        tempPath,
-        [], // No transforms needed
-        {
-          compress: 0.9,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
-        }
-      );
-      
-      // Clean up temp file
-      try {
-        await FileSystem.deleteAsync(tempPath, { idempotent: true });
-      } catch (e) {
-        // Ignore cleanup errors
+      const endpoint = `${BACKEND_URL}/api/images/apply-filter`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
-      console.log('[FilterEditor] Local processing complete');
-      return result.base64 || cleanBase64;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          image_base64: cleanBase64,
+          filter_type: filter,
+          brightness: adjustments.brightness,
+          contrast: adjustments.contrast,
+          saturation: adjustments.saturation,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.image_base64) {
+          console.log('[FilterEditor] Filter applied successfully');
+          return result.image_base64;
+        }
+      }
+      
+      console.warn('[FilterEditor] Backend filter failed');
+      return cleanBase64;
     } catch (error) {
-      console.error('[FilterEditor] Local processing error:', error);
+      console.error('[FilterEditor] Backend processing error:', error);
       return base64Image.startsWith('data:') ? base64Image.split(',')[1] : base64Image;
     }
-  }, []);
+  }, [token]);
 
-  // Live preview - debounced (LOCAL PROCESSING - NO BACKEND!)
+  // Live preview - debounced
   const updatePreview = useCallback(async (filter: string, b: number, c: number, s: number) => {
-    // Use original image as base for preview, or loaded base64
     const baseImage = originalImageBase64 || effectiveImageBase64;
     
-    // Skip if no image data, can't preview
     if (!baseImage || baseImage.length < 100) {
-      console.log('[FilterEditor] No image data, can\'t preview');
+      console.log('[FilterEditor] No image data for preview');
       return;
     }
     
-    // For preview, we just update the CSS filter styles on the Image component
-    // This is instant and doesn't require backend processing
-    // The actual filter is applied when user clicks "Apply"
-    setPreviewImage(baseImage);
+    // For original with no adjustments, show original
+    if (filter === 'original' && b === 50 && c === 50 && s === 50) {
+      setPreviewImage(baseImage);
+      return;
+    }
+
+    setIsLoadingPreview(true);
     
-    // Note: The visual filter effect is achieved via the getImageStyle() function
-    // which applies CSS filters based on selected filter and adjustments
-  }, [effectiveImageBase64, originalImageBase64]);
+    try {
+      const processed = await processFilterWithBackend(baseImage, filter, {
+        brightness: b - 50,
+        contrast: c - 50,
+        saturation: s - 50,
+      });
+      
+      if (processed && processed.length > 100) {
+        setPreviewImage(processed);
+      }
+    } catch (error) {
+      console.error('[FilterEditor] Preview error:', error);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  }, [effectiveImageBase64, originalImageBase64, processFilterWithBackend]);
 
   // Debounced preview update
   useEffect(() => {
     if (!visible) return;
-
-    // Clear existing timeout
+    
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
     }
-
-    // Set new timeout for debounced update
+    
     previewTimeoutRef.current = setTimeout(() => {
       updatePreview(selectedFilter, brightness, contrast, saturation);
-    }, 300); // 300ms debounce
-
+    }, 300);
+    
     return () => {
       if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
     };
   }, [selectedFilter, brightness, contrast, saturation, visible, updatePreview]);
 
-  // Ensure image has proper prefix
-  const getImageUri = (base64: string) => {
-    if (!base64) return '';
-    if (base64.startsWith('data:')) return base64;
-    if (base64.startsWith('http')) return base64;
-    if (base64.startsWith('file://')) return base64;
-    return `data:image/jpeg;base64,${base64}`;
-  };
-
-  /**
-   * Get CSS filter style for image preview
-   * This applies the filter effect LOCALLY without backend processing
-   */
-  const getImageFilterStyle = () => {
-    const filters: string[] = [];
-    
-    // Apply filter type
-    switch (selectedFilter) {
-      case 'grayscale':
-        filters.push('grayscale(100%)');
-        break;
-      case 'bw':
-        filters.push('grayscale(100%)');
-        filters.push('contrast(150%)');
-        break;
-      case 'enhanced':
-        filters.push('contrast(115%)');
-        filters.push('saturate(120%)');
-        break;
-      case 'document':
-        filters.push('grayscale(100%)');
-        filters.push('contrast(130%)');
-        break;
-    }
-    
-    // Apply brightness adjustment (-50 to 50 -> 50% to 150%)
-    const brightnessValue = 100 + (brightness - 50);
-    if (brightnessValue !== 100) {
-      filters.push(`brightness(${brightnessValue}%)`);
-    }
-    
-    // Apply contrast adjustment (-50 to 50 -> 50% to 150%)
-    const contrastValue = 100 + (contrast - 50);
-    if (contrastValue !== 100) {
-      filters.push(`contrast(${contrastValue}%)`);
-    }
-    
-    // Apply saturation adjustment (-50 to 50 -> 50% to 150%)
-    // Skip for grayscale filters
-    if (!['grayscale', 'bw', 'document'].includes(selectedFilter)) {
-      const saturationValue = 100 + (saturation - 50);
-      if (saturationValue !== 100) {
-        filters.push(`saturate(${saturationValue}%)`);
-      }
-    }
-    
-    // Return style object (web uses filter, native uses tintColor for basic effects)
-    if (Platform.OS === 'web') {
-      return {
-        filter: filters.length > 0 ? filters.join(' ') : 'none',
-      };
-    }
-    
-    // For native, CSS filters don't work - we'll capture via view-shot
-    // Return empty style, the actual filtering happens on capture
-    return {};
-  };
-
-  /**
-   * Capture the filtered preview using view-shot (for native platforms)
-   * This captures the CSS-filtered image and returns base64
-   */
-  const captureFilteredImage = async (): Promise<string> => {
-    if (Platform.OS === 'web') {
-      // On web, we can't use view-shot the same way
-      // Return the original image - CSS filters are applied in PDF generation
-      return previewImage;
-    }
-    
-    try {
-      if (viewShotRef.current) {
-        const uri = await captureRef(viewShotRef.current, {
-          format: 'jpg',
-          quality: 0.9,
-          result: 'base64',
-        });
-        console.log('[FilterEditor] Captured filtered image via view-shot');
-        return uri;
-      }
-    } catch (e) {
-      console.error('[FilterEditor] View-shot capture error:', e);
-    }
-    
-    return previewImage;
-  };
-
-  const handleApply = async () => {
-    // For native, capture the view-shot to get the filtered image
-    const processedImage = Platform.OS === 'web' 
-      ? previewImage 
-      : await captureFilteredImage();
-    
+  const handleApply = () => {
+    // Pass the processed preview image along with the settings
+    const processedImage = previewImage || effectiveImageBase64;
     onApply(selectedFilter, {
       brightness: brightness - 50,
       contrast: contrast - 50,
@@ -371,7 +275,6 @@ export default function FilterEditor({
     setContrast(50);
     setSaturation(50);
     setSelectedFilter('original');
-    // Apply original immediately
     onApply('original', { brightness: 0, contrast: 0, saturation: 0 });
   };
 
@@ -380,11 +283,18 @@ export default function FilterEditor({
     setContrast(50);
     setSaturation(50);
     setSelectedFilter('original');
-    // Update preview to original
     setPreviewImage(originalImageBase64 || effectiveImageBase64);
   };
 
-  // Show loading if image is being loaded
+  const getImageUri = (base64: string) => {
+    if (!base64) return '';
+    if (base64.startsWith('data:')) return base64;
+    if (base64.startsWith('http')) return base64;
+    if (base64.startsWith('file://')) return base64;
+    return `data:image/jpeg;base64,${base64}`;
+  };
+
+  // Loading state
   if (visible && isLoadingImage) {
     return (
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -399,159 +309,151 @@ export default function FilterEditor({
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-          <View style={[
-            styles.content, 
-            { 
-              backgroundColor: theme.surface,
-              paddingBottom: Math.max(insets.bottom, 20) + 16,
-            }
-          ]}>
+          <View style={[styles.content, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 16 }]}>
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
+              <TouchableOpacity onPress={onClose} style={styles.headerButton}>
                 <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
-              <Text style={[styles.title, { color: theme.text }]}>Adjust & Filter</Text>
-              <TouchableOpacity onPress={handleReset} style={styles.headerBtn}>
-                <Text style={[styles.resetText, { color: theme.primary }]}>Reset</Text>
+              <Text style={[styles.title, { color: theme.text }]}>Edit Filter</Text>
+              <TouchableOpacity onPress={handleApply} style={styles.headerButton}>
+                <Text style={[styles.applyText, { color: theme.primary }]}>Apply</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Live Preview */}
-            <View style={styles.previewContainer}>
-              <ViewShot 
-                ref={viewShotRef} 
-                options={{ format: 'jpg', quality: 0.9 }}
-                style={styles.viewShotContainer}
-              >
+            
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Live Preview */}
+              <View style={styles.previewContainer}>
                 <Image
                   source={{ uri: getImageUri(previewImage) }}
-                  style={[styles.preview, getImageFilterStyle()]}
+                  style={styles.preview}
                   resizeMode="contain"
                 />
-              </ViewShot>
-              {(isProcessing || isLoadingPreview) && (
-                <View style={styles.processingOverlay}>
-                  <ActivityIndicator size="large" color={theme.primary} />
-                  <Text style={styles.processingText}>
-                    {isProcessing ? 'Applying...' : 'Updating preview...'}
-                  </Text>
+                {isLoadingPreview && (
+                  <View style={styles.processingOverlay}>
+                    <ActivityIndicator size="large" color={theme.primary} />
+                    <Text style={styles.processingText}>Updating preview...</Text>
+                  </View>
+                )}
+                <View style={[styles.livePreviewBadge, { backgroundColor: theme.success + '20' }]}>
+                  <Ionicons name="eye" size={12} color={theme.success} />
+                  <Text style={[styles.livePreviewText, { color: theme.success }]}>Live Preview</Text>
                 </View>
-              )}
-              <View style={[styles.livePreviewBadge, { backgroundColor: theme.success + '20' }]}>
-                <Ionicons name="phone-portrait" size={12} color={theme.success} />
-                <Text style={[styles.livePreviewText, { color: theme.success }]}>Local Processing</Text>
               </View>
-            </View>
 
-            {/* Filter Presets */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
-              <View style={styles.presets}>
-                {FILTER_PRESETS.map((preset) => (
-                  <TouchableOpacity
-                    key={preset.id}
-                    style={[
-                      styles.presetItem,
-                      { backgroundColor: theme.background },
-                      selectedFilter === preset.id && { borderColor: theme.primary, borderWidth: 2 },
-                    ]}
-                    onPress={() => setSelectedFilter(preset.id)}
-                  >
-                    <View style={[
-                      styles.presetIcon,
-                      { backgroundColor: selectedFilter === preset.id ? theme.primary + '20' : theme.surfaceVariant || theme.surface },
-                    ]}>
-                      <Ionicons
-                        name={preset.icon as any}
-                        size={22}
+              {/* Filter Presets */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Filters</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
+                  {FILTER_PRESETS.map((preset) => (
+                    <TouchableOpacity
+                      key={preset.id}
+                      style={[
+                        styles.presetButton,
+                        { borderColor: selectedFilter === preset.id ? theme.primary : theme.border },
+                        selectedFilter === preset.id && { backgroundColor: theme.primary + '20' }
+                      ]}
+                      onPress={() => setSelectedFilter(preset.id)}
+                    >
+                      <Ionicons 
+                        name={preset.icon as any} 
+                        size={24} 
                         color={selectedFilter === preset.id ? theme.primary : theme.textMuted}
                       />
-                    </View>
-                    <Text style={[
-                      styles.presetName,
-                      { color: selectedFilter === preset.id ? theme.primary : theme.textMuted },
-                    ]}>
-                      {preset.name}
-                    </Text>
+                      <Text style={[
+                        styles.presetLabel,
+                        { color: selectedFilter === preset.id ? theme.primary : theme.textMuted }
+                      ]}>
+                        {preset.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Adjustments */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Adjustments</Text>
+                
+                <View style={styles.sliderContainer}>
+                  <View style={styles.sliderHeader}>
+                    <Ionicons name="sunny" size={18} color={theme.textMuted} />
+                    <Text style={[styles.sliderLabel, { color: theme.text }]}>Brightness</Text>
+                    <Text style={[styles.sliderValue, { color: theme.textMuted }]}>{brightness - 50}</Text>
+                  </View>
+                  <Slider
+                    value={brightness}
+                    onValueChange={setBrightness}
+                    minimumValue={0}
+                    maximumValue={100}
+                    step={1}
+                    trackColor={theme.border}
+                    activeColor={theme.primary}
+                  />
+                </View>
+                
+                <View style={styles.sliderContainer}>
+                  <View style={styles.sliderHeader}>
+                    <Ionicons name="contrast" size={18} color={theme.textMuted} />
+                    <Text style={[styles.sliderLabel, { color: theme.text }]}>Contrast</Text>
+                    <Text style={[styles.sliderValue, { color: theme.textMuted }]}>{contrast - 50}</Text>
+                  </View>
+                  <Slider
+                    value={contrast}
+                    onValueChange={setContrast}
+                    minimumValue={0}
+                    maximumValue={100}
+                    step={1}
+                    trackColor={theme.border}
+                    activeColor={theme.primary}
+                  />
+                </View>
+                
+                <View style={styles.sliderContainer}>
+                  <View style={styles.sliderHeader}>
+                    <Ionicons name="color-palette" size={18} color={theme.textMuted} />
+                    <Text style={[styles.sliderLabel, { color: theme.text }]}>Saturation</Text>
+                    <Text style={[styles.sliderValue, { color: theme.textMuted }]}>{saturation - 50}</Text>
+                  </View>
+                  <Slider
+                    value={saturation}
+                    onValueChange={setSaturation}
+                    minimumValue={0}
+                    maximumValue={100}
+                    step={1}
+                    trackColor={theme.border}
+                    activeColor={theme.primary}
+                  />
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.actions}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: theme.border }]} 
+                  onPress={handleReset}
+                >
+                  <Ionicons name="refresh" size={20} color={theme.text} />
+                  <Text style={[styles.actionButtonText, { color: theme.text }]}>Reset</Text>
+                </TouchableOpacity>
+                
+                {originalImageBase64 && (
+                  <TouchableOpacity 
+                    style={[styles.actionButton, { backgroundColor: '#EF4444' + '20' }]} 
+                    onPress={handleRevertToOriginal}
+                  >
+                    <Ionicons name="arrow-undo" size={20} color="#EF4444" />
+                    <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Revert</Text>
                   </TouchableOpacity>
-                ))}
+                )}
               </View>
             </ScrollView>
-
-            {/* Advanced Toggle */}
-            <TouchableOpacity
-              style={styles.advancedToggle}
-              onPress={() => setShowAdvanced(!showAdvanced)}
-            >
-              <Text style={[styles.advancedText, { color: theme.textSecondary }]}>
-                Fine-tune adjustments
-              </Text>
-              <Ionicons
-                name={showAdvanced ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={theme.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Sliders */}
-            {showAdvanced && (
-              <View style={styles.sliders}>
-                <Slider
-                  label="Brightness"
-                  value={brightness}
-                  onValueChange={setBrightness}
-                  minimumValue={0}
-                  maximumValue={100}
-                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
-                />
-                <Slider
-                  label="Contrast"
-                  value={contrast}
-                  onValueChange={setContrast}
-                  minimumValue={0}
-                  maximumValue={100}
-                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
-                />
-                <Slider
-                  label="Saturation"
-                  value={saturation}
-                  onValueChange={setSaturation}
-                  minimumValue={0}
-                  maximumValue={100}
-                  valueFormatter={(v) => `${v > 50 ? '+' : ''}${Math.round(v - 50)}`}
-                />
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.actions}>
-              <Button
-                title="Revert to Original"
-                variant="secondary"
-                onPress={handleRevertToOriginal}
-                style={styles.revertButton}
-                icon={<Ionicons name="refresh" size={18} color={theme.primary} />}
-              />
-              <Button
-                title="Apply"
-                onPress={handleApply}
-                loading={isProcessing}
-                disabled={isProcessing}
-                style={styles.applyButton}
-                icon={!isProcessing ? <Ionicons name="checkmark" size={18} color="#FFF" /> : undefined}
-              />
-            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -560,9 +462,6 @@ export default function FilterEditor({
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
-    flex: 1,
-  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -570,27 +469,28 @@ const styles = StyleSheet.create({
   content: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 16,
     maxHeight: SCREEN_HEIGHT * 0.9,
+    paddingTop: 8,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  headerBtn: {
-    minWidth: 60,
+  headerButton: {
+    padding: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
   },
-  resetText: {
+  applyText: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'right',
+    fontWeight: '600',
   },
   previewContainer: {
     height: 200,
@@ -599,10 +499,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#000',
     marginBottom: 16,
-  },
-  viewShotContainer: {
-    width: '100%',
-    height: '100%',
+    marginTop: 16,
   },
   preview: {
     width: '100%',
@@ -610,12 +507,12 @@ const styles = StyleSheet.create({
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   processingText: {
-    color: '#FFF',
+    color: '#fff',
     marginTop: 8,
     fontSize: 14,
   },
@@ -625,7 +522,7 @@ const styles = StyleSheet.create({
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
@@ -634,64 +531,72 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  presetsScroll: {
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 12,
   },
-  presets: {
+  presetsScroll: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 10,
   },
-  presetItem: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 14,
-    minWidth: 70,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  presetIcon: {
-    width: 44,
-    height: 44,
+  presetButton: {
+    width: 70,
+    height: 70,
     borderRadius: 12,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginRight: 12,
   },
-  presetName: {
-    fontSize: 12,
+  presetLabel: {
+    fontSize: 11,
+    marginTop: 4,
     fontWeight: '500',
   },
-  advancedToggle: {
+  sliderContainer: {
+    marginBottom: 16,
+  },
+  sliderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    gap: 6,
+    marginBottom: 8,
   },
-  advancedText: {
+  sliderLabel: {
+    flex: 1,
+    marginLeft: 8,
     fontSize: 14,
     fontWeight: '500',
   },
-  sliders: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    gap: 8,
+  sliderValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 30,
+    textAlign: 'right',
   },
   actions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingTop: 8,
     gap: 12,
+    marginBottom: 16,
   },
-  revertButton: {
+  actionButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
   },
-  applyButton: {
-    flex: 1,
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     fontSize: 16,
-    fontWeight: '500',
   },
 });
