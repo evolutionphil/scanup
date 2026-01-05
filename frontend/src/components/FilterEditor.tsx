@@ -294,10 +294,105 @@ export default function FilterEditor({
     return `data:image/jpeg;base64,${base64}`;
   };
 
-  // Show loading if image is being loaded
-  if (visible && isLoadingImage) {
-    return (
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+  /**
+   * Get CSS filter style for image preview
+   * This applies the filter effect LOCALLY without backend processing
+   */
+  const getImageFilterStyle = () => {
+    const filters: string[] = [];
+    
+    // Apply filter type
+    switch (selectedFilter) {
+      case 'grayscale':
+        filters.push('grayscale(100%)');
+        break;
+      case 'bw':
+        filters.push('grayscale(100%)');
+        filters.push('contrast(150%)');
+        break;
+      case 'enhanced':
+        filters.push('contrast(115%)');
+        filters.push('saturate(120%)');
+        break;
+      case 'document':
+        filters.push('grayscale(100%)');
+        filters.push('contrast(130%)');
+        break;
+    }
+    
+    // Apply brightness adjustment (-50 to 50 -> 50% to 150%)
+    const brightnessValue = 100 + (brightness - 50);
+    if (brightnessValue !== 100) {
+      filters.push(`brightness(${brightnessValue}%)`);
+    }
+    
+    // Apply contrast adjustment (-50 to 50 -> 50% to 150%)
+    const contrastValue = 100 + (contrast - 50);
+    if (contrastValue !== 100) {
+      filters.push(`contrast(${contrastValue}%)`);
+    }
+    
+    // Apply saturation adjustment (-50 to 50 -> 50% to 150%)
+    // Skip for grayscale filters
+    if (!['grayscale', 'bw', 'document'].includes(selectedFilter)) {
+      const saturationValue = 100 + (saturation - 50);
+      if (saturationValue !== 100) {
+        filters.push(`saturate(${saturationValue}%)`);
+      }
+    }
+    
+    // Return style object (web uses filter, native uses tintColor for basic effects)
+    if (Platform.OS === 'web') {
+      return {
+        filter: filters.length > 0 ? filters.join(' ') : 'none',
+      };
+    }
+    
+    // For native, CSS filters don't work - we'll capture via view-shot
+    // Return empty style, the actual filtering happens on capture
+    return {};
+  };
+
+  /**
+   * Capture the filtered preview using view-shot (for native platforms)
+   * This captures the CSS-filtered image and returns base64
+   */
+  const captureFilteredImage = async (): Promise<string> => {
+    if (Platform.OS === 'web') {
+      // On web, we can't use view-shot the same way
+      // Return the original image - CSS filters are applied in PDF generation
+      return previewImage;
+    }
+    
+    try {
+      if (viewShotRef.current) {
+        const uri = await captureRef(viewShotRef.current, {
+          format: 'jpg',
+          quality: 0.9,
+          result: 'base64',
+        });
+        console.log('[FilterEditor] Captured filtered image via view-shot');
+        return uri;
+      }
+    } catch (e) {
+      console.error('[FilterEditor] View-shot capture error:', e);
+    }
+    
+    return previewImage;
+  };
+
+  const handleApply = async () => {
+    // For native, capture the view-shot to get the filtered image
+    const processedImage = Platform.OS === 'web' 
+      ? previewImage 
+      : await captureFilteredImage();
+    
+    onApply(selectedFilter, {
+      brightness: brightness - 50,
+      contrast: contrast - 50,
+      saturation: saturation - 50,
+    }, processedImage);
+  };
         <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.content, { backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center' }]}>
             <ActivityIndicator size="large" color={theme.primary} />
