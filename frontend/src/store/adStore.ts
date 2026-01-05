@@ -17,7 +17,6 @@ const AD_UNITS = {
   },
 };
 
-// Get the correct ad unit ID
 const getAdUnitId = () => {
   if (__DEV__) {
     return Platform.OS === 'ios' 
@@ -30,21 +29,13 @@ const getAdUnitId = () => {
 };
 
 /* =========================
-   DYNAMIC IMPORT (Web safe)
+   STATE
 ========================= */
+let adsInitialized = false;
+let interstitial: any = null;
 let InterstitialAd: any = null;
 let AdEventType: any = null;
-let interstitial: any = null;
-
-if (Platform.OS !== 'web') {
-  try {
-    const ads = require('react-native-google-mobile-ads');
-    InterstitialAd = ads.InterstitialAd;
-    AdEventType = ads.AdEventType;
-  } catch (e) {
-    console.log('[AdStore] react-native-google-mobile-ads not available');
-  }
-}
+let mobileAds: any = null;
 
 /* =========================
    STORE
@@ -55,7 +46,8 @@ interface AdState {
   scanCount: number;
   scansBetweenAds: number;
   
-  init: () => void;
+  // 🔥 LAZY INIT - only called after user interaction
+  initAdsAfterUserAction: () => Promise<void>;
   show: () => boolean;
   setAdsEnabled: (enabled: boolean) => void;
   incrementScanCount: () => boolean;
@@ -68,18 +60,44 @@ export const useAdStore = create<AdState>((set, get) => ({
   scanCount: 0,
   scansBetweenAds: 3,
 
-  /* ---------- INIT ---------- */
-  init: () => {
-    if (Platform.OS === 'web' || !InterstitialAd || !AdEventType) {
-      console.log('[AdStore] Skipping init - web or module not available');
+  /* ---------- LAZY INIT (CRITICAL FOR iOS) ---------- */
+  initAdsAfterUserAction: async () => {
+    // Skip if already initialized or on web
+    if (adsInitialized || Platform.OS === 'web') {
+      console.log('[AdStore] Skip init - already done or web');
       return;
     }
 
-    console.log('[AdStore] Initializing interstitial...');
-    const adUnitId = getAdUnitId();
-    console.log('[AdStore] Ad Unit ID:', adUnitId);
+    console.log('[AdStore] 🚀 Starting LAZY ads initialization...');
 
     try {
+      // Dynamic import to avoid startup crash
+      const adsModule = require('react-native-google-mobile-ads');
+      mobileAds = adsModule.default;
+      InterstitialAd = adsModule.InterstitialAd;
+      AdEventType = adsModule.AdEventType;
+
+      // iOS: Request ATT and consent FIRST
+      if (Platform.OS === 'ios') {
+        console.log('[AdStore] iOS: Requesting consent...');
+        try {
+          const { AdsConsent } = adsModule;
+          await AdsConsent.requestInfoUpdate();
+          console.log('[AdStore] iOS: Consent info updated');
+        } catch (consentError) {
+          console.log('[AdStore] iOS: Consent error (continuing):', consentError);
+        }
+      }
+
+      // Initialize Mobile Ads SDK
+      console.log('[AdStore] Initializing mobileAds SDK...');
+      await mobileAds().initialize();
+      console.log('[AdStore] ✅ mobileAds SDK initialized');
+
+      // Create and load interstitial
+      const adUnitId = getAdUnitId();
+      console.log('[AdStore] Creating interstitial with ID:', adUnitId);
+      
       interstitial = InterstitialAd.createForAdRequest(adUnitId, {
         requestNonPersonalizedAdsOnly: true,
       });
@@ -90,11 +108,12 @@ export const useAdStore = create<AdState>((set, get) => ({
       });
 
       interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-        console.log('[AdStore] Interstitial closed');
+        console.log('[AdStore] Interstitial closed, reloading...');
         set({ loaded: false });
         // 🔥 iOS CRITICAL: Reload after every show
-        console.log('[AdStore] Reloading interstitial...');
-        interstitial.load();
+        if (interstitial) {
+          interstitial.load();
+        }
       });
 
       interstitial.addAdEventListener(AdEventType.ERROR, (error: any) => {
@@ -110,9 +129,10 @@ export const useAdStore = create<AdState>((set, get) => ({
       });
 
       interstitial.load();
-      console.log('[AdStore] ✅ Init complete, loading ad...');
-    } catch (e) {
-      console.error('[AdStore] Init error:', e);
+      adsInitialized = true;
+      console.log('[AdStore] ✅ LAZY init complete');
+    } catch (error) {
+      console.error('[AdStore] ❌ Init error:', error);
     }
   },
 
@@ -120,9 +140,9 @@ export const useAdStore = create<AdState>((set, get) => ({
   show: () => {
     const { loaded, adsEnabled } = get();
     
-    console.log('[AdStore] show() called - loaded:', loaded, 'adsEnabled:', adsEnabled);
+    console.log('[AdStore] show() - loaded:', loaded, 'adsEnabled:', adsEnabled, 'initialized:', adsInitialized);
     
-    if (!loaded || !adsEnabled || !interstitial) {
+    if (!loaded || !adsEnabled || !interstitial || !adsInitialized) {
       console.log('[AdStore] Cannot show - conditions not met');
       return false;
     }
@@ -148,7 +168,7 @@ export const useAdStore = create<AdState>((set, get) => ({
     console.log('[AdStore] Scan count:', newCount, '/', scansBetweenAds);
     
     // Return true if should show ad
-    if (newCount >= scansBetweenAds && adsEnabled && loaded) {
+    if (newCount >= scansBetweenAds && adsEnabled) {
       return true;
     }
     return false;
@@ -158,7 +178,7 @@ export const useAdStore = create<AdState>((set, get) => ({
 }));
 
 /* =========================
-   LEGACY EXPORTS (backwards compatibility)
+   LEGACY EXPORTS
 ========================= */
 export const showGlobalInterstitial = async (): Promise<boolean> => {
   return useAdStore.getState().show();
@@ -166,4 +186,9 @@ export const showGlobalInterstitial = async (): Promise<boolean> => {
 
 export const incrementAndCheckAd = (): boolean => {
   return useAdStore.getState().incrementScanCount();
+};
+
+// 🔥 Export for lazy init
+export const initAdsAfterUserAction = async () => {
+  return useAdStore.getState().initAdsAfterUserAction();
 };
