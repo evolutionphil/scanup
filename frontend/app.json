@@ -2,7 +2,7 @@
   "expo": {
     "name": "ScanUp",
     "slug": "scanup",
-    "version": "1.0.9",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scanup",
@@ -33,7 +33,7 @@
     },
     "android": {
       "package": "com.visiongo.scanupp",
-      "versionCode": 16,
+      "versionCode": 26,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#3B82F6"
