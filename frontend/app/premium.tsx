@@ -57,6 +57,18 @@ export default function PremiumScreen() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [initError, setInitError] = useState<string | null>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[PremiumScreen] State:', {
+      isInitialized,
+      isLoading,
+      subscriptionsCount: subscriptions.length,
+      productsCount: products.length,
+      error,
+    });
+    console.log('[PremiumScreen] Subscriptions:', subscriptions);
+  }, [isInitialized, isLoading, subscriptions, products, error]);
+
   useEffect(() => {
     // Safe initialization with error handling
     const safeInit = async () => {
