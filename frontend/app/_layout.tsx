@@ -18,6 +18,9 @@ export default function RootLayout() {
   const initializePurchases = usePurchaseStore((state) => state.initialize);
   const initializeMonetization = useMonetizationStore((state) => state.init);
   const hasInitialized = useRef(false);
+  
+  // ⭐ OFFLINE SYNC - Automatically syncs when network is restored
+  useOfflineSync();
 
   useEffect(() => {
     if (!hasInitialized.current) {
