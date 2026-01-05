@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   initConnection,
-  endConnection,
   getSubscriptions,
   getProducts,
   requestPurchase,
@@ -15,43 +14,80 @@ import {
 } from 'react-native-iap';
 
 /* =========================
-   PRODUCT IDS - Platform specific (iOS ve Android farklı!)
+   CANONICAL PRODUCT IDS
+   (APP IÇI – TEK KAYNAK)
 ========================= */
-export const PRODUCT_IDS = {
-  PREMIUM_MONTHLY: Platform.OS === 'ios' 
-    ? 'com.visiongo.scanupp.premium.monthly' 
-    : 'scanup_premium_monthly',
-  PREMIUM_YEARLY: Platform.OS === 'ios'
-    ? 'com.visiongo.scanupp.premium.yearly'
-    : 'scanup_premium_yearly',
-  REMOVE_ADS: Platform.OS === 'ios'
-    ? 'com.visiongo.scanupp.removeads'
-    : 'scanup_remove_ads',
+export const CANONICAL_PRODUCTS = {
+  PREMIUM_MONTHLY: 'premium_monthly',
+  PREMIUM_YEARLY: 'premium_yearly',
+  REMOVE_ADS: 'remove_ads',
 };
 
-export const SUBSCRIPTION_SKUS = [
-  PRODUCT_IDS.PREMIUM_MONTHLY,
-  PRODUCT_IDS.PREMIUM_YEARLY,
+/* =========================
+   STORE PRODUCT IDS
+========================= */
+const STORE_PRODUCT_IDS: Record<string, Record<string, string>> = {
+  ios: {
+    [CANONICAL_PRODUCTS.PREMIUM_MONTHLY]:
+      'com.visiongo.scanupp.premium.monthly',
+    [CANONICAL_PRODUCTS.PREMIUM_YEARLY]:
+      'com.visiongo.scanupp.premium.yearly',
+    [CANONICAL_PRODUCTS.REMOVE_ADS]:
+      'com.visiongo.scanupp.removeads',
+  },
+  android: {
+    [CANONICAL_PRODUCTS.PREMIUM_MONTHLY]:
+      'scanup_premium_monthly',
+    [CANONICAL_PRODUCTS.PREMIUM_YEARLY]:
+      'scanup_premium_yearly',
+    [CANONICAL_PRODUCTS.REMOVE_ADS]:
+      'scanup_remove_ads',
+  },
+};
+
+const getStoreSku = (canonicalId: string): string => {
+  const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+  return STORE_PRODUCT_IDS[platform][canonicalId] || canonicalId;
+};
+
+// Helper to get canonical ID from store SKU
+const getCanonicalId = (storeSku: string): string | null => {
+  const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+  const entries = Object.entries(STORE_PRODUCT_IDS[platform]);
+  for (const [canonical, sku] of entries) {
+    if (sku === storeSku) return canonical;
+  }
+  return null;
+};
+
+const SUBSCRIPTION_CANONICAL = [
+  CANONICAL_PRODUCTS.PREMIUM_MONTHLY,
+  CANONICAL_PRODUCTS.PREMIUM_YEARLY,
 ];
 
-export const PRODUCT_SKUS = [PRODUCT_IDS.REMOVE_ADS];
+const PRODUCT_CANONICAL = [CANONICAL_PRODUCTS.REMOVE_ADS];
 
-/* =========================
-   STORAGE KEYS
-========================= */
 const STORAGE_KEYS = {
   IS_PREMIUM: '@scanup_is_premium',
   HAS_REMOVED_ADS: '@scanup_has_removed_ads',
-  ACTIVE_SUBSCRIPTION: '@scanup_active_subscription',
+  ACTIVE_SUBSCRIPTION: '@scanup_active_subscription', // CANONICAL ID
 };
 
-/* =========================
-   TYPES
-========================= */
+// Export for backwards compatibility
+export const PRODUCT_IDS = {
+  PREMIUM_MONTHLY: getStoreSku(CANONICAL_PRODUCTS.PREMIUM_MONTHLY),
+  PREMIUM_YEARLY: getStoreSku(CANONICAL_PRODUCTS.PREMIUM_YEARLY),
+  REMOVE_ADS: getStoreSku(CANONICAL_PRODUCTS.REMOVE_ADS),
+};
+
+export const SUBSCRIPTION_SKUS = SUBSCRIPTION_CANONICAL.map(getStoreSku);
+export const PRODUCT_SKUS = PRODUCT_CANONICAL.map(getStoreSku);
+
 interface Product {
-  productId: string;
+  canonicalId: string;
+  storeProductId: string;
+  productId: string; // Alias for backwards compatibility
   title: string;
-  description: string;
   localizedPrice: string;
   currency: string;
   offerToken?: string;
@@ -64,13 +100,13 @@ interface PurchaseState {
   hasRemovedAds: boolean;
   subscriptions: Product[];
   products: Product[];
-  activeSubscription: string | null;
+  activeSubscription: string | null; // CANONICAL
   error: string | null;
 
   initialize: () => Promise<void>;
   fetchProducts: () => Promise<void>;
-  purchaseSubscription: (productId: string) => Promise<boolean>;
-  purchaseProduct: (productId: string) => Promise<boolean>;
+  purchaseSubscription: (canonicalId: string) => Promise<boolean>;
+  purchaseProduct: (canonicalId: string) => Promise<boolean>;
   restorePurchases: () => Promise<void>;
   setError: (e: string | null) => void;
 }
@@ -88,21 +124,21 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   activeSubscription: null,
   error: null,
 
-  /* ---------- INIT ---------- */
   initialize: async () => {
     if (get().isInitialized || Platform.OS === 'web') return;
 
     set({ isLoading: true });
 
-    const [isPremium, hasRemovedAds, activeSubscription] = await Promise.all([
+    // ✅ KRITIK: AsyncStorage'dan kayıtlı durumu yükle
+    const [isPremiumStr, hasRemovedAdsStr, activeSubscription] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM),
       AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS),
       AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION),
     ]);
 
     set({
-      isPremium: isPremium === 'true',
-      hasRemovedAds: hasRemovedAds === 'true',
+      isPremium: isPremiumStr === 'true',
+      hasRemovedAds: hasRemovedAdsStr === 'true',
       activeSubscription,
     });
 
@@ -113,81 +149,68 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     }
 
     await get().fetchProducts();
-
     set({ isInitialized: true, isLoading: false });
   },
 
-  /* ---------- FETCH PRODUCTS ---------- */
   fetchProducts: async () => {
     if (Platform.OS === 'web') return;
+    
+    set({ isLoading: true });
 
-    set({ isLoading: true, error: null });
+    const subSkus = SUBSCRIPTION_CANONICAL.map(getStoreSku);
+    const prodSkus = PRODUCT_CANONICAL.map(getStoreSku);
 
-    /* SUBSCRIPTIONS */
-    const subs = await getSubscriptions({ skus: SUBSCRIPTION_SKUS });
-
-    const formattedSubs: Product[] = subs.map((s: any) => {
-      const offer = s.subscriptionOfferDetails?.[0];
-      const price =
-        offer?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice ??
-        s.localizedPrice ??
-        '';
-
-      return {
-        productId: s.productId,
-        title: s.title,
-        description: s.description,
-        localizedPrice: price,
-        currency: s.currency,
-        offerToken: offer?.offerToken,
-      };
-    });
-
-    /* ONE-TIME PRODUCTS */
-    const prods = await getProducts({ skus: PRODUCT_SKUS });
-
-    const formattedProducts: Product[] = prods.map((p: any) => ({
-      productId: p.productId,
-      title: p.title,
-      description: p.description,
-      localizedPrice:
-        p.localizedPrice ??
-        p.oneTimePurchaseOfferDetails?.formattedPrice ??
-        '',
-      currency: p.currency,
-    }));
+    const subs = await getSubscriptions({ skus: subSkus });
+    const prods = await getProducts({ skus: prodSkus });
 
     set({
-      subscriptions: formattedSubs,
-      products: formattedProducts,
+      subscriptions: subs.map((s: any) => {
+        const canonicalId = getCanonicalId(s.productId) || s.productId;
+        return {
+          canonicalId,
+          storeProductId: s.productId,
+          productId: s.productId, // Backwards compatibility
+          title: s.title,
+          localizedPrice:
+            s.subscriptionOfferDetails?.[0]?.pricingPhases
+              ?.pricingPhaseList?.[0]?.formattedPrice ??
+            s.localizedPrice ?? '',
+          currency: s.currency || 'EUR',
+          offerToken: s.subscriptionOfferDetails?.[0]?.offerToken,
+        };
+      }),
+      products: prods.map((p: any) => ({
+        canonicalId: CANONICAL_PRODUCTS.REMOVE_ADS,
+        storeProductId: p.productId,
+        productId: p.productId, // Backwards compatibility
+        title: p.title,
+        localizedPrice:
+          p.localizedPrice ??
+          p.oneTimePurchaseOfferDetails?.formattedPrice ?? '',
+        currency: p.currency || 'EUR',
+      })),
       isLoading: false,
     });
   },
 
-  /* ---------- SUBSCRIPTION (ANDROID + IOS) ---------- */
-  purchaseSubscription: async (productId: string) => {
+  purchaseSubscription: async canonicalId => {
     try {
       set({ isLoading: true, error: null });
+      const sku = getStoreSku(canonicalId);
 
-      const subs = await getSubscriptions({ skus: [productId] });
+      const subs = await getSubscriptions({ skus: [sku] });
       const offerToken =
         subs[0]?.subscriptionOfferDetails?.[0]?.offerToken;
 
-      // Android requires offerToken, iOS doesn't
-      if (Platform.OS === 'android' && !offerToken) {
-        throw new Error('NO_OFFER_TOKEN');
-      }
-
       const purchase = await requestPurchase({
-        skus: [productId],
-        ...(Platform.OS === 'android' && offerToken ? {
-          subscriptionOffers: [
-            {
-              sku: productId,
-              offerToken,
-            },
-          ],
-        } : {}),
+        skus: [sku],
+        ...(Platform.OS === 'android' && offerToken
+          ? {
+              subscriptionOffers: [
+                { sku, offerToken },
+              ],
+            }
+          : {}),
       });
 
       const p = Array.isArray(purchase) ? purchase[0] : purchase;
@@ -195,7 +218,6 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       if (Platform.OS === 'android' && p?.purchaseToken) {
         await acknowledgePurchaseAndroid({ token: p.purchaseToken });
       }
-
       if (Platform.OS === 'ios') {
         await finishTransaction({ purchase: p, isConsumable: false });
       }
@@ -203,67 +225,71 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.IS_PREMIUM, 'true');
       await AsyncStorage.setItem(
         STORAGE_KEYS.ACTIVE_SUBSCRIPTION,
-        productId
+        canonicalId
       );
 
       set({
         isPremium: true,
-        activeSubscription: productId,
+        activeSubscription: canonicalId,
         isLoading: false,
       });
 
       return true;
     } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+      set({ error: e.message, isLoading: false });
       return false;
     }
   },
 
-  /* ---------- ONE-TIME PRODUCT ---------- */
-  purchaseProduct: async (productId: string) => {
+  purchaseProduct: async canonicalId => {
     try {
       set({ isLoading: true, error: null });
+      const sku = getStoreSku(canonicalId);
 
-      const purchase = await requestPurchase({
-        skus: [productId],
-      });
-
+      const purchase = await requestPurchase({ skus: [sku] });
       const p = Array.isArray(purchase) ? purchase[0] : purchase;
 
       if (Platform.OS === 'android' && p?.purchaseToken) {
         await acknowledgePurchaseAndroid({ token: p.purchaseToken });
       }
-
       if (Platform.OS === 'ios') {
         await finishTransaction({ purchase: p, isConsumable: false });
       }
 
       await AsyncStorage.setItem(STORAGE_KEYS.HAS_REMOVED_ADS, 'true');
-
       set({ hasRemovedAds: true, isLoading: false });
       return true;
     } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+      set({ error: e.message, isLoading: false });
       return false;
     }
   },
 
-  /* ---------- RESTORE ---------- */
   restorePurchases: async () => {
+    if (Platform.OS === 'web') return;
+    
+    set({ isLoading: true, error: null });
+    
     const purchases = await getAvailablePurchases();
-
     let premium = false;
     let removeAds = false;
     let activeSub: string | null = null;
 
+    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+    
     purchases.forEach(p => {
-      if (SUBSCRIPTION_SKUS.includes(p.productId)) {
-        premium = true;
-        activeSub = p.productId;
-      }
-      if (p.productId === PRODUCT_IDS.REMOVE_ADS) {
-        removeAds = true;
-      }
+      Object.entries(STORE_PRODUCT_IDS[platform]).forEach(
+        ([canonical, sku]) => {
+          if (p.productId === sku) {
+            if (canonical === CANONICAL_PRODUCTS.REMOVE_ADS) {
+              removeAds = true;
+            } else {
+              premium = true;
+              activeSub = canonical;
+            }
+          }
+        }
+      );
     });
 
     await AsyncStorage.setItem(
@@ -281,18 +307,17 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       );
     }
 
-    set({
-      isPremium: premium,
-      hasRemovedAds: removeAds,
+    set({ 
+      isPremium: premium, 
+      hasRemovedAds: removeAds, 
       activeSubscription: activeSub,
+      isLoading: false,
     });
   },
 
   setError: (e: string | null) => set({ error: e }),
 }));
 
-/* ---------- ADS HELPER ---------- */
-export const shouldShowAds = () => {
-  const { isPremium, hasRemovedAds } = usePurchaseStore.getState();
-  return !isPremium && !hasRemovedAds;
-};
+export const shouldShowAds = () =>
+  !usePurchaseStore.getState().isPremium &&
+  !usePurchaseStore.getState().hasRemovedAds;
