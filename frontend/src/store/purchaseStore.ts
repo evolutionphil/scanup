@@ -62,7 +62,7 @@ interface State {
   subscriptions: Product[];
   products: Product[];
   isPremium: boolean;
-  hasRemovedAds: boolean;
+  hasRemovedWatermark: boolean; // Changed from hasRemovedAds
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
@@ -84,7 +84,7 @@ export const usePurchaseStore = create<State>((set, get) => ({
   subscriptions: [],
   products: [],
   isPremium: false,
-  hasRemovedAds: false,
+  hasRemovedWatermark: false, // Changed from hasRemovedAds
   isLoading: false,
   isInitialized: false,
   error: null,
