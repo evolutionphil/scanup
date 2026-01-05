@@ -257,34 +257,6 @@ export default function FilterEditor({
     };
   }, [selectedFilter, brightness, contrast, saturation, visible, updatePreview]);
 
-  const handleApply = () => {
-    // Pass the processed preview image along with the settings
-    const processedImage = previewImage || effectiveImageBase64;
-    onApply(selectedFilter, {
-      brightness: brightness - 50,
-      contrast: contrast - 50,
-      saturation: saturation - 50,
-    }, processedImage);
-  };
-
-  const handleRevertToOriginal = () => {
-    setBrightness(50);
-    setContrast(50);
-    setSaturation(50);
-    setSelectedFilter('original');
-    // Apply original immediately
-    onApply('original', { brightness: 0, contrast: 0, saturation: 0 });
-  };
-
-  const handleReset = () => {
-    setBrightness(50);
-    setContrast(50);
-    setSaturation(50);
-    setSelectedFilter('original');
-    // Update preview to original
-    setPreviewImage(originalImageBase64 || effectiveImageBase64);
-  };
-
   // Ensure image has proper prefix
   const getImageUri = (base64: string) => {
     if (!base64) return '';
