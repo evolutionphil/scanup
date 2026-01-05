@@ -187,11 +187,7 @@ export default function ScannerScreen() {
           
           console.log('[Scanner] Pages added to document:', addToDocumentId);
           
-          // 1️⃣ Camera/Scanner'ı KAPAT (state update)
-          setScannerActive(false);
-          await new Promise(r => setTimeout(r, 50)); // UI thread'e nefes aldır
-          
-          // 2️⃣ Scan sayısını artır ve reklam kontrol et
+          // Scan sayısını artır ve reklam kontrol et
           const adStore = useAdStore.getState();
           const shouldShow = adStore.incrementScanCount();
           
