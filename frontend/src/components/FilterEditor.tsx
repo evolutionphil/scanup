@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,12 @@ import Slider from './Slider';
 import Button from './Button';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
+import ViewShot, { captureRef } from 'react-native-view-shot';
+import { 
+  getCombinedMatrix, 
+  FilterType as LocalFilterType,
+  FilterAdjustments
+} from '../utils/localFilterProcessor';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
