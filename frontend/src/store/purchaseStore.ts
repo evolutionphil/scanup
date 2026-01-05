@@ -23,7 +23,7 @@ if (Platform.OS !== 'web') {
 export const PRODUCTS = {
   PREMIUM_MONTHLY: 'premium_monthly',
   PREMIUM_YEARLY: 'premium_yearly',
-  REMOVE_ADS: 'remove_ads',
+  REMOVE_WATERMARK: 'remove_watermark', // €2.99 one-time purchase
 };
 
 // Backwards compatibility
@@ -33,12 +33,12 @@ const STORE_IDS: Record<string, Record<string, string>> = {
   ios: {
     premium_monthly: 'com.visiongo.scanupp.premium.monthly',
     premium_yearly: 'com.visiongo.scanupp.premium.yearly',
-    remove_ads: 'com.visiongo.scanupp.removeads',
+    remove_watermark: 'com.visiongo.scanupp.removewatermark', // NEW: €2.99
   },
   android: {
     premium_monthly: 'scanup_premium_monthly',
     premium_yearly: 'scanup_premium_yearly',
-    remove_ads: 'scanup_remove_ads',
+    remove_watermark: 'scanup_remove_watermark', // NEW: €2.99
   },
 };
 
@@ -47,7 +47,7 @@ const sku = (id: string) =>
 
 const STORAGE = {
   IS_PREMIUM: '@scanup_is_premium',
-  REMOVE_ADS: '@scanup_remove_ads',
+  REMOVE_WATERMARK: '@scanup_remove_watermark', // Changed from REMOVE_ADS
   ACTIVE_SUB: '@scanup_active_sub',
 };
 
