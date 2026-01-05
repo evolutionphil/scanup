@@ -1,13 +1,14 @@
-import { create } from 'zustand';
 import { Platform } from 'react-native';
+import { create } from 'zustand';
 
-// Ad Unit IDs
-const AD_UNIT_IDS = {
+/* =========================
+   AD UNIT IDS
+========================= */
+const AD_UNITS = {
   interstitial: {
     ios: 'ca-app-pub-8771434485570434/9099011184',
     android: 'ca-app-pub-8771434485570434/5877935563',
   },
-  // Test IDs for development
   test: {
     interstitial: {
       ios: 'ca-app-pub-3940256099942544/4411468910',
@@ -16,133 +17,153 @@ const AD_UNIT_IDS = {
   },
 };
 
-// Get the appropriate ad unit ID based on platform
-export const getInterstitialAdUnitId = (useTestAds: boolean = false): string => {
-  if (useTestAds) {
+// Get the correct ad unit ID
+const getAdUnitId = () => {
+  if (__DEV__) {
     return Platform.OS === 'ios' 
-      ? AD_UNIT_IDS.test.interstitial.ios 
-      : AD_UNIT_IDS.test.interstitial.android;
+      ? AD_UNITS.test.interstitial.ios 
+      : AD_UNITS.test.interstitial.android;
   }
   return Platform.OS === 'ios' 
-    ? AD_UNIT_IDS.interstitial.ios 
-    : AD_UNIT_IDS.interstitial.android;
+    ? AD_UNITS.interstitial.ios 
+    : AD_UNITS.interstitial.android;
 };
 
+/* =========================
+   DYNAMIC IMPORT (Web safe)
+========================= */
+let InterstitialAd: any = null;
+let AdEventType: any = null;
+let interstitial: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const ads = require('react-native-google-mobile-ads');
+    InterstitialAd = ads.InterstitialAd;
+    AdEventType = ads.AdEventType;
+  } catch (e) {
+    console.log('[AdStore] react-native-google-mobile-ads not available');
+  }
+}
+
+/* =========================
+   STORE
+========================= */
 interface AdState {
-  // Track scan count for showing interstitial ads
+  loaded: boolean;
+  adsEnabled: boolean;
   scanCount: number;
-  lastAdShownAt: number | null;
-  isAdLoaded: boolean;
-  isAdShowing: boolean;
+  scansBetweenAds: number;
   
-  // Settings
-  adsEnabled: boolean; // Only false for premium users
-  scansBetweenAds: number; // Show ad every N scans
-  
-  // Actions
-  incrementScanCount: () => void;
-  resetScanCount: () => void;
-  setAdLoaded: (loaded: boolean) => void;
-  setAdShowing: (showing: boolean) => void;
+  init: () => void;
+  show: () => boolean;
   setAdsEnabled: (enabled: boolean) => void;
-  shouldShowAd: () => boolean;
-  recordAdShown: () => void;
-  // Combined action: increment and check if should show
-  incrementAndCheckAd: () => boolean;
+  incrementScanCount: () => boolean;
+  resetScanCount: () => void;
 }
 
 export const useAdStore = create<AdState>((set, get) => ({
-  scanCount: 0,
-  lastAdShownAt: null,
-  isAdLoaded: false,
-  isAdShowing: false,
+  loaded: false,
   adsEnabled: true,
-  scansBetweenAds: 3, // Show interstitial every 3 scans
+  scanCount: 0,
+  scansBetweenAds: 3,
+
+  /* ---------- INIT ---------- */
+  init: () => {
+    if (Platform.OS === 'web' || !InterstitialAd || !AdEventType) {
+      console.log('[AdStore] Skipping init - web or module not available');
+      return;
+    }
+
+    console.log('[AdStore] Initializing interstitial...');
+    const adUnitId = getAdUnitId();
+    console.log('[AdStore] Ad Unit ID:', adUnitId);
+
+    try {
+      interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+        requestNonPersonalizedAdsOnly: true,
+      });
+
+      interstitial.addAdEventListener(AdEventType.LOADED, () => {
+        console.log('[AdStore] ✅ Interstitial LOADED');
+        set({ loaded: true });
+      });
+
+      interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        console.log('[AdStore] Interstitial closed');
+        set({ loaded: false });
+        // 🔥 iOS CRITICAL: Reload after every show
+        console.log('[AdStore] Reloading interstitial...');
+        interstitial.load();
+      });
+
+      interstitial.addAdEventListener(AdEventType.ERROR, (error: any) => {
+        console.log('[AdStore] ❌ Ad error:', error);
+        set({ loaded: false });
+        // Retry after delay
+        setTimeout(() => {
+          if (interstitial) {
+            console.log('[AdStore] Retrying load...');
+            interstitial.load();
+          }
+        }, 10000);
+      });
+
+      interstitial.load();
+      console.log('[AdStore] ✅ Init complete, loading ad...');
+    } catch (e) {
+      console.error('[AdStore] Init error:', e);
+    }
+  },
+
+  /* ---------- SHOW ---------- */
+  show: () => {
+    const { loaded, adsEnabled } = get();
+    
+    console.log('[AdStore] show() called - loaded:', loaded, 'adsEnabled:', adsEnabled);
+    
+    if (!loaded || !adsEnabled || !interstitial) {
+      console.log('[AdStore] Cannot show - conditions not met');
+      return false;
+    }
+
+    try {
+      console.log('[AdStore] ✅ Showing interstitial NOW');
+      interstitial.show();
+      return true;
+    } catch (e) {
+      console.error('[AdStore] Show error:', e);
+      return false;
+    }
+  },
+
+  /* ---------- HELPERS ---------- */
+  setAdsEnabled: (enabled: boolean) => set({ adsEnabled: enabled }),
   
   incrementScanCount: () => {
-    const newCount = get().scanCount + 1;
-    console.log('[AdStore] Incrementing scan count to:', newCount);
-    set({ scanCount: newCount });
-  },
-  
-  resetScanCount: () => {
-    set({ scanCount: 0 });
-  },
-  
-  setAdLoaded: (loaded: boolean) => {
-    console.log('[AdStore] Ad loaded:', loaded);
-    set({ isAdLoaded: loaded });
-  },
-  
-  setAdShowing: (showing: boolean) => {
-    set({ isAdShowing: showing });
-  },
-  
-  setAdsEnabled: (enabled: boolean) => {
-    console.log('[AdStore] Ads enabled:', enabled);
-    set({ adsEnabled: enabled });
-  },
-  
-  shouldShowAd: () => {
-    const { scanCount, scansBetweenAds, adsEnabled, isAdLoaded, lastAdShownAt } = get();
-    
-    console.log('[AdStore] shouldShowAd check:', { scanCount, scansBetweenAds, adsEnabled, isAdLoaded, lastAdShownAt });
-    
-    // Don't show ads if disabled (premium users)
-    if (!adsEnabled) {
-      console.log('[AdStore] Ads disabled - skipping');
-      return false;
-    }
-    
-    // Don't show if ad not loaded
-    if (!isAdLoaded) {
-      console.log('[AdStore] Ad not loaded - skipping');
-      return false;
-    }
-    
-    // Don't show ads too frequently (minimum 30 seconds between ads)
-    if (lastAdShownAt && Date.now() - lastAdShownAt < 30000) {
-      console.log('[AdStore] Too soon since last ad - skipping');
-      return false;
-    }
-    
-    // Show ad every N scans
-    const shouldShow = scanCount > 0 && scanCount % scansBetweenAds === 0;
-    console.log('[AdStore] Should show ad:', shouldShow, `(${scanCount} % ${scansBetweenAds} = ${scanCount % scansBetweenAds})`);
-    return shouldShow;
-  },
-  
-  recordAdShown: () => {
-    console.log('[AdStore] Recording ad shown');
-    set({ 
-      lastAdShownAt: Date.now(),
-      isAdLoaded: false, // Ad needs to be reloaded after showing
-    });
-  },
-  
-  // Combined action to avoid race conditions
-  incrementAndCheckAd: () => {
-    const state = get();
-    const newCount = state.scanCount + 1;
+    const { scanCount, scansBetweenAds, adsEnabled, loaded } = get();
+    const newCount = scanCount + 1;
     set({ scanCount: newCount });
     
-    console.log('[AdStore] incrementAndCheckAd:', { 
-      newCount, 
-      adsEnabled: state.adsEnabled, 
-      isAdLoaded: state.isAdLoaded 
-    });
+    console.log('[AdStore] Scan count:', newCount, '/', scansBetweenAds);
     
-    // Don't show if disabled or not loaded
-    if (!state.adsEnabled || !state.isAdLoaded) {
-      return false;
+    // Return true if should show ad
+    if (newCount >= scansBetweenAds && adsEnabled && loaded) {
+      return true;
     }
-    
-    // Don't show too frequently
-    if (state.lastAdShownAt && Date.now() - state.lastAdShownAt < 30000) {
-      return false;
-    }
-    
-    // Show ad every N actions
-    return newCount > 0 && newCount % state.scansBetweenAds === 0;
+    return false;
   },
+  
+  resetScanCount: () => set({ scanCount: 0 }),
 }));
+
+/* =========================
+   LEGACY EXPORTS (backwards compatibility)
+========================= */
+export const showGlobalInterstitial = async (): Promise<boolean> => {
+  return useAdStore.getState().show();
+};
+
+export const incrementAndCheckAd = (): boolean => {
+  return useAdStore.getState().incrementScanCount();
+};
