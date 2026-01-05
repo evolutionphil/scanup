@@ -393,6 +393,29 @@ export default function FilterEditor({
       saturation: saturation - 50,
     }, processedImage);
   };
+
+  const handleRevertToOriginal = () => {
+    setBrightness(50);
+    setContrast(50);
+    setSaturation(50);
+    setSelectedFilter('original');
+    // Apply original immediately
+    onApply('original', { brightness: 0, contrast: 0, saturation: 0 });
+  };
+
+  const handleReset = () => {
+    setBrightness(50);
+    setContrast(50);
+    setSaturation(50);
+    setSelectedFilter('original');
+    // Update preview to original
+    setPreviewImage(originalImageBase64 || effectiveImageBase64);
+  };
+
+  // Show loading if image is being loaded
+  if (visible && isLoadingImage) {
+    return (
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.content, { backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center' }]}>
             <ActivityIndicator size="large" color={theme.primary} />
