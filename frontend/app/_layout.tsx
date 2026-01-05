@@ -8,12 +8,14 @@ import { useI18n } from '../src/store/i18nStore';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
+import { useMonetizationStore } from '../src/store/monetizationStore';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
   const user = useAuthStore((state) => state.user);
   const initializePurchases = usePurchaseStore((state) => state.initialize);
+  const initializeMonetization = useMonetizationStore((state) => state.init);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
@@ -21,6 +23,9 @@ export default function RootLayout() {
       hasInitialized.current = true;
       loadTheme();
       initializeI18n();
+      
+      // Initialize monetization store (tracks exports, ads, etc.)
+      initializeMonetization();
       
       // Initialize on native platforms
       if (Platform.OS !== 'web') {
