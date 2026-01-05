@@ -429,10 +429,26 @@ export default function DocumentScreen() {
       
       console.log('[handleApplyFilter] Applying filter:', filterType, 'Image length:', finalImage?.length);
       
+      // ⭐ LOCAL-FIRST: Save processed image to file system immediately
+      let newFileUri = currentPage.image_file_uri;
+      if (finalImage && isLocalDoc) {
+        try {
+          const FileSystem = require('expo-file-system').default;
+          const filename = `${currentDocument.document_id}_p${selectedPageIndex}_filtered_${Date.now()}.jpg`;
+          const fileUri = `${FileSystem.documentDirectory}images/${filename}`;
+          await FileSystem.writeAsStringAsync(fileUri, finalImage, { encoding: FileSystem.EncodingType.Base64 });
+          newFileUri = fileUri;
+          console.log('[handleApplyFilter] ✅ Saved filtered image to:', fileUri);
+        } catch (saveErr) {
+          console.error('[handleApplyFilter] Failed to save to file:', saveErr);
+        }
+      }
+      
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: finalImage,
+        image_file_uri: newFileUri, // ⭐ Update file URI to point to filtered image
         original_image_base64: originalImage,
         filter_applied: filterType,
         adjustments: adjustments,
