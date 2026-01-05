@@ -515,12 +515,20 @@ export default function DocumentScreen() {
   };
 
   const handleRotate = async () => {
-    if (!currentDocument || processing) return;
+    // ⭐ Get document from store directly to avoid stale state
+    const doc = useDocumentStore.getState().currentDocument;
+    if (!doc || processing) {
+      console.error('[handleRotate] No document or already processing');
+      if (!doc) {
+        Alert.alert('Error', 'Document not loaded. Please go back and try again.');
+      }
+      return;
+    }
     
     setProcessing(true);
     try {
-      const currentPage = currentDocument.pages[selectedPageIndex];
-      const isLocalDoc = currentDocument.document_id.startsWith('local_');
+      const currentPage = doc.pages[selectedPageIndex];
+      const isLocalDoc = doc.document_id.startsWith('local_');
       
       // Use LOCAL processing with all available image sources
       console.log('[handleRotate] Using local image processing');
@@ -539,7 +547,7 @@ export default function DocumentScreen() {
 
       // ⭐ LOCAL-FIRST: Save rotated image to file system immediately
       let newFileUri = currentPage.image_file_uri;
-      if (processedImage && isLocalDoc && Platform.OS !== 'web') {
+      if (processedImage && Platform.OS !== 'web') {
         try {
           const imageDir = `${documentDirectory}images/`;
           // Ensure directory exists
@@ -547,7 +555,7 @@ export default function DocumentScreen() {
           if (!dirInfo.exists) {
             await makeDirectoryAsync(imageDir, { intermediates: true });
           }
-          const filename = `${currentDocument.document_id}_p${selectedPageIndex}_rotated_${Date.now()}.jpg`;
+          const filename = `${doc.document_id}_p${selectedPageIndex}_rotated_${Date.now()}.jpg`;
           const fileUri = `${imageDir}${filename}`;
           // Strip data: prefix if present
           let cleanBase64 = processedImage;
@@ -562,7 +570,7 @@ export default function DocumentScreen() {
         }
       }
 
-      const updatedPages = [...currentDocument.pages];
+      const updatedPages = [...doc.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: processedImage,
@@ -571,7 +579,8 @@ export default function DocumentScreen() {
         rotation: ((currentPage.rotation || 0) + 90) % 360,
       };
 
-      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+      await updateDocument(isLocalDoc ? null : token, doc.document_id, { pages: updatedPages });
+      console.log('[handleRotate] ✅ Rotation complete');
     } catch (e: any) {
       console.error('[handleRotate] Error:', e);
       Alert.alert('Error', `Failed to rotate image: ${e.message || 'Unknown error'}`);
