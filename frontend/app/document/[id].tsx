@@ -23,6 +23,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useDocumentStore, Document, PageData, getImageSource } from '../../src/store/documentStore';
+import { usePurchaseStore } from '../../src/store/purchaseStore';
 import { useAdStore } from '../../src/store/adStore';
 import { showGlobalInterstitial } from '../../src/components/AdManager';
 import Button from '../../src/components/Button';
@@ -34,6 +35,7 @@ import { SignatureDrawingModal, SignaturePlacementModal } from '../../src/compon
 import SignatureSelectionModal from '../../src/components/SignatureSelectionModal';
 import AnnotationEditor from '../../src/components/AnnotationEditor';
 import PendingBadge from '../../src/components/PendingBadge';
+import HardPaywall from '../../src/components/HardPaywall';
 // Local image processing - no backend needed!
 import { rotateImage as rotateImageLocal, generatePdfLocally, shareFile, getImageBase64, loadImageAsBase64 } from '../../src/utils/localImageProcessor';
 // Offline queue for pending operations
