@@ -190,7 +190,7 @@ export default function ShareModal({
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
 
     // Watermark HTML - diagonal text overlay
-    const watermarkHtml = shouldShowWatermark ? `
+    const watermarkHtml = showWatermark ? `
       <div style="
         position: absolute;
         top: 50%;
