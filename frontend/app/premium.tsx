@@ -183,7 +183,8 @@ export default function PremiumScreen() {
   };
 
   const openTerms = () => {
-    Linking.openURL('https://scanup.app/terms');
+    // Open terms page inside the app using router
+    router.push('/legal?type=terms');
   };
 
   // If already premium
