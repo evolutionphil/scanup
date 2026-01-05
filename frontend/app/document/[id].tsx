@@ -511,8 +511,14 @@ export default function DocumentScreen() {
       if (processedImage && isLocalDoc) {
         try {
           const FileSystem = require('expo-file-system').default;
+          const imageDir = `${FileSystem.documentDirectory}images/`;
+          // Ensure directory exists
+          const dirInfo = await FileSystem.getInfoAsync(imageDir);
+          if (!dirInfo.exists) {
+            await FileSystem.makeDirectoryAsync(imageDir, { intermediates: true });
+          }
           const filename = `${currentDocument.document_id}_p${selectedPageIndex}_rotated_${Date.now()}.jpg`;
-          const fileUri = `${FileSystem.documentDirectory}images/${filename}`;
+          const fileUri = `${imageDir}${filename}`;
           // Strip data: prefix if present
           let cleanBase64 = processedImage;
           if (cleanBase64.startsWith('data:')) {
