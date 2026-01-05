@@ -386,7 +386,7 @@ export default function ShareModal({
     setIsExporting(true);
     try {
       // Use same watermark logic as PDF
-      const showWatermark = shouldShowWatermark();
+      const showWatermark = getWatermarkStatus();
       console.log('[ShareModal] handlePrint - showWatermark:', showWatermark);
       
       // Load images from any source
