@@ -628,6 +628,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     marginBottom: 16,
   },
+  viewShotContainer: {
+    width: '100%',
+    height: '100%',
+  },
   preview: {
     width: '100%',
     height: '100%',
