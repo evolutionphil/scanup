@@ -3929,12 +3929,14 @@ async def apply_signature_to_image(request: ApplySignatureRequest):
         logger.info(f"Original signature size: {signature.width}x{signature.height}")
         
         # Calculate signature size based on scale
-        sig_width = int(img_width * request.scale)
-        sig_height = int(sig_width * (signature.height / signature.width)) if signature.width > 0 else 0
+        if signature.width <= 0 or signature.height <= 0:
+            return {
+                "success": False,
+                "message": "Invalid signature image dimensions"
+            }
         
-        # Ensure minimum size
-        sig_width = max(sig_width, 10)
-        sig_height = max(sig_height, 10)
+        sig_width = max(int(img_width * request.scale), 10)  # Minimum 10px
+        sig_height = max(int(sig_width * (signature.height / signature.width)), 10)  # Minimum 10px
         
         logger.info(f"Resizing signature to: {sig_width}x{sig_height} (scale: {request.scale})")
         signature = signature.resize((sig_width, sig_height), Image.Resampling.LANCZOS)
