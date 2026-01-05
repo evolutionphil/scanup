@@ -1676,6 +1676,13 @@ export default function DocumentScreen() {
           theme={theme}
         />
       )}
+
+      {/* Hard Paywall for Signature feature */}
+      <HardPaywall
+        visible={showSignaturePaywall}
+        onClose={() => setShowSignaturePaywall(false)}
+        trigger="signature"
+      />
     </SafeAreaView>
   );
 }
