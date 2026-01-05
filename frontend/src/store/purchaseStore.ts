@@ -113,13 +113,13 @@ export const usePurchaseStore = create<State>((set, get) => ({
     
     try {
       // Load saved state
-      const [isPremiumStr, hasRemovedAdsStr] = await Promise.all([
+      const [isPremiumStr, hasRemovedWatermarkStr] = await Promise.all([
         AsyncStorage.getItem(STORAGE.IS_PREMIUM),
-        AsyncStorage.getItem(STORAGE.REMOVE_ADS),
+        AsyncStorage.getItem(STORAGE.REMOVE_WATERMARK),
       ]);
       set({
         isPremium: isPremiumStr === 'true',
-        hasRemovedAds: hasRemovedAdsStr === 'true',
+        hasRemovedWatermark: hasRemovedWatermarkStr === 'true',
       });
 
       console.log('[PurchaseStore] Calling initConnection...');
