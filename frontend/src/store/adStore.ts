@@ -18,6 +18,9 @@ const AD_UNITS = {
 };
 
 const getAdUnitId = () => {
+  // Web doesn't have ads
+  if (Platform.OS === 'web') return '';
+  
   if (__DEV__) {
     return Platform.OS === 'ios' 
       ? AD_UNITS.test.interstitial.ios 
