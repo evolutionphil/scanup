@@ -699,22 +699,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   fetchDocuments: async (token, params = {}) => {
-    set({ isLoading: true });
+    console.log('[fetchDocuments] Starting, token:', !!token);
+    
+    // ⭐ LOCAL-FIRST: Load from local cache IMMEDIATELY (no loading spinner)
     try {
-      // If no token (guest mode), load from local storage
-      if (!token) {
-        await get().loadGuestDocuments();
-        set({ isLoading: false });
-        return;
-      }
-
-      // First, load from local cache for instant display
       const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
       if (cached) {
         const cachedDocs = JSON.parse(cached);
+        console.log('[fetchDocuments] ✅ Loaded', cachedDocs.length, 'docs from local cache');
         set({ documents: cachedDocs });
       }
+    } catch (e) {
+      console.error('[fetchDocuments] Cache load error:', e);
+    }
+    
+    // If no token (guest mode), just load guest documents
+    if (!token) {
+      await get().loadGuestDocuments();
+      return;
+    }
 
+    // ⭐ Background fetch from server - DON'T set isLoading=true (prevents UI blocking)
+    try {
       const queryParams = new URLSearchParams();
       if (params.folder_id) queryParams.append('folder_id', params.folder_id);
       if (params.search) queryParams.append('search', params.search);
@@ -725,20 +731,29 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (!response.ok) throw new Error('Failed to fetch documents');
-      const documents = await response.json();
-      set({ documents, isLoading: false });
+      if (!response.ok) {
+        console.error('[fetchDocuments] Server fetch failed:', response.status);
+        return; // Don't throw - we have local cache
+      }
       
-      // Save to local cache for next time (this will strip base64 and save images to files)
+      const serverDocs = await response.json();
+      console.log('[fetchDocuments] ✅ Fetched', serverDocs.length, 'docs from server');
+      
+      // Merge with any unsycned local documents
+      const { documents: currentDocs } = get();
+      const localOnlyDocs = currentDocs.filter(d => 
+        d.document_id.startsWith('local_') && 
+        !serverDocs.some((s: Document) => s.document_id === d.document_id)
+      );
+      
+      const mergedDocs = [...localOnlyDocs, ...serverDocs];
+      set({ documents: mergedDocs });
+      
+      // Save to local cache for next time (strips base64, saves to file system)
       await get().saveLocalCache();
     } catch (e) {
-      console.error('Error fetching documents:', e);
-      set({ isLoading: false });
-      // Don't throw if we have cached data
-      const { documents } = get();
-      if (documents.length === 0) {
-        throw e;
-      }
+      console.error('[fetchDocuments] Server fetch error:', e);
+      // Don't throw - we have local cache
     }
   },
 
