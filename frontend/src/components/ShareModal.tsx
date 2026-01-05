@@ -125,81 +125,49 @@ export default function ShareModal({
   
   const { isPremium } = usePurchaseStore();
 
-  // Helper function to show ad IMMEDIATELY on share/export
+  // ==========================================
+  // WATERMARK LOGIC - Using monetization store
+  // ==========================================
+  // RULES:
+  // 1. Premium users → NO WATERMARK
+  // 2. Users who bought "Remove Watermark" (€2.99) → NO WATERMARK
+  // 3. First export → NO WATERMARK (free trial)
+  // 4. Subsequent exports for free users → WATERMARK
+  const getWatermarkStatus = (): boolean => {
+    // Use centralized monetization logic
+    return shouldShowWatermark(isPremium);
+  };
+
+  // ==========================================
+  // AD LOGIC - Using monetization store
+  // ==========================================
+  // RULES:
+  // 1. Premium users → NO ADS
+  // 2. First 24 hours → NO ADS
+  // 3. Max 1 ad per session
+  // 4. Only after PDF export (not on first export)
   const tryShowAd = async () => {
-    // Get fresh state from store
+    if (!canShowAd(isPremium)) {
+      console.log('[ShareModal] Ad skipped by monetization rules');
+      return;
+    }
+    
     const { adsEnabled, isAdLoaded } = useAdStore.getState();
-    
-    console.log('[ShareModal] tryShowAd - adsEnabled:', adsEnabled, 'isAdLoaded:', isAdLoaded);
-    
-    // Show ad immediately if enabled and loaded (no counting)
     if (adsEnabled && isAdLoaded) {
-      console.log('[ShareModal] Showing ad immediately on share/export');
+      console.log('[ShareModal] Showing ad after export');
       try {
         await showGlobalInterstitial();
+        incrementAdsShown();
       } catch (e) {
         console.log('[ShareModal] Could not show ad:', e);
       }
     }
   };
 
-  // Calculate actual page count from pages array or use provided pageCount
-  const actualPageCount = pageCount ?? pages.length;
-
-  // Calculate file size from pages
-  const calculateFileSize = () => {
-    if (fileSize !== '0 MB') return fileSize;
-    if (!pages || pages.length === 0) return '0 MB';
-    
-    let totalSize = 0;
-    pages.forEach(page => {
-      if (page.image_base64) {
-        // Base64 string length * 0.75 gives approximate bytes
-        totalSize += (page.image_base64.length * 0.75);
-      }
-    });
-    
-    if (totalSize > 1024 * 1024) {
-      return `${(totalSize / (1024 * 1024)).toFixed(1)} MB`;
-    } else if (totalSize > 1024) {
-      return `${(totalSize / 1024).toFixed(1)} KB`;
-    }
-    return `${totalSize} B`;
-  };
-
-  // ==========================================
-  // WATERMARK LOGIC - Centralized decision
-  // ==========================================
-  // RULES:
-  // 1. Guest (not logged in) → WATERMARK + ADS
-  // 2. Logged in + Premium → NO WATERMARK, NO ADS
-  // 3. Logged in + Only "Remove Ads" purchased → NO ADS, BUT STILL WATERMARK
-  // 4. Logged in + Free user → WATERMARK + ADS
-  const shouldShowWatermark = (): boolean => {
-    const { user, isGuest, isAuthenticated } = useAuthStore.getState();
-    const { isPremium } = usePurchaseStore.getState();
-    
-    // If not logged in (guest) → always watermark
-    if (isGuest || !isAuthenticated) {
-      console.log('[ShareModal] Watermark: YES (guest user)');
-      return true;
-    }
-    
-    // If premium subscription → no watermark
-    if (isPremium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial') {
-      console.log('[ShareModal] Watermark: NO (premium user)');
-      return false;
-    }
-    
-    // All other logged in users (free, or only remove-ads) → watermark
-    console.log('[ShareModal] Watermark: YES (free user or remove-ads only)');
-    return true;
-  };
-
   const generatePdf = async (): Promise<string> => {
-    const showWatermark = shouldShowWatermark();
+    const showWatermark = getWatermarkStatus();
     
-    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark);
+    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark, 'exportCount:', exportCount);
     
     // Load images from any source
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
