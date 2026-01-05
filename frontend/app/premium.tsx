@@ -9,7 +9,6 @@ import {
   Alert,
   Platform,
   BackHandler,
-  Linking,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
