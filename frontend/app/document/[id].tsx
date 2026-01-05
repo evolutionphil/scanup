@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
   BackHandler,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
