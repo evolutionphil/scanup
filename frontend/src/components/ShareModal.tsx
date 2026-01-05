@@ -607,6 +607,13 @@ export default function ShareModal({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Soft Paywall - shown after first free export */}
+      <SoftPaywall
+        visible={showPaywall}
+        onClose={handlePaywallDismiss}
+        trigger="export"
+      />
     </Modal>
   );
 }
