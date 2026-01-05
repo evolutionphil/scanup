@@ -235,6 +235,21 @@ export default function ShareModal({
       return;
     }
 
+    // ==========================================
+    // PAYWALL CHECK - Show soft paywall after first free export
+    // ==========================================
+    // First export is FREE and uninterrupted
+    // Second export shows soft paywall (but user can dismiss)
+    if (!isPremium && checkPaywall()) {
+      console.log('[ShareModal] Showing paywall - export count:', exportCount);
+      setShowPaywall(true);
+      return;
+    }
+
+    await performExport();
+  };
+
+  const performExport = async () => {
     setIsExporting(true);
     try {
       let fileUri: string;
