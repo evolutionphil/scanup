@@ -185,45 +185,79 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       const subSkus = SUBSCRIPTION_CANONICAL.map(getStoreSku);
       const prodSkus = PRODUCT_CANONICAL.map(getStoreSku);
 
+      console.log('[PurchaseStore] Platform:', Platform.OS);
       console.log('[PurchaseStore] Subscription SKUs:', subSkus);
       console.log('[PurchaseStore] Product SKUs:', prodSkus);
 
-      const subs = await getSubscriptions({ skus: subSkus });
-      console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
+      // Fetch subscriptions
+      let subs: any[] = [];
+      try {
+        subs = await getSubscriptions({ skus: subSkus });
+        console.log('[PurchaseStore] Raw subscriptions count:', subs?.length || 0);
+        if (subs?.length > 0) {
+          console.log('[PurchaseStore] First subscription:', JSON.stringify(subs[0], null, 2));
+        }
+      } catch (subError: any) {
+        console.error('[PurchaseStore] ❌ getSubscriptions error:', subError?.message || subError);
+      }
       
-      const prods = await getProducts({ skus: prodSkus });
-      console.log('[PurchaseStore] Raw products:', JSON.stringify(prods, null, 2));
+      // Fetch one-time products
+      let prods: any[] = [];
+      try {
+        prods = await getProducts({ skus: prodSkus });
+        console.log('[PurchaseStore] Raw products count:', prods?.length || 0);
+      } catch (prodError: any) {
+        console.error('[PurchaseStore] ❌ getProducts error:', prodError?.message || prodError);
+      }
 
+      // ✅ Platform-specific price parsing
       const formattedSubs = (subs || []).map((s: any) => {
         const canonicalId = getCanonicalId(s.productId) || s.productId;
         
-        // iOS uses localizedPrice directly, Android uses subscriptionOfferDetails
-        const price = Platform.OS === 'ios' 
-          ? s.localizedPrice
-          : s.subscriptionOfferDetails?.[0]?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice ?? s.localizedPrice;
+        // iOS: localizedPrice directly
+        // Android: subscriptionOfferDetails[0].pricingPhases.pricingPhaseList[0].formattedPrice
+        let price = '';
+        if (Platform.OS === 'ios') {
+          price = s.localizedPrice || '';
+          console.log(`[PurchaseStore] iOS price for ${s.productId}:`, price);
+        } else {
+          price = s.subscriptionOfferDetails?.[0]?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice || s.localizedPrice || '';
+          console.log(`[PurchaseStore] Android price for ${s.productId}:`, price);
+        }
         
         return {
           canonicalId,
           storeProductId: s.productId,
           productId: s.productId,
           title: s.title || s.productId,
-          localizedPrice: price || '',
+          localizedPrice: price,
           currency: s.currency || 'EUR',
           offerToken: s.subscriptionOfferDetails?.[0]?.offerToken,
         };
       });
 
-      const formattedProds = (prods || []).map((p: any) => ({
-        canonicalId: CANONICAL_PRODUCTS.REMOVE_ADS,
-        storeProductId: p.productId,
-        productId: p.productId,
-        title: p.title || p.productId,
-        localizedPrice: p.localizedPrice ?? p.oneTimePurchaseOfferDetails?.formattedPrice ?? '',
-        currency: p.currency || 'EUR',
-      }));
+      const formattedProds = (prods || []).map((p: any) => {
+        // iOS: localizedPrice directly
+        // Android: oneTimePurchaseOfferDetails.formattedPrice
+        let price = '';
+        if (Platform.OS === 'ios') {
+          price = p.localizedPrice || '';
+        } else {
+          price = p.localizedPrice || p.oneTimePurchaseOfferDetails?.formattedPrice || '';
+        }
+        
+        return {
+          canonicalId: CANONICAL_PRODUCTS.REMOVE_ADS,
+          storeProductId: p.productId,
+          productId: p.productId,
+          title: p.title || p.productId,
+          localizedPrice: price,
+          currency: p.currency || 'EUR',
+        };
+      });
 
-      console.log('[PurchaseStore] Formatted subscriptions:', formattedSubs);
-      console.log('[PurchaseStore] Formatted products:', formattedProds);
+      console.log('[PurchaseStore] ✅ Formatted subscriptions:', formattedSubs.map(s => ({ id: s.canonicalId, price: s.localizedPrice })));
+      console.log('[PurchaseStore] ✅ Formatted products:', formattedProds.map(p => ({ id: p.canonicalId, price: p.localizedPrice })));
 
       set({
         subscriptions: formattedSubs,
