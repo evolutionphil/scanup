@@ -152,23 +152,39 @@ export default function ShareModal({
     return `${totalSize} B`;
   };
 
+  // ==========================================
+  // WATERMARK LOGIC - Centralized decision
+  // ==========================================
+  // RULES:
+  // 1. Guest (not logged in) → WATERMARK + ADS
+  // 2. Logged in + Premium → NO WATERMARK, NO ADS
+  // 3. Logged in + Only "Remove Ads" purchased → NO ADS, BUT STILL WATERMARK
+  // 4. Logged in + Free user → WATERMARK + ADS
+  const shouldShowWatermark = (): boolean => {
+    const { user, isGuest, isAuthenticated } = useAuthStore.getState();
+    const { isPremium } = usePurchaseStore.getState();
+    
+    // If not logged in (guest) → always watermark
+    if (isGuest || !isAuthenticated) {
+      console.log('[ShareModal] Watermark: YES (guest user)');
+      return true;
+    }
+    
+    // If premium subscription → no watermark
+    if (isPremium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial') {
+      console.log('[ShareModal] Watermark: NO (premium user)');
+      return false;
+    }
+    
+    // All other logged in users (free, or only remove-ads) → watermark
+    console.log('[ShareModal] Watermark: YES (free user or remove-ads only)');
+    return true;
+  };
+
   const generatePdf = async (): Promise<string> => {
-    // Check if user should see watermark (free users only)
-    const { user, isGuest } = useAuthStore.getState();
-    const { isPremium, hasRemovedAds } = usePurchaseStore.getState();
+    const showWatermark = shouldShowWatermark();
     
-    // Show watermark for: guests, free users (not premium, not trial, not removed ads)
-    const shouldShowWatermark = isGuest || 
-      (!isPremium && !hasRemovedAds && 
-       user?.subscription_type !== 'premium' && 
-       user?.subscription_type !== 'trial');
-    
-    console.log('[ShareModal] generatePdf - shouldShowWatermark:', shouldShowWatermark, {
-      isGuest,
-      isPremium,
-      hasRemovedAds,
-      subscriptionType: user?.subscription_type
-    });
+    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark);
     
     // Load images from any source
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
