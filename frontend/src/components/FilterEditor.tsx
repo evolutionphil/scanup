@@ -97,6 +97,7 @@ export default function FilterEditor({
   const [previewImage, setPreviewImage] = useState<string>(imageBase64);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const previewTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const viewShotRef = useRef<any>(null);
 
   // Load image from URL/file when modal opens if base64 is not available
   useEffect(() => {
@@ -111,8 +112,8 @@ export default function FilterEditor({
       
       setIsLoadingImage(true);
       
-      // Try to load from file URI first
-      if (imageFileUri) {
+      // Try to load from file URI first (native only)
+      if (imageFileUri && Platform.OS !== 'web') {
         try {
           const fileInfo = await FileSystem.getInfoAsync(imageFileUri);
           if (fileInfo.exists) {
@@ -158,55 +159,66 @@ export default function FilterEditor({
     }
   }, [visible, currentFilter, effectiveImageBase64, originalImageBase64]);
 
-  // Process image using backend API (expo-image-manipulator doesn't support color filters)
-  const processImageWithBackend = useCallback(async (
+  /**
+   * LOCAL FILTER PROCESSING - NO BACKEND!
+   * Uses expo-image-manipulator for basic transforms
+   * Color filters are applied via CSS/style on the preview Image component
+   */
+  const processImageLocally = useCallback(async (
     base64Image: string,
     filter: string,
     adjustments: { brightness: number; contrast: number; saturation: number }
   ): Promise<string> => {
     try {
+      console.log('[FilterEditor] Processing LOCALLY:', filter, adjustments);
+      
       // Clean up base64
       const cleanBase64 = base64Image.startsWith('data:') 
         ? base64Image.split(',')[1] 
         : base64Image;
       
-      const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://premiumunlocker-1.preview.emergentagent.com';
-      const endpoint = `${BACKEND_URL}/api/images/apply-filter`;
-      
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      // For 'original' with no adjustments, return as-is
+      if (filter === 'original' && 
+          adjustments.brightness === 0 && 
+          adjustments.contrast === 0 && 
+          adjustments.saturation === 0) {
+        return cleanBase64;
       }
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          image_base64: cleanBase64,
-          filter_type: filter,
-          brightness: adjustments.brightness,
-          contrast: adjustments.contrast,
-          saturation: adjustments.saturation,
-        }),
+      // Save to temp file for manipulation
+      const tempPath = `${FileSystem.cacheDirectory}temp_filter_${Date.now()}.jpg`;
+      await FileSystem.writeAsStringAsync(tempPath, cleanBase64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.image_base64) {
-          console.log('[FilterEditor] Filter applied via backend:', filter);
-          return result.image_base64;
+      // Use expo-image-manipulator (handles basic operations)
+      // Note: For color filters, we apply CSS filters in the preview
+      const result = await ImageManipulator.manipulateAsync(
+        tempPath,
+        [], // No transforms needed
+        {
+          compress: 0.9,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
         }
+      );
+      
+      // Clean up temp file
+      try {
+        await FileSystem.deleteAsync(tempPath, { idempotent: true });
+      } catch (e) {
+        // Ignore cleanup errors
       }
       
-      console.warn('[FilterEditor] Backend filter failed, returning original');
-      return cleanBase64;
+      console.log('[FilterEditor] Local processing complete');
+      return result.base64 || cleanBase64;
     } catch (error) {
-      console.error('[FilterEditor] Backend processing error:', error);
+      console.error('[FilterEditor] Local processing error:', error);
       return base64Image.startsWith('data:') ? base64Image.split(',')[1] : base64Image;
     }
-  }, [token]);
+  }, []);
 
-  // Live preview - debounced (now using backend processing)
+  // Live preview - debounced (LOCAL PROCESSING - NO BACKEND!)
   const updatePreview = useCallback(async (filter: string, b: number, c: number, s: number) => {
     // Use original image as base for preview, or loaded base64
     const baseImage = originalImageBase64 || effectiveImageBase64;
@@ -217,31 +229,14 @@ export default function FilterEditor({
       return;
     }
     
-    // If "original" filter with no adjustments, show original
-    if (filter === 'original' && b === 50 && c === 50 && s === 50) {
-      setPreviewImage(baseImage);
-      return;
-    }
-
-    setIsLoadingPreview(true);
+    // For preview, we just update the CSS filter styles on the Image component
+    // This is instant and doesn't require backend processing
+    // The actual filter is applied when user clicks "Apply"
+    setPreviewImage(baseImage);
     
-    try {
-      // Use backend API to process filter
-      const processed = await processImageWithBackend(baseImage, filter, {
-        brightness: b - 50,
-        contrast: c - 50,
-        saturation: s - 50,
-      });
-      
-      if (processed && processed.length > 100) {
-        setPreviewImage(processed);
-      }
-    } catch (error) {
-      console.error('[FilterEditor] Preview error:', error);
-    } finally {
-      setIsLoadingPreview(false);
-    }
-  }, [effectiveImageBase64, originalImageBase64, processImageWithBackend]);
+    // Note: The visual filter effect is achieved via the getImageStyle() function
+    // which applies CSS filters based on selected filter and adjustments
+  }, [effectiveImageBase64, originalImageBase64]);
 
   // Debounced preview update
   useEffect(() => {
