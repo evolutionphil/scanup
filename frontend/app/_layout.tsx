@@ -77,25 +77,23 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider style={[styles.container, { backgroundColor: theme.background }]}>
-      <AdManager>
-        <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.background },
-            animation: 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="document/[id]" options={{ presentation: 'card' }} />
-          <Stack.Screen name="folder/[id]" options={{ presentation: 'card' }} />
-          <Stack.Screen name="edit-page" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="premium" options={{ presentation: 'modal' }} />
-        </Stack>
-      </AdManager>
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.background },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="document/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="folder/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="edit-page" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="premium" options={{ presentation: 'modal' }} />
+      </Stack>
     </SafeAreaProvider>
   );
 }
