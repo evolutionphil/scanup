@@ -16,16 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import Slider from './Slider';
-import Button from './Button';
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
+import { WebView } from 'react-native-webview';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Backend URL for filter processing
-const BACKEND_URL = 
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  'https://scanup-production.up.railway.app';
 
 const FILTER_PRESETS = [
   { id: 'original', name: 'Original', icon: 'image' },
@@ -82,19 +76,19 @@ export default function FilterEditor({
 }: FilterEditorProps) {
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
+  const webViewRef = useRef<WebView>(null);
   
   const [selectedFilter, setSelectedFilter] = useState(currentFilter);
   const [brightness, setBrightness] = useState(50);
   const [contrast, setContrast] = useState(50);
   const [saturation, setSaturation] = useState(50);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [loadedBase64, setLoadedBase64] = useState<string>('');
   
-  // Preview state
-  const [previewImage, setPreviewImage] = useState<string>(imageBase64);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Preview and processed image state
+  const [processedImage, setProcessedImage] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load image from URL/file when modal opens
   useEffect(() => {
@@ -103,6 +97,7 @@ export default function FilterEditor({
       
       if (imageBase64 && imageBase64.length > 100) {
         setLoadedBase64(imageBase64);
+        setProcessedImage(imageBase64);
         return;
       }
       
@@ -117,6 +112,7 @@ export default function FilterEditor({
             });
             console.log('[FilterEditor] Loaded from file URI');
             setLoadedBase64(base64);
+            setProcessedImage(base64);
             setIsLoadingImage(false);
             return;
           }
@@ -129,6 +125,7 @@ export default function FilterEditor({
         const base64 = await loadImageFromUrl(imageUrl);
         if (base64) {
           setLoadedBase64(base64);
+          setProcessedImage(base64);
         }
       }
       
@@ -139,6 +136,7 @@ export default function FilterEditor({
   }, [visible, imageBase64, imageUrl, imageFileUri]);
 
   const effectiveImageBase64 = loadedBase64 || imageBase64;
+  const baseImage = originalImageBase64 || effectiveImageBase64;
 
   // Reset when modal opens
   useEffect(() => {
@@ -147,127 +145,222 @@ export default function FilterEditor({
       setBrightness(50);
       setContrast(50);
       setSaturation(50);
-      setPreviewImage(originalImageBase64 || effectiveImageBase64);
+      setProcessedImage(baseImage);
     }
-  }, [visible, currentFilter, effectiveImageBase64, originalImageBase64]);
+  }, [visible, currentFilter, baseImage]);
 
-  /**
-   * Process filter using backend API
-   * This ensures filters work correctly on all platforms
-   */
-  const processFilterWithBackend = useCallback(async (
-    base64Image: string,
+  // Generate HTML for Canvas-based filter processing
+  const generateFilterHTML = (
+    imgBase64: string,
     filter: string,
-    adjustments: { brightness: number; contrast: number; saturation: number }
-  ): Promise<string> => {
-    try {
-      const cleanBase64 = base64Image.startsWith('data:') 
-        ? base64Image.split(',')[1] 
-        : base64Image;
+    bright: number,
+    cont: number,
+    sat: number
+  ): string => {
+    const cleanBase64 = imgBase64.startsWith('data:') ? imgBase64 : `data:image/jpeg;base64,${imgBase64}`;
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; }
+    canvas { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
       
-      // For original with no adjustments, return as-is
-      if (filter === 'original' && 
-          adjustments.brightness === 0 && 
-          adjustments.contrast === 0 && 
-          adjustments.saturation === 0) {
-        return cleanBase64;
-      }
+      canvas.width = img.width;
+      canvas.height = img.height;
       
-      console.log('[FilterEditor] Processing filter via backend:', filter);
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
       
-      const endpoint = `${BACKEND_URL}/api/images/apply-filter`;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          image_base64: cleanBase64,
-          filter_type: filter,
-          brightness: adjustments.brightness,
-          contrast: adjustments.contrast,
-          saturation: adjustments.saturation,
-        }),
-      });
+      // Filter parameters
+      const filter = '${filter}';
+      const brightness = ${bright - 50}; // -50 to 50
+      const contrast = ${cont - 50}; // -50 to 50
+      const saturation = ${sat - 50}; // -50 to 50
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.image_base64) {
-          console.log('[FilterEditor] Filter applied successfully');
-          return result.image_base64;
+      // Apply filter
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+        
+        // Apply filter type
+        if (filter === 'grayscale' || filter === 'bw' || filter === 'document') {
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          r = g = b = gray;
         }
+        
+        // Apply enhanced (slight contrast + saturation boost)
+        if (filter === 'enhanced') {
+          // Boost contrast slightly
+          const factor = 1.15;
+          r = ((r / 255 - 0.5) * factor + 0.5) * 255;
+          g = ((g / 255 - 0.5) * factor + 0.5) * 255;
+          b = ((b / 255 - 0.5) * factor + 0.5) * 255;
+          
+          // Boost saturation
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          const satFactor = 1.2;
+          r = gray + satFactor * (r - gray);
+          g = gray + satFactor * (g - gray);
+          b = gray + satFactor * (b - gray);
+        }
+        
+        // Apply B&W high contrast
+        if (filter === 'bw') {
+          const threshold = 128;
+          r = g = b = (r > threshold) ? 255 : 0;
+        }
+        
+        // Apply document mode (high contrast grayscale)
+        if (filter === 'document') {
+          const factor = 1.4;
+          r = g = b = ((r / 255 - 0.5) * factor + 0.5) * 255;
+        }
+        
+        // Apply brightness
+        if (brightness !== 0) {
+          const bFactor = brightness * 2.55; // Convert to 0-255 range
+          r += bFactor;
+          g += bFactor;
+          b += bFactor;
+        }
+        
+        // Apply contrast
+        if (contrast !== 0) {
+          const cFactor = (100 + contrast) / 100;
+          r = ((r / 255 - 0.5) * cFactor + 0.5) * 255;
+          g = ((g / 255 - 0.5) * cFactor + 0.5) * 255;
+          b = ((b / 255 - 0.5) * cFactor + 0.5) * 255;
+        }
+        
+        // Apply saturation (skip for grayscale filters)
+        if (saturation !== 0 && filter !== 'grayscale' && filter !== 'bw' && filter !== 'document') {
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          const sFactor = (100 + saturation) / 100;
+          r = gray + sFactor * (r - gray);
+          g = gray + sFactor * (g - gray);
+          b = gray + sFactor * (b - gray);
+        }
+        
+        // Clamp values
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i + 1] = Math.max(0, Math.min(255, g));
+        data[i + 2] = Math.max(0, Math.min(255, b));
       }
       
-      console.warn('[FilterEditor] Backend filter failed');
-      return cleanBase64;
-    } catch (error) {
-      console.error('[FilterEditor] Backend processing error:', error);
-      return base64Image.startsWith('data:') ? base64Image.split(',')[1] : base64Image;
-    }
-  }, [token]);
-
-  // Live preview - debounced
-  const updatePreview = useCallback(async (filter: string, b: number, c: number, s: number) => {
-    const baseImage = originalImageBase64 || effectiveImageBase64;
+      // Put processed data back
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Convert to base64 and send back
+      const resultBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'filtered',
+        data: resultBase64
+      }));
+    };
     
+    img.onerror = function(e) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'error',
+        message: 'Failed to load image'
+      }));
+    };
+    
+    img.src = '${cleanBase64}';
+  </script>
+</body>
+</html>
+    `;
+  };
+
+  // Process filter locally using WebView Canvas
+  const processFilterLocally = useCallback(() => {
     if (!baseImage || baseImage.length < 100) {
-      console.log('[FilterEditor] No image data for preview');
+      console.log('[FilterEditor] No image data for processing');
       return;
     }
     
-    // For original with no adjustments, show original
-    if (filter === 'original' && b === 50 && c === 50 && s === 50) {
-      setPreviewImage(baseImage);
+    // For original with no adjustments, use original
+    if (selectedFilter === 'original' && brightness === 50 && contrast === 50 && saturation === 50) {
+      setProcessedImage(baseImage);
       return;
     }
-
-    setIsLoadingPreview(true);
     
-    try {
-      const processed = await processFilterWithBackend(baseImage, filter, {
-        brightness: b - 50,
-        contrast: c - 50,
-        saturation: s - 50,
-      });
-      
-      if (processed && processed.length > 100) {
-        setPreviewImage(processed);
-      }
-    } catch (error) {
-      console.error('[FilterEditor] Preview error:', error);
-    } finally {
-      setIsLoadingPreview(false);
+    setIsProcessing(true);
+    
+    // Inject new HTML to process
+    if (webViewRef.current) {
+      const html = generateFilterHTML(baseImage, selectedFilter, brightness, contrast, saturation);
+      webViewRef.current.injectJavaScript(`
+        document.open();
+        document.write(${JSON.stringify(html)});
+        document.close();
+        true;
+      `);
     }
-  }, [effectiveImageBase64, originalImageBase64, processFilterWithBackend]);
+  }, [baseImage, selectedFilter, brightness, contrast, saturation]);
 
-  // Debounced preview update
+  // Debounced filter processing
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !baseImage) return;
     
-    if (previewTimeoutRef.current) {
-      clearTimeout(previewTimeoutRef.current);
+    if (processTimeoutRef.current) {
+      clearTimeout(processTimeoutRef.current);
     }
     
-    previewTimeoutRef.current = setTimeout(() => {
-      updatePreview(selectedFilter, brightness, contrast, saturation);
+    processTimeoutRef.current = setTimeout(() => {
+      processFilterLocally();
     }, 300);
     
     return () => {
-      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+      if (processTimeoutRef.current) clearTimeout(processTimeoutRef.current);
     };
-  }, [selectedFilter, brightness, contrast, saturation, visible, updatePreview]);
+  }, [selectedFilter, brightness, contrast, saturation, visible, processFilterLocally]);
+
+  // Handle WebView messages
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      if (message.type === 'filtered' && message.data) {
+        console.log('[FilterEditor] ✅ Filter applied locally');
+        setProcessedImage(message.data);
+        setIsProcessing(false);
+      } else if (message.type === 'error') {
+        console.error('[FilterEditor] WebView error:', message.message);
+        setIsProcessing(false);
+      }
+    } catch (e) {
+      console.error('[FilterEditor] Failed to parse WebView message:', e);
+      setIsProcessing(false);
+    }
+  };
 
   const handleApply = () => {
-    // Pass the processed preview image along with the settings
-    const processedImage = previewImage || effectiveImageBase64;
+    // Pass the locally processed image
+    const finalImage = processedImage || effectiveImageBase64;
     onApply(selectedFilter, {
       brightness: brightness - 50,
       contrast: contrast - 50,
       saturation: saturation - 50,
-    }, processedImage);
+    }, finalImage);
   };
 
   const handleRevertToOriginal = () => {
@@ -283,7 +376,7 @@ export default function FilterEditor({
     setContrast(50);
     setSaturation(50);
     setSelectedFilter('original');
-    setPreviewImage(originalImageBase64 || effectiveImageBase64);
+    setProcessedImage(baseImage);
   };
 
   const getImageUri = (base64: string) => {
@@ -308,6 +401,9 @@ export default function FilterEditor({
     );
   }
 
+  // Initial HTML for WebView
+  const initialHTML = baseImage ? generateFilterHTML(baseImage, selectedFilter, brightness, contrast, saturation) : '<html><body></body></html>';
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView 
@@ -316,6 +412,19 @@ export default function FilterEditor({
       >
         <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.content, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 16 }]}>
+            {/* Hidden WebView for Canvas processing */}
+            <View style={styles.hiddenWebView}>
+              <WebView
+                ref={webViewRef}
+                source={{ html: initialHTML }}
+                onMessage={handleWebViewMessage}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                originWhitelist={['*']}
+                style={{ width: 1, height: 1, opacity: 0 }}
+              />
+            </View>
+
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity onPress={onClose} style={styles.headerButton}>
@@ -331,19 +440,19 @@ export default function FilterEditor({
               {/* Live Preview */}
               <View style={styles.previewContainer}>
                 <Image
-                  source={{ uri: getImageUri(previewImage) }}
+                  source={{ uri: getImageUri(processedImage || effectiveImageBase64) }}
                   style={styles.preview}
                   resizeMode="contain"
                 />
-                {isLoadingPreview && (
+                {isProcessing && (
                   <View style={styles.processingOverlay}>
                     <ActivityIndicator size="large" color={theme.primary} />
-                    <Text style={styles.processingText}>Updating preview...</Text>
+                    <Text style={styles.processingText}>Processing...</Text>
                   </View>
                 )}
-                <View style={[styles.livePreviewBadge, { backgroundColor: theme.success + '20' }]}>
-                  <Ionicons name="eye" size={12} color={theme.success} />
-                  <Text style={[styles.livePreviewText, { color: theme.success }]}>Live Preview</Text>
+                <View style={[styles.livePreviewBadge, { backgroundColor: '#22C55E20' }]}>
+                  <Ionicons name="phone-portrait" size={12} color="#22C55E" />
+                  <Text style={[styles.livePreviewText, { color: '#22C55E' }]}>100% Local</Text>
                 </View>
               </View>
 
@@ -445,7 +554,7 @@ export default function FilterEditor({
                 
                 {originalImageBase64 && (
                   <TouchableOpacity 
-                    style={[styles.actionButton, { backgroundColor: '#EF4444' + '20' }]} 
+                    style={[styles.actionButton, { backgroundColor: '#EF444420' }]} 
                     onPress={handleRevertToOriginal}
                   >
                     <Ionicons name="arrow-undo" size={20} color="#EF4444" />
@@ -471,6 +580,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.9,
     paddingTop: 8,
+  },
+  hiddenWebView: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
