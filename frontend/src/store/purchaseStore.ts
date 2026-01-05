@@ -125,31 +125,48 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   error: null,
 
   initialize: async () => {
-    if (get().isInitialized || Platform.OS === 'web') return;
-
-    set({ isLoading: true });
-
-    // ✅ KRITIK: AsyncStorage'dan kayıtlı durumu yükle
-    const [isPremiumStr, hasRemovedAdsStr, activeSubscription] = await Promise.all([
-      AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM),
-      AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS),
-      AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION),
-    ]);
-
-    set({
-      isPremium: isPremiumStr === 'true',
-      hasRemovedAds: hasRemovedAdsStr === 'true',
-      activeSubscription,
-    });
-
-    await initConnection();
-
-    if (Platform.OS === 'android') {
-      await flushFailedPurchasesCachedAsPendingAndroid();
+    if (get().isInitialized || Platform.OS === 'web') {
+      console.log('[PurchaseStore] Skip init - already initialized or web');
+      return;
     }
 
-    await get().fetchProducts();
-    set({ isInitialized: true, isLoading: false });
+    console.log('[PurchaseStore] Starting initialization...');
+    set({ isLoading: true, error: null });
+
+    try {
+      // ✅ KRITIK: AsyncStorage'dan kayıtlı durumu yükle
+      const [isPremiumStr, hasRemovedAdsStr, activeSubscription] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.IS_PREMIUM),
+        AsyncStorage.getItem(STORAGE_KEYS.HAS_REMOVED_ADS),
+        AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION),
+      ]);
+
+      set({
+        isPremium: isPremiumStr === 'true',
+        hasRemovedAds: hasRemovedAdsStr === 'true',
+        activeSubscription,
+      });
+
+      console.log('[PurchaseStore] Calling initConnection...');
+      await initConnection();
+      console.log('[PurchaseStore] ✅ IAP Connection established');
+
+      if (Platform.OS === 'android') {
+        try {
+          await flushFailedPurchasesCachedAsPendingAndroid();
+          console.log('[PurchaseStore] ✅ Flushed pending purchases');
+        } catch (flushErr) {
+          console.log('[PurchaseStore] Flush error (non-critical):', flushErr);
+        }
+      }
+
+      await get().fetchProducts();
+      set({ isInitialized: true, isLoading: false });
+      console.log('[PurchaseStore] ✅ Initialization complete');
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Init error:', error?.message || error);
+      set({ isInitialized: true, isLoading: false, error: error?.message });
+    }
   },
 
   fetchProducts: async () => {
