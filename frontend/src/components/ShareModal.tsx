@@ -402,17 +402,40 @@ export default function ShareModal({
 
     setIsExporting(true);
     try {
-      const imagesBase64 = pages.map(page => {
-        let imgData = page.image_base64 || '';
-        if (imgData.includes(',')) {
-          imgData = imgData.split(',')[1];
-        }
-        return `data:image/jpeg;base64,${imgData}`;
-      });
+      // Use same watermark logic as PDF
+      const showWatermark = shouldShowWatermark();
+      console.log('[ShareModal] handlePrint - showWatermark:', showWatermark);
+      
+      // Load images from any source
+      const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
+
+      // Watermark HTML for print
+      const watermarkHtml = showWatermark ? `
+        <div style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 72px;
+          font-weight: bold;
+          color: rgba(62, 81, 251, 0.15);
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 1000;
+          font-family: Arial, sans-serif;
+          letter-spacing: 8px;
+        ">ScanUp</div>
+      ` : '';
 
       const imageHtml = imagesBase64.map((img, index) => `
-        <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; text-align: center;">
-          <img src="${img}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+        <div style="
+          page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; 
+          text-align: center;
+          position: relative;
+          min-height: 100vh;
+        ">
+          <img src="data:image/jpeg;base64,${img}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+          ${watermarkHtml}
         </div>
       `).join('');
 
