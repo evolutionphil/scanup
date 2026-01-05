@@ -404,28 +404,28 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
 
-          {/* Remove Ads Button - Only show if not premium and hasn't removed ads */}
-          {!isPremium && !hasRemovedAds && (
+          {/* Go Premium Button - Only show if not premium */}
+          {!isPremium && (
             <TouchableOpacity 
               style={[styles.settingRow, styles.removeAdsRow]} 
-              onPress={() => router.push('/remove-ads')}
+              onPress={() => router.push('/premium')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="ban-outline" size={22} color="#22C55E" />
-                <Text style={[styles.settingLabel, { color: '#22C55E', fontWeight: '600' }]}>{t('remove_ads', 'Remove Ads')}</Text>
+                <Ionicons name="star-outline" size={22} color="#4361EE" />
+                <Text style={[styles.settingLabel, { color: '#4361EE', fontWeight: '600' }]}>{t('go_premium', 'Go Premium')}</Text>
               </View>
-              <View style={styles.removeAdsBadge}>
-                <Text style={styles.removeAdsBadgeText}>{t('one_time', 'One-time')}</Text>
+              <View style={[styles.removeAdsBadge, { backgroundColor: '#4361EE' }]}>
+                <Text style={styles.removeAdsBadgeText}>PRO</Text>
               </View>
             </TouchableOpacity>
           )}
 
-          {/* Show Ad-Free badge if already removed */}
-          {(isPremium || hasRemovedAds) && (
+          {/* Show Premium badge if already premium */}
+          {isPremium && (
             <View style={[styles.settingRow, styles.adFreeRow]}>
               <View style={styles.settingLeft}>
                 <Ionicons name="checkmark-circle" size={22} color="#22C55E" />
-                <Text style={[styles.settingLabel, { color: '#22C55E' }]}>{t('ad_free', 'Ad-Free')}</Text>
+                <Text style={[styles.settingLabel, { color: '#22C55E' }]}>{t('premium_active', 'Premium Active')}</Text>
               </View>
               <Ionicons name="checkmark" size={20} color="#22C55E" />
             </View>
