@@ -492,13 +492,21 @@ export default function AnnotationEditor({
             <Ionicons name="close" size={28} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Annotate</Text>
-          <TouchableOpacity onPress={handleSave} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={[styles.saveText, { color: theme.primary }]}>Done</Text>
+          <TouchableOpacity 
+            onPress={handleSave} 
+            style={[styles.headerBtn, isSaving && { opacity: 0.5 }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={isSaving}
+          >
+            <Text style={[styles.saveText, { color: theme.primary }]}>
+              {isSaving ? 'Saving...' : 'Done'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Canvas */}
+        {/* Canvas - ⭐ Ref added for view-shot capture */}
         <View 
+          ref={canvasRef}
           style={styles.canvasContainer}
           onLayout={(e) => setImageLayout(e.nativeEvent.layout)}
           {...panResponder.panHandlers}
