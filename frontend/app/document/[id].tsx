@@ -281,7 +281,7 @@ export default function DocumentScreen() {
         }
       });
       
-      // ALWAYS try to load images from file system for local documents
+      // ALWAYS try to load images from file system for local documents (native only)
       const pagesWithImages = await Promise.all(doc.pages.map(async (page, idx) => {
         let updatedPage = { ...page };
         
@@ -297,8 +297,8 @@ export default function DocumentScreen() {
           return updatedPage;
         }
         
-        // Load image from file URI
-        if (page.image_file_uri) {
+        // Load image from file URI (native platforms only - skip on web)
+        if (page.image_file_uri && Platform.OS !== 'web') {
           try {
             console.log(`[DocumentScreen] Page ${idx}: Loading from file...`);
             const fileInfo = await getInfoAsync(page.image_file_uri);
