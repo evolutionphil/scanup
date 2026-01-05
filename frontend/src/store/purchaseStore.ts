@@ -300,9 +300,10 @@ export const usePurchaseStore = create<State>((set, get) => ({
           AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
           set({ isPremium: true });
         }
-        if (p.productId.includes('remove') || p.productId.includes('ads')) {
-          AsyncStorage.setItem(STORAGE.REMOVE_ADS, 'true');
-          set({ hasRemovedAds: true });
+        // Check for watermark removal purchase
+        if (p.productId.includes('watermark') || p.productId.includes('removewatermark')) {
+          AsyncStorage.setItem(STORAGE.REMOVE_WATERMARK, 'true');
+          set({ hasRemovedWatermark: true });
         }
       });
     } catch (e: any) {
