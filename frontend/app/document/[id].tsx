@@ -1424,10 +1424,15 @@ export default function DocumentScreen() {
           <ActionButton 
             icon="pencil" 
             label={hasOriginal ? "Re-Sign" : "Sign"} 
+            badge={!isPremium ? "PRO" : undefined}
             onPress={() => {
-              if (!token) {
-                showUpgradePrompt('Signature');
-              } else if (hasOriginal) {
+              // ⭐ HARD PAYWALL: Signature is a premium-only feature
+              if (!isPremium) {
+                setShowSignaturePaywall(true);
+                return;
+              }
+              
+              if (hasOriginal) {
                 // Page already has signature - confirm replacement
                 Alert.alert(
                   'Replace Signature',
