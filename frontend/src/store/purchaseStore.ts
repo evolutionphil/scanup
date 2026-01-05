@@ -151,6 +151,12 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       await initConnection();
       console.log('[PurchaseStore] ✅ IAP Connection established');
 
+      // ✅ iOS StoreKit timing fix - wait for StoreKit to be fully ready
+      if (Platform.OS === 'ios') {
+        console.log('[PurchaseStore] iOS: Waiting for StoreKit to be ready...');
+        await new Promise(r => setTimeout(r, 500));
+      }
+
       if (Platform.OS === 'android') {
         try {
           await flushFailedPurchasesCachedAsPendingAndroid();
