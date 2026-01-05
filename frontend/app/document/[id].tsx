@@ -514,14 +514,13 @@ export default function DocumentScreen() {
 
       // ⭐ LOCAL-FIRST: Save rotated image to file system immediately
       let newFileUri = currentPage.image_file_uri;
-      if (processedImage && isLocalDoc) {
+      if (processedImage && isLocalDoc && Platform.OS !== 'web') {
         try {
-          const FileSystem = require('expo-file-system').default;
-          const imageDir = `${FileSystem.documentDirectory}images/`;
+          const imageDir = `${documentDirectory}images/`;
           // Ensure directory exists
-          const dirInfo = await FileSystem.getInfoAsync(imageDir);
+          const dirInfo = await getInfoAsync(imageDir);
           if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(imageDir, { intermediates: true });
+            await makeDirectoryAsync(imageDir, { intermediates: true });
           }
           const filename = `${currentDocument.document_id}_p${selectedPageIndex}_rotated_${Date.now()}.jpg`;
           const fileUri = `${imageDir}${filename}`;
@@ -530,7 +529,7 @@ export default function DocumentScreen() {
           if (cleanBase64.startsWith('data:')) {
             cleanBase64 = cleanBase64.split(',')[1];
           }
-          await FileSystem.writeAsStringAsync(fileUri, cleanBase64, { encoding: FileSystem.EncodingType.Base64 });
+          await writeAsStringAsync(fileUri, cleanBase64, { encoding: EncodingType.Base64 });
           newFileUri = fileUri;
           console.log('[handleRotate] ✅ Saved rotated image to:', fileUri);
         } catch (saveErr) {
