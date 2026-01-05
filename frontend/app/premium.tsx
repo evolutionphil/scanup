@@ -107,12 +107,12 @@ export default function PremiumScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Get prices from fetched products - using canonicalId
-  const getPrice = (canonicalId: string) => {
-    const sub = subscriptions.find(s => s.canonicalId === canonicalId);
-    if (sub) return sub.localizedPrice;
-    const prod = products.find(p => p.canonicalId === canonicalId);
-    if (prod) return prod.localizedPrice;
+  // Get prices from fetched products - using id
+  const getPrice = (id: string) => {
+    const sub = subscriptions.find(s => s.id === id);
+    if (sub) return sub.price;
+    const prod = products.find(p => p.id === id);
+    if (prod) return prod.price;
     return ''; // Return empty if not loaded
   };
 
@@ -131,16 +131,16 @@ export default function PremiumScreen() {
     setError(null);
     
     let success = false;
-    let canonicalId = '';
+    let productId = '';
     
     if (selectedPlan === 'monthly') {
-      canonicalId = CANONICAL_PRODUCTS.PREMIUM_MONTHLY;
-      logPurchaseEvent('started', canonicalId);
-      success = await purchaseSubscription(canonicalId);
+      productId = CANONICAL_PRODUCTS.PREMIUM_MONTHLY;
+      logPurchaseEvent('started', productId);
+      success = await purchaseSubscription(productId);
     } else {
-      canonicalId = CANONICAL_PRODUCTS.PREMIUM_YEARLY;
-      logPurchaseEvent('started', canonicalId);
-      success = await purchaseSubscription(canonicalId);
+      productId = CANONICAL_PRODUCTS.PREMIUM_YEARLY;
+      logPurchaseEvent('started', productId);
+      success = await purchaseSubscription(productId);
     }
     
     if (success) {
