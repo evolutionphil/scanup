@@ -273,8 +273,20 @@ export default function DocumentScreen() {
     setLoadError(null);
     
     try {
-      // For local documents (guest mode), token can be null
-      const doc = await fetchDocument(token, id);
+      // ⭐ LOCAL-FIRST: Try to get from store first (immediate)
+      const { documents, currentDocument } = useDocumentStore.getState();
+      let doc = documents.find(d => d.document_id === id) || currentDocument;
+      
+      // If already have this document with images in memory, use it immediately
+      if (doc?.document_id === id && doc.pages?.some(p => p.image_base64 && p.image_base64.length > 100)) {
+        console.log('[DocumentScreen] ✅ Using cached document from memory');
+        useDocumentStore.setState({ currentDocument: doc });
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch document (this will be local-first now)
+      doc = await fetchDocument(token, id);
       console.log('[DocumentScreen] Document loaded:', doc?.document_id, 'Pages:', doc?.pages?.length);
       
       if (!doc || !doc.pages || doc.pages.length === 0) {
@@ -284,76 +296,86 @@ export default function DocumentScreen() {
       
       // Debug: Log what data we have for each page
       doc.pages.forEach((p, i) => {
-        console.log(`[DocumentScreen] Page ${i}: base64=${!!p.image_base64}, fileUri=${!!p.image_file_uri}, url=${!!p.image_url}`);
-        if (p.image_file_uri) {
-          console.log(`[DocumentScreen] Page ${i} file URI:`, p.image_file_uri);
-        }
+        console.log(`[DocumentScreen] Page ${i}: base64=${!!(p.image_base64 && p.image_base64.length > 100)}, fileUri=${!!p.image_file_uri}, url=${!!p.image_url}`);
       });
       
-      // ALWAYS try to load images from file system for local documents (native only)
-      const pagesWithImages = await Promise.all(doc.pages.map(async (page, idx) => {
-        let updatedPage = { ...page };
-        
-        // If page already has base64 data, use it
-        if (page.image_base64 && page.image_base64.length > 100) {
-          console.log(`[DocumentScreen] Page ${idx}: Using existing base64`);
-          return updatedPage;
-        }
-        
-        // If page has S3 URL, use it (Image component will load from URL)
-        if (page.image_url) {
-          console.log(`[DocumentScreen] Page ${idx}: Using S3 URL`);
-          return updatedPage;
-        }
-        
-        // Load image from file URI (native platforms only - skip on web)
-        if (page.image_file_uri && Platform.OS !== 'web') {
-          try {
-            console.log(`[DocumentScreen] Page ${idx}: Loading from file...`);
-            const fileInfo = await getInfoAsync(page.image_file_uri);
-            console.log(`[DocumentScreen] Page ${idx}: File exists=${fileInfo.exists}`);
-            
-            if (fileInfo.exists) {
-              const base64 = await readAsStringAsync(page.image_file_uri, {
-                encoding: EncodingType.Base64,
-              });
-              console.log(`[DocumentScreen] Page ${idx}: Loaded ${(base64.length / 1024).toFixed(1)}KB from file`);
-              updatedPage.image_base64 = base64;
-            } else {
-              console.warn(`[DocumentScreen] Page ${idx}: File not found at ${page.image_file_uri}`);
-            }
-          } catch (e) {
-            console.error(`[DocumentScreen] Page ${idx}: Error loading from file:`, e);
-          }
-        }
-        
-        // Load original from file too if needed (native platforms only)
-        if (page.original_file_uri && !page.original_image_base64 && Platform.OS !== 'web') {
-          try {
-            const fileInfo = await getInfoAsync(page.original_file_uri);
-            if (fileInfo.exists) {
-              const base64 = await readAsStringAsync(page.original_file_uri, {
-                encoding: EncodingType.Base64,
-              });
-              updatedPage.original_image_base64 = base64;
-            }
-          } catch (e) {
-            console.error(`[DocumentScreen] Page ${idx}: Error loading original:`, e);
-          }
-        }
-        
-        return updatedPage;
-      }));
+      // ⭐ Check if we need to load images
+      const needsImageLoad = doc.pages.some(p => 
+        (!p.image_base64 || p.image_base64.length < 100) && 
+        (p.image_file_uri || p.image_url)
+      );
       
-      // Update the document in store with loaded images
-      const docWithImages = { ...doc, pages: pagesWithImages };
-      useDocumentStore.setState({ currentDocument: docWithImages });
-      console.log('[DocumentScreen] Document updated with images');
+      if (!needsImageLoad) {
+        console.log('[DocumentScreen] ✅ All images already loaded');
+        useDocumentStore.setState({ currentDocument: doc });
+        setLoading(false);
+        return;
+      }
+      
+      // ⭐ Load images in background - show document immediately with placeholders
+      setLoading(false); // Let UI show document structure
+      
+      // Load images asynchronously
+      const loadImagesAsync = async () => {
+        const pagesWithImages = await Promise.all(doc!.pages.map(async (page, idx) => {
+          let updatedPage = { ...page };
+          
+          // If page already has base64 data, use it
+          if (page.image_base64 && page.image_base64.length > 100) {
+            return updatedPage;
+          }
+          
+          // If page has S3 URL, Image component will load it directly - no need to convert to base64
+          if (page.image_url) {
+            return updatedPage;
+          }
+          
+          // Load image from file URI (native platforms only)
+          if (page.image_file_uri && Platform.OS !== 'web') {
+            try {
+              const fileInfo = await getInfoAsync(page.image_file_uri);
+              if (fileInfo.exists) {
+                const base64 = await readAsStringAsync(page.image_file_uri, {
+                  encoding: EncodingType.Base64,
+                });
+                console.log(`[DocumentScreen] Page ${idx}: Loaded from file`);
+                updatedPage.image_base64 = base64;
+              }
+            } catch (e) {
+              console.error(`[DocumentScreen] Page ${idx}: Error loading from file:`, e);
+            }
+          }
+          
+          // Load original from file too if needed
+          if (page.original_file_uri && !page.original_image_base64 && Platform.OS !== 'web') {
+            try {
+              const fileInfo = await getInfoAsync(page.original_file_uri);
+              if (fileInfo.exists) {
+                const base64 = await readAsStringAsync(page.original_file_uri, {
+                  encoding: EncodingType.Base64,
+                });
+                updatedPage.original_image_base64 = base64;
+              }
+            } catch (e) {
+              console.error(`[DocumentScreen] Page ${idx}: Error loading original:`, e);
+            }
+          }
+          
+          return updatedPage;
+        }));
+        
+        // Update the document in store with loaded images
+        const docWithImages = { ...doc!, pages: pagesWithImages };
+        useDocumentStore.setState({ currentDocument: docWithImages });
+        console.log('[DocumentScreen] ✅ Images loaded in background');
+      };
+      
+      // Start loading images in background (don't await)
+      loadImagesAsync().catch(e => console.error('[DocumentScreen] Background image load error:', e));
       
     } catch (e: any) {
       console.error('[DocumentScreen] Failed to load document:', e);
       setLoadError(e.message || 'Failed to load document');
-    } finally {
       setLoading(false);
     }
   };
