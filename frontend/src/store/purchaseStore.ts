@@ -172,42 +172,62 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   fetchProducts: async () => {
     if (Platform.OS === 'web') return;
     
-    set({ isLoading: true });
+    console.log('[PurchaseStore] Fetching products...');
+    set({ isLoading: true, error: null });
 
-    const subSkus = SUBSCRIPTION_CANONICAL.map(getStoreSku);
-    const prodSkus = PRODUCT_CANONICAL.map(getStoreSku);
+    try {
+      const subSkus = SUBSCRIPTION_CANONICAL.map(getStoreSku);
+      const prodSkus = PRODUCT_CANONICAL.map(getStoreSku);
 
-    const subs = await getSubscriptions({ skus: subSkus });
-    const prods = await getProducts({ skus: prodSkus });
+      console.log('[PurchaseStore] Subscription SKUs:', subSkus);
+      console.log('[PurchaseStore] Product SKUs:', prodSkus);
 
-    set({
-      subscriptions: subs.map((s: any) => {
+      const subs = await getSubscriptions({ skus: subSkus });
+      console.log('[PurchaseStore] Raw subscriptions:', JSON.stringify(subs, null, 2));
+      
+      const prods = await getProducts({ skus: prodSkus });
+      console.log('[PurchaseStore] Raw products:', JSON.stringify(prods, null, 2));
+
+      const formattedSubs = (subs || []).map((s: any) => {
         const canonicalId = getCanonicalId(s.productId) || s.productId;
+        
+        // iOS uses localizedPrice directly, Android uses subscriptionOfferDetails
+        const price = Platform.OS === 'ios' 
+          ? s.localizedPrice
+          : s.subscriptionOfferDetails?.[0]?.pricingPhases?.pricingPhaseList?.[0]?.formattedPrice ?? s.localizedPrice;
+        
         return {
           canonicalId,
           storeProductId: s.productId,
-          productId: s.productId, // Backwards compatibility
-          title: s.title,
-          localizedPrice:
-            s.subscriptionOfferDetails?.[0]?.pricingPhases
-              ?.pricingPhaseList?.[0]?.formattedPrice ??
-            s.localizedPrice ?? '',
+          productId: s.productId,
+          title: s.title || s.productId,
+          localizedPrice: price || '',
           currency: s.currency || 'EUR',
           offerToken: s.subscriptionOfferDetails?.[0]?.offerToken,
         };
-      }),
-      products: prods.map((p: any) => ({
+      });
+
+      const formattedProds = (prods || []).map((p: any) => ({
         canonicalId: CANONICAL_PRODUCTS.REMOVE_ADS,
         storeProductId: p.productId,
-        productId: p.productId, // Backwards compatibility
-        title: p.title,
-        localizedPrice:
-          p.localizedPrice ??
-          p.oneTimePurchaseOfferDetails?.formattedPrice ?? '',
+        productId: p.productId,
+        title: p.title || p.productId,
+        localizedPrice: p.localizedPrice ?? p.oneTimePurchaseOfferDetails?.formattedPrice ?? '',
         currency: p.currency || 'EUR',
-      })),
-      isLoading: false,
-    });
+      }));
+
+      console.log('[PurchaseStore] Formatted subscriptions:', formattedSubs);
+      console.log('[PurchaseStore] Formatted products:', formattedProds);
+
+      set({
+        subscriptions: formattedSubs,
+        products: formattedProds,
+        isLoading: false,
+      });
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Fetch products error:', error?.message || error);
+      set({ isLoading: false, error: error?.message });
+    }
   },
 
   purchaseSubscription: async canonicalId => {
