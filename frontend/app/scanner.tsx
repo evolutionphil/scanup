@@ -199,6 +199,13 @@ export default function ScannerScreen() {
           
           // 3️⃣ Reklam göster (sadece free userlar için)
           if (shouldShow && shouldShowAds()) {
+            console.log('[Scanner] 🔥 LAZY: Initializing ads before showing...');
+            // 🔥 LAZY INIT - only initialize ads when we need to show them
+            await initAdsAfterUserAction();
+            
+            // Wait a bit for ad to load
+            await new Promise(r => setTimeout(r, 1500));
+            
             console.log('[Scanner] Showing interstitial...');
             const shown = adStore.show();
             if (shown) {
@@ -237,6 +244,13 @@ export default function ScannerScreen() {
           
           // 3️⃣ Reklam göster
           if (shouldShow && shouldShowAds()) {
+            console.log('[Scanner] 🔥 LAZY: Initializing ads before showing...');
+            // 🔥 LAZY INIT - only initialize ads when we need to show them
+            await initAdsAfterUserAction();
+            
+            // Wait a bit for ad to load
+            await new Promise(r => setTimeout(r, 1500));
+            
             console.log('[Scanner] Showing interstitial...');
             const shown = adStore.show();
             if (shown) {
