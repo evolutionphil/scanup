@@ -217,43 +217,30 @@ export default function ScannerScreen() {
         if (newDoc && newDoc.document_id) {
           console.log('[Scanner] Document created with ID:', newDoc.document_id);
           
-          // Increment scan count for each page scanned and potentially show ad (for free users)
-          // Use getState to get fresh store values
-          const adState = useAdStore.getState();
-          console.log('[Scanner] Ad state before increment:', {
-            adsEnabled: adState.adsEnabled,
-            isAdLoaded: adState.isAdLoaded,
-            scanCount: adState.scanCount,
-            scansBetweenAds: adState.scansBetweenAds
-          });
+          // 1️⃣ Scan sayısını artır (AsyncStorage ile kalıcı)
+          const count = await increaseScanCount();
+          console.log('[Scanner] Total scan count:', count);
           
-          const { incrementAndCheckAd } = adState;
-          let shouldShow = false;
-          for (let i = 0; i < validImages.length; i++) {
-            shouldShow = incrementAndCheckAd();
-          }
-          
-          console.log('[Scanner] Should show ad:', shouldShow);
-          
-          if (shouldShow) {
-            console.log('[Scanner] Showing interstitial ad after scan');
-            try {
-              const shown = await showGlobalInterstitial();
-              console.log('[Scanner] Ad shown result:', shown);
-            } catch (e) {
-              console.log('[Scanner] Could not show ad:', e);
+          // 2️⃣ 3 scan → reklam göster (sadece free userlar için)
+          let adShown = false;
+          if (count >= 3 && shouldShowAds()) {
+            console.log('[Scanner] 3 scans reached, showing ad...');
+            adShown = showInterstitialIfReady();
+            if (adShown) {
+              await resetScanCount();
+              console.log('[Scanner] Ad shown, count reset');
             }
           }
           
-          // Small delay to ensure state is updated, then navigate
-          setTimeout(() => {
+          // 3️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
+          InteractionManager.runAfterInteractions(() => {
             try {
               router.replace(`/document/${newDoc.document_id}`);
             } catch (e) {
               console.error('[Scanner] Navigation error:', e);
               router.replace('/(tabs)');
             }
-          }, 200);
+          });
         } else {
           throw new Error('Failed to create document');
         }
