@@ -131,15 +131,6 @@ export default function LoginScreen() {
     // Initialize Google Sign-In lazily
     initializeGoogleSignIn();
     
-    // Check if Google Sign-In is configured for this platform
-    if (Platform.OS === 'ios' && !googleSignInConfigured) {
-      Alert.alert(
-        t('google_signin_unavailable', 'Google Sign-In Unavailable'),
-        t('use_apple_signin', 'Please use Apple Sign-In on iOS devices.')
-      );
-      return;
-    }
-    
     setGoogleLoading(true);
     try {
       // Use native Google Sign-In on mobile platforms
