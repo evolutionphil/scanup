@@ -1097,13 +1097,21 @@ export default function DocumentScreen() {
 
   // Handle saving annotations - ⭐ 100% LOCAL-FIRST approach using view-shot
   const handleSaveAnnotations = async (annotations: any[], annotatedImageBase64: string, displayDimensions?: { width: number; height: number }) => {
-    if (!currentDocument || processing) return;
+    // ⭐ Get document from store directly to avoid stale state
+    const doc = useDocumentStore.getState().currentDocument;
+    if (!doc || processing) {
+      console.error('[handleSaveAnnotations] No document or already processing');
+      if (!doc) {
+        Alert.alert('Error', 'Document not loaded. Please go back and try again.');
+      }
+      return;
+    }
     
-    const isLocalDoc = currentDocument.document_id.startsWith('local_');
+    const isLocalDoc = doc.document_id.startsWith('local_');
     
     setProcessing(true);
     try {
-      const currentPage = currentDocument.pages[selectedPageIndex];
+      const currentPage = doc.pages[selectedPageIndex];
       
       // Store original before annotating if not already stored
       const originalImage = currentPage.original_image_base64 || currentPage.image_base64;
@@ -1146,7 +1154,7 @@ export default function DocumentScreen() {
       
       // ⭐ Save to file system immediately for persistence
       let newFileUri = currentPage.image_file_uri;
-      if (finalImage && isLocalDoc && Platform.OS !== 'web') {
+      if (finalImage && Platform.OS !== 'web') {
         try {
           const imageDir = `${documentDirectory}images/`;
           // Ensure directory exists
@@ -1154,7 +1162,7 @@ export default function DocumentScreen() {
           if (!dirInfo.exists) {
             await makeDirectoryAsync(imageDir, { intermediates: true });
           }
-          const filename = `${currentDocument.document_id}_p${selectedPageIndex}_annotated_${Date.now()}.jpg`;
+          const filename = `${doc.document_id}_p${selectedPageIndex}_annotated_${Date.now()}.jpg`;
           const fileUri = `${imageDir}${filename}`;
           await writeAsStringAsync(fileUri, finalImage, { encoding: EncodingType.Base64 });
           newFileUri = fileUri;
@@ -1164,7 +1172,7 @@ export default function DocumentScreen() {
         }
       }
       
-      const updatedPages = [...currentDocument.pages];
+      const updatedPages = [...doc.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: finalImage,
@@ -1173,7 +1181,7 @@ export default function DocumentScreen() {
         annotations: annotations,
       };
       
-      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+      await updateDocument(isLocalDoc ? null : token, doc.document_id, { pages: updatedPages });
       
       console.log('[handleSaveAnnotations] ✅ Annotations saved locally');
       Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
