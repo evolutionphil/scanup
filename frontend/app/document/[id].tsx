@@ -53,8 +53,8 @@ const loadImageBase64 = async (page: PageData): Promise<string> => {
     return page.image_base64;
   }
   
-  // Priority 2: Load from file URI
-  if (page.image_file_uri) {
+  // Priority 2: Load from file URI (native only - skip on web)
+  if (page.image_file_uri && Platform.OS !== 'web') {
     try {
       const fileInfo = await getInfoAsync(page.image_file_uri);
       if (fileInfo.exists) {
