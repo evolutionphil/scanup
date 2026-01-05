@@ -1,3 +1,14 @@
+/**
+ * PREMIUM SCREEN
+ * 
+ * Premium Value: "Unlimited, watermark-free, signed PDFs."
+ * 
+ * Pricing:
+ * - Monthly: €5.99 (with 7-day free trial)
+ * - Yearly: €35.99 (BEST VALUE - highlighted)
+ * - One-time: €2.99 (Remove watermark forever)
+ */
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -18,19 +29,11 @@ import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
 import { usePurchaseStore, CANONICAL_PRODUCTS } from '../src/store/purchaseStore';
 import { useAuthStore } from '../src/store/authStore';
+import { PREMIUM_VALUE_PROPOSITION } from '../src/store/monetizationStore';
 import { logScreenView, logEvent, logPurchaseEvent, AnalyticsEvents } from '../src/services/analytics';
 
 const BRAND_BLUE = '#4361EE';
 const { width } = Dimensions.get('window');
-
-// Premium features list - matching the design
-const PREMIUM_FEATURES = [
-  { key: 'unlimited_documents', fallback: 'Unlimited documents' },
-  { key: 'no_ads', fallback: 'No ADS' },
-  { key: 'private_documents', fallback: 'Private documents' },
-  { key: 'remove_mark', fallback: 'Remove the mark' },
-  { key: 'signature', fallback: 'Signature' },
-];
 
 export default function PremiumScreen() {
   const { theme } = useThemeStore();
@@ -41,10 +44,9 @@ export default function PremiumScreen() {
     isInitialized,
     isLoading,
     isPremium,
-    hasRemovedAds,
+    hasRemovedWatermark,
     products,
     subscriptions,
-    activeSubscription,
     error,
     initialize,
     purchaseProduct,
@@ -56,20 +58,7 @@ export default function PremiumScreen() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [initError, setInitError] = useState<string | null>(null);
 
-  // Debug logging
   useEffect(() => {
-    console.log('[PremiumScreen] State:', {
-      isInitialized,
-      isLoading,
-      subscriptionsCount: subscriptions.length,
-      productsCount: products.length,
-      error,
-    });
-    console.log('[PremiumScreen] Subscriptions:', subscriptions);
-  }, [isInitialized, isLoading, subscriptions, products, error]);
-
-  useEffect(() => {
-    // Safe initialization with error handling
     const safeInit = async () => {
       try {
         await initialize();
@@ -83,7 +72,6 @@ export default function PremiumScreen() {
     safeInit();
   }, []);
 
-  // Handle back button
   const handleClose = () => {
     try {
       if (!isAuthenticated && !isGuest) {
@@ -106,47 +94,39 @@ export default function PremiumScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Get prices from fetched products - using id
+  // Get prices from fetched products
   const getPrice = (id: string) => {
     const sub = subscriptions.find(s => s.id === id);
     if (sub) return sub.price;
     const prod = products.find(p => p.id === id);
     if (prod) return prod.price;
-    return ''; // Return empty if not loaded
+    return '';
   };
 
   const monthlyPrice = getPrice(CANONICAL_PRODUCTS.PREMIUM_MONTHLY);
   const yearlyPrice = getPrice(CANONICAL_PRODUCTS.PREMIUM_YEARLY);
-  const arePricesLoaded = monthlyPrice !== '' || yearlyPrice !== '';
+  const watermarkPrice = getPrice(CANONICAL_PRODUCTS.REMOVE_WATERMARK) || '€2.99';
 
-  const handlePurchase = async () => {
-    // Check if user is logged in (not guest)
+  const handlePurchaseSubscription = async () => {
     if (isGuest || !isAuthenticated) {
-      // Redirect to login with return path to premium screen
       router.push('/(auth)/login?returnTo=/premium');
       return;
     }
     
     setError(null);
     
-    let success = false;
-    let productId = '';
+    const productId = selectedPlan === 'monthly' 
+      ? CANONICAL_PRODUCTS.PREMIUM_MONTHLY 
+      : CANONICAL_PRODUCTS.PREMIUM_YEARLY;
     
-    if (selectedPlan === 'monthly') {
-      productId = CANONICAL_PRODUCTS.PREMIUM_MONTHLY;
-      logPurchaseEvent('started', productId);
-      success = await purchaseSubscription(productId);
-    } else {
-      productId = CANONICAL_PRODUCTS.PREMIUM_YEARLY;
-      logPurchaseEvent('started', productId);
-      success = await purchaseSubscription(productId);
-    }
+    logPurchaseEvent('started', productId);
+    const success = await purchaseSubscription(productId);
     
     if (success) {
       logPurchaseEvent('completed', productId);
       Alert.alert(
-        t('purchase_success', 'Purchase Successful!'),
-        t('purchase_success_message', 'Thank you for your purchase. Enjoy your premium features!'),
+        'Purchase Successful!',
+        PREMIUM_VALUE_PROPOSITION,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } else if (error) {
@@ -154,8 +134,31 @@ export default function PremiumScreen() {
     }
   };
 
+  // One-time purchase: Remove watermark forever (€2.99)
+  const handlePurchaseWatermarkRemoval = async () => {
+    if (isGuest || !isAuthenticated) {
+      router.push('/(auth)/login?returnTo=/premium');
+      return;
+    }
+    
+    setError(null);
+    logPurchaseEvent('started', CANONICAL_PRODUCTS.REMOVE_WATERMARK);
+    
+    const success = await purchaseProduct(CANONICAL_PRODUCTS.REMOVE_WATERMARK);
+    
+    if (success) {
+      logPurchaseEvent('completed', CANONICAL_PRODUCTS.REMOVE_WATERMARK);
+      Alert.alert(
+        'Purchase Successful!',
+        'Watermark has been permanently removed from your exports.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } else if (error) {
+      logPurchaseEvent('failed', CANONICAL_PRODUCTS.REMOVE_WATERMARK, undefined, undefined, error);
+    }
+  };
+
   const handleContinueFree = () => {
-    // Continue as guest/free user
     if (!isAuthenticated && !isGuest) {
       continueAsGuest();
     }
@@ -166,23 +169,22 @@ export default function PremiumScreen() {
     await restorePurchases();
     
     const state = usePurchaseStore.getState();
-    if (state.isPremium || state.hasRemovedAds) {
+    if (state.isPremium || state.hasRemovedWatermark) {
       logEvent('purchases_restored');
       Alert.alert(
-        t('restore_success', 'Restore Successful!'),
-        t('restore_success_message', 'Your purchases have been restored.'),
+        'Restore Successful!',
+        'Your purchases have been restored.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } else {
       Alert.alert(
-        t('no_purchases', 'No Purchases Found'),
-        t('no_purchases_message', 'We could not find any previous purchases to restore.')
+        'No Purchases Found',
+        'We could not find any previous purchases to restore.'
       );
     }
   };
 
   const openTerms = () => {
-    // Open terms page inside the app using router
     router.push('/legal?type=terms');
   };
 
@@ -196,7 +198,7 @@ export default function PremiumScreen() {
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <View style={styles.titleRow}>
-              <Text style={styles.headerTitle}>Go Premium</Text>
+              <Text style={styles.headerTitle}>Premium</Text>
               <View style={styles.proBadge}>
                 <Text style={styles.proBadgeText}>PRO</Text>
               </View>
@@ -210,10 +212,10 @@ export default function PremiumScreen() {
         <View style={styles.premiumActiveContent}>
           <Ionicons name="checkmark-circle" size={80} color="#22C55E" />
           <Text style={[styles.premiumActiveTitle, { color: theme.text }]}>
-            {t('you_are_premium', "You're Premium!")}
+            You're Premium!
           </Text>
           <Text style={[styles.premiumActiveSubtitle, { color: theme.textSecondary }]}>
-            {t('enjoy_premium_features', 'Enjoy all premium features')}
+            {PREMIUM_VALUE_PROPOSITION}
           </Text>
         </View>
       </SafeAreaView>
@@ -234,8 +236,9 @@ export default function PremiumScreen() {
               <Text style={styles.proBadgeText}>PRO</Text>
             </View>
           </View>
+          {/* Premium Value Proposition */}
           <Text style={styles.headerSubtitle}>
-            {t('premium_subtitle', 'Unlock all the amazing features and save your time')}
+            {PREMIUM_VALUE_PROPOSITION}
           </Text>
         </View>
       </View>
@@ -245,53 +248,37 @@ export default function PremiumScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Features List */}
+        {/* Premium Features - Action-based copy */}
         <View style={styles.featuresSection}>
-          {PREMIUM_FEATURES.map((feature, index) => (
-            <View key={index} style={styles.featureRow}>
-              <View style={styles.checkIcon}>
-                <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
-              </View>
-              <Text style={styles.featureText}>
-                {t(`premium_feature_${feature.key}`, feature.fallback)}
-              </Text>
+          <View style={styles.featureRow}>
+            <View style={styles.checkIcon}>
+              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
             </View>
-          ))}
+            <Text style={styles.featureText}>Export without watermark</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.checkIcon}>
+              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
+            </View>
+            <Text style={styles.featureText}>Unlimited PDF exports</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.checkIcon}>
+              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
+            </View>
+            <Text style={styles.featureText}>Sign your documents</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.checkIcon}>
+              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
+            </View>
+            <Text style={styles.featureText}>No ads</Text>
+          </View>
         </View>
 
         {/* Pricing Cards */}
         <View style={styles.pricingSection}>
-          {/* Monthly Plan - With Free Trial */}
-          <TouchableOpacity
-            style={[
-              styles.pricingCard,
-              selectedPlan === 'monthly' && styles.pricingCardSelected,
-            ]}
-            onPress={() => setSelectedPlan('monthly')}
-          >
-            <View style={styles.monthlyContent}>
-              {monthlyPrice ? (
-                <Text style={[
-                  styles.priceText,
-                  selectedPlan === 'monthly' && styles.priceTextSelected
-                ]}>
-                  {monthlyPrice}/month
-                </Text>
-              ) : (
-                <ActivityIndicator size="small" color={BRAND_BLUE} />
-              )}
-              <Text style={styles.trialText}>
-                {t('free_7_day_trial', '7 days FREE trial')}
-              </Text>
-            </View>
-            {selectedPlan === 'monthly' && (
-              <View style={styles.trialBadge}>
-                <Text style={styles.trialBadgeText}>FREE TRIAL</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Yearly Plan */}
+          {/* Yearly Plan - BEST VALUE (highlighted) */}
           <TouchableOpacity
             style={[
               styles.pricingCard,
@@ -310,56 +297,93 @@ export default function PremiumScreen() {
                     {yearlyPrice}/year
                   </Text>
                 ) : (
-                  <ActivityIndicator size="small" color={BRAND_BLUE} />
+                  <Text style={styles.priceText}>€35.99/year</Text>
                 )}
-                <Text style={styles.savingsText}>
-                  {t('save_50_percent', 'Save 50%')}
-                </Text>
+                <Text style={styles.savingsText}>Save 50%</Text>
               </View>
               <View style={styles.discountBadge}>
                 <Text style={styles.discountText}>BEST VALUE</Text>
               </View>
             </View>
           </TouchableOpacity>
+
+          {/* Monthly Plan - With Free Trial */}
+          <TouchableOpacity
+            style={[
+              styles.pricingCard,
+              selectedPlan === 'monthly' && styles.pricingCardSelected,
+            ]}
+            onPress={() => setSelectedPlan('monthly')}
+          >
+            <View style={styles.monthlyContent}>
+              {monthlyPrice ? (
+                <Text style={[
+                  styles.priceText,
+                  selectedPlan === 'monthly' && styles.priceTextSelected
+                ]}>
+                  {monthlyPrice}/month
+                </Text>
+              ) : (
+                <Text style={styles.priceText}>€5.99/month</Text>
+              )}
+              <Text style={styles.trialText}>7 days FREE trial</Text>
+            </View>
+            {selectedPlan === 'monthly' && (
+              <View style={styles.trialBadge}>
+                <Text style={styles.trialBadgeText}>FREE TRIAL</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* Trial Info */}
-        <View style={styles.trialInfo}>
-          <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
-          <Text style={styles.trialInfoText}>
-            {selectedPlan === 'monthly' 
-              ? t('trial_info_monthly', 'Start with 7 days free. Cancel anytime before trial ends to avoid charges.')
-              : t('trial_info_yearly', 'Best value! One payment for the whole year.')
-            }
-          </Text>
-        </View>
-
-        {/* Continue Button */}
+        {/* Subscribe Button */}
         <TouchableOpacity
-          style={[styles.continueButton, isLoading && styles.continueButtonDisabled]}
-          onPress={handlePurchase}
+          style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+          onPress={handlePurchaseSubscription}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.continueButtonText}>
+            <Text style={styles.primaryButtonText}>
               {isGuest || !isAuthenticated 
-                ? t('login_to_purchase', 'Login to Purchase')
+                ? 'Login to Subscribe'
                 : selectedPlan === 'monthly'
-                  ? t('start_free_trial', 'Start Free Trial')
-                  : t('subscribe_now', 'Subscribe Now')
+                  ? 'Start Free Trial'
+                  : 'Subscribe Now'
               }
             </Text>
           )}
         </TouchableOpacity>
 
-        {/* Continue as Free - Only show for guest/non-authenticated */}
+        {/* Divider */}
+        <View style={styles.dividerContainer}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* One-time purchase: Remove watermark (€2.99) */}
+        {!hasRemovedWatermark && (
+          <TouchableOpacity
+            style={[styles.oneTimeButton, isLoading && styles.buttonDisabled]}
+            onPress={handlePurchaseWatermarkRemoval}
+            disabled={isLoading}
+          >
+            <View style={styles.oneTimeContent}>
+              <View>
+                <Text style={styles.oneTimeTitle}>Remove watermark forever</Text>
+                <Text style={styles.oneTimeSubtitle}>One-time purchase</Text>
+              </View>
+              <Text style={styles.oneTimePrice}>{watermarkPrice}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Continue as Free */}
         {(isGuest || !isAuthenticated) && (
           <TouchableOpacity style={styles.continueFreeButton} onPress={handleContinueFree}>
-            <Text style={styles.continueFreeText}>
-              {t('continue_as_free', 'Continue as Free')}
-            </Text>
+            <Text style={styles.continueFreeText}>Continue with free version</Text>
           </TouchableOpacity>
         )}
 
@@ -371,14 +395,10 @@ export default function PremiumScreen() {
         {/* Footer Links */}
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={handleRestore}>
-            <Text style={styles.footerLinkText}>
-              {t('already_paid', 'Already Paid?')}
-            </Text>
+            <Text style={styles.footerLinkText}>Restore Purchases</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={openTerms}>
-            <Text style={styles.footerLinkText}>
-              {t('terms_of_use', 'Terms of Use')}
-            </Text>
+            <Text style={styles.footerLinkText}>Terms of Use</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -414,7 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     color: '#fff',
-    fontStyle: 'italic',
   },
   proBadge: {
     backgroundColor: '#FF7A00',
@@ -428,10 +447,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 8,
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.95)',
+    marginTop: 12,
     fontStyle: 'italic',
+    lineHeight: 24,
   },
   content: {
     flex: 1,
@@ -444,7 +464,7 @@ const styles = StyleSheet.create({
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   checkIcon: {
     width: 28,
@@ -457,13 +477,13 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   featureText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: '#1a1a1a',
   },
   pricingSection: {
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   pricingCard: {
     backgroundColor: '#fff',
@@ -503,8 +523,9 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#22C55E',
     marginTop: 4,
+    fontWeight: '600',
   },
   monthlyContent: {
     flex: 1,
@@ -523,21 +544,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  trialInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 20,
-    gap: 8,
-  },
-  trialInfoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
   discountBadge: {
     backgroundColor: BRAND_BLUE,
     paddingHorizontal: 12,
@@ -549,20 +555,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  continueButton: {
+  primaryButton: {
     backgroundColor: BRAND_BLUE,
     borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  continueButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.7,
   },
-  continueButtonText: {
+  primaryButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+  oneTimeButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  oneTimeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  oneTimeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  oneTimeSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  oneTimePrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: BRAND_BLUE,
   },
   continueFreeButton: {
     alignItems: 'center',
@@ -606,5 +654,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 8,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
