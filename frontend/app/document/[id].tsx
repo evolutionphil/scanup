@@ -1024,7 +1024,7 @@ export default function DocumentScreen() {
     }
   };
 
-  // Handle saving annotations
+  // Handle saving annotations - LOCAL-FIRST approach
   const handleSaveAnnotations = async (annotations: any[], annotatedImageBase64: string, displayDimensions?: { width: number; height: number }) => {
     if (!currentDocument || processing) return;
     
@@ -1044,68 +1044,105 @@ export default function DocumentScreen() {
         return;
       }
       
-      // Load image from any source
-      let imageData = currentPage.image_base64;
-      if (!imageData || imageData.length < 100) {
-        imageData = await loadImageBase64(currentPage);
-      }
+      // ⭐ LOCAL-FIRST: Use the pre-rendered annotated image from AnnotationEditor
+      // This avoids the slow backend API call
+      let finalImage = annotatedImageBase64;
       
-      if (!imageData || imageData.length < 100) {
-        Alert.alert('Error', 'Could not load document image');
-        setProcessing(false);
-        setShowAnnotationEditor(false);
-        return;
-      }
-      
-      // Clean up base64
-      const cleanImageBase64 = imageData.startsWith('data:') 
-        ? imageData.split(',')[1] 
-        : imageData;
-      
-      // Render annotations onto the image via backend
-      const endpoint = `${BACKEND_URL}/api/images/apply-annotations`;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token && !isLocalDoc) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Build request body with optional display dimensions for scaling
-      const requestBody: any = {
-        image_base64: cleanImageBase64,
-        annotations: annotations,
-      };
-      
-      // Add display dimensions if provided for proper coordinate scaling
-      if (displayDimensions && displayDimensions.width > 0 && displayDimensions.height > 0) {
-        requestBody.display_width = displayDimensions.width;
-        requestBody.display_height = displayDimensions.height;
-        console.log('[handleSaveAnnotations] Display dimensions:', displayDimensions);
-      }
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.annotated_image_base64) {
-          const updatedPages = [...currentDocument.pages];
-          updatedPages[selectedPageIndex] = {
-            ...updatedPages[selectedPageIndex],
-            image_base64: result.annotated_image_base64,
-            original_image_base64: originalImage,
-            annotations: annotations, // Store annotations data for reference
-          };
-          
-          await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
-          Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
-        } else {
-          throw new Error(result.message || 'Failed to apply annotations');
+      if (finalImage && finalImage.length > 100) {
+        console.log('[handleSaveAnnotations] ✅ Using pre-rendered local annotation');
+        
+        // Strip data: prefix if present
+        if (finalImage.startsWith('data:')) {
+          finalImage = finalImage.split(',')[1];
         }
+        
+        // ⭐ Save to file system immediately for persistence
+        let newFileUri = currentPage.image_file_uri;
+        if (isLocalDoc) {
+          try {
+            const FileSystem = require('expo-file-system').default;
+            const filename = `${currentDocument.document_id}_p${selectedPageIndex}_annotated_${Date.now()}.jpg`;
+            const fileUri = `${FileSystem.documentDirectory}images/${filename}`;
+            await FileSystem.writeAsStringAsync(fileUri, finalImage, { encoding: FileSystem.EncodingType.Base64 });
+            newFileUri = fileUri;
+            console.log('[handleSaveAnnotations] ✅ Saved annotated image to:', fileUri);
+          } catch (saveErr) {
+            console.error('[handleSaveAnnotations] Failed to save to file:', saveErr);
+          }
+        }
+        
+        const updatedPages = [...currentDocument.pages];
+        updatedPages[selectedPageIndex] = {
+          ...updatedPages[selectedPageIndex],
+          image_base64: finalImage,
+          image_file_uri: newFileUri,
+          original_image_base64: originalImage,
+          annotations: annotations,
+        };
+        
+        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+        Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
       } else {
-        throw new Error('Backend error');
+        // Fallback to backend if no pre-rendered image (shouldn't happen)
+        console.log('[handleSaveAnnotations] ⚠️ No pre-rendered image, using backend');
+        
+        let imageData = currentPage.image_base64;
+        if (!imageData || imageData.length < 100) {
+          imageData = await loadImageBase64(currentPage);
+        }
+        
+        if (!imageData || imageData.length < 100) {
+          Alert.alert('Error', 'Could not load document image');
+          setProcessing(false);
+          setShowAnnotationEditor(false);
+          return;
+        }
+        
+        const cleanImageBase64 = imageData.startsWith('data:') 
+          ? imageData.split(',')[1] 
+          : imageData;
+        
+        const endpoint = `${BACKEND_URL}/api/images/apply-annotations`;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token && !isLocalDoc) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const requestBody: any = {
+          image_base64: cleanImageBase64,
+          annotations: annotations,
+        };
+        
+        if (displayDimensions && displayDimensions.width > 0 && displayDimensions.height > 0) {
+          requestBody.display_width = displayDimensions.width;
+          requestBody.display_height = displayDimensions.height;
+        }
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestBody),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.annotated_image_base64) {
+            const updatedPages = [...currentDocument.pages];
+            updatedPages[selectedPageIndex] = {
+              ...updatedPages[selectedPageIndex],
+              image_base64: result.annotated_image_base64,
+              original_image_base64: originalImage,
+              annotations: annotations,
+            };
+            
+            await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+            Alert.alert('Success', 'Annotations saved! Use "Revert" to undo.');
+          } else {
+            throw new Error(result.message || 'Failed to apply annotations');
+          }
+        } else {
+          throw new Error('Backend error');
+        }
       }
     } catch (e: any) {
       console.error('Annotation error:', e);
