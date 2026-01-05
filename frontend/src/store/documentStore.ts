@@ -758,9 +758,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   fetchDocument: async (token, documentId) => {
-    // First, try to find in local state/cache
-    const { documents } = get();
-    const cachedDocument = documents.find(d => d.document_id === documentId);
+    console.log('[fetchDocument] Fetching:', documentId);
+    
+    // ⭐ LOCAL-FIRST: First check local state/cache
+    const { documents, currentDocument } = get();
+    let cachedDocument = documents.find(d => d.document_id === documentId);
+    
+    // If already current document and has images, use it
+    if (currentDocument?.document_id === documentId && 
+        currentDocument.pages?.some(p => p.image_base64 && p.image_base64.length > 100)) {
+      console.log('[fetchDocument] ✅ Using current document from memory');
+      return currentDocument;
+    }
     
     // If no token, use cached/local document only
     if (!token) {
@@ -790,7 +799,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       throw new Error('Local document not found');
     }
 
-    // Show cached document immediately while fetching
+    // Show cached document immediately while fetching from server
     if (cachedDocument) {
       set({ currentDocument: cachedDocument });
     }
@@ -809,18 +818,41 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         throw new Error('Failed to fetch document');
       }
       
-      const document = await response.json();
-      set({ currentDocument: document });
+      const serverDoc = await response.json();
+      console.log('[fetchDocument] Server returned doc with', serverDoc.pages?.length, 'pages');
+      
+      // ⭐ CRITICAL: Merge server doc with local images
+      // Server doc has URLs but no base64, local has base64
+      let mergedDoc = serverDoc;
+      
+      if (cachedDocument && cachedDocument.pages) {
+        mergedDoc = {
+          ...serverDoc,
+          pages: serverDoc.pages.map((serverPage: PageData, idx: number) => {
+            const localPage = cachedDocument.pages[idx];
+            return {
+              ...serverPage,
+              // Keep local image data if server doesn't have it
+              image_base64: serverPage.image_base64 || localPage?.image_base64,
+              original_image_base64: serverPage.original_image_base64 || localPage?.original_image_base64,
+              image_file_uri: serverPage.image_file_uri || localPage?.image_file_uri,
+              original_file_uri: serverPage.original_file_uri || localPage?.original_file_uri,
+            };
+          }),
+        };
+      }
+      
+      set({ currentDocument: mergedDoc });
       
       // Update the cached version
       const updatedDocs = documents.map(d => 
-        d.document_id === documentId ? document : d
+        d.document_id === documentId ? mergedDoc : d
       );
       set({ documents: updatedDocs });
       // Save to local cache (strips base64, saves to file system)
       await get().saveLocalCache();
       
-      return document;
+      return mergedDoc;
     } catch (e) {
       // If fetch fails but we have cached document, use it
       if (cachedDocument) {
