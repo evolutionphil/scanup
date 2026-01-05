@@ -75,9 +75,9 @@ export default function RemoveAdsScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Get price from fetched products
+  // Get price from fetched products - using canonicalId
   const getPrice = () => {
-    const prod = products.find(p => p.productId === PRODUCT_IDS.REMOVE_ADS);
+    const prod = products.find(p => p.canonicalId === CANONICAL_PRODUCTS.REMOVE_ADS);
     if (prod) return prod.localizedPrice;
     // Return empty string if not loaded yet - will show loading state
     return '';
@@ -96,20 +96,20 @@ export default function RemoveAdsScreen() {
     
     setError(null);
     
-    const productId = PRODUCT_IDS.REMOVE_ADS;
-    logPurchaseEvent('started', productId);
+    const canonicalId = CANONICAL_PRODUCTS.REMOVE_ADS;
+    logPurchaseEvent('started', canonicalId);
     
-    const success = await purchaseProduct(productId);
+    const success = await purchaseProduct(canonicalId);
     
     if (success) {
-      logPurchaseEvent('completed', productId);
+      logPurchaseEvent('completed', canonicalId);
       Alert.alert(
         t('purchase_success', 'Purchase Successful!'),
         t('ads_removed_message', 'Ads have been removed. Enjoy an ad-free experience!'),
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } else if (error) {
-      logPurchaseEvent('failed', productId, undefined, undefined, error);
+      logPurchaseEvent('failed', canonicalId, undefined, undefined, error);
     }
   };
 
