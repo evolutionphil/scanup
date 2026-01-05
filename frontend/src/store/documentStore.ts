@@ -931,24 +931,38 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   deleteDocument: async (token, documentId) => {
-    // If no token or local document, delete locally
+    console.log('[deleteDocument] Deleting:', documentId);
+    
+    // ⭐ LOCAL-FIRST: Remove from UI IMMEDIATELY
+    set((state) => ({
+      documents: state.documents.filter((d) => d.document_id !== documentId),
+      currentDocument: state.currentDocument?.document_id === documentId ? null : state.currentDocument,
+    }));
+    
+    console.log('[deleteDocument] ✅ Removed from UI immediately');
+    
+    // If no token or local document, just save locally
     if (!token || documentId.startsWith('local_')) {
-      set((state) => ({
-        documents: state.documents.filter((d) => d.document_id !== documentId),
-      }));
       await get().saveGuestDocuments();
       return;
     }
-
-    const response = await fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
+    
+    // ⭐ For server documents: Delete in BACKGROUND (fire and forget)
+    fetch(`${BACKEND_URL}/api/documents/${documentId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
+    }).then(response => {
+      if (response.ok) {
+        console.log('[deleteDocument] ✅ Background delete complete');
+      } else {
+        console.error('[deleteDocument] Background delete failed - document may still exist on server');
+      }
+    }).catch(err => {
+      console.error('[deleteDocument] Background delete error:', err);
     });
-
-    if (!response.ok) throw new Error('Failed to delete document');
-    set((state) => ({
-      documents: state.documents.filter((d) => d.document_id !== documentId),
-    }));
+    
+    // Save local cache
+    await get().saveLocalCache();
   },
 
   addPageToDocument: async (token, documentId, page) => {
