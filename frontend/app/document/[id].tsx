@@ -416,13 +416,21 @@ export default function DocumentScreen() {
   };
 
   const handleApplyFilter = async (filterType: string, adjustments: { brightness: number; contrast: number; saturation: number }, processedImage?: string) => {
-    if (!currentDocument || processing) return;
+    // ⭐ Get document from store directly to avoid stale state
+    const doc = useDocumentStore.getState().currentDocument;
+    if (!doc || processing) {
+      console.error('[handleApplyFilter] No document or already processing');
+      if (!doc) {
+        Alert.alert('Error', 'Document not loaded. Please go back and try again.');
+      }
+      return;
+    }
     
-    const isLocalDoc = currentDocument.document_id.startsWith('local_');
+    const isLocalDoc = doc.document_id.startsWith('local_');
     
     setProcessing(true);
     try {
-      const currentPage = currentDocument.pages[selectedPageIndex];
+      const currentPage = doc.pages[selectedPageIndex];
       
       // Get original image for restoration later
       let originalImage = currentPage.original_image_base64;
@@ -438,14 +446,14 @@ export default function DocumentScreen() {
       
       // If filter is "original" and no adjustments, just restore original
       if (filterType === 'original' && adjustments.brightness === 0 && adjustments.contrast === 0 && adjustments.saturation === 0) {
-        const updatedPages = [...currentDocument.pages];
+        const updatedPages = [...doc.pages];
         updatedPages[selectedPageIndex] = {
           ...updatedPages[selectedPageIndex],
           image_base64: originalImage,
           filter_applied: 'original',
           adjustments: undefined,
         };
-        await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+        await updateDocument(isLocalDoc ? null : token, doc.document_id, { pages: updatedPages });
         setShowFilterEditor(false);
         setProcessing(false);
         return;
@@ -463,7 +471,7 @@ export default function DocumentScreen() {
       
       // ⭐ LOCAL-FIRST: Save processed image to file system immediately
       let newFileUri = currentPage.image_file_uri;
-      if (finalImage && isLocalDoc && Platform.OS !== 'web') {
+      if (finalImage && Platform.OS !== 'web') {
         try {
           const imageDir = `${documentDirectory}images/`;
           // Ensure directory exists
@@ -471,7 +479,7 @@ export default function DocumentScreen() {
           if (!dirInfo.exists) {
             await makeDirectoryAsync(imageDir, { intermediates: true });
           }
-          const filename = `${currentDocument.document_id}_p${selectedPageIndex}_filtered_${Date.now()}.jpg`;
+          const filename = `${doc.document_id}_p${selectedPageIndex}_filtered_${Date.now()}.jpg`;
           const fileUri = `${imageDir}${filename}`;
           await writeAsStringAsync(fileUri, finalImage, { encoding: EncodingType.Base64 });
           newFileUri = fileUri;
@@ -481,7 +489,7 @@ export default function DocumentScreen() {
         }
       }
       
-      const updatedPages = [...currentDocument.pages];
+      const updatedPages = [...doc.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: finalImage,
@@ -491,8 +499,9 @@ export default function DocumentScreen() {
         adjustments: adjustments,
       };
 
-      await updateDocument(isLocalDoc ? null : token, currentDocument.document_id, { pages: updatedPages });
+      await updateDocument(isLocalDoc ? null : token, doc.document_id, { pages: updatedPages });
       setShowFilterEditor(false);
+      console.log('[handleApplyFilter] ✅ Filter applied successfully');
       
       // Show ad IMMEDIATELY after applying filter (for free users)
       const { adsEnabled, isAdLoaded } = useAdStore.getState();
