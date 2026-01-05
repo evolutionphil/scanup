@@ -500,10 +500,31 @@ export default function DocumentScreen() {
         rotatedOriginal = await rotateImageLocal(rotatedOriginal, undefined, undefined, 90);
       }
 
+      // ⭐ LOCAL-FIRST: Save rotated image to file system immediately
+      let newFileUri = currentPage.image_file_uri;
+      if (processedImage && isLocalDoc) {
+        try {
+          const FileSystem = require('expo-file-system').default;
+          const filename = `${currentDocument.document_id}_p${selectedPageIndex}_rotated_${Date.now()}.jpg`;
+          const fileUri = `${FileSystem.documentDirectory}images/${filename}`;
+          // Strip data: prefix if present
+          let cleanBase64 = processedImage;
+          if (cleanBase64.startsWith('data:')) {
+            cleanBase64 = cleanBase64.split(',')[1];
+          }
+          await FileSystem.writeAsStringAsync(fileUri, cleanBase64, { encoding: FileSystem.EncodingType.Base64 });
+          newFileUri = fileUri;
+          console.log('[handleRotate] ✅ Saved rotated image to:', fileUri);
+        } catch (saveErr) {
+          console.error('[handleRotate] Failed to save to file:', saveErr);
+        }
+      }
+
       const updatedPages = [...currentDocument.pages];
       updatedPages[selectedPageIndex] = {
         ...updatedPages[selectedPageIndex],
         image_base64: processedImage,
+        image_file_uri: newFileUri, // ⭐ Update file URI to point to rotated image
         original_image_base64: rotatedOriginal || processedImage,
         rotation: ((currentPage.rotation || 0) + 90) % 360,
       };
