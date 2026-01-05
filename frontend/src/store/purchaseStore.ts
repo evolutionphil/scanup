@@ -318,6 +318,13 @@ export const usePurchaseStore = create<State>((set, get) => ({
 
 /* ---------- HELPERS ---------- */
 export const shouldShowAds = () => {
-  const { isPremium, hasRemovedAds } = usePurchaseStore.getState();
-  return !isPremium && !hasRemovedAds;
+  const { isPremium } = usePurchaseStore.getState();
+  // Ads disabled for premium users only (not separate "remove ads" anymore)
+  return !isPremium;
+};
+
+// Check if user can export without watermark
+export const canExportWithoutWatermark = () => {
+  const { isPremium, hasRemovedWatermark } = usePurchaseStore.getState();
+  return isPremium || hasRemovedWatermark;
 };
