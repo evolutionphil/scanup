@@ -1075,18 +1075,17 @@ export default function DocumentScreen() {
         
         // ⭐ Save to file system immediately for persistence
         let newFileUri = currentPage.image_file_uri;
-        if (isLocalDoc) {
+        if (isLocalDoc && Platform.OS !== 'web') {
           try {
-            const FileSystem = require('expo-file-system').default;
-            const imageDir = `${FileSystem.documentDirectory}images/`;
+            const imageDir = `${documentDirectory}images/`;
             // Ensure directory exists
-            const dirInfo = await FileSystem.getInfoAsync(imageDir);
+            const dirInfo = await getInfoAsync(imageDir);
             if (!dirInfo.exists) {
-              await FileSystem.makeDirectoryAsync(imageDir, { intermediates: true });
+              await makeDirectoryAsync(imageDir, { intermediates: true });
             }
             const filename = `${currentDocument.document_id}_p${selectedPageIndex}_annotated_${Date.now()}.jpg`;
             const fileUri = `${imageDir}${filename}`;
-            await FileSystem.writeAsStringAsync(fileUri, finalImage, { encoding: FileSystem.EncodingType.Base64 });
+            await writeAsStringAsync(fileUri, finalImage, { encoding: EncodingType.Base64 });
             newFileUri = fileUri;
             console.log('[handleSaveAnnotations] ✅ Saved annotated image to:', fileUri);
           } catch (saveErr) {
