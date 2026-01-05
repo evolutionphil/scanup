@@ -30,17 +30,21 @@ export default function RootLayout() {
         // 1️⃣ iOS ATT (App Tracking Transparency) izni
         requestTrackingPermission();
         
-        // 2️⃣ Initialize Ads (yeni zustand store)
-        initAds();
+        // 2️⃣ Initialize Ads (yeni zustand store) - delayed for stability
+        setTimeout(() => {
+          initAds();
+        }, 500);
         
-        // 3️⃣ Initialize IAP - critical for purchases
-        initializePurchases()
-          .then(() => {
-            console.log('[RootLayout] IAP initialized successfully');
-          })
-          .catch(err => {
-            console.log('[RootLayout] IAP init error (non-critical):', err);
-          });
+        // 3️⃣ Initialize IAP - DELAYED to prevent TurboModule crash
+        setTimeout(() => {
+          initializePurchases()
+            .then(() => {
+              console.log('[RootLayout] IAP initialized successfully');
+            })
+            .catch(err => {
+              console.log('[RootLayout] IAP init error (non-critical):', err);
+            });
+        }, 1000);
         
         // 4️⃣ Initialize Firebase services
         initializeFirebase().then(() => {
