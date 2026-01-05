@@ -183,44 +183,30 @@ export default function ScannerScreen() {
           
           console.log('[Scanner] Pages added to document:', addToDocumentId);
           
-          // Increment scan count for each page added and potentially show ad (for free users)
-          // Use getState to get fresh store values
-          const adState = useAdStore.getState();
-          console.log('[Scanner] Ad state before increment:', {
-            adsEnabled: adState.adsEnabled,
-            isAdLoaded: adState.isAdLoaded,
-            scanCount: adState.scanCount,
-            scansBetweenAds: adState.scansBetweenAds
-          });
+          // 1️⃣ Scan sayısını artır (AsyncStorage ile kalıcı)
+          const count = await increaseScanCount();
+          console.log('[Scanner] Total scan count:', count);
           
-          const { incrementAndCheckAd } = adState;
-          let shouldShow = false;
-          for (let i = 0; i < newPages.length; i++) {
-            shouldShow = incrementAndCheckAd();
-          }
-          
-          console.log('[Scanner] Should show ad:', shouldShow);
-          
-          if (shouldShow) {
-            console.log('[Scanner] Showing interstitial ad after adding pages');
-            try {
-              const shown = await showGlobalInterstitial();
-              console.log('[Scanner] Ad shown result:', shown);
-            } catch (e) {
-              console.log('[Scanner] Could not show ad:', e);
+          // 2️⃣ 3 scan → reklam göster (sadece free userlar için)
+          let adShown = false;
+          if (count >= 3 && shouldShowAds()) {
+            console.log('[Scanner] 3 scans reached, showing ad...');
+            adShown = showInterstitialIfReady();
+            if (adShown) {
+              await resetScanCount();
+              console.log('[Scanner] Ad shown, count reset');
             }
           }
           
-          // Navigate back to the document - use replace to ensure clean state
-          setTimeout(() => {
+          // 3️⃣ iOS UI thread'i rahatlat - InteractionManager ile navigation
+          InteractionManager.runAfterInteractions(() => {
             try {
-              // Use replace to avoid navigation stack issues
               router.replace(`/document/${addToDocumentId}`);
             } catch (e) {
               console.error('[Scanner] Navigation error after adding pages:', e);
               handleGoBack();
             }
-          }, 200);
+          });
         } else {
           throw new Error('Document not found');
         }
