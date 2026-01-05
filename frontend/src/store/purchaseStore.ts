@@ -277,8 +277,8 @@ export const usePurchaseStore = create<State>((set, get) => ({
         await IAP.finishTransaction({ purchase: p, isConsumable: false });
       }
 
-      await AsyncStorage.setItem(STORAGE.REMOVE_ADS, 'true');
-      set({ hasRemovedAds: true, isLoading: false });
+      await AsyncStorage.setItem(STORAGE.REMOVE_WATERMARK, 'true');
+      set({ hasRemovedWatermark: true, isLoading: false });
       return true;
     } catch (e: any) {
       console.error('[PurchaseStore] ❌ Purchase error:', e?.message || e);
