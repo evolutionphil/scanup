@@ -9,6 +9,7 @@ import { initializeFirebase, setupPushNotifications, setUserContext } from '../s
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
 import { useMonetizationStore } from '../src/store/monetizationStore';
+import { useOfflineSync } from '../src/hooks/useOfflineSync';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
