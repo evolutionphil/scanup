@@ -458,11 +458,17 @@ export default function FilterEditor({
 
             {/* Live Preview */}
             <View style={styles.previewContainer}>
-              <Image
-                source={{ uri: getImageUri(previewImage) }}
-                style={styles.preview}
-                resizeMode="contain"
-              />
+              <ViewShot 
+                ref={viewShotRef} 
+                options={{ format: 'jpg', quality: 0.9 }}
+                style={styles.viewShotContainer}
+              >
+                <Image
+                  source={{ uri: getImageUri(previewImage) }}
+                  style={[styles.preview, getImageFilterStyle()]}
+                  resizeMode="contain"
+                />
+              </ViewShot>
               {(isProcessing || isLoadingPreview) && (
                 <View style={styles.processingOverlay}>
                   <ActivityIndicator size="large" color={theme.primary} />
