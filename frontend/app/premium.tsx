@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
-import { usePurchaseStore, PRODUCT_IDS } from '../src/store/purchaseStore';
+import { usePurchaseStore, CANONICAL_PRODUCTS } from '../src/store/purchaseStore';
 import { useAuthStore } from '../src/store/authStore';
 import { logScreenView, logEvent, logPurchaseEvent, AnalyticsEvents } from '../src/services/analytics';
 
