@@ -165,7 +165,7 @@ export const usePurchaseStore = create<State>((set, get) => ({
       console.log('[PurchaseStore] Raw subs:', subs?.length || 0);
 
       const products = await IAP.getProducts({
-        skus: [sku(PRODUCTS.REMOVE_ADS)],
+        skus: [sku(PRODUCTS.REMOVE_WATERMARK)], // Changed from REMOVE_ADS
       });
       console.log('[PurchaseStore] Raw products:', products?.length || 0);
 
@@ -185,7 +185,7 @@ export const usePurchaseStore = create<State>((set, get) => ({
           offerToken: s.subscriptionOfferDetails?.[0]?.offerToken,
         })),
         products: (products || []).map((p: any) => ({
-          id: PRODUCTS.REMOVE_ADS,
+          id: PRODUCTS.REMOVE_WATERMARK, // Changed from REMOVE_ADS
           title: p.title,
           price: p.localizedPrice || p.price || '',
         })),
