@@ -160,9 +160,13 @@ export default function DocumentScreen() {
   const [showSignaturePlacement, setShowSignaturePlacement] = useState(false);
   const [showSignatureSelection, setShowSignatureSelection] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  const [showSignaturePaywall, setShowSignaturePaywall] = useState(false);
   
   // Annotation states
   const [showAnnotationEditor, setShowAnnotationEditor] = useState(false);
+
+  // Purchase store for premium check
+  const { isPremium } = usePurchaseStore();
 
   // Offline queue for pending operations
   const { 
