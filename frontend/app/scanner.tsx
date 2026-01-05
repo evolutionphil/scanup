@@ -228,11 +228,7 @@ export default function ScannerScreen() {
         if (newDoc && newDoc.document_id) {
           console.log('[Scanner] Document created with ID:', newDoc.document_id);
           
-          // 1️⃣ Camera/Scanner'ı KAPAT
-          setScannerActive(false);
-          await new Promise(r => setTimeout(r, 50));
-          
-          // 2️⃣ Scan sayısını artır ve reklam kontrol et
+          // Scan sayısını artır ve reklam kontrol et
           const adStore = useAdStore.getState();
           const shouldShow = adStore.incrementScanCount();
           
