@@ -3925,9 +3925,18 @@ async def apply_signature_to_image(request: ApplySignatureRequest):
             logger.warning(f"Decoding error: {decode_error}, trying as image")
             signature = Image.open(io.BytesIO(sig_bytes)).convert('RGBA')
         
+        # Log original signature dimensions
+        logger.info(f"Original signature size: {signature.width}x{signature.height}")
+        
         # Calculate signature size based on scale
         sig_width = int(img_width * request.scale)
-        sig_height = int(sig_width * (signature.height / signature.width))
+        sig_height = int(sig_width * (signature.height / signature.width)) if signature.width > 0 else 0
+        
+        # Ensure minimum size
+        sig_width = max(sig_width, 10)
+        sig_height = max(sig_height, 10)
+        
+        logger.info(f"Resizing signature to: {sig_width}x{sig_height} (scale: {request.scale})")
         signature = signature.resize((sig_width, sig_height), Image.Resampling.LANCZOS)
         
         # Calculate position (position is center point in 0-1 normalized coords)
