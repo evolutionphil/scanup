@@ -9,6 +9,7 @@ import { AdManager } from '../src/components/AdManager';
 import { initializeFirebase, setupPushNotifications, setUserContext } from '../src/services/firebase';
 import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
+import { initInterstitial } from '../src/services/adsService';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
@@ -25,7 +26,13 @@ export default function RootLayout() {
       
       // Initialize on native platforms
       if (Platform.OS !== 'web') {
-        // Initialize IAP FIRST - critical for purchases and ads to work properly
+        // 1️⃣ iOS ATT (App Tracking Transparency) izni
+        requestTrackingPermission();
+        
+        // 2️⃣ Initialize Ads (yeni basit servis)
+        initInterstitial();
+        
+        // 3️⃣ Initialize IAP - critical for purchases
         initializePurchases()
           .then(() => {
             console.log('[RootLayout] IAP initialized successfully');
@@ -34,7 +41,7 @@ export default function RootLayout() {
             console.log('[RootLayout] IAP init error (non-critical):', err);
           });
         
-        // Initialize Firebase services
+        // 4️⃣ Initialize Firebase services
         initializeFirebase().then(() => {
           // Setup push notifications after Firebase is initialized
           setupPushNotifications(user?.user_id).catch(err => {
@@ -80,6 +87,19 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// iOS App Tracking Transparency izni
+const requestTrackingPermission = async () => {
+  if (Platform.OS !== 'ios') return;
+  
+  try {
+    const { requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+    const { status } = await requestTrackingPermissionsAsync();
+    console.log('[RootLayout] ATT permission status:', status);
+  } catch (error) {
+    console.log('[RootLayout] ATT not available:', error);
+  }
+};
 
 const styles = StyleSheet.create({
   container: {
