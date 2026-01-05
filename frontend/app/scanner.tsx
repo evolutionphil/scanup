@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
   Platform,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -15,8 +16,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../src/store/authStore';
 import { useThemeStore } from '../src/store/themeStore';
 import { useDocumentStore } from '../src/store/documentStore';
-import { useAdStore } from '../src/store/adStore';
-import { showGlobalInterstitial } from '../src/components/AdManager';
+import { usePurchaseStore, shouldShowAds } from '../src/store/purchaseStore';
+import { increaseScanCount, resetScanCount } from '../src/utils/scanCounter';
+import { showInterstitialIfReady } from '../src/services/adsService';
 
 // Generate unique ID for pages
 const generatePageId = () => `page_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
