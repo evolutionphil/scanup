@@ -25,7 +25,7 @@ import { useThemeStore } from '../store/themeStore';
 import Slider from './Slider';
 import * as FileSystem from 'expo-file-system/legacy';
 
-// Conditionally import Skia (only works in native builds, not Expo Go)
+// Conditionally import Skia (only works in native builds, not Expo Go or Web)
 let Canvas: any = null;
 let useImage: any = null;
 let SkiaImage: any = null;
@@ -35,19 +35,24 @@ let Skia: any = null;
 
 let skiaAvailable = false;
 
-try {
-  const SkiaModule = require('@shopify/react-native-skia');
-  Canvas = SkiaModule.Canvas;
-  useImage = SkiaModule.useImage;
-  SkiaImage = SkiaModule.Image;
-  ColorMatrix = SkiaModule.ColorMatrix;
-  makeImageFromView = SkiaModule.makeImageFromView;
-  Skia = SkiaModule.Skia;
-  skiaAvailable = true;
-  console.log('[FilterEditor] ✅ Skia loaded successfully');
-} catch (e) {
-  console.log('[FilterEditor] ⚠️ Skia not available, using fallback');
-  skiaAvailable = false;
+// Only try to load Skia on native platforms
+if (Platform.OS !== 'web') {
+  try {
+    const SkiaModule = require('@shopify/react-native-skia');
+    Canvas = SkiaModule.Canvas;
+    useImage = SkiaModule.useImage;
+    SkiaImage = SkiaModule.Image;
+    ColorMatrix = SkiaModule.ColorMatrix;
+    makeImageFromView = SkiaModule.makeImageFromView;
+    Skia = SkiaModule.Skia;
+    skiaAvailable = true;
+    console.log('[FilterEditor] ✅ Skia loaded successfully (native)');
+  } catch (e) {
+    console.log('[FilterEditor] ⚠️ Skia not available on this platform');
+    skiaAvailable = false;
+  }
+} else {
+  console.log('[FilterEditor] ⚠️ Skia disabled on web - using fallback');
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
