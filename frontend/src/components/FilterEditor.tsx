@@ -108,6 +108,24 @@ const COLOR_MATRICES = {
   ],
 };
 
+// Multiply two 5x4 color matrices (defined outside component for hoisting)
+const multiplyColorMatrices = (a: number[], b: number[]): number[] => {
+  const result = new Array(20).fill(0);
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 5; j++) {
+      let sum = 0;
+      for (let k = 0; k < 4; k++) {
+        sum += a[i * 5 + k] * b[k * 5 + j];
+      }
+      if (j === 4) {
+        sum += a[i * 5 + 4];
+      }
+      result[i * 5 + j] = sum;
+    }
+  }
+  return result;
+};
+
 interface FilterEditorProps {
   visible: boolean;
   onClose: () => void;
