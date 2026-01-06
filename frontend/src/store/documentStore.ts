@@ -764,18 +764,31 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const { documents, currentDocument } = get();
     let cachedDocument = documents.find(d => d.document_id === documentId);
     
-    // If already current document and has images, use it
+    // If already current document and has images in memory, use it immediately
     if (currentDocument?.document_id === documentId && 
-        currentDocument.pages?.some(p => p.image_base64 && p.image_base64.length > 100)) {
+        currentDocument.pages?.some(p => (p.image_base64 && p.image_base64.length > 100) || p.image_file_uri)) {
       console.log('[fetchDocument] ✅ Using current document from memory');
-      return currentDocument;
+      
+      // Load images from file if needed
+      const docWithImages = await get().loadDocumentImages(currentDocument);
+      set({ currentDocument: docWithImages });
+      return docWithImages;
+    }
+    
+    // If cached document has local file URIs, load from files (INSTANT!)
+    if (cachedDocument && cachedDocument.pages?.some(p => p.image_file_uri)) {
+      console.log('[fetchDocument] ✅ Loading from local files');
+      const docWithImages = await get().loadDocumentImages(cachedDocument);
+      set({ currentDocument: docWithImages });
+      return docWithImages;
     }
     
     // If no token, use cached/local document only
     if (!token) {
       if (cachedDocument) {
-        set({ currentDocument: cachedDocument });
-        return cachedDocument;
+        const docWithImages = await get().loadDocumentImages(cachedDocument);
+        set({ currentDocument: docWithImages });
+        return docWithImages;
       }
       // Try loading from local storage
       const storedDocs = await AsyncStorage.getItem(GUEST_DOCUMENTS_KEY);
@@ -783,8 +796,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const guestDocs = JSON.parse(storedDocs);
         const localDoc = guestDocs.find((d: Document) => d.document_id === documentId);
         if (localDoc) {
-          set({ currentDocument: localDoc });
-          return localDoc;
+          const docWithImages = await get().loadDocumentImages(localDoc);
+          set({ currentDocument: docWithImages });
+          return docWithImages;
         }
       }
       throw new Error('Document not found');
@@ -793,18 +807,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     // For local documents, just use the cached version
     if (documentId.startsWith('local_')) {
       if (cachedDocument) {
-        set({ currentDocument: cachedDocument });
-        return cachedDocument;
+        const docWithImages = await get().loadDocumentImages(cachedDocument);
+        set({ currentDocument: docWithImages });
+        return docWithImages;
       }
       throw new Error('Local document not found');
     }
 
     // Show cached document immediately while fetching from server
     if (cachedDocument) {
-      set({ currentDocument: cachedDocument });
+      const docWithImages = await get().loadDocumentImages(cachedDocument);
+      set({ currentDocument: docWithImages });
+      
+      // If we have local images, no need to fetch from server
+      if (cachedDocument.pages?.every(p => p.image_file_uri || (p.image_base64 && p.image_base64.length > 100))) {
+        console.log('[fetchDocument] ✅ All images available locally, skipping server fetch');
+        return docWithImages;
+      }
     }
 
+    // Only fetch from server if we don't have local images
     try {
+      console.log('[fetchDocument] Fetching from server...');
       const response = await fetch(
         `${BACKEND_URL}/api/documents/${documentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -821,13 +845,116 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const serverDoc = await response.json();
       console.log('[fetchDocument] Server returned doc with', serverDoc.pages?.length, 'pages');
       
-      // ⭐ CRITICAL: Merge server doc with local images
-      // Server doc has URLs but no base64, local has base64
-      let mergedDoc = serverDoc;
+      // ⭐ CRITICAL: Download images from S3 and save to local files
+      const pagesWithLocalFiles = await Promise.all(
+        serverDoc.pages.map(async (page: PageData, idx: number) => {
+          // If we already have local file, skip download
+          const cachedPage = cachedDocument?.pages?.[idx];
+          if (cachedPage?.image_file_uri) {
+            try {
+              const fileInfo = await FileSystem.getInfoAsync(cachedPage.image_file_uri);
+              if (fileInfo.exists) {
+                console.log(`[fetchDocument] Page ${idx}: Using cached local file`);
+                return { ...page, image_file_uri: cachedPage.image_file_uri };
+              }
+            } catch (e) {
+              // File doesn't exist, need to download
+            }
+          }
+          
+          // Download from S3 and save locally
+          if (page.image_url) {
+            try {
+              console.log(`[fetchDocument] Page ${idx}: Downloading from S3...`);
+              const imageDir = `${FileSystem.documentDirectory}images/`;
+              const dirInfo = await FileSystem.getInfoAsync(imageDir);
+              if (!dirInfo.exists) {
+                await FileSystem.makeDirectoryAsync(imageDir, { intermediates: true });
+              }
+              
+              const filename = `${documentId}_p${idx}_${Date.now()}.jpg`;
+              const localPath = `${imageDir}${filename}`;
+              
+              // Download the file
+              const downloadResult = await FileSystem.downloadAsync(page.image_url, localPath);
+              
+              if (downloadResult.status === 200) {
+                console.log(`[fetchDocument] Page ${idx}: ✅ Saved to local: ${localPath}`);
+                return { ...page, image_file_uri: localPath };
+              }
+            } catch (e) {
+              console.error(`[fetchDocument] Page ${idx}: Download error:`, e);
+            }
+          }
+          
+          return page;
+        })
+      );
       
-      if (cachedDocument && cachedDocument.pages) {
-        mergedDoc = {
-          ...serverDoc,
+      const mergedDoc = { ...serverDoc, pages: pagesWithLocalFiles };
+      
+      // Load images into memory for immediate display
+      const docWithImages = await get().loadDocumentImages(mergedDoc);
+      
+      set({ currentDocument: docWithImages });
+      
+      // Update the cached version
+      const updatedDocs = documents.map(d => 
+        d.document_id === documentId ? mergedDoc : d
+      );
+      if (!documents.some(d => d.document_id === documentId)) {
+        updatedDocs.push(mergedDoc);
+      }
+      set({ documents: updatedDocs });
+      
+      // Save to local cache (this saves file URIs for next time)
+      await get().saveLocalCache();
+      
+      return docWithImages;
+    } catch (e) {
+      // If fetch fails but we have cached document, use it
+      if (cachedDocument) {
+        const docWithImages = await get().loadDocumentImages(cachedDocument);
+        set({ currentDocument: docWithImages });
+        return docWithImages;
+      }
+      throw e;
+    }
+  },
+  
+  // ⭐ Helper: Load images from local files into memory
+  loadDocumentImages: async (doc: Document): Promise<Document> => {
+    if (!doc || !doc.pages) return doc;
+    
+    const pagesWithImages = await Promise.all(
+      doc.pages.map(async (page, idx) => {
+        // If already has base64 in memory, use it
+        if (page.image_base64 && page.image_base64.length > 100) {
+          return page;
+        }
+        
+        // Load from local file
+        if (page.image_file_uri) {
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(page.image_file_uri);
+            if (fileInfo.exists) {
+              const base64 = await FileSystem.readAsStringAsync(page.image_file_uri, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+              console.log(`[loadDocumentImages] Page ${idx}: Loaded from file`);
+              return { ...page, image_base64: base64 };
+            }
+          } catch (e) {
+            console.error(`[loadDocumentImages] Page ${idx}: Error loading:`, e);
+          }
+        }
+        
+        return page;
+      })
+    );
+    
+    return { ...doc, pages: pagesWithImages };
+  },
           pages: serverDoc.pages.map((serverPage: PageData, idx: number) => {
             const localPage = cachedDocument.pages[idx];
             return {
