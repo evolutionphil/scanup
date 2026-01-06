@@ -925,6 +925,21 @@ export default function DocumentsScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.primary} />
       
+      {/* ⭐ Cloud Sync Loading Overlay */}
+      {isLoadingFromCloud && (
+        <View style={styles.loadingOverlay}>
+          <View style={[styles.loadingBox, { backgroundColor: theme.card }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.text }]}>
+              {t('syncing_cloud', 'Syncing your files from cloud...')}
+            </Text>
+            <Text style={[styles.loadingSubText, { color: theme.textSecondary }]}>
+              {t('files_available_offline', 'Files will be available offline')}
+            </Text>
+          </View>
+        </View>
+      )}
+      
       {/* Loading Spinner Overlay */}
       {isDeleting && (
         <View style={styles.loadingOverlay}>
