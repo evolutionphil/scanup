@@ -653,6 +653,16 @@ export default function DocumentsScreen() {
     const page = item.pages?.[0];
     const thumbnailSource = page ? getImageSource(page, true) : null;
     const isSelected = selectedDocs.includes(item.document_id);
+    const rotation = page?.rotation || 0;
+    
+    // Calculate image style with rotation
+    const getRotatedImageStyle = (baseStyle: any) => {
+      if (rotation === 0) return baseStyle;
+      return [
+        baseStyle,
+        { transform: [{ rotate: `${rotation}deg` }] }
+      ];
+    };
     
     if (viewMode === 'grid') {
       return (
@@ -669,7 +679,7 @@ export default function DocumentsScreen() {
             {thumbnailSource && thumbnailSource.uri ? (
               <Image
                 source={thumbnailSource}
-                style={styles.gridThumbnailImage}
+                style={getRotatedImageStyle(styles.gridThumbnailImage)}
                 resizeMode="cover"
               />
             ) : (
@@ -703,7 +713,7 @@ export default function DocumentsScreen() {
           {thumbnailSource && thumbnailSource.uri ? (
             <Image
               source={thumbnailSource}
-              style={styles.thumbnailImage}
+              style={getRotatedImageStyle(styles.thumbnailImage)}
               resizeMode="cover"
             />
           ) : (
