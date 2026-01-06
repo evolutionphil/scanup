@@ -1440,10 +1440,12 @@ export default function DocumentScreen() {
           <ActionButton 
             icon="pencil" 
             label={hasOriginal ? "Re-Sign" : "Sign"} 
-            badge={!isPremium ? "PRO" : undefined}
+            badge={(!isPremium && !user?.is_premium && !user?.is_trial) ? "PRO" : undefined}
             onPress={() => {
               // ⭐ HARD PAYWALL: Signature is a premium-only feature
-              if (!isPremium) {
+              // Check both store and user data
+              const isUserPremium = isPremium || user?.is_premium || user?.is_trial;
+              if (!isUserPremium) {
                 setShowSignaturePaywall(true);
                 return;
               }
