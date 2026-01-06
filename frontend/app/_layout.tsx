@@ -67,8 +67,13 @@ export default function RootLayout() {
       setUserContext(user.user_id, user.email, user.is_premium).catch(err => {
         console.log('[RootLayout] Set user context error:', err);
       });
+      
+      // ⭐ Sync premium status with backend user data
+      if (user.is_premium || user.is_trial) {
+        usePurchaseStore.getState().syncWithUser(true);
+      }
     }
-  }, [user?.user_id, user?.is_premium]);
+  }, [user?.user_id, user?.is_premium, user?.is_trial]);
 
   return (
     <SafeAreaProvider style={[styles.container, { backgroundColor: theme.background }]}>
