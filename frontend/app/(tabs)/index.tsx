@@ -1440,6 +1440,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  loadingSubText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+  },
   header: {
     backgroundColor: '#3E51FB',
     paddingBottom: 20,
