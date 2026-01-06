@@ -955,27 +955,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     
     return { ...doc, pages: pagesWithImages };
   },
-      
-      set({ currentDocument: mergedDoc });
-      
-      // Update the cached version
-      const updatedDocs = documents.map(d => 
-        d.document_id === documentId ? mergedDoc : d
-      );
-      set({ documents: updatedDocs });
-      // Save to local cache (strips base64, saves to file system)
-      await get().saveLocalCache();
-      
-      return mergedDoc;
-    } catch (e) {
-      // If fetch fails but we have cached document, use it
-      if (cachedDocument) {
-        set({ currentDocument: cachedDocument });
-        return cachedDocument;
-      }
-      throw e;
-    }
-  },
 
   createDocument: async (token, data) => {
     // If no token (guest mode), save locally
