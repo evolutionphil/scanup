@@ -955,19 +955,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     
     return { ...doc, pages: pagesWithImages };
   },
-          pages: serverDoc.pages.map((serverPage: PageData, idx: number) => {
-            const localPage = cachedDocument.pages[idx];
-            return {
-              ...serverPage,
-              // Keep local image data if server doesn't have it
-              image_base64: serverPage.image_base64 || localPage?.image_base64,
-              original_image_base64: serverPage.original_image_base64 || localPage?.original_image_base64,
-              image_file_uri: serverPage.image_file_uri || localPage?.image_file_uri,
-              original_file_uri: serverPage.original_file_uri || localPage?.original_file_uri,
-            };
-          }),
-        };
-      }
       
       set({ currentDocument: mergedDoc });
       
