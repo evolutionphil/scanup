@@ -316,6 +316,28 @@ export const usePurchaseStore = create<State>((set, get) => ({
   restorePurchases: async () => get().restore(),
   
   setError: (e: string | null) => set({ error: e }),
+  
+  // ⭐ Set premium status directly (for syncing with backend user data)
+  setPremium: (value: boolean) => {
+    console.log('[PurchaseStore] Setting premium status:', value);
+    set({ isPremium: value });
+    AsyncStorage.setItem(STORAGE.IS_PREMIUM, value ? 'true' : 'false');
+  },
+  
+  // ⭐ Sync premium status with user data from backend
+  syncWithUser: async (userIsPremium: boolean) => {
+    const { isPremium } = get();
+    console.log('[PurchaseStore] Syncing with user - backend:', userIsPremium, 'local:', isPremium);
+    
+    // If backend says user is premium, update local state
+    if (userIsPremium && !isPremium) {
+      console.log('[PurchaseStore] ✅ User is premium (from backend), updating local state');
+      set({ isPremium: true });
+      await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
+    }
+    // If backend says user is not premium but local says yes, keep local (in case of recent purchase)
+    // This prevents race conditions where purchase was made but backend not yet updated
+  },
 }));
 
 /* ---------- HELPERS ---------- */
