@@ -78,6 +78,8 @@ interface State {
   restore: () => Promise<void>;
   restorePurchases: () => Promise<void>;
   setError: (e: string | null) => void;
+  setPremium: (value: boolean) => void;
+  syncWithUser: (userIsPremium: boolean) => Promise<void>;
 }
 
 export const usePurchaseStore = create<State>((set, get) => ({
