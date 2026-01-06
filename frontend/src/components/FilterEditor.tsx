@@ -297,8 +297,36 @@ export default function FilterEditor({
     return '';
   };
 
-  // Use Skia's useImage hook (only if Skia is available)
-  const skiaImage = skiaAvailable && useImage ? useImage(getImageUri()) : null;
+  // Skia image state (loaded manually instead of hook for web compatibility)
+  const [skiaImage, setSkiaImage] = useState<any>(null);
+  
+  // Load image for Skia on native platforms
+  useEffect(() => {
+    if (!skiaAvailable || !Skia || Platform.OS === 'web') {
+      setSkiaImage(null);
+      return;
+    }
+    
+    const uri = getImageUri();
+    if (!uri) {
+      setSkiaImage(null);
+      return;
+    }
+    
+    // Load image using Skia's data API
+    const loadSkiaImage = async () => {
+      try {
+        const data = await Skia.Data.fromURI(uri);
+        const image = Skia.Image.MakeImageFromEncoded(data);
+        setSkiaImage(image);
+      } catch (e) {
+        console.log('[FilterEditor] Failed to load Skia image:', e);
+        setSkiaImage(null);
+      }
+    };
+    
+    loadSkiaImage();
+  }, [baseImage, imageUrl, skiaAvailable]);
 
   // Calculate canvas dimensions to fit screen while maintaining aspect ratio
   const canvasDimensions = useMemo(() => {
