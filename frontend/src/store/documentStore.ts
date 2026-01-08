@@ -112,18 +112,23 @@ export interface PageData {
 
 // Helper to get image source (handles file URIs, base64, and S3 URLs)
 export const getImageSource = (page: PageData, useThumbnail: boolean = false) => {
+  // ⭐ LOCAL-FIRST: Always prioritize local file URI for thumbnails
+  // This ensures rotated/filtered images show correctly on main screen
+  if (page.image_file_uri) return { uri: page.image_file_uri };
+  
+  // Then check for base64 (in-memory edited images)
+  if (page.image_base64) {
+    if (page.image_base64.startsWith('data:')) return { uri: page.image_base64 };
+    return { uri: `data:image/jpeg;base64,${page.image_base64}` };
+  }
+  
+  // Finally, fall back to cloud URLs
   if (useThumbnail) {
     if (page.thumbnail_url) return { uri: page.thumbnail_url };
     if (page.thumbnail_base64) return { uri: `data:image/jpeg;base64,${page.thumbnail_base64}` };
   }
-  // Priority: S3 URL > File URI > Base64
   if (page.image_url) return { uri: page.image_url };
-  if (page.image_file_uri) return { uri: page.image_file_uri };
-  if (page.image_base64) {
-    // Handle both raw base64 and data URI
-    if (page.image_base64.startsWith('data:')) return { uri: page.image_base64 };
-    return { uri: `data:image/jpeg;base64,${page.image_base64}` };
-  }
+  
   return { uri: '' };
 };
 
