@@ -172,6 +172,8 @@ interface DocumentState {
   isLoading: boolean;
   isSyncing: boolean;
   pendingSyncCount: number;
+  initialCloudSyncDone: boolean;  // ⭐ Tracks if initial cloud sync is complete (app launch only)
+  isInitialCloudSyncing: boolean; // ⭐ True only during first cloud fetch
   
   // Document actions
   fetchDocuments: (token: string | null, params?: { folder_id?: string; search?: string; tag?: string }) => Promise<void>;
