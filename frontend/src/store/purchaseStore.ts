@@ -124,7 +124,7 @@ export const usePurchaseStore = create<State>((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // Load saved state
+      // Load saved state (temporary until we verify with Apple/Google)
       const [isPremiumStr, hasRemovedWatermarkStr] = await Promise.all([
         AsyncStorage.getItem(STORAGE.IS_PREMIUM),
         AsyncStorage.getItem(STORAGE.REMOVE_WATERMARK),
@@ -145,11 +145,126 @@ export const usePurchaseStore = create<State>((set, get) => ({
       }
 
       await get().fetch();
+      
+      // ⭐ CRITICAL: Verify subscription status with Apple/Google
+      // This catches cancelled/expired subscriptions
+      await get().verifySubscriptionStatus();
+      
       set({ isLoading: false, isInitialized: true });
       console.log('[PurchaseStore] ✅ Initialization complete');
     } catch (error: any) {
       console.error('[PurchaseStore] ❌ Init error:', error?.message || error);
       set({ isLoading: false, isInitialized: true, error: error?.message });
+    }
+  },
+  
+  /* ---------- VERIFY SUBSCRIPTION STATUS ---------- */
+  // Called on app start to check if subscription is still active
+  verifySubscriptionStatus: async () => {
+    if (Platform.OS === 'web' || !IAP) return;
+    
+    console.log('[PurchaseStore] 🔍 Verifying subscription status with Apple/Google...');
+    
+    try {
+      // Get all active purchases from Apple/Google
+      const purchases = await IAP.getAvailablePurchases();
+      console.log('[PurchaseStore] Available purchases:', purchases?.length || 0);
+      
+      // Check for active premium subscription
+      let hasActiveSubscription = false;
+      let hasWatermarkRemoval = false;
+      
+      const monthlySku = STORE_IDS[Platform.OS]?.premium_monthly;
+      const yearlySku = STORE_IDS[Platform.OS]?.premium_yearly;
+      const watermarkSku = STORE_IDS[Platform.OS]?.remove_watermark;
+      
+      for (const purchase of (purchases || [])) {
+        const productId = purchase.productId;
+        console.log('[PurchaseStore] Found purchase:', productId, 'State:', purchase.purchaseStateAndroid || 'iOS');
+        
+        // Check if it's an active subscription (not cancelled/expired)
+        // For iOS: if it's in getAvailablePurchases, it's active
+        // For Android: check purchaseStateAndroid === 1 (purchased)
+        const isActive = Platform.OS === 'ios' || purchase.purchaseStateAndroid === 1;
+        
+        if (isActive) {
+          if (productId === monthlySku || productId === yearlySku) {
+            hasActiveSubscription = true;
+            console.log('[PurchaseStore] ✅ Active subscription found:', productId);
+          }
+          if (productId === watermarkSku) {
+            hasWatermarkRemoval = true;
+            console.log('[PurchaseStore] ✅ Watermark removal found');
+          }
+        }
+      }
+      
+      // Get current stored state
+      const { isPremium: wasPremium } = get();
+      
+      // Update local state based on Apple/Google verification
+      if (hasActiveSubscription) {
+        await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
+        set({ isPremium: true });
+      } else {
+        // ⚠️ No active subscription found - user cancelled or expired
+        if (wasPremium) {
+          console.log('[PurchaseStore] ⚠️ Subscription expired or cancelled!');
+        }
+        await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'false');
+        set({ isPremium: false });
+        
+        // Update backend if user was premium but subscription expired
+        if (wasPremium) {
+          await get().notifyBackendSubscriptionExpired();
+        }
+      }
+      
+      if (hasWatermarkRemoval) {
+        await AsyncStorage.setItem(STORAGE.REMOVE_WATERMARK, 'true');
+        set({ hasRemovedWatermark: true });
+      }
+      
+      console.log('[PurchaseStore] ✅ Subscription verification complete - Premium:', hasActiveSubscription);
+      
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Verification error:', error?.message || error);
+      // On error, keep the cached state (don't lock user out)
+    }
+  },
+  
+  /* ---------- NOTIFY BACKEND SUBSCRIPTION EXPIRED ---------- */
+  notifyBackendSubscriptionExpired: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token || !BACKEND_URL) return;
+      
+      console.log('[PurchaseStore] 📤 Notifying backend - subscription expired');
+      
+      const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          subscription_type: 'free',
+          duration_days: 0,
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('[PurchaseStore] ✅ Backend updated - subscription expired');
+        // Refresh user data
+        const { fetchUser } = useAuthStore.getState();
+        if (fetchUser) {
+          await fetchUser();
+        }
+      } else {
+        console.error('[PurchaseStore] ❌ Failed to update backend');
+      }
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Backend notification error:', error?.message);
     }
   },
   
