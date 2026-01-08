@@ -725,6 +725,7 @@ export default function DocumentsScreen() {
         <View style={styles.documentThumbnail}>
           {thumbnailSource && thumbnailSource.uri ? (
             <Image
+              key={imageKey}
               source={thumbnailSource}
               style={getRotatedImageStyle(styles.thumbnailImage)}
               resizeMode="cover"
