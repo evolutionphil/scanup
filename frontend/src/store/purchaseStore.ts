@@ -194,12 +194,78 @@ export const usePurchaseStore = create<State>((set, get) => ({
         await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
         await AsyncStorage.setItem(STORAGE.ACTIVE_SUB, productId);
         set({ isPremium: true, isLoading: false });
+        
+        // ⭐ BACKEND UPDATE: Update user premium status on server
+        try {
+          const token = useAuthStore.getState().token;
+          if (token && BACKEND_URL) {
+            const durationDays = productId === yearlySku ? 365 : 30;
+            console.log('[PurchaseStore] 📤 Updating backend - premium for', durationDays, 'days');
+            
+            const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                subscription_type: 'premium',
+                duration_days: durationDays,
+              }),
+            });
+            
+            if (response.ok) {
+              console.log('[PurchaseStore] ✅ Backend updated - user is now premium');
+              // Refresh user data to get updated is_premium
+              const { fetchUser } = useAuthStore.getState();
+              if (fetchUser) {
+                await fetchUser();
+              }
+            } else {
+              const errorText = await response.text();
+              console.error('[PurchaseStore] ❌ Backend update failed:', response.status, errorText);
+            }
+          } else {
+            console.log('[PurchaseStore] ⚠️ No token or backend URL, skipping server update');
+          }
+        } catch (backendError: any) {
+          console.error('[PurchaseStore] ❌ Backend update error:', backendError?.message || backendError);
+          // Don't fail the purchase - local premium is already granted
+        }
       } 
       
       if (productId === watermarkSku) {
         console.log('[PurchaseStore] ✅ Granting remove watermark');
         await AsyncStorage.setItem(STORAGE.REMOVE_WATERMARK, 'true');
         set({ hasRemovedWatermark: true, isLoading: false });
+        
+        // ⭐ BACKEND UPDATE: Update watermark removal status
+        try {
+          const token = useAuthStore.getState().token;
+          if (token && BACKEND_URL) {
+            console.log('[PurchaseStore] 📤 Updating backend - watermark removed');
+            
+            const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                subscription_type: 'watermark_removed',
+                duration_days: 36500, // Lifetime (100 years)
+              }),
+            });
+            
+            if (response.ok) {
+              console.log('[PurchaseStore] ✅ Backend updated - watermark removed');
+            } else {
+              console.error('[PurchaseStore] ❌ Backend update failed:', response.status);
+            }
+          }
+        } catch (backendError: any) {
+          console.error('[PurchaseStore] ❌ Backend update error:', backendError?.message || backendError);
+        }
       }
 
       return ProcessedPurchaseStatus.PROCESSED;
