@@ -585,7 +585,9 @@ export default function DocumentScreen() {
         image_base64: processedImage,
         image_file_uri: newFileUri, // ⭐ Update file URI to point to rotated image
         original_image_base64: rotatedOriginal || processedImage,
-        rotation: ((currentPage.rotation || 0) + 90) % 360,
+        // ⭐ FIX: Don't store rotation metadata since image is physically rotated
+        // The rotation metadata was causing double rotation in thumbnail display
+        rotation: 0,
       };
 
       await updateDocument(isLocalDoc ? null : token, doc.document_id, { pages: updatedPages });
