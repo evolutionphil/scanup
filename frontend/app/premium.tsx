@@ -27,13 +27,24 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
-import { usePurchaseStore, CANONICAL_PRODUCTS } from '../src/store/purchaseStore';
+import { usePurchaseStore, CANONICAL_PRODUCTS, ProcessedPurchaseStatus } from '../src/store/purchaseStore';
 import { useAuthStore } from '../src/store/authStore';
 import { PREMIUM_VALUE_PROPOSITION } from '../src/store/monetizationStore';
 import { logScreenView, logEvent, logPurchaseEvent, AnalyticsEvents } from '../src/services/analytics';
 
 const BRAND_BLUE = '#4361EE';
 const { width } = Dimensions.get('window');
+
+let IAP: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    IAP = require('react-native-iap');
+    console.log('[PremiumScreen] ✅ IAP module loaded');
+  } catch (e) {
+    console.log('[PremiumScreen] ❌ IAP module not available:', e);
+  }
+}
 
 export default function PremiumScreen() {
   const { theme } = useThemeStore();
@@ -53,6 +64,7 @@ export default function PremiumScreen() {
     purchaseSubscription,
     restorePurchases,
     setError,
+    processPurchase,
   } = usePurchaseStore();
   
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
@@ -120,18 +132,7 @@ export default function PremiumScreen() {
       : CANONICAL_PRODUCTS.PREMIUM_YEARLY;
     
     logPurchaseEvent('started', productId);
-    const success = await purchaseSubscription(productId);
-    
-    if (success) {
-      logPurchaseEvent('completed', productId);
-      Alert.alert(
-        'Purchase Successful!',
-        PREMIUM_VALUE_PROPOSITION,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } else if (error) {
-      logPurchaseEvent('failed', productId, undefined, undefined, error);
-    }
+    await purchaseSubscription(productId);
   };
 
   // One-time purchase: Remove watermark forever (€2.99)
@@ -144,18 +145,7 @@ export default function PremiumScreen() {
     setError(null);
     logPurchaseEvent('started', CANONICAL_PRODUCTS.REMOVE_WATERMARK);
     
-    const success = await purchaseProduct(CANONICAL_PRODUCTS.REMOVE_WATERMARK);
-    
-    if (success) {
-      logPurchaseEvent('completed', CANONICAL_PRODUCTS.REMOVE_WATERMARK);
-      Alert.alert(
-        'Purchase Successful!',
-        'Watermark has been permanently removed from your exports.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } else if (error) {
-      logPurchaseEvent('failed', CANONICAL_PRODUCTS.REMOVE_WATERMARK, undefined, undefined, error);
-    }
+    await purchaseProduct(CANONICAL_PRODUCTS.REMOVE_WATERMARK);
   };
 
   const handleContinueFree = () => {
@@ -174,7 +164,7 @@ export default function PremiumScreen() {
       Alert.alert(
         'Restore Successful!',
         'Your purchases have been restored.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK' }]
       );
     } else {
       Alert.alert(
@@ -187,6 +177,71 @@ export default function PremiumScreen() {
   const openTerms = () => {
     router.push('/legal?type=terms');
   };
+
+  const handlePurchaseUpdate = async (purchase: any) => {
+    const status = await processPurchase(purchase);
+    
+    if (status === ProcessedPurchaseStatus.FAILED) {
+      Alert.alert(
+        'Purchase Failed!',
+        'We could not process your purchase. Please try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (status === ProcessedPurchaseStatus.PENDING) {
+      Alert.alert(
+        'Purchase Pending!',
+        'Your payment still pending, once you approve the payment you can restore the purchases to enjoy the features.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const REMOVE_WATERMARK_MESSAGE = 'Watermark has been permanently removed from your exports.'
+
+    logPurchaseEvent('completed', purchase.productId);
+    
+    Alert.alert(
+      'Purchase Successful!',
+      purchase.productId.includes('premium') ? PREMIUM_VALUE_PROPOSITION : REMOVE_WATERMARK_MESSAGE,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handlePurchaseError = (error: any) => {
+    const errorMessages = new Map([
+      ['user-cancelled', 'Purchase cancelled by user.'],
+      ['network-error', 'Network error. Please check your connection and try again.'],
+      ['item-unavailable', 'This product is currently unavailable.'],
+      ['already-owned', 'You already own this product.'],
+    ]);
+
+    Alert.alert(
+      'Purchase Failed!',
+      errorMessages.get(error?.code) || 'We could not process your purchase. Please try again.',
+      [{ text: 'OK' }]
+    );
+    console.log('[PremiumScreen] ❌ Purchase error:', error);
+  };
+
+  useEffect(() => {
+    let purchaseUpdateSubscription = null;
+    let purchaseErrorSubscription = null;
+
+    // Set up purchase listeners
+    if (IAP) {
+      purchaseUpdateSubscription = IAP.purchaseUpdatedListener(handlePurchaseUpdate);
+      purchaseErrorSubscription = IAP.purchaseErrorListener(handlePurchaseError);
+    }
+
+    // Cleanup function
+    return () => {
+      purchaseUpdateSubscription?.remove();
+      purchaseErrorSubscription?.remove();
+    };
+  }, []);
 
   // If already premium
   if (isPremium) {

@@ -5,6 +5,10 @@ import { Platform } from 'react-native';
 
 let isInitialized = false;
 
+export const AnalyticsEvents = {
+  PREMIUM_SCREEN_VIEWED: "PREMIUM_SCREEN_VIEWED"
+}
+
 export const initAnalytics = async () => {
   if (Platform.OS === 'web') {
     console.log('[Analytics] Skipping on web platform');
@@ -18,6 +22,10 @@ export const initAnalytics = async () => {
   console.log('[Analytics] Analytics disabled - Firebase not available');
   isInitialized = true;
 };
+
+export const logPurchaseEvent = (type: string, ...params: any[]) => {
+  console.log(`[Analytics] Type: ${type}`, params);
+}
 
 export const logScreenView = async (screenName: string, screenClass?: string) => {
   console.log(`[Analytics] Screen: ${screenName}`);
