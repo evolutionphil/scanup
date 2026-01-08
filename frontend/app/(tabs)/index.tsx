@@ -661,6 +661,12 @@ export default function DocumentsScreen() {
     const isSelected = selectedDocs.includes(item.document_id);
     const rotation = page?.rotation || 0;
     
+    // ⭐ Debug log for thumbnail source
+    console.log(`[Thumbnail] ${item.name}: URI=${thumbnailSource?.uri?.substring(0, 50)}...`);
+    
+    // ⭐ Generate unique key for image to bust cache when file changes
+    const imageKey = `${item.document_id}_${page?.image_file_uri || 'default'}`;
+    
     // Calculate image style with rotation
     const getRotatedImageStyle = (baseStyle: any) => {
       if (rotation === 0) return baseStyle;
