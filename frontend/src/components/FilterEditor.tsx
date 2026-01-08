@@ -360,22 +360,47 @@ export default function FilterEditor({
     try {
       let processedBase64 = baseImage;
 
-      // If Skia is available, capture the canvas
-      if (skiaAvailable && canvasRef.current && makeImageFromView) {
+      // ⭐ Use react-native-view-shot to capture the filtered view
+      // This works more reliably than Skia's makeImageFromView
+      if (canvasRef.current && Platform.OS !== 'web') {
         try {
-          console.log('[FilterEditor] ⭐ Capturing filtered image with Skia...');
-          const snapshot = await makeImageFromView(canvasRef);
-          if (snapshot) {
-            const bytes = snapshot.encodeToBase64();
-            processedBase64 = bytes;
-            console.log('[FilterEditor] ✅ Skia capture successful');
+          console.log('[FilterEditor] ⭐ Capturing filtered image with view-shot...');
+          const uri = await captureRef(canvasRef, {
+            format: 'jpg',
+            quality: 0.9,
+            result: 'base64',
+          });
+          
+          if (uri && uri.length > 100) {
+            processedBase64 = uri;
+            console.log('[FilterEditor] ✅ View-shot capture successful, length:', uri.length);
+          } else {
+            console.warn('[FilterEditor] View-shot returned empty/small result');
           }
         } catch (captureError) {
-          console.error('[FilterEditor] Skia capture failed:', captureError);
-          // Fall back to base image with filter metadata
+          console.error('[FilterEditor] View-shot capture failed:', captureError);
+          
+          // Fallback: Try Skia's makeImageFromView
+          if (skiaAvailable && makeImageFromView) {
+            try {
+              console.log('[FilterEditor] Trying Skia makeImageFromView fallback...');
+              const snapshot = await makeImageFromView(canvasRef);
+              if (snapshot) {
+                const bytes = snapshot.encodeToBase64();
+                if (bytes && bytes.length > 100) {
+                  processedBase64 = bytes;
+                  console.log('[FilterEditor] ✅ Skia fallback successful');
+                }
+              }
+            } catch (skiaError) {
+              console.error('[FilterEditor] Skia fallback also failed:', skiaError);
+            }
+          }
         }
       }
 
+      console.log('[FilterEditor] Calling onApply with image length:', processedBase64?.length);
+      
       onApply(
         selectedFilter,
         {
