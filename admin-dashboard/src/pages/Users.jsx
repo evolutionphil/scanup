@@ -395,6 +395,13 @@ export default function Users() {
                           <Eye size={18} />
                         </button>
                         <button
+                          onClick={(e) => { e.stopPropagation(); handleEditUser(user); }}
+                          className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition"
+                          title="Edit Subscription"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setShowDeleteModal(true); }}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                           title="Delete User"
