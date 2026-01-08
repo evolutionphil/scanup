@@ -915,8 +915,8 @@ export default function DocumentsScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.primary} />
       
-      {/* ⭐ Cloud Sync Loading Overlay */}
-      {isLoadingFromCloud && (
+      {/* ⭐ Cloud Sync Loading Overlay - Only shows on FIRST app launch */}
+      {isInitialCloudSyncing && (
         <View style={styles.loadingOverlay}>
           <View style={[styles.loadingBox, { backgroundColor: theme.card }]}>
             <ActivityIndicator size="large" color={theme.primary} />
