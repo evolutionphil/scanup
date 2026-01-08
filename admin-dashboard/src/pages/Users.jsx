@@ -672,6 +672,156 @@ export default function Users() {
           </div>
         </div>
       )}
+
+      {/* Edit Subscription Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full">
+            {/* Modal Header */}
+            <div className="border-b border-gray-200 p-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Edit Subscription</h3>
+                <p className="text-gray-500 text-sm mt-1">{selectedUser.email}</p>
+              </div>
+              <button
+                onClick={() => { setShowEditModal(false); setSelectedUser(null); setSaveError(''); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-5">
+              {/* Subscription Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subscription Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['free', 'trial', 'premium'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setEditForm({ ...editForm, subscription_type: type })}
+                      className={`px-4 py-3 rounded-lg font-medium capitalize transition flex items-center justify-center gap-2 ${
+                        editForm.subscription_type === type
+                          ? type === 'premium' 
+                            ? 'bg-amber-600 text-white' 
+                            : type === 'trial' 
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-700 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {type === 'premium' && <Crown size={16} />}
+                      {type === 'trial' && <Clock size={16} />}
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feature Toggles */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Features
+                </label>
+                
+                {/* Remove Ads */}
+                <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+                  <div className="flex items-center gap-3">
+                    <Ban size={18} className="text-gray-500" />
+                    <span className="text-gray-700">Reklamsız Kullanım</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editForm.has_removed_ads}
+                    onChange={(e) => setEditForm({ ...editForm, has_removed_ads: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                </label>
+
+                {/* Remove Watermark */}
+                <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+                  <div className="flex items-center gap-3">
+                    <Shield size={18} className="text-gray-500" />
+                    <span className="text-gray-700">Filigransız Export</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editForm.has_removed_watermark}
+                    onChange={(e) => setEditForm({ ...editForm, has_removed_watermark: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                </label>
+              </div>
+
+              {/* Admin Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin Notes (Optional)
+                </label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Add notes about this subscription change..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none"
+                />
+              </div>
+
+              {/* Error Message */}
+              {saveError && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-lg flex items-center gap-2">
+                  <XCircle size={18} />
+                  {saveError}
+                </div>
+              )}
+
+              {/* Success Message */}
+              {saveSuccess && (
+                <div className="p-3 bg-green-50 text-green-600 rounded-lg flex items-center gap-2">
+                  <CheckCircle size={18} />
+                  Kullanıcı başarıyla güncellendi!
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 p-6 flex gap-3">
+              <button
+                onClick={() => { setShowEditModal(false); setSelectedUser(null); setSaveError(''); }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveUser}
+                disabled={saving || saveSuccess}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Saving...
+                  </>
+                ) : saveSuccess ? (
+                  <>
+                    <CheckCircle size={18} />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
