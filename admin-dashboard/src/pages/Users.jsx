@@ -21,7 +21,9 @@ import {
   CreditCard,
   Clock,
   Smartphone,
-  Globe
+  Globe,
+  Edit,
+  Save
 } from 'lucide-react';
 
 const API_URL = `${API_BASE}/api`;
@@ -35,8 +37,17 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [editForm, setEditForm] = useState({
+    subscription_type: 'free',
+    is_premium: false,
+    has_removed_ads: false,
+    has_removed_watermark: false,
+    notes: ''
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchUsers();
