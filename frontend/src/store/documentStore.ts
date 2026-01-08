@@ -207,6 +207,7 @@ interface DocumentState {
   updateDocumentSyncStatus: (documentId: string, status: SyncStatus) => void;
   migrateGuestDocumentsToAccount: (token: string, userId: string) => Promise<number>;
   forceRefreshFromCloud: (token: string) => Promise<void>;  // ⭐ Manual refresh (pull-to-refresh)
+  resetForLogout: () => void;  // ⭐ Reset state on logout
 }
 
 // Helper to generate unique IDs
