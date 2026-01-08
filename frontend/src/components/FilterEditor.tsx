@@ -433,16 +433,21 @@ export default function FilterEditor({
     if (skiaAvailable && Canvas && skiaImage && SkiaImage && ColorMatrix) {
       return (
         <View style={styles.canvasContainer}>
-          <Canvas 
-            ref={canvasRef}
+          {/* ⭐ Wrapper View with ref for captureRef - collapsable={false} is required */}
+          <View 
+            ref={canvasRef} 
+            collapsable={false}
             style={{ width: canvasDimensions.width, height: canvasDimensions.height }}
           >
-            <SkiaImage
-              image={skiaImage}
-              x={0}
-              y={0}
-              width={canvasDimensions.width}
-              height={canvasDimensions.height}
+            <Canvas 
+              style={{ width: canvasDimensions.width, height: canvasDimensions.height }}
+            >
+              <SkiaImage
+                image={skiaImage}
+                x={0}
+                y={0}
+                width={canvasDimensions.width}
+                height={canvasDimensions.height}
               fit="contain"
             >
               <ColorMatrix matrix={colorMatrix} />
