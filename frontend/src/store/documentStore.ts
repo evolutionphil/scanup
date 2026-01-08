@@ -379,18 +379,40 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           let fileUri = page.image_file_uri;
           let origFileUri = page.original_file_uri;
           
-          // If we have base64 but no file URI, save to file first
-          if (page.image_base64 && !page.image_file_uri) {
+          // ⭐ FIX: Always save base64 to file if we have it
+          // This ensures rotated/filtered images are persisted
+          if (page.image_base64 && page.image_base64.length > 100) {
             try {
-              fileUri = await saveImageToFile(page.image_base64, doc.document_id, idx);
-              console.log(`[saveLocalCache] Saved image to file: ${fileUri}`);
+              // Clean base64 (remove data: prefix if present)
+              let cleanBase64 = page.image_base64;
+              if (cleanBase64.startsWith('data:')) {
+                cleanBase64 = cleanBase64.split(',')[1];
+              }
+              
+              // Generate new filename with timestamp to avoid stale cache
+              const newFileUri = await saveImageToFile(cleanBase64, doc.document_id, idx);
+              
+              // Delete old file if it's different
+              if (fileUri && fileUri !== newFileUri && Platform.OS !== 'web') {
+                try {
+                  const oldFileInfo = await FileSystem.getInfoAsync(fileUri);
+                  if (oldFileInfo.exists) {
+                    await FileSystem.deleteAsync(fileUri, { idempotent: true });
+                  }
+                } catch (delErr) {
+                  // Ignore delete errors
+                }
+              }
+              
+              fileUri = newFileUri;
+              console.log(`[saveLocalCache] Saved/updated image to file: ${fileUri}`);
             } catch (e) {
               console.error('[saveLocalCache] Error saving image to file:', e);
             }
           }
           
           // Save original to file if needed
-          if (page.original_image_base64 && !page.original_file_uri) {
+          if (page.original_image_base64 && page.original_image_base64.length > 100 && !page.original_file_uri) {
             try {
               origFileUri = await saveImageToFile(page.original_image_base64, doc.document_id + '_orig', idx);
             } catch (e) {
