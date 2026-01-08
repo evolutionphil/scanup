@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDocumentStore } from './documentStore';
+import { usePurchaseStore } from './purchaseStore';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
