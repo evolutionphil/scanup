@@ -453,6 +453,7 @@ export default function FilterEditor({
               <ColorMatrix matrix={colorMatrix} />
             </SkiaImage>
           </Canvas>
+          </View>
           <View style={[styles.skiaBadge, { backgroundColor: theme.primary }]}>
             <Text style={styles.skiaBadgeText}>Skia GPU</Text>
           </View>
