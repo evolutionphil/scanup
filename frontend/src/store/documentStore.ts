@@ -1415,12 +1415,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   // This function now checks if migration was already done for this user
   // ⭐ Force refresh from cloud (for pull-to-refresh)
   // This bypasses the initialCloudSyncDone check and always fetches from server
+  // BUT preserves local edits (rotations, filters) that haven't been synced yet
   forceRefreshFromCloud: async (token: string) => {
     if (!token) return;
     
     console.log('[forceRefreshFromCloud] 🔄 Manual refresh triggered');
     
     try {
+      // ⭐ FIRST: Save current local state before fetching from cloud
+      // This ensures we don't lose any edits
+      await get().saveLocalCache();
+      
       const response = await fetch(
         `${BACKEND_URL}/api/documents`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -1434,19 +1439,45 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const serverDocs = await response.json();
       console.log('[forceRefreshFromCloud] ✅ Fetched', serverDocs.length, 'docs from server');
       
-      // Merge with any unsynced local documents
+      // Get current local documents
       const { documents: currentDocs } = get();
+      
+      // ⭐ SMART MERGE: Preserve local edits
+      // 1. Keep local-only documents (not yet synced to server)
+      // 2. For server documents, preserve local image_file_uri if it exists (means we have local edits)
+      const mergedDocs = serverDocs.map((serverDoc: Document) => {
+        const localDoc = currentDocs.find(d => d.document_id === serverDoc.document_id);
+        
+        if (localDoc) {
+          // Check if local document has edits (local file URIs)
+          const hasLocalEdits = localDoc.pages?.some(p => p.image_file_uri);
+          
+          if (hasLocalEdits) {
+            console.log(`[forceRefreshFromCloud] 📌 Preserving local edits for: ${serverDoc.name}`);
+            // Merge: Keep server metadata but preserve local page data (images)
+            return {
+              ...serverDoc,
+              pages: localDoc.pages, // Keep local pages with edits
+              updated_at: localDoc.updated_at, // Keep local timestamp
+            };
+          }
+        }
+        
+        return serverDoc;
+      });
+      
+      // Add any local-only documents (not on server yet)
       const localOnlyDocs = currentDocs.filter(d => 
         d.document_id.startsWith('local_') && 
         !serverDocs.some((s: Document) => s.document_id === d.document_id)
       );
       
-      const mergedDocs = [...localOnlyDocs, ...serverDocs];
-      set({ documents: mergedDocs });
+      const finalDocs = [...localOnlyDocs, ...mergedDocs];
+      set({ documents: finalDocs });
       
-      // Save to local cache
+      // Save merged state to local cache
       await get().saveLocalCache();
-      console.log('[forceRefreshFromCloud] ✅ Refresh complete');
+      console.log('[forceRefreshFromCloud] ✅ Refresh complete, preserved local edits');
     } catch (e) {
       console.error('[forceRefreshFromCloud] Error:', e);
     }
