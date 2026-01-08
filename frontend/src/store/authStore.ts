@@ -216,6 +216,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await removeStorage(MIGRATED_KEY);
     await setStorage(GUEST_KEY, 'true');
     
+    // ⭐ CRITICAL: Clear premium state on logout
+    // This prevents premium status from persisting to next user
+    try {
+      await removeStorage('@scanup_is_premium');
+      await removeStorage('@scanup_remove_watermark');
+      await removeStorage('@scanup_active_sub');
+    } catch (e) {
+      console.error('Error clearing premium state:', e);
+    }
+    
     // If was logged in user, try to call logout API (non-blocking)
     if (token && !wasGuest) {
       try {
