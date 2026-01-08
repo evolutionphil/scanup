@@ -48,6 +48,8 @@ export default function Users() {
     notes: ''
   });
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     fetchUsers();
