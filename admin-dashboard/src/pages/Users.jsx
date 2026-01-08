@@ -101,6 +101,69 @@ export default function Users() {
     await fetchUserDetails(user.user_id);
   };
 
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setEditForm({
+      subscription_type: user.subscription_type || 'free',
+      is_premium: user.subscription_type === 'premium' || user.is_premium || false,
+      has_removed_ads: user.has_removed_ads || false,
+      has_removed_watermark: user.has_removed_watermark || false,
+      notes: user.admin_notes || ''
+    });
+    setSaveSuccess(false);
+    setSaveError('');
+    setShowEditModal(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!selectedUser) return;
+    
+    setSaving(true);
+    setSaveSuccess(false);
+    setSaveError('');
+    
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${selectedUser.user_id}`, {
+        method: 'PUT',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subscription_type: editForm.subscription_type,
+          is_premium: editForm.subscription_type === 'premium',
+          has_removed_ads: editForm.has_removed_ads,
+          has_removed_watermark: editForm.has_removed_watermark,
+          notes: editForm.notes
+        })
+      });
+
+      if (res.ok) {
+        const updatedUser = await res.json();
+        // Update users list
+        setUsers(users.map(u => 
+          u.user_id === selectedUser.user_id 
+            ? { ...u, ...updatedUser }
+            : u
+        ));
+        setSaveSuccess(true);
+        setTimeout(() => {
+          setShowEditModal(false);
+          setSelectedUser(null);
+          setSaveSuccess(false);
+        }, 1500);
+      } else {
+        const error = await res.json();
+        setSaveError(error.detail || 'Kullanıcı güncellenemedi');
+      }
+    } catch (e) {
+      console.error('Failed to update user:', e);
+      setSaveError('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
 
