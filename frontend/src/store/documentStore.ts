@@ -1347,6 +1347,45 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   // Migrate guest/local documents to user account after login
   // This function now checks if migration was already done for this user
+  // ⭐ Force refresh from cloud (for pull-to-refresh)
+  // This bypasses the initialCloudSyncDone check and always fetches from server
+  forceRefreshFromCloud: async (token: string) => {
+    if (!token) return;
+    
+    console.log('[forceRefreshFromCloud] 🔄 Manual refresh triggered');
+    
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/documents`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!response.ok) {
+        console.error('[forceRefreshFromCloud] Server fetch failed:', response.status);
+        return;
+      }
+      
+      const serverDocs = await response.json();
+      console.log('[forceRefreshFromCloud] ✅ Fetched', serverDocs.length, 'docs from server');
+      
+      // Merge with any unsynced local documents
+      const { documents: currentDocs } = get();
+      const localOnlyDocs = currentDocs.filter(d => 
+        d.document_id.startsWith('local_') && 
+        !serverDocs.some((s: Document) => s.document_id === d.document_id)
+      );
+      
+      const mergedDocs = [...localOnlyDocs, ...serverDocs];
+      set({ documents: mergedDocs });
+      
+      // Save to local cache
+      await get().saveLocalCache();
+      console.log('[forceRefreshFromCloud] ✅ Refresh complete');
+    } catch (e) {
+      console.error('[forceRefreshFromCloud] Error:', e);
+    }
+  },
+
   migrateGuestDocumentsToAccount: async (token: string, userId: string) => {
     try {
       // Check if already migrated for this user
