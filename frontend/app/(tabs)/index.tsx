@@ -60,10 +60,6 @@ export default function DocumentsScreen() {
   const [viewMode, setViewMode] = useState<ViewType>('list');
   const [showSortMenu, setShowSortMenu] = useState(false);
   
-  // ⭐ Cloud sync loading state
-  const [isLoadingFromCloud, setIsLoadingFromCloud] = useState(false);
-  const [cloudSyncComplete, setCloudSyncComplete] = useState(false);
-  
   // Deleting state for spinner
   const [isDeleting, setIsDeleting] = useState(false);
   
