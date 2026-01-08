@@ -274,27 +274,27 @@ export default function ProfileScreen() {
 
         {/* Premium/Trial Card */}
         {!isGuest && (
-          <View style={[styles.card, { backgroundColor: theme.surface }, (user?.is_premium || user?.is_trial) && styles.premiumCardBorder]}>
+          <View style={[styles.card, { backgroundColor: theme.surface }, (isPremium || user?.is_trial) && styles.premiumCardBorder]}>
             <View style={styles.cardHeader}>
-              <View style={[styles.iconBox, { backgroundColor: ((user?.is_premium || user?.is_trial) ? theme.warning : theme.primary) + '20' }]}>
+              <View style={[styles.iconBox, { backgroundColor: ((isPremium || user?.is_trial) ? theme.warning : theme.primary) + '20' }]}>
                 <Ionicons
-                  name={(user?.is_premium || user?.is_trial) ? 'star' : 'star-outline'}
+                  name={(isPremium || user?.is_trial) ? 'star' : 'star-outline'}
                   size={24}
-                  color={(user?.is_premium || user?.is_trial) ? theme.warning : theme.primary}
+                  color={(isPremium || user?.is_trial) ? theme.warning : theme.primary}
                 />
               </View>
               <View style={styles.cardHeaderText}>
                 <Text style={[styles.cardTitle, { color: theme.text }]}>
-                  {user?.is_premium ? t('premium_member', 'Premium Member') : user?.is_trial ? `${t('trial', 'Trial')} (${user.trial_days_remaining || 0} ${t('days_left', 'days left')})` : t('free_plan', 'Free Plan')}
+                  {isPremium ? t('premium_member', 'Premium Member') : user?.is_trial ? `${t('trial', 'Trial')} (${user.trial_days_remaining || 0} ${t('days_left', 'days left')})` : t('free_plan', 'Free Plan')}
                 </Text>
                 <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-                  {user?.is_premium ? t('all_features_unlocked', 'All features unlocked') : user?.is_trial ? t('full_access_during_trial', 'Full access during trial') : t('limited_features', 'Limited features')}
+                  {isPremium ? t('all_features_unlocked', 'All features unlocked') : user?.is_trial ? t('full_access_during_trial', 'Full access during trial') : t('limited_features', 'Limited features')}
                 </Text>
               </View>
             </View>
 
             {/* Show trial banner for free users who haven't used trial */}
-            {!user?.is_premium && !user?.is_trial && !isPremium && (
+            {!isPremium && !user?.is_trial && (
               <TouchableOpacity 
                 style={[styles.trialBanner, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
                 onPress={() => router.push('/premium')}
@@ -311,10 +311,10 @@ export default function ProfileScreen() {
             )}
 
             <Button
-              title={user?.is_premium ? t('manage_subscription', 'Manage Subscription') : t('upgrade_to_pro', 'Upgrade to Pro')}
+              title={isPremium ? t('manage_subscription', 'Manage Subscription') : t('upgrade_to_pro', 'Upgrade to Pro')}
               onPress={handleUpgrade}
               loading={upgrading}
-              variant={user?.is_premium ? 'secondary' : 'primary'}
+              variant={isPremium ? 'secondary' : 'primary'}
             />
           </View>
         )}
