@@ -152,19 +152,13 @@ export default function DocumentsScreen() {
   const loadDocuments = async () => {
     try {
       if (token && !isGuest) {
-        // ⭐ Show cloud sync spinner for logged-in users
-        if (!cloudSyncComplete) {
-          setIsLoadingFromCloud(true);
-        }
+        // Fetch documents (store handles initial sync logic internally)
         await Promise.all([fetchDocuments(token), fetchFolders(token)]);
-        setCloudSyncComplete(true);
-        setIsLoadingFromCloud(false);
       } else {
         await fetchDocuments(null);
       }
     } catch (e) {
       console.error('Failed to load data:', e);
-      setIsLoadingFromCloud(false);
     }
   };
 
