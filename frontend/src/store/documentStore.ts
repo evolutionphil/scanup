@@ -205,6 +205,7 @@ interface DocumentState {
   clearPendingSyncItem: (documentId: string) => Promise<void>;
   updateDocumentSyncStatus: (documentId: string, status: SyncStatus) => void;
   migrateGuestDocumentsToAccount: (token: string, userId: string) => Promise<number>;
+  forceRefreshFromCloud: (token: string) => Promise<void>;  // ⭐ Manual refresh (pull-to-refresh)
 }
 
 // Helper to generate unique IDs
