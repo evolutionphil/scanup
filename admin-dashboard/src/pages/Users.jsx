@@ -619,6 +619,16 @@ export default function Users() {
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
+                    onClick={() => { 
+                      setShowUserModal(false); 
+                      handleEditUser(userDetails);
+                    }}
+                    className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center justify-center gap-2"
+                  >
+                    <Edit size={18} />
+                    Edit Subscription
+                  </button>
+                  <button
                     onClick={() => { setShowUserModal(false); setSelectedUser(userDetails); setShowDeleteModal(true); }}
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
                   >
