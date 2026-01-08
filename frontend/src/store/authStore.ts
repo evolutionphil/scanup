@@ -224,8 +224,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await removeStorage('@scanup_is_premium');
       await removeStorage('@scanup_remove_watermark');
       await removeStorage('@scanup_active_sub');
+      
+      // Reset purchase store state
+      usePurchaseStore.setState({ isPremium: false, hasRemovedWatermark: false });
+      
+      // Reset document store state (clears documents & sync flags)
+      useDocumentStore.getState().resetForLogout();
+      
+      // Clear local documents cache for this user
+      await AsyncStorage.removeItem('scanup_local_documents');
     } catch (e) {
-      console.error('Error clearing premium state:', e);
+      console.error('Error clearing state on logout:', e);
     }
     
     // If was logged in user, try to call logout API (non-blocking)
