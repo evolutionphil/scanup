@@ -224,6 +224,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   isLoading: false,
   isSyncing: false,
   pendingSyncCount: 0,
+  initialCloudSyncDone: false,  // ⭐ Will be true after first cloud fetch
+  isInitialCloudSyncing: false, // ⭐ True only during first cloud fetch
 
   loadGuestDocuments: async () => {
     try {
