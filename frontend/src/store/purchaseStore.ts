@@ -160,8 +160,23 @@ export const usePurchaseStore = create<State>((set, get) => ({
   
   /* ---------- VERIFY SUBSCRIPTION STATUS ---------- */
   // Called on app start to check if subscription is still active
+  // ⭐ CRITICAL: Only verify for LOGGED IN users, not guests!
+  // IAP purchases are tied to Apple/Google account, not app user
   verifySubscriptionStatus: async () => {
     if (Platform.OS === 'web' || !IAP) return;
+    
+    // ⭐ FIX: Check if user is logged in - don't verify for guests
+    // This prevents fresh install guest from getting premium of previous user
+    const authStore = require('./authStore').useAuthStore;
+    const { isGuest, user } = authStore.getState();
+    
+    if (isGuest || !user || user.user_id === 'guest') {
+      console.log('[PurchaseStore] ⏭️ Skipping IAP verification for guest user');
+      // Clear any cached premium state for guests
+      await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'false');
+      set({ isPremium: false });
+      return;
+    }
     
     console.log('[PurchaseStore] 🔍 Verifying subscription status with Apple/Google...');
     
@@ -206,6 +221,9 @@ export const usePurchaseStore = create<State>((set, get) => ({
       if (hasActiveSubscription) {
         await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
         set({ isPremium: true });
+        
+        // ⭐ Also update backend to keep in sync
+        await get().notifyBackendSubscriptionActive();
       } else {
         // ⚠️ No active subscription found - user cancelled or expired
         if (wasPremium) {
@@ -230,6 +248,35 @@ export const usePurchaseStore = create<State>((set, get) => ({
     } catch (error: any) {
       console.error('[PurchaseStore] ❌ Verification error:', error?.message || error);
       // On error, keep the cached state (don't lock user out)
+    }
+  },
+  
+  /* ---------- NOTIFY BACKEND SUBSCRIPTION ACTIVE ---------- */
+  notifyBackendSubscriptionActive: async () => {
+    try {
+      const authStore = require('./authStore').useAuthStore;
+      const token = authStore.getState().token;
+      if (!token || !BACKEND_URL) return;
+      
+      console.log('[PurchaseStore] 📤 Notifying backend - subscription active');
+      
+      const response = await fetch(`${BACKEND_URL}/api/users/subscription`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          subscription_type: 'premium',
+          duration_days: 365, // Will be overwritten by actual subscription duration
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('[PurchaseStore] ✅ Backend updated - subscription active');
+      }
+    } catch (error: any) {
+      console.error('[PurchaseStore] ❌ Backend notification error:', error?.message);
     }
   },
   
