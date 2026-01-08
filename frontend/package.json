@@ -8,7 +8,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "create-patch": "npx --yes patch-package --exclude 'android/build/|xcodeproj'",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
@@ -89,6 +91,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true,
