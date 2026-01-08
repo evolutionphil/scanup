@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../store/themeStore';
 import Slider from './Slider';
 import * as FileSystem from 'expo-file-system/legacy';
+import { captureRef } from 'react-native-view-shot';
 
 // Conditionally import Skia (only works in native builds, not Expo Go or Web)
 let Canvas: any = null;
