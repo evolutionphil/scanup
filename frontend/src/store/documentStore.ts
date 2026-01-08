@@ -762,18 +762,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   fetchDocuments: async (token, params = {}) => {
     console.log('[fetchDocuments] Starting, token:', !!token);
     
-    const { initialCloudSyncDone } = get();
+    const { initialCloudSyncDone, documents: currentDocs } = get();
+    
+    // ⭐ CRITICAL: If we already have documents in memory and sync is done,
+    // DON'T overwrite with cache - memory state is more recent (has edits)
+    if (initialCloudSyncDone && currentDocs.length > 0) {
+      console.log('[fetchDocuments] ⏭️ Using in-memory documents (sync already done, has', currentDocs.length, 'docs)');
+      return;
+    }
     
     // ⭐ LOCAL-FIRST: Load from local cache IMMEDIATELY (no loading spinner)
-    try {
-      const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
-      if (cached) {
-        const cachedDocs = JSON.parse(cached);
-        console.log('[fetchDocuments] ✅ Loaded', cachedDocs.length, 'docs from local cache');
-        set({ documents: cachedDocs });
+    // Only do this if we don't have documents in memory yet
+    if (currentDocs.length === 0) {
+      try {
+        const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
+        if (cached) {
+          const cachedDocs = JSON.parse(cached);
+          console.log('[fetchDocuments] ✅ Loaded', cachedDocs.length, 'docs from local cache');
+          set({ documents: cachedDocs });
+        }
+      } catch (e) {
+        console.error('[fetchDocuments] Cache load error:', e);
       }
-    } catch (e) {
-      console.error('[fetchDocuments] Cache load error:', e);
     }
     
     // If no token (guest mode), just load guest documents
