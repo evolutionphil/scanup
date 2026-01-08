@@ -172,7 +172,12 @@ export default function DocumentsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadDocuments();
+    // Pull-to-refresh triggers a full cloud refresh
+    if (token && !isGuest) {
+      await Promise.all([forceRefreshFromCloud(token), fetchFolders(token)]);
+    } else {
+      await fetchDocuments(null);
+    }
     setRefreshing(false);
   };
 
