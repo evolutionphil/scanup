@@ -50,7 +50,7 @@ export default function DocumentsScreen() {
   const { theme, isDark } = useThemeStore();
   const { t } = useI18n();
   const { activeMainTab, setActiveMainTab } = useTabStore();
-  const { documents, folders, isLoading, isSyncing, pendingSyncCount, fetchDocuments, fetchFolders, deleteDocument, updateDocument, deleteFolder, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
+  const { documents, folders, isLoading, isSyncing, pendingSyncCount, isInitialCloudSyncing, fetchDocuments, fetchFolders, deleteDocument, updateDocument, deleteFolder, syncPendingDocuments, loadLocalCache, createFolder } = useDocumentStore();
   const { hasPending, pendingDocIds } = useOfflineQueue();
   const [refreshing, setRefreshing] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
