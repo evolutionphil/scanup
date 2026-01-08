@@ -205,8 +205,9 @@ export const usePurchaseStore = create<State>((set, get) => ({
         '[PurchaseStore] ❌ purchaseUpdatedListener error:',
         listenerErr?.message || listenerErr
       );
-      set({ isLoading: false });
       return ProcessedPurchaseStatus.FAILED;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -293,8 +294,10 @@ export const usePurchaseStore = create<State>((set, get) => ({
       return true;
     } catch (e: any) {
       console.error('[PurchaseStore] ❌ Purchase error:', e?.message || e);
-      set({ isLoading: false, error: e?.message });
+      set({ error: e?.message });
       return false;
+    } finally {
+      set({ isLoading: false });
     }
   },
   
@@ -324,13 +327,15 @@ export const usePurchaseStore = create<State>((set, get) => ({
         },
         type: 'in-app',
       });
-
+      
       console.log('[PurchaseStore] ✅ One-time purchase request completed, waiting for listener...');
       return true;
     } catch (e: any) {
       console.error('[PurchaseStore] ❌ Purchase error:', e?.message || e);
       set({ isLoading: false, error: e?.message });
       return false;
+    } finally {
+      set({ isLoading: false })
     }
   },
   
