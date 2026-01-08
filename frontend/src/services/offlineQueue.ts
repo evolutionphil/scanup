@@ -256,7 +256,7 @@ class OfflineQueueService {
 
   // Process individual operation
   private async processOperation(operation: PendingOperation): Promise<void> {
-    const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://docmobile-2.preview.emergentagent.com';
+    const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://scanup-localfirst.preview.emergentagent.com';
     
     switch (operation.type) {
       case 'apply_signature':

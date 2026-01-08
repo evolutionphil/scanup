@@ -19,7 +19,7 @@ from PIL import Image
 import time
 
 # Configuration
-BACKEND_URL = "https://docmobile-2.preview.emergentagent.com/api"
+BACKEND_URL = "https://scanup-localfirst.preview.emergentagent.com/api"
 TEST_EMAIL = "testuser@scanup.com"
 TEST_PASSWORD = "testpass123"
 TEST_NAME = "Test User"
