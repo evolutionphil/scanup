@@ -5940,6 +5940,77 @@ async def delete_admin_user(user_id: str, admin: dict = Depends(get_admin_user))
         logger.error(f"Delete user error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+class AdminUserUpdate(BaseModel):
+    """Schema for admin user update"""
+    subscription_type: str = None  # "free", "premium", "trial"
+    is_premium: bool = None
+    has_removed_ads: bool = None
+    has_removed_watermark: bool = None
+    subscription_expires_at: str = None  # ISO date string or None
+    notes: str = None  # Admin notes
+
+
+@api_router.put("/admin/users/{user_id}")
+async def update_admin_user(user_id: str, update: AdminUserUpdate, admin: dict = Depends(get_admin_user)):
+    """Update user subscription status (admin only)"""
+    try:
+        # Find user
+        user = await db.users.find_one({"user_id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Build update dict
+        update_data = {"updated_at": datetime.now(timezone.utc)}
+        
+        if update.subscription_type is not None:
+            update_data["subscription_type"] = update.subscription_type
+            # Auto-set is_premium based on subscription_type
+            update_data["is_premium"] = update.subscription_type == "premium"
+            update_data["is_trial"] = update.subscription_type == "trial"
+        
+        if update.is_premium is not None:
+            update_data["is_premium"] = update.is_premium
+            if update.is_premium:
+                update_data["subscription_type"] = "premium"
+            elif update.subscription_type is None:
+                update_data["subscription_type"] = "free"
+        
+        if update.has_removed_ads is not None:
+            update_data["has_removed_ads"] = update.has_removed_ads
+        
+        if update.has_removed_watermark is not None:
+            update_data["has_removed_watermark"] = update.has_removed_watermark
+        
+        if update.subscription_expires_at is not None:
+            if update.subscription_expires_at == "":
+                update_data["subscription_expires_at"] = None
+            else:
+                update_data["subscription_expires_at"] = update.subscription_expires_at
+        
+        if update.notes is not None:
+            update_data["admin_notes"] = update.notes
+        
+        # Update user
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        # Fetch updated user
+        updated_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+        updated_user["document_count"] = await db.documents.count_documents({"user_id": user_id})
+        
+        logger.info(f"Admin updated user {user_id}: {update_data}")
+        
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin user update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/admin/documents")
 async def get_admin_documents(
     admin: dict = Depends(get_admin_user),
