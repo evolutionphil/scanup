@@ -451,6 +451,26 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       console.log(`[saveLocalCache] Saving ${metaDocs.length} docs, size: ${(jsonStr.length / 1024).toFixed(1)}KB`);
       
       await AsyncStorage.setItem(LOCAL_DOCUMENTS_KEY, JSON.stringify(metaDocs));
+      
+      // ⭐ CRITICAL: Update state with new file URIs so main screen shows updated images
+      // Merge the new file URIs into the current documents state
+      const { documents: currentDocs } = get();
+      const updatedDocs = currentDocs.map(doc => {
+        const metaDoc = metaDocs.find(m => m.document_id === doc.document_id);
+        if (metaDoc) {
+          return {
+            ...doc,
+            pages: doc.pages.map((page, idx) => ({
+              ...page,
+              image_file_uri: metaDoc.pages[idx]?.image_file_uri || page.image_file_uri,
+              original_file_uri: metaDoc.pages[idx]?.original_file_uri || page.original_file_uri,
+            })),
+          };
+        }
+        return doc;
+      });
+      set({ documents: updatedDocs });
+      console.log('[saveLocalCache] ✅ State updated with new file URIs');
     } catch (e: any) {
       console.error('Error saving local cache:', e);
       // If storage is full, clear old corrupted data and retry ONCE
