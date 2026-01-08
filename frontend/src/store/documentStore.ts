@@ -1504,4 +1504,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return 0;
     }
   },
+
+  // ⭐ Reset state on logout - clears documents and sync state for new user
+  resetForLogout: () => {
+    console.log('[DocumentStore] Resetting state for logout');
+    set({
+      documents: [],
+      folders: [],
+      currentDocument: null,
+      isLoading: false,
+      isSyncing: false,
+      pendingSyncCount: 0,
+      initialCloudSyncDone: false,  // ⭐ Force new cloud sync for next user
+      isInitialCloudSyncing: false,
+    });
+  },
 }));
