@@ -663,12 +663,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
             if (response.ok) {
               const serverDoc = await response.json();
               
-              // Update local document with server ID and S3 URLs
+              // ⭐ FIX: Replace local document with server document
+              // Remove the old local_xxx ID and add the server ID
+              // This prevents duplicates when cache is loaded
               set((state) => ({
                 documents: state.documents.map((d) =>
-                  d.document_id === item.document_id ? { ...serverDoc, sync_status: 'synced' as SyncStatus } : d
+                  d.document_id === item.document_id 
+                    ? { ...serverDoc, sync_status: 'synced' as SyncStatus } 
+                    : d
                 ),
               }));
+              
+              // ⭐ Also update local cache immediately with new server ID
+              await get().saveLocalCache();
               
               await clearPendingSyncItem(item.document_id);
               console.log(`✅ Synced: ${item.document_id} → ${serverDoc.document_id}`);
