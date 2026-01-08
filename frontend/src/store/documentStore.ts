@@ -705,6 +705,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   fetchDocuments: async (token, params = {}) => {
     console.log('[fetchDocuments] Starting, token:', !!token);
     
+    const { initialCloudSyncDone } = get();
+    
     // ⭐ LOCAL-FIRST: Load from local cache IMMEDIATELY (no loading spinner)
     try {
       const cached = await AsyncStorage.getItem(LOCAL_DOCUMENTS_KEY);
@@ -723,7 +725,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return;
     }
 
-    // ⭐ Background fetch from server - DON'T set isLoading=true (prevents UI blocking)
+    // ⭐ CRITICAL: If initial cloud sync already done, DON'T fetch from server again
+    // Just use local cache - server sync happens in background via syncPendingDocuments
+    if (initialCloudSyncDone) {
+      console.log('[fetchDocuments] ⏭️ Initial sync already complete, using local cache only');
+      return;
+    }
+
+    // ⭐ First time cloud sync - show loading indicator
+    console.log('[fetchDocuments] 🌐 Starting initial cloud sync...');
+    set({ isInitialCloudSyncing: true });
+
+    // Background fetch from server
     try {
       const queryParams = new URLSearchParams();
       if (params.folder_id) queryParams.append('folder_id', params.folder_id);
@@ -737,6 +750,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
       if (!response.ok) {
         console.error('[fetchDocuments] Server fetch failed:', response.status);
+        set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
         return; // Don't throw - we have local cache
       }
       
@@ -751,12 +765,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       );
       
       const mergedDocs = [...localOnlyDocs, ...serverDocs];
-      set({ documents: mergedDocs });
+      set({ 
+        documents: mergedDocs,
+        isInitialCloudSyncing: false,
+        initialCloudSyncDone: true  // ⭐ Mark initial sync as complete
+      });
       
       // Save to local cache for next time (strips base64, saves to file system)
       await get().saveLocalCache();
+      console.log('[fetchDocuments] ✅ Initial cloud sync COMPLETE');
     } catch (e) {
       console.error('[fetchDocuments] Server fetch error:', e);
+      set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
       // Don't throw - we have local cache
     }
   },
