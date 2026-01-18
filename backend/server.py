@@ -2057,14 +2057,21 @@ async def check_web_access_status(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    # Check if expired
-    if session.get("expires_at") and datetime.now(timezone.utc) > session["expires_at"]:
-        if session["status"] == "pending":
-            await db.web_access_sessions.update_one(
-                {"session_id": session_id},
-                {"$set": {"status": "expired"}}
-            )
-            return {"session_id": session_id, "status": "expired"}
+    # Check if expired - handle both naive and aware datetimes
+    expires_at = session.get("expires_at")
+    if expires_at:
+        # Make sure expires_at is timezone-aware
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
+        now = datetime.now(timezone.utc)
+        if now > expires_at:
+            if session["status"] == "pending":
+                await db.web_access_sessions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"status": "expired"}}
+                )
+                return {"session_id": session_id, "status": "expired"}
     
     return {
         "session_id": session_id,
