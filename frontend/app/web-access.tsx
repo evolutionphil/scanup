@@ -81,23 +81,22 @@ export default function WebAccessScreen() {
       });
 
       if (response.ok) {
-        const data = await response.json();
         Alert.alert(
-          approve ? 'Access Granted' : 'Access Denied',
+          approve ? t('access_granted', 'Access Granted') : t('access_denied', 'Access Denied'),
           approve 
-            ? 'Web access has been approved. You can now view your documents on the web dashboard.'
-            : 'Web access request has been denied.',
-          [{ text: 'OK' }]
+            ? t('web_access_approved_msg', 'Web access has been approved. You can now view your documents on the web dashboard.')
+            : t('web_access_denied_msg', 'Web access request has been denied.'),
+          [{ text: t('ok', 'OK') }]
         );
         
         // Remove from pending list
         setPendingRequests(prev => prev.filter(r => r.session_id !== sessionId));
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.detail || 'Failed to process request');
+        Alert.alert(t('error', 'Error'), error.detail || 'Failed to process request');
       }
     } catch (error) {
-      Alert.alert('Error', 'Connection error. Please try again.');
+      Alert.alert(t('error', 'Error'), 'Connection error. Please try again.');
     } finally {
       setProcessing(null);
     }
@@ -105,12 +104,12 @@ export default function WebAccessScreen() {
 
   const handleRevokeAll = async () => {
     Alert.alert(
-      'Revoke All Access',
-      'This will sign out all web sessions. Are you sure?',
+      t('revoke_all_access', 'Revoke All Access'),
+      t('revoke_all_confirm', 'This will sign out all web sessions. Are you sure?'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Revoke All',
+          text: t('revoke_all_access', 'Revoke All'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -122,11 +121,11 @@ export default function WebAccessScreen() {
               });
 
               if (response.ok) {
-                Alert.alert('Success', 'All web sessions have been revoked.');
+                Alert.alert(t('success', 'Success'), t('all_sessions_revoked', 'All web sessions have been revoked.'));
                 setPendingRequests([]);
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to revoke access.');
+              Alert.alert(t('error', 'Error'), 'Failed to revoke access.');
             }
           },
         },
@@ -144,7 +143,7 @@ export default function WebAccessScreen() {
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
     
-    if (diff <= 0) return 'Expired';
+    if (diff <= 0) return t('request_expired', 'Expired');
     
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
@@ -171,7 +170,7 @@ export default function WebAccessScreen() {
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Web Access
+          {t('web_access', 'Web Access')}
         </Text>
         <TouchableOpacity 
           onPress={handleRevokeAll}
@@ -199,34 +198,33 @@ export default function WebAccessScreen() {
             <Ionicons name="shield-checkmark" size={32} color="#3E51FB" />
           </View>
           <Text style={[styles.infoTitle, { color: theme.text }]}>
-            Secure Web Access
+            {t('secure_access_required', 'Secure Web Access')}
           </Text>
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            When you sign in to the web dashboard, you'll need to approve the request here. 
-            This keeps your documents secure.
+            {t('web_access_desc', 'When you sign in to the web dashboard, you\'ll need to approve the request here. This keeps your documents secure.')}
           </Text>
         </View>
 
         {/* Pending Requests */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Pending Requests
+          {t('pending_requests', 'Pending Requests')}
         </Text>
 
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3E51FB" />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Loading requests...
+              {t('loading', 'Loading...')}
             </Text>
           </View>
         ) : pendingRequests.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
             <Ionicons name="checkmark-circle" size={48} color="#10B981" />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              No Pending Requests
+              {t('no_pending_requests', 'No Pending Requests')}
             </Text>
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              When you sign in to the web dashboard, requests will appear here.
+              {t('no_pending_requests_desc', 'When you sign in to the web dashboard, requests will appear here.')}
             </Text>
           </View>
         ) : (
@@ -248,7 +246,7 @@ export default function WebAccessScreen() {
                     {request.device_info}
                   </Text>
                   <Text style={[styles.requestMeta, { color: theme.textSecondary }]}>
-                    IP: {request.ip_address}
+                    {t('ip_address', 'IP')}: {request.ip_address}
                   </Text>
                 </View>
                 <View style={styles.requestTimer}>
@@ -264,7 +262,7 @@ export default function WebAccessScreen() {
               </Text>
 
               <Text style={[styles.requestTime, { color: theme.textSecondary }]}>
-                Requested: {formatDate(request.created_at)}
+                {t('requested', 'Requested')}: {formatDate(request.created_at)}
               </Text>
 
               <View style={styles.requestActions}>
@@ -278,7 +276,7 @@ export default function WebAccessScreen() {
                   ) : (
                     <>
                       <Ionicons name="close" size={20} color="#EF4444" />
-                      <Text style={styles.denyText}>Deny</Text>
+                      <Text style={styles.denyText}>{t('deny', 'Deny')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -293,7 +291,7 @@ export default function WebAccessScreen() {
                   ) : (
                     <>
                       <Ionicons name="checkmark" size={20} color="white" />
-                      <Text style={styles.approveText}>Approve</Text>
+                      <Text style={styles.approveText}>{t('approve', 'Approve')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -305,13 +303,13 @@ export default function WebAccessScreen() {
         {/* Security Tips */}
         <View style={[styles.tipsCard, { backgroundColor: theme.card }]}>
           <Text style={[styles.tipsTitle, { color: theme.text }]}>
-            <Ionicons name="bulb" size={16} color="#F59E0B" /> Security Tips
+            <Ionicons name="bulb" size={16} color="#F59E0B" /> {t('security_tips', 'Security Tips')}
           </Text>
           <Text style={[styles.tipsText, { color: theme.textSecondary }]}>
-            • Only approve requests you initiated{'\n'}
-            • Check the IP address matches your location{'\n'}
-            • Deny suspicious or unknown requests{'\n'}
-            • Use "Revoke All" if you suspect unauthorized access
+            • {t('security_tip_1', 'Only approve requests you initiated')}{'\n'}
+            • {t('security_tip_2', 'Check the IP address matches your location')}{'\n'}
+            • {t('security_tip_3', 'Deny suspicious or unknown requests')}{'\n'}
+            • {t('security_tip_4', 'Use "Revoke All" if you suspect unauthorized access')}
           </Text>
         </View>
       </ScrollView>
