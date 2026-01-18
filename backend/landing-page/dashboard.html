@@ -1144,6 +1144,144 @@
             border-color: var(--dark);
         }
         
+        /* Web Access Authorization Modal */
+        .auth-required-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-required-modal {
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .auth-required-modal .security-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            box-shadow: 0 10px 30px rgba(62, 81, 251, 0.3);
+        }
+        
+        .auth-required-modal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        
+        .auth-required-modal p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .auth-steps {
+            background: #F8FAFF;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        
+        .auth-step {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        
+        .auth-step:last-child {
+            border-bottom: none;
+        }
+        
+        .auth-step .step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        
+        .auth-step span {
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+        
+        .waiting-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .waiting-indicator .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #E5E7EB;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .countdown {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+        
+        .countdown strong {
+            color: var(--primary);
+        }
+        
+        .btn-cancel-auth {
+            padding: 0.75rem 2rem;
+            background: #F3F4F6;
+            color: var(--gray-500);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-cancel-auth:hover {
+            background: #E5E7EB;
+        }
+        
         /* Create Folder Button */
         .btn-create-folder {
             display: flex;
