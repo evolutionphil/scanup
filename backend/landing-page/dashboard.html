@@ -2174,8 +2174,8 @@
                     token = data.token;
                     localStorage.setItem('scanup_token', token);
                     currentUser = data.user;
-                    showDashboard();
-                    loadDocuments();
+                    // Don't show dashboard directly - check web access security first
+                    await checkWebAccessStatus();
                     showToast('Welcome back!', 'success');
                 } else {
                     showError(data.detail || 'Login failed');
