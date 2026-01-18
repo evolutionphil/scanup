@@ -1471,6 +1471,11 @@ async def google_auth(data: GoogleAuthRequest):
                     "email_verified": True,
                     "is_premium": False,
                     "subscription_type": "free",
+                    "is_trial": False,
+                    "trial_days_remaining": 0,
+                    "ocr_remaining_today": 10,
+                    "scans_remaining_today": 50,
+                    "scans_remaining_month": 100,
                     "created_at": now,
                     "updated_at": now,
                     "last_login": now
