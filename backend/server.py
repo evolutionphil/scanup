@@ -5004,6 +5004,7 @@ DEFAULT_LANGUAGES = [
     {"code": "de", "name": "German", "native_name": "Deutsch", "is_default": False},
     {"code": "fr", "name": "French", "native_name": "Français", "is_default": False},
     {"code": "es", "name": "Spanish", "native_name": "Español", "is_default": False},
+    {"code": "tr", "name": "Turkish", "native_name": "Türkçe", "is_default": False},
 ]
 
 # Default English translations (base language)
