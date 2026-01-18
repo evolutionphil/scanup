@@ -2009,24 +2009,31 @@
         function startPollingForApproval() {
             if (webAccessPollingInterval) clearInterval(webAccessPollingInterval);
             
+            console.log('Starting polling for session:', webAccessSessionId);
+            
             webAccessPollingInterval = setInterval(async () => {
                 try {
+                    console.log('Polling status for:', webAccessSessionId);
                     const res = await fetch(`${API_URL}/auth/web-access/status/${webAccessSessionId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
+                    console.log('Poll response status:', res.status);
+                    
                     if (res.ok) {
                         const data = await res.json();
+                        console.log('Poll data:', data);
                         
                         if (data.status === 'approved') {
                             // Approved! Show dashboard
+                            console.log('Session approved! Showing dashboard...');
                             stopPolling();
                             webAccessApproved = true;
                             document.getElementById('webAccessModal').classList.add('hidden');
                             showDashboard();
                             loadDocuments();
                             showToast('Web access approved!', 'success');
-                        } else if (data.status === 'rejected') {
+                        } else if (data.status === 'rejected' || data.status === 'denied') {
                             // Rejected
                             stopPolling();
                             document.getElementById('webAccessModal').classList.add('hidden');
@@ -2039,11 +2046,13 @@
                             showToast('Request expired. Please try again.', 'error');
                             showAuthModal();
                         }
+                    } else {
+                        console.error('Poll failed with status:', res.status);
                     }
                 } catch (e) {
                     console.error('Polling error:', e);
                 }
-            }, 3000); // Poll every 3 seconds
+            }, 2000); // Poll every 2 seconds for faster response
         }
         
         function stopPolling() {
