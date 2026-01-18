@@ -976,11 +976,72 @@
 
     <script>
         const API_URL = '/api';
+        const GOOGLE_CLIENT_ID = '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com';
         let token = localStorage.getItem('scanup_token');
         let currentUser = null;
         let documents = [];
         let currentDocument = null;
         let currentPageIndex = 0;
+        
+        // Initialize Google Sign-In
+        function initGoogleSignIn() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleSignIn,
+                    auto_select: false,
+                    cancel_on_tap_outside: true,
+                });
+                
+                // Render the Google button
+                const googleBtnContainer = document.getElementById('googleSignInBtn');
+                if (googleBtnContainer) {
+                    google.accounts.id.renderButton(googleBtnContainer, {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        width: '100%',
+                        text: 'continue_with',
+                        shape: 'rectangular',
+                        logo_alignment: 'left'
+                    });
+                }
+            } else {
+                // Retry after a short delay if Google SDK not loaded yet
+                setTimeout(initGoogleSignIn, 500);
+            }
+        }
+        
+        // Handle Google Sign-In callback
+        async function handleGoogleSignIn(response) {
+            console.log('Google Sign-In response:', response);
+            
+            if (response.credential) {
+                try {
+                    // Send the ID token to our backend
+                    const res = await fetch(`${API_URL}/auth/google`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ credential: response.credential })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        token = data.access_token;
+                        localStorage.setItem('scanup_token', token);
+                        currentUser = data.user;
+                        showDashboard();
+                        loadDocuments();
+                    } else {
+                        showError(data.detail || 'Google login failed');
+                    }
+                } catch (e) {
+                    console.error('Google auth error:', e);
+                    showError('Failed to authenticate with Google');
+                }
+            }
+        }
         
         // Check if user is logged in
         async function checkAuth() {
