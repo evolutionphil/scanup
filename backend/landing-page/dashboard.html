@@ -1942,31 +1942,9 @@
         // ==================== WEB ACCESS SECURITY ====================
         
         async function checkWebAccessStatus() {
-            try {
-                const res = await fetch(`${API_URL}/auth/web-access/check`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.has_approved_session) {
-                        // Has approved session, show dashboard
-                        webAccessApproved = true;
-                        webAccessSessionId = data.session_id;
-                        showDashboard();
-                        loadDocuments();
-                    } else {
-                        // No approved session, request new one
-                        await requestWebAccess();
-                    }
-                } else {
-                    // Error checking, request new access
-                    await requestWebAccess();
-                }
-            } catch (e) {
-                console.error('Web access check failed:', e);
-                await requestWebAccess();
-            }
+            // Each login requires fresh approval - don't use cached sessions
+            // Always request new web access for security
+            await requestWebAccess();
         }
         
         async function requestWebAccess() {
