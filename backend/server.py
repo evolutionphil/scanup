@@ -1499,9 +1499,12 @@ async def google_auth(data: GoogleAuthRequest):
     except httpx.RequestError as e:
         logger.error(f"Google auth request error: {e}")
         raise HTTPException(status_code=500, detail="Failed to verify Google token")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
-        logger.error(f"Google auth error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        logger.error(f"Google auth error: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Google auth failed: {str(e)}")
 
 
 # Alternative: Google OAuth with authorization code flow (for web)
