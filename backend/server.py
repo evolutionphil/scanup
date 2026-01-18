@@ -7263,4 +7263,86 @@ if os_module.path.exists(landing_page_path):
             return FileResponse(dashboard_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="Dashboard page not found")
     
+    # Additional landing pages
+    @app.get("/landing/features")
+    async def serve_features_page():
+        path = os_module.path.join(landing_page_path, "features.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/pricing")
+    async def serve_pricing_page():
+        path = os_module.path.join(landing_page_path, "pricing.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/download")
+    async def serve_download_page():
+        path = os_module.path.join(landing_page_path, "download.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/reviews")
+    async def serve_reviews_page():
+        path = os_module.path.join(landing_page_path, "reviews.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/contact")
+    async def serve_contact_page():
+        path = os_module.path.join(landing_page_path, "contact.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/status")
+    async def serve_status_page():
+        path = os_module.path.join(landing_page_path, "status.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/cookies")
+    async def serve_cookies_page():
+        path = os_module.path.join(landing_page_path, "cookies.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    @app.get("/landing/gdpr")
+    async def serve_gdpr_page():
+        path = os_module.path.join(landing_page_path, "gdpr.html")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    # SEO files
+    @app.get("/sitemap.xml")
+    @app.get("/landing/sitemap.xml")
+    async def serve_sitemap():
+        path = os_module.path.join(landing_page_path, "sitemap.xml")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="application/xml")
+        raise HTTPException(status_code=404, detail="Sitemap not found")
+    
+    @app.get("/robots.txt")
+    @app.get("/landing/robots.txt")
+    async def serve_robots():
+        path = os_module.path.join(landing_page_path, "robots.txt")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/plain")
+        raise HTTPException(status_code=404, detail="Robots.txt not found")
+    
+    @app.get("/llms.txt")
+    @app.get("/landing/llms.txt")
+    async def serve_llms_txt():
+        path = os_module.path.join(landing_page_path, "llms.txt")
+        if os_module.path.exists(path):
+            return FileResponse(path, media_type="text/plain")
+        raise HTTPException(status_code=404, detail="LLMs.txt not found")
+    
     logger.info("✅ Landing page mounted at /landing")
