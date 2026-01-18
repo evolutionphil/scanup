@@ -167,10 +167,14 @@ export default function ShareModal({
   const generatePdf = async (): Promise<string> => {
     const showWatermark = getWatermarkStatus();
     
-    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark, 'exportCount:', exportCount);
+    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark, 'exportCount:', exportCount, 'pageCount:', pages.length);
     
     // Load images from any source
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
+    
+    // Filter out any empty images
+    const validImages = imagesBase64.filter(img => img && img.length > 100);
+    console.log('[ShareModal] Valid images count:', validImages.length);
 
     // Watermark HTML - diagonal text overlay
     const watermarkHtml = showWatermark ? `
@@ -190,42 +194,73 @@ export default function ShareModal({
       ">ScanUp</div>
     ` : '';
 
-    const imageHtml = imagesBase64.map((img, index) => {
+    // Build HTML for each page - FIXED: removed min-height that causes extra pages
+    const imageHtml = validImages.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
-      return `
-        <div style="
-          page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; 
-          text-align: center; 
-          padding: 0; 
-          margin: 0;
-          position: relative;
-          min-height: 100vh;
-        ">
-          <img src="${base64WithPrefix}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+      const isLastPage = index === validImages.length - 1;
+      
+      // Only add page-break-after for pages that are NOT the last one
+      // Using 'avoid' for last page to prevent extra blank page
+      return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'}">
+          <img src="${base64WithPrefix}" />
           ${watermarkHtml}
-        </div>
-      `;
+        </div>`;
     }).join('');
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${documentName}</title>
-          <style>
-            @page { margin: 10mm; padding: 0; }
-            body { margin: 0; padding: 0; }
-            img { display: block; margin: 0 auto; }
-          </style>
-        </head>
-        <body>
-          ${imageHtml}
-        </body>
-      </html>
-    `;
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${documentName}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { 
+    margin: 5mm; 
+    size: A4;
+  }
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    width: 100%;
+    height: 100%;
+  }
+  .page-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+  }
+  .page-container img {
+    max-width: 100%;
+    max-height: 95vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>${imageHtml}</body>
+</html>`;
 
-    const { uri } = await Print.printToFileAsync({ html });
+    console.log('[ShareModal] Generated HTML for', validImages.length, 'pages');
+    
+    const { uri } = await Print.printToFileAsync({ 
+      html,
+      // Explicitly set to avoid extra pages
+      margins: {
+        left: 10,
+        right: 10,
+        top: 10,
+        bottom: 10,
+      },
+    });
     return uri;
   };
 
