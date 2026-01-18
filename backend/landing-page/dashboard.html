@@ -1317,9 +1317,28 @@
                         </div>
                     </div>
                     
+                    <!-- Breadcrumb (shown when inside a folder) -->
+                    <div class="breadcrumb" id="breadcrumb" style="display: none;">
+                        <a href="#" onclick="goToAllDocuments(); return false;">
+                            <i class="fas fa-home"></i> All Documents
+                        </a>
+                        <span>/</span>
+                        <span class="current" id="currentFolderName">Folder</span>
+                    </div>
+                    
+                    <!-- Folders Section -->
+                    <div class="section folders-section" id="foldersSection">
+                        <div class="section-header">
+                            <h2><i class="fas fa-folder" style="color: var(--warning); margin-right: 0.5rem;"></i> Folders</h2>
+                        </div>
+                        <div class="folders-grid" id="foldersContainer">
+                            <!-- Folders will be loaded here -->
+                        </div>
+                    </div>
+                    
                     <div class="section">
                         <div class="section-header">
-                            <h2>All Documents</h2>
+                            <h2 id="documentsSectionTitle">All Documents</h2>
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
                                 <select class="sort-select" id="sortSelect" onchange="sortDocuments()">
                                     <option value="newest">Newest First</option>
