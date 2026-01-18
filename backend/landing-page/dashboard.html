@@ -2126,7 +2126,7 @@
             const doc = documents.find(d => d.document_id === id);
             if (!doc) return;
             
-            showToast('Preparing download...', 'success');
+            showToast('Generating PDF...', 'success');
             
             try {
                 const res = await fetch(`${API_URL}/documents/${id}/pdf`, {
@@ -2138,18 +2138,18 @@
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `${doc.name || 'document'}.pdf`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    showToast('Download started!', 'success');
+                    showToast('PDF downloaded!', 'success');
                 } else {
-                    if (doc.pages?.[0]?.image_url) {
-                        window.open(doc.pages[0].image_url, '_blank');
-                    } else {
-                        showToast('Download not available', 'error');
-                    }
+                    const errorData = await res.json().catch(() => ({}));
+                    showToast(errorData.detail || 'Failed to generate PDF', 'error');
                 }
             } catch (e) {
-                showToast('Download failed', 'error');
+                console.error('Download error:', e);
+                showToast('Download failed - please try again', 'error');
             }
         }
         
