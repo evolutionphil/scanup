@@ -1808,6 +1808,43 @@
         </div>
     </div>
 
+    <!-- Web Access Authorization Modal -->
+    <div class="auth-required-overlay hidden" id="webAccessModal">
+        <div class="auth-required-modal">
+            <div class="security-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2>Secure Access Required</h2>
+            <p>For your security, please approve this web access request from your mobile app.</p>
+            
+            <div class="auth-steps">
+                <div class="auth-step">
+                    <div class="step-num">1</div>
+                    <span>Open ScanUp app on your phone</span>
+                </div>
+                <div class="auth-step">
+                    <div class="step-num">2</div>
+                    <span>Go to Settings → Web Access</span>
+                </div>
+                <div class="auth-step">
+                    <div class="step-num">3</div>
+                    <span>Tap "Approve" on the pending request</span>
+                </div>
+            </div>
+            
+            <div class="waiting-indicator">
+                <div class="spinner"></div>
+                <span>Waiting for approval...</span>
+            </div>
+            
+            <div class="countdown">
+                Request expires in <strong id="countdownTimer">10:00</strong>
+            </div>
+            
+            <button class="btn-cancel-auth" onclick="cancelWebAccessRequest()">Cancel Request</button>
+        </div>
+    </div>
+
     <script>
         const API_URL = '/api';
         const GOOGLE_CLIENT_ID = '159628540720-tn2bcg6a2hgfgn29g1vm48khlaqvctke.apps.googleusercontent.com';
@@ -1824,6 +1861,10 @@
         let documentToMove = null;
         let documentToRename = null;
         let draggedDocument = null;
+        let webAccessSessionId = null;
+        let webAccessPollingInterval = null;
+        let countdownInterval = null;
+        let webAccessApproved = false;
         
         // Initialize
         window.onload = function() {
