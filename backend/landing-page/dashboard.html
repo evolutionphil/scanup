@@ -1143,6 +1143,85 @@
         .color-option.selected {
             border-color: var(--dark);
         }
+        
+        /* Create Folder Button */
+        .btn-create-folder {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-create-folder:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        /* Drag and Drop Styles */
+        .document-card.dragging,
+        .document-row.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .folder-card.drag-over {
+            border-color: var(--primary) !important;
+            background: rgba(62, 81, 251, 0.1) !important;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(62, 81, 251, 0.3);
+        }
+        
+        .document-card[draggable="true"],
+        .document-row[draggable="true"] {
+            cursor: grab;
+        }
+        
+        .document-card[draggable="true"]:active,
+        .document-row[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        
+        /* Rename Button */
+        .btn-rename {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+        
+        .btn-rename:hover {
+            background: #FDE68A;
+        }
+        
+        /* Rename Modal */
+        .rename-modal {
+            max-width: 400px;
+        }
+        
+        /* Drop Zone Indicator */
+        .drop-zone-active {
+            position: relative;
+        }
+        
+        .drop-zone-active::after {
+            content: 'Drop here to move';
+            position: absolute;
+            inset: 0;
+            background: rgba(62, 81, 251, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border-radius: 12px;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
