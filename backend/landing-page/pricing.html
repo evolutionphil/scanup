@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - ScanUp | Choose Your Plan</title>
+    <meta name="description" content="ScanUp pricing plans. Start free, upgrade to Pro for unlimited scans, or get Lifetime access.">
+    <meta name="keywords" content="ScanUp pricing, document scanner subscription, PDF scanner free">
+    <link rel="canonical" href="https://scanup.app/pricing">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #3E51FB; --secondary: #10B981; --dark: #111827; --gray-500: #6B7280; --gray-100: #F3F4F6; --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%); }
+        body { font-family: 'Inter', sans-serif; color: var(--dark); line-height: 1.7; }
+        .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gray-100); padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; font-weight: 800; font-size: 1.5rem; color: var(--dark); }
+        .logo-icon { width: 40px; height: 40px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .hero { background: var(--gradient); padding: 8rem 2rem 4rem; text-align: center; color: white; }
+        .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
+        .hero p { font-size: 1.2rem; opacity: 0.9; }
+        .pricing-toggle { display: flex; justify-content: center; gap: 1rem; margin: 2rem 0; }
+        .pricing-toggle button { padding: 0.75rem 1.5rem; border: 2px solid rgba(255,255,255,0.3); background: transparent; color: white; border-radius: 50px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .pricing-toggle button.active { background: white; color: var(--primary); }
+        .pricing-grid { max-width: 1100px; margin: -3rem auto 4rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .pricing-card { background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; position: relative; }
+        .pricing-card.popular { border: 3px solid var(--primary); transform: scale(1.05); }
+        .popular-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--gradient); color: white; padding: 0.5rem 1.5rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; }
+        .pricing-card h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+        .price { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
+        .price span { font-size: 1rem; font-weight: 400; color: var(--gray-500); }
+        .pricing-features { list-style: none; text-align: left; margin: 2rem 0; }
+        .pricing-features li { padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 0.75rem; color: var(--gray-500); }
+        .pricing-features li i { color: var(--secondary); }
+        .pricing-features li.disabled { opacity: 0.4; }
+        .pricing-features li.disabled i { color: #ccc; }
+        .btn { display: block; padding: 1rem 2rem; border-radius: 50px; text-decoration: none; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: var(--gradient); color: white; }
+        .btn-secondary { background: var(--gray-100); color: var(--dark); }
+        .btn:hover { transform: translateY(-2px); }
+        .faq-section { max-width: 800px; margin: 0 auto 4rem; padding: 0 2rem; }
+        .faq-section h2 { text-align: center; margin-bottom: 2rem; }
+        .faq-item { background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .faq-q { padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .faq-a { padding: 0 1.25rem 1.25rem; color: var(--gray-500); display: none; }
+        .faq-item.open .faq-a { display: block; }
+        .footer { background: var(--dark); color: white; padding: 2rem; text-align: center; }
+        .footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } .pricing-card.popular { transform: none; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
+            <a href="/landing" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Simple, Transparent Pricing</h1>
+        <p>Start free, upgrade when you need more power.</p>
+    </section>
+
+    <div class="pricing-grid">
+        <div class="pricing-card">
+            <h3>Free</h3>
+            <div class="price">$0<span>/month</span></div>
+            <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> 10 scans per month</li>
+                <li><i class="fas fa-check"></i> Basic filters</li>
+                <li><i class="fas fa-check"></i> PDF export</li>
+                <li><i class="fas fa-check"></i> Local storage</li>
+                <li class="disabled"><i class="fas fa-times"></i> Cloud backup</li>
+                <li class="disabled"><i class="fas fa-times"></i> Digital signatures</li>
+                <li><i class="fas fa-check"></i> Watermark on exports</li>
+            </ul>
+            <a href="/landing#download" class="btn btn-secondary">Get Started Free</a>
+        </div>
+        <div class="pricing-card popular">
+            <div class="popular-badge">MOST POPULAR</div>
+            <h3>Pro</h3>
+            <div class="price">$4.99<span>/month</span></div>
+            <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> <strong>Unlimited</strong> scans</li>
+                <li><i class="fas fa-check"></i> All premium filters</li>
+                <li><i class="fas fa-check"></i> PDF export</li>
+                <li><i class="fas fa-check"></i> Cloud backup</li>
+                <li><i class="fas fa-check"></i> Digital signatures</li>
+                <li><i class="fas fa-check"></i> Web Dashboard access</li>
+                <li><i class="fas fa-check"></i> No watermark</li>
+                <li><i class="fas fa-check"></i> Priority support</li>
+            </ul>
+            <a href="/landing#download" class="btn btn-primary">Start 7-Day Free Trial</a>
+        </div>
+        <div class="pricing-card">
+            <h3>Lifetime</h3>
+            <div class="price">$49.99<span> once</span></div>
+            <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> Everything in Pro</li>
+                <li><i class="fas fa-check"></i> One-time payment</li>
+                <li><i class="fas fa-check"></i> Lifetime updates</li>
+                <li><i class="fas fa-check"></i> Premium support</li>
+                <li><i class="fas fa-check"></i> Early access features</li>
+                <li><i class="fas fa-check"></i> No recurring fees</li>
+            </ul>
+            <a href="/landing#download" class="btn btn-secondary">Get Lifetime Access</a>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h2>Pricing FAQ</h2>
+        <div class="faq-item" onclick="this.classList.toggle('open')">
+            <div class="faq-q">Can I cancel my subscription anytime?<i class="fas fa-chevron-down"></i></div>
+            <div class="faq-a">Yes! You can cancel your Pro subscription at any time. You'll retain access until the end of your billing period.</div>
+        </div>
+        <div class="faq-item" onclick="this.classList.toggle('open')">
+            <div class="faq-q">Is there a free trial for Pro?<i class="fas fa-chevron-down"></i></div>
+            <div class="faq-a">Yes, Pro comes with a 7-day free trial. You won't be charged until the trial ends.</div>
+        </div>
+        <div class="faq-item" onclick="this.classList.toggle('open')">
+            <div class="faq-q">What happens to my documents if I downgrade?<i class="fas fa-chevron-down"></i></div>
+            <div class="faq-a">Your documents remain safe. You can still access them, but cloud sync will pause and some features will be limited.</div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ScanUp Inc. | <a href="/landing/terms">Terms</a> | <a href="/landing/privacy">Privacy</a></p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviews - ScanUp | What Users Say</title>
+    <meta name="description" content="Read what millions of users say about ScanUp. 4.8 star rating on App Store and Google Play.">
+    <link rel="canonical" href="https://scanup.app/reviews">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #3E51FB; --secondary: #10B981; --warning: #F59E0B; --dark: #111827; --gray-500: #6B7280; --gray-100: #F3F4F6; --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%); }
+        body { font-family: 'Inter', sans-serif; color: var(--dark); line-height: 1.7; }
+        .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gray-100); padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; font-weight: 800; font-size: 1.5rem; color: var(--dark); }
+        .logo-icon { width: 40px; height: 40px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .hero { background: var(--gradient); padding: 8rem 2rem 4rem; text-align: center; color: white; }
+        .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
+        .rating-summary { display: flex; justify-content: center; gap: 3rem; margin-top: 2rem; flex-wrap: wrap; }
+        .rating-box { background: rgba(255,255,255,0.1); padding: 1.5rem 2rem; border-radius: 16px; }
+        .rating-box .stars { color: var(--warning); font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .rating-box .score { font-size: 2.5rem; font-weight: 800; }
+        .rating-box .label { opacity: 0.8; font-size: 0.9rem; }
+        .reviews-grid { max-width: 1200px; margin: -2rem auto 4rem; padding: 0 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
+        .review-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+        .review-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
+        .reviewer { display: flex; align-items: center; gap: 0.75rem; }
+        .reviewer-avatar { width: 45px; height: 45px; background: var(--gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .reviewer-info h4 { font-size: 1rem; }
+        .reviewer-info p { font-size: 0.8rem; color: var(--gray-500); }
+        .review-stars { color: var(--warning); }
+        .review-text { color: var(--gray-500); margin-bottom: 1rem; }
+        .review-date { font-size: 0.8rem; color: #999; }
+        .review-platform { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--gray-100); border-radius: 20px; font-size: 0.75rem; color: var(--gray-500); }
+        .cta { background: var(--dark); padding: 4rem 2rem; text-align: center; color: white; }
+        .cta h2 { font-size: 2rem; margin-bottom: 1rem; }
+        .cta p { opacity: 0.8; margin-bottom: 2rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 1rem 2rem; background: var(--gradient); color: white; text-decoration: none; border-radius: 50px; font-weight: 600; }
+        .footer { background: var(--dark); color: white; padding: 2rem; text-align: center; border-top: 1px solid #333; }
+        .footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) { .hero h1 { font-size: 2rem; } .rating-summary { gap: 1rem; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
+            <a href="/landing" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Loved by Millions</h1>
+        <p>See what our users are saying about ScanUp</p>
+        <div class="rating-summary">
+            <div class="rating-box">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+                <div class="score">4.8</div>
+                <div class="label">App Store</div>
+            </div>
+            <div class="rating-box">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+                <div class="score">4.7</div>
+                <div class="label">Google Play</div>
+            </div>
+            <div class="rating-box">
+                <div class="score">2M+</div>
+                <div class="label">Downloads</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="reviews-grid">
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">JD</div>
+                    <div class="reviewer-info"><h4>John Davis</h4><p>Small Business Owner</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            </div>
+            <p class="review-text">"ScanUp has completely transformed how I handle documents. The signature feature is a game-changer for my business contracts!"</p>
+            <span class="review-platform"><i class="fab fa-apple"></i> App Store</span>
+        </div>
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">SM</div>
+                    <div class="reviewer-info"><h4>Sarah Miller</h4><p>Graduate Student</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            </div>
+            <p class="review-text">"As a student, I scan all my notes and handouts. The quality is amazing and it saves me so much time organizing everything."</p>
+            <span class="review-platform"><i class="fab fa-android"></i> Google Play</span>
+        </div>
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">MR</div>
+                    <div class="reviewer-info"><h4>Michael Roberts</h4><p>Freelance Consultant</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            </div>
+            <p class="review-text">"The auto-detection feature is incredible. It captures documents perfectly every time. Best scanner app I've ever used!"</p>
+            <span class="review-platform"><i class="fab fa-apple"></i> App Store</span>
+        </div>
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">EK</div>
+                    <div class="reviewer-info"><h4>Emma Kim</h4><p>Real Estate Agent</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            </div>
+            <p class="review-text">"I use ScanUp daily for contracts. The web dashboard is fantastic - I can access everything from my laptop too!"</p>
+            <span class="review-platform"><i class="fab fa-android"></i> Google Play</span>
+        </div>
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">TC</div>
+                    <div class="reviewer-info"><h4>Tom Chen</h4><p>Accountant</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            </div>
+            <p class="review-text">"Perfect for scanning receipts and invoices. The folder organization keeps everything neat and easy to find."</p>
+            <span class="review-platform"><i class="fab fa-apple"></i> App Store</span>
+        </div>
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer">
+                    <div class="reviewer-avatar">LP</div>
+                    <div class="reviewer-info"><h4>Lisa Park</h4><p>Teacher</p></div>
+                </div>
+                <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+            </div>
+            <p class="review-text">"Great app for digitizing worksheets and student work. Cloud sync means I can access from anywhere."</p>
+            <span class="review-platform"><i class="fab fa-android"></i> Google Play</span>
+        </div>
+    </div>
+
+    <section class="cta">
+        <h2>Join Millions of Happy Users</h2>
+        <p>Download ScanUp and see why users love it.</p>
+        <a href="/landing#download" class="btn"><i class="fas fa-download"></i> Download Now</a>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2025 ScanUp Inc. | <a href="/landing/terms">Terms</a> | <a href="/landing/privacy">Privacy</a></p>
+    </footer>
+</body>
+</html>

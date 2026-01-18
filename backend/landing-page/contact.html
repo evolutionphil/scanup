@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - ScanUp Support</title>
+    <meta name="description" content="Contact ScanUp support team. We're here to help with any questions or issues.">
+    <link rel="canonical" href="https://scanup.app/contact">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #3E51FB; --secondary: #10B981; --dark: #111827; --gray-500: #6B7280; --gray-100: #F3F4F6; --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%); }
+        body { font-family: 'Inter', sans-serif; color: var(--dark); line-height: 1.7; }
+        .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gray-100); padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; font-weight: 800; font-size: 1.5rem; color: var(--dark); }
+        .logo-icon { width: 40px; height: 40px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .hero { background: var(--gradient); padding: 8rem 2rem 4rem; text-align: center; color: white; }
+        .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
+        .hero p { font-size: 1.2rem; opacity: 0.9; }
+        .contact-container { max-width: 1000px; margin: -2rem auto 4rem; padding: 0 2rem; display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; }
+        .contact-info { background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .contact-info h3 { font-size: 1.25rem; margin-bottom: 1.5rem; }
+        .contact-method { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--gray-100); }
+        .contact-method:last-child { border-bottom: none; }
+        .contact-method i { width: 45px; height: 45px; background: var(--gray-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.25rem; }
+        .contact-method h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .contact-method p { font-size: 0.85rem; color: var(--gray-500); }
+        .contact-method a { color: var(--primary); text-decoration: none; }
+        .contact-form { background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .contact-form h3 { font-size: 1.25rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.875rem 1rem; border: 2px solid var(--gray-100); border-radius: 10px; font-size: 1rem; font-family: inherit; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+        .form-group textarea { resize: vertical; min-height: 120px; }
+        .btn { display: block; width: 100%; padding: 1rem; background: var(--gradient); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.3s; }
+        .btn:hover { transform: translateY(-2px); }
+        .footer { background: var(--dark); color: white; padding: 2rem; text-align: center; }
+        .footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) { .contact-container { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
+            <a href="/landing" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Contact Us</h1>
+        <p>We're here to help. Reach out to our support team.</p>
+    </section>
+
+    <div class="contact-container">
+        <div class="contact-info">
+            <h3>Get in Touch</h3>
+            <div class="contact-method">
+                <i class="fas fa-envelope"></i>
+                <div>
+                    <h4>Email Support</h4>
+                    <p><a href="mailto:support@scanup.app">support@scanup.app</a></p>
+                </div>
+            </div>
+            <div class="contact-method">
+                <i class="fas fa-comments"></i>
+                <div>
+                    <h4>Live Chat</h4>
+                    <p>Available Mon-Fri, 9am-6pm EST</p>
+                </div>
+            </div>
+            <div class="contact-method">
+                <i class="fas fa-book"></i>
+                <div>
+                    <h4>Help Center</h4>
+                    <p><a href="/landing/faq">Browse FAQ & Guides</a></p>
+                </div>
+            </div>
+            <div class="contact-method">
+                <i class="fab fa-twitter"></i>
+                <div>
+                    <h4>Twitter</h4>
+                    <p><a href="#">@ScanUpApp</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="contact-form">
+            <h3>Send us a Message</h3>
+            <form>
+                <div class="form-group">
+                    <label>Your Name</label>
+                    <input type="text" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="john@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <select required>
+                        <option value="">Select a topic...</option>
+                        <option>Technical Support</option>
+                        <option>Billing Question</option>
+                        <option>Feature Request</option>
+                        <option>Bug Report</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea placeholder="Describe your issue or question..." required></textarea>
+                </div>
+                <button type="submit" class="btn">Send Message</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ScanUp Inc. | <a href="/landing/terms">Terms</a> | <a href="/landing/privacy">Privacy</a></p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status - ScanUp</title>
+    <meta name="description" content="ScanUp system status. Check the current status of all ScanUp services.">
+    <link rel="canonical" href="https://scanup.app/status">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #3E51FB; --secondary: #10B981; --warning: #F59E0B; --danger: #EF4444; --dark: #111827; --gray-500: #6B7280; --gray-100: #F3F4F6; --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%); }
+        body { font-family: 'Inter', sans-serif; color: var(--dark); line-height: 1.7; }
+        .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--gray-100); padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; font-weight: 800; font-size: 1.5rem; color: var(--dark); }
+        .logo-icon { width: 40px; height: 40px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .status-hero { background: var(--secondary); padding: 8rem 2rem 4rem; text-align: center; color: white; }
+        .status-hero.degraded { background: var(--warning); }
+        .status-hero.outage { background: var(--danger); }
+        .status-hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 1rem; }
+        .status-hero p { font-size: 1.1rem; opacity: 0.9; }
+        .content { max-width: 800px; margin: -2rem auto 4rem; padding: 0 2rem; }
+        .status-card { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .status-header { padding: 1.5rem; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
+        .status-header h2 { font-size: 1.25rem; }
+        .last-updated { font-size: 0.85rem; color: var(--gray-500); }
+        .service-list { list-style: none; }
+        .service-item { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
+        .service-item:last-child { border-bottom: none; }
+        .service-name { display: flex; align-items: center; gap: 0.75rem; }
+        .service-name i { color: var(--primary); }
+        .status-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .status-badge.operational { background: rgba(16, 185, 129, 0.1); color: var(--secondary); }
+        .status-badge.degraded { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .status-badge.outage { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .incident-section { margin-top: 2rem; }
+        .incident-section h3 { font-size: 1.1rem; margin-bottom: 1rem; }
+        .incident-card { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 4px solid var(--secondary); }
+        .incident-card.resolved { border-left-color: var(--secondary); }
+        .incident-card h4 { font-size: 1rem; margin-bottom: 0.5rem; }
+        .incident-card p { font-size: 0.9rem; color: var(--gray-500); }
+        .incident-date { font-size: 0.8rem; color: #999; margin-top: 0.5rem; }
+        .footer { background: var(--dark); color: white; padding: 2rem; text-align: center; }
+        .footer a { color: var(--primary); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
+            <a href="/landing" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </nav>
+
+    <section class="status-hero">
+        <h1><i class="fas fa-check-circle"></i> All Systems Operational</h1>
+        <p>All ScanUp services are running normally</p>
+    </section>
+
+    <div class="content">
+        <div class="status-card">
+            <div class="status-header">
+                <h2>Service Status</h2>
+                <span class="last-updated">Updated: <span id="updateTime"></span></span>
+            </div>
+            <ul class="service-list">
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-mobile-alt"></i> Mobile App (iOS & Android)</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-globe"></i> Web Dashboard</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-cloud"></i> Cloud Sync</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-server"></i> API Services</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-credit-card"></i> Payments</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+                <li class="service-item">
+                    <div class="service-name"><i class="fas fa-envelope"></i> Email Notifications</div>
+                    <span class="status-badge operational"><i class="fas fa-check-circle"></i> Operational</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="incident-section">
+            <h3>Recent Incidents</h3>
+            <div class="incident-card resolved">
+                <h4><i class="fas fa-check-circle" style="color: var(--secondary);"></i> Cloud Sync Delay - Resolved</h4>
+                <p>Some users experienced delays in cloud synchronization. The issue has been identified and resolved.</p>
+                <div class="incident-date">January 15, 2025 - Resolved in 45 minutes</div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ScanUp Inc. | <a href="/landing/terms">Terms</a> | <a href="/landing/privacy">Privacy</a></p>
+    </footer>
+
+    <script>
+        document.getElementById('updateTime').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>
