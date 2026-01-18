@@ -1176,16 +1176,18 @@
             errorEl.classList.add('show');
         }
         
-        // Social login (placeholder - needs OAuth setup)
-        function loginWithGoogle() {
-            alert('Google login requires OAuth setup. Please use email/password for now.');
-        }
-        
         function loginWithApple() {
-            alert('Apple login requires OAuth setup. Please use email/password for now.');
+            alert('Apple login requires Apple Developer Program. Please use email/password or Google for now.');
         }
         
-        // User menu
+        // Initialize
+        window.onload = function() {
+            initGoogleSignIn();
+            checkAuth();
+        };
+    </script>
+</body>
+</html>
         function toggleUserMenu() {
             document.getElementById('userDropdown').classList.toggle('show');
         }
