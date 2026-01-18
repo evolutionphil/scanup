@@ -1394,6 +1394,147 @@ async def login(credentials: UserLogin, response: Response):
     return AuthResponse(user=user_to_response(user), token=token)
 
 
+# ============ GOOGLE OAUTH ============
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+class GoogleAuthRequest(BaseModel):
+    credential: str  # Google ID token from frontend
+
+@api_router.post("/auth/google", response_model=AuthResponse)
+async def google_auth(data: GoogleAuthRequest):
+    """Authenticate with Google OAuth - verify token and create/login user"""
+    try:
+        # Verify the Google ID token
+        async with httpx.AsyncClient() as client:
+            # Verify token with Google
+            response = await client.get(
+                f"https://oauth2.googleapis.com/tokeninfo?id_token={data.credential}"
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Google token")
+            
+            google_data = response.json()
+            
+            # Verify the audience (client ID)
+            if google_data.get("aud") != GOOGLE_CLIENT_ID:
+                raise HTTPException(status_code=401, detail="Token not issued for this application")
+            
+            email = google_data.get("email")
+            name = google_data.get("name", "")
+            picture = google_data.get("picture", "")
+            google_id = google_data.get("sub")
+            
+            if not email:
+                raise HTTPException(status_code=400, detail="Email not provided by Google")
+            
+            # Check if user exists
+            existing_user = await db.users.find_one({"email": email})
+            now = datetime.now(timezone.utc)
+            
+            if existing_user:
+                # User exists - update Google info and login
+                await db.users.update_one(
+                    {"email": email},
+                    {"$set": {
+                        "google_id": google_id,
+                        "profile_picture": picture or existing_user.get("profile_picture"),
+                        "name": name or existing_user.get("name"),
+                        "email_verified": True,
+                        "last_login": now,
+                        "updated_at": now
+                    }}
+                )
+                user_id = existing_user["user_id"]
+                is_new = False
+            else:
+                # Create new user
+                user_id = str(uuid.uuid4())
+                new_user = {
+                    "user_id": user_id,
+                    "email": email,
+                    "name": name,
+                    "password_hash": None,  # No password for OAuth users
+                    "google_id": google_id,
+                    "profile_picture": picture,
+                    "email_verified": True,
+                    "is_premium": False,
+                    "subscription_type": "free",
+                    "created_at": now,
+                    "updated_at": now,
+                    "last_login": now
+                }
+                await db.users.insert_one(new_user)
+                is_new = True
+                
+                # Send welcome email
+                try:
+                    await send_welcome_email(email, name or "there")
+                except Exception as e:
+                    logger.error(f"Failed to send welcome email: {e}")
+            
+            # Generate JWT token
+            token = create_access_token({"sub": user_id, "email": email})
+            
+            # Get updated user data
+            user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+            
+            return AuthResponse(
+                access_token=token,
+                token_type="bearer",
+                user=UserResponse(**user_doc)
+            )
+            
+    except httpx.RequestError as e:
+        logger.error(f"Google auth request error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify Google token")
+    except Exception as e:
+        logger.error(f"Google auth error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Alternative: Google OAuth with authorization code flow (for web)
+class GoogleCodeRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+@api_router.post("/auth/google/code", response_model=AuthResponse)
+async def google_auth_code(data: GoogleCodeRequest):
+    """Authenticate with Google OAuth using authorization code"""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Exchange code for tokens
+            token_response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": data.code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": data.redirect_uri,
+                    "grant_type": "authorization_code"
+                }
+            )
+            
+            if token_response.status_code != 200:
+                error_data = token_response.json()
+                logger.error(f"Google token exchange failed: {error_data}")
+                raise HTTPException(status_code=401, detail="Failed to exchange authorization code")
+            
+            tokens = token_response.json()
+            id_token = tokens.get("id_token")
+            
+            if not id_token:
+                raise HTTPException(status_code=401, detail="No ID token received")
+            
+            # Verify and process the ID token
+            return await google_auth(GoogleAuthRequest(credential=id_token))
+            
+    except httpx.RequestError as e:
+        logger.error(f"Google auth code request error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to exchange authorization code")
+
+
 # Password Reset Request
 class PasswordResetRequest(BaseModel):
     email: EmailStr
