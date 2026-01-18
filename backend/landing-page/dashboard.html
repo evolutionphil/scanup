@@ -1645,6 +1645,30 @@
             </div>
         </div>
     </div>
+    
+    <!-- Rename Document Modal -->
+    <div class="modal-overlay hidden" id="renameDocModal">
+        <div class="modal form-modal rename-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit" style="color: var(--warning); margin-right: 0.5rem;"></i> Rename Document</h3>
+                <button class="modal-close" onclick="closeRenameDocModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Document Name</label>
+                    <input type="text" id="renameDocInput" placeholder="Enter new name" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRenameDocModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="renameDocument()">
+                    <i class="fas fa-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const API_URL = '/api';
@@ -1658,6 +1682,10 @@
         let currentPageIndex = 0;
         let currentView = 'grid';
         let currentFolderId = null;
+        let selectedFolderColor = '#F59E0B';
+        let documentToMove = null;
+        let documentToRename = null;
+        let draggedDocument = null;
         let selectedFolderColor = '#F59E0B';
         let documentToMove = null;
         
