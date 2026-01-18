@@ -1,157 +1,203 @@
 <analysis>
 **original_problem_statement**:
-The user's initial goal was a major device-first and monetization refactor. Throughout the session, the user provided extensive, detailed feedback from testing on a real iOS device, revealing critical performance, state management, and feature-related bugs.
+The user's initial goal was to fix bugs and add features to their ScanUp mobile app. This evolved into a major new feature: a web-based user dashboard on the existing landing page.
 
-The primary goals evolved to:
-1.  **Fix Core Architecture**: Implement a true local-first architecture where all documents are stored and edited on the device, with the cloud used only for backup and synchronization. This was to fix extreme slowness, document not found errors, and data loss between sessions.
-2.  **Fix Broken Features**: Address numerous bugs reported by the user, including non-functional filters, incorrect rotation display, broken premium paywalls, and PDF export issues.
-3.  **Implement Robust Filtering**: Replace the non-functional filter implementation with a high-performance, native solution using .
-4.  **Implement Robust IAP Lifecycle**: Ensure that purchasing premium updates the backend and that subscription cancellations/expirations are correctly handled by verifying with the app store on every launch.
-5.  **Add Admin Functionality**: Provide a way for an admin to manually grant or revoke premium status for a user.
+The most recent user requests were to enhance this new web dashboard with advanced features and security.
 
-**User's preferred language**: Turkish. The next agent MUST respond in Turkish.
+PRODUCT REQUIREMENTS:
+1.  **Web Dashboard Features**:
+    *   Implement full folder management (create, view, move documents).
+    *   Implement document renaming and drag-and-drop organization.
+    *   Ensure document downloads are in PDF format, not raw images.
+2.  **Website Enhancement**:
+    *   The main landing page () should dynamically change its header based on the user's login status (showing Login/Sign Up vs. a profile menu).
+    *   The landing page content should be updated to advertise the new web dashboard features.
+    *   A full suite of standard legal and informational pages (Features, Pricing, Privacy, Terms, FAQ, etc.) must be created and linked in the footer.
+    *   Basic SEO files (, , ) must be created.
+3.  **Security Overhaul**:
+    *   Implement a robust security mechanism where logging into the web dashboard requires explicit approval from the user's logged-in mobile app. This is to prevent unauthorized access to documents even if web credentials are leaked.
+4.  **Internationalization (i18n)**:
+    *   All new user-facing text on both mobile and web must be translatable and not hardcoded.
+
+**User's preferred language**: Turkish. The user has communicated in both Turkish and English, but primarily Turkish. The next agent MUST respond in Turkish.
 
 **what currently exists?**
-- An Expo/React Native app with a FastAPI backend.
-- A local-first document architecture has been implemented in . Documents fetched from the cloud are now downloaded and saved to the local filesystem. All edit operations (rotate, annotate, filter) are designed to work on these local files first and then queue changes for background synchronization.
-- An automatic sync mechanism using  and  is in place to upload pending changes when the device is online.
-- A Cloud files are loading... spinner has been added to the main screen for the initial data fetch.
-- Image filtering has been completely rewritten using  in  for high-performance native processing, with a simple fallback for the web preview to prevent crashes.
-- The In-App Purchase flow in  now correctly calls a backend endpoint to update the user's premium status after a successful purchase.
-- A robust subscription verification system is implemented in  which checks the user's real-time subscription status with Apple/Google on every app launch to handle cancellations and expirations.
-- A new backend API endpoint  has been created to allow an admin to manually update a user's premium status.
-- The project's source code has been synchronized with the user's GitHub repository: .
+*   A React Native mobile app and a FastAPI backend.
+*   A feature-rich web dashboard at  with Google OAuth, document viewing, search, sorting, and folder management.
+*   Advanced dashboard features including a dedicated New Folder button, document renaming, and drag-and-drop functionality for moving documents into folders.
+*   Document downloads from the dashboard are now correctly generated as PDFs on the backend using the  library.
+*   The main landing page () has been updated. It now shows a profile menu and My Documents button for logged-in users, and Login/Sign Up for guests. It also has a new section advertising the web dashboard.
+*   A comprehensive set of static pages (, , , , , etc.) and SEO files (, , ) have been created and linked.
+*   A complete web-to-mobile security approval system has been implemented. When a user logs in on the web, they are shown a Waiting for approval modal. This triggers a request that can be viewed and approved from a new Web Access screen in the mobile app settings. Access to the dashboard is only granted after mobile approval.
+*   The new mobile app screens (, ) have been updated to use the i18n translation store.
 
 **Last working item**:
--   Last item agent was working: The user requested the ability for an admin to manually set a user's status to pro or free. The agent has already created the necessary backend endpoint (). It then located the admin dashboard's source code in  and was about to modify the  file to add the UI (e.g., an edit button and a modal) to consume this new endpoint.
+-   Last item agent was working: The user pointed out that new features might have hardcoded text. The agent was in the process of ensuring all new text is internationalized. It added the necessary translation keys to the frontend i18n store () and updated the mobile app UI () to use them. The agent was about to add the corresponding translations to the backend localization files but the session ended.
 -   Status: **IN PROGRESS**
 -   Agent Testing Done: N
--   Which testing method agent to use? This is a change to a separate React admin panel. It should be tested manually after the agent builds and serves the admin dashboard.
 -   User Testing Done: N
+-   Which testing method agent to use? both (The frontend part needs verification on the mobile app, and the backend needs to serve the translations).
 
 **All Pending/In progress Issue list**:
--   Issue 1: PDF export generates a two-page document for a single-page input. (P1)
--   Issue 2: Rotated document thumbnail does not appear rotated on the home screen. (P1)
+-   **Issue 1**: PDF export generates a two-page document for a single-page input. (P1)
+-   **Issue 2**: Premium status logic is incomplete; admin changes are overwritten by IAP. (P1)
 
 **Issues Detail**:
--   **Issue 1: PDF export generates a two-page document**
-    -   **Description**: As reported by the user in message 139, when exporting a single-page document to PDF, the resulting file has two identical pages.
-    -   **Attempted fixes**: The agent investigated  and the  utility (messages 186-200) but could not find an obvious cause. The code appeared to be mapping over the pages array correctly. The issue remains unresolved.
+-   **Issue 1: PDF export generates a two-page document (Mobile App)**
+    -   **Attempted fixes**: The agent identified a likely cause in  related to CSS () in the HTML passed to . A fix was applied to remove this style. However, this fix was never tested or verified by the user.
     -   **Next debug checklist**:
-        1.  In , inside the  function, log the  array that is passed to .
-        2.  Log the  array just before it's used to generate the HTML to see if it contains duplicates.
-        3.  Check the  helper function for any logic that might cause it to be called or resolve twice.
-        4.  Verify the  array being passed to the modal doesn't contain duplicate page objects.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core functionality bug that produces incorrect output for the user.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
-
--   **Issue 2: Rotated document thumbnail not showing on home screen**
-    -   **Description**: User reported (message 139) that after rotating an image inside the editor, the thumbnail for that document on the main list screen () does not reflect the rotation.
-    -   **Attempted fixes**: The agent added a  style to the  component used for the thumbnail in  (message 153). However, it's unclear if this fix was successful as the user's report predated it, and no subsequent verification occurred.
-    -   **Next debug checklist**:
-        1.  Verify the fix is still present in .
-        2.  Ensure the  value is being correctly persisted in the  after a rotation operation.
-        3.  Log the  value inside the  function in  to confirm the correct rotation value is available at render time.
-        4.  If the value is correct but the style isn't working, investigate why the  style is not being applied correctly to the thumbnail .
-    -   **Why fix this issue and what will be achieved with the fix?**: Provides crucial visual feedback to the user, confirming their edit was saved and improving UX consistency.
+        1.  Manually test the PDF export feature on the mobile app with a single-page document.
+        2.  If the issue persists, re-examine the HTML and CSS generated in the  and  functions in .
+        3.  Log the generated HTML string to inspect it for any elements that might cause an unwanted page break.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a core functionality bug in the mobile app that produces incorrect output for the user.
     -   **Status**: TESTING PENDING
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None.
+
+-   **Issue 2: Premium status logic is incomplete; admin changes are overwritten by IAP**
+    -   **Attempted fixes**: None. This was identified in the previous session but has not been worked on.
+    -   **Next debug checklist**:
+        1.  Modify  and the  function.
+        2.  The logic should be changed to: .
+        3.  This will require fetching the user's profile from the backend during the verification process.
+    -   **Why fix this issue and what will be achieved with the fix?**: Allows admins to grant premium status effectively, a key business requirement.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
--   **Task 1: Add Edit User Premium Status feature to Admin Dashboard** (P0)
-    -   **Where to resume**: .
-    -   **What will be achieved with this?**: The user will have an admin interface to manually manage the premium status of their app's users, fulfilling the request from message 423.
+-   **Task 1: Complete Internationalization (i18n) for New Features** (P0)
+    -   **Where to resume**: The agent needs to find where the backend stores its translation files (likely JSON or Python dictionaries) and add the new keys for the Web Access Security feature. The frontend work in  and  is complete.
+    -   **What will be achieved with this?**: All user-facing text will be correctly translated according to the user's selected language, eliminating hardcoded strings.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Frontend (Admin Panel).
+    -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
-- There are no other explicit upcoming tasks, the priority is to fix the pending issues and complete the in-progress admin feature.
+-   **Upcoming Tasks**:
+    -   Implement Apple Sign In for the web dashboard (P1).
 
 **Completed work in this session**
--   **Core Architecture**: Overhauled the app to use a **local-first** model. Documents and images are now stored on the device for instant access and offline editing ().
--   **Offline Sync**: Implemented an automatic background synchronization system that uploads local changes to the cloud when an internet connection is available ().
--   **Filtering Engine**: Replaced a non-functional filter system with a high-performance, native implementation using **** ().
--   **IAP & Subscription Management**:
-    -   Fixed the IAP flow to call a backend endpoint after a successful purchase, updating the user's premium status on the server ().
-    -   Implemented a robust subscription verification system that checks with the app stores on every launch to handle cancellations and expirations.
--   **Admin Functionality (Backend)**: Created a new API endpoint  to allow manual updates of a user's premium status ().
--   **Bug Fixes & UX Improvements**:
-    -   Resolved multiple app-crashing bugs related to Skia implementation on the web by creating a fallback.
-    -   Fixed a bug where the loading spinner would get stuck after a successful purchase.
-    -   Added a Loading cloud files... indicator on the home screen for better user feedback during initial sync.
-    -   Refactored local processing for signatures and annotations to use .
-    -   Synchronized the entire project with the user's GitHub repository.
+-   **Web Dashboard - Core Features**:
+    -   **Folder Management**: Implemented JS logic for creating, viewing, and moving documents into folders.
+    -   **Document Management**: Added UI and JS for renaming documents and drag-and-drop to move them into folders.
+    -   **PDF Downloads**: Created a new backend endpoint () to generate PDFs on the fly using . Updated the dashboard to use this endpoint and show PDF icons.
+-   **Website & SEO**:
+    -   **Dynamic Landing Page**: Modified  to show a user profile menu when logged in, and standard login buttons when logged out.
+    -   **Content Update**: Added a new section to the landing page to promote the web dashboard.
+    -   **Static Page Creation**: Created numerous new HTML pages: , , , , , , etc.
+    -   **SEO Foundation**: Created , , and .
+-   **Security Overhaul**:
+    -   **Backend**: Added a new  collection and API endpoints () to manage and verify web login requests.
+    -   **Web Dashboard**: Integrated a modal that blocks access and polls the backend until the session is approved.
+    -   **Mobile App**: Created a new  screen where users can see and approve/deny pending web login requests. Added a link to it in the Settings page.
+    -   **Bug Fixes**: Resolved a Python  timezone error and a CSS  issue to make the end-to-end flow work.
+
+**Earlier issues found/mentioned but not fixed**
+-   All known issues are captured in the **All Pending/In progress Issue list**.
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**:
+    -   PDF export generates a two-page document.
+    -   Premium status logic is incomplete.
+-   **Recurrence count**: 2+
+-   **Status**: Both are still pending (one with a potential fix, one not started).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Local-First Architecture**: The central principle. Data is stored and manipulated on the device first (, ), and the network is treated as an enhancement for sync.
--   **Optimistic UI**: Operations like delete and update reflect instantly in the UI, while backend communication happens asynchronously.
--   **GPU-Accelerated Image Filters**: Using  with  for high-performance, native image processing.
--   **Subscription Lifecycle Management**: Verifying IAP status directly with Apple/Google services on app launch () to ensure the user's premium status is always accurate, even after cancellations.
--   **Background Sync**: Using  to trigger synchronization of pending local changes when the device comes online.
+-   **Web-to-Mobile Security Approval**: A major security feature where a web session must be explicitly approved from the mobile app. It uses a database-backed session polling mechanism. A  collection stores pending requests with an expiry time. The web app polls a status endpoint, while the mobile app can fetch and approve requests.
+-   **Dynamic Static Pages**: Using vanilla JavaScript to check  for an auth token to dynamically alter parts of a static HTML page ().
+-   **Backend PDF Generation**: Using the  Python library to generate PDFs from images stored in the database.
+-   **Vanilla JS Drag and Drop**: Implemented using the native HTML Drag and Drop API ( attribute, , ,  events) in .
 
 **key DB schema**
--   **users**: , ,  (calculated field),  (e.g., free, premium), .
+-   **users**: , , , ...
+-   **documents**: , , , ...
+-   **folders**: , , , ...
+-   **web_sessions**: , ,  ('pending', 'approved', 'denied'), , . **(NEW)**
 
 **changes in tech stack**
--   **** was introduced as the primary library for image filtering.
+-   ****: Added to  for server-side PDF generation.
 
 **All files of reference**
--   : **Next file to be modified** for the admin feature.
--   : The core of the local-first logic. Critical for understanding the app's data flow.
--   : Contains all IAP and subscription validation logic.
--   : The new Skia-based filter implementation.
--   : The location of the suspected PDF duplication bug.
--   : Contains the new admin endpoint and all other backend logic.
+-   : Contains all the new backend logic for security, PDF generation, and static page routes.
+-   : The file for the web dashboard. Contains all the logic for new features and the security modal.
+-   : The main landing page with dynamic header logic.
+-   : The new mobile screen for approving web logins.
+-   : Contains the new translation keys that need to be populated in the backend.
+
+**Areas that need refactoring**:
+-   : This file is now extremely large and complex, containing over 2500 lines of mixed HTML, CSS, and JavaScript. It is becoming difficult to maintain. It should be considered for a refactor, potentially splitting CSS and JS into separate files or migrating to a lightweight frontend framework.
+
+**key api endpoints**
+-   **PDF Download**: 
+-   **Web Access Security**:
+    -   : Checks if the current user has an approved web session.
+    -   : Requests a new web access session to be approved.
+    -   : (For Mobile App) Gets pending web access requests for the user.
+    -   : (For Mobile App) Approves a pending web access session.
+-   Plus all the new GET endpoints for the static pages (, , etc.).
 
 **Critical Info for New Agent**
--   **User is Highly Technical**: The user provides excellent, detailed feedback and clear architectural direction. Follow their lead.
--   **Local-First is Mandatory**: The entire app's stability and performance rely on the local-first architecture. Do not introduce changes that block the UI on network requests.
--   **Test on Real Devices**: Many features (especially Skia filters) and performance characteristics can only be validated on a real device build (EAS Build). Expo Go is insufficient for final testing.
--   **Git Workflow**: The project is synced with a GitHub remote. Be careful with git operations. Avoid destructive commands like HEAD is now at cf77ce8c auto-commit for 7e70be33-0740-4be2-a571-78fb577ac8e9 unless you are certain of the outcome. The agent previously caused confusion with this.
+-   The current highest priority task (P0) is to finish the internationalization of the new security feature by adding the translation keys to the backend.
+-   The security approval flow is the most critical and complex new feature. It involves coordinated changes between the backend, the web dashboard, and the mobile app. Be mindful of this interconnectedness when debugging.
+-   The web dashboard and landing page are built with vanilla HTML/CSS/JS. Do not introduce a framework unless specifically requested.  is very large and prone to errors like duplicate variable declarations.
+-   The PDF export bug fix in  has been implemented but not tested. It must be verified.
+
+**documents created in this job**
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **444**: User corrects the agent, pointing to the admin dashboard source code on GitHub. (Completed)
-2.  **423**: User requests an admin feature to manually edit a user's premium status. (In Progress)
-3.  **414**: User agrees with the subscription verification logic and asks about edge cases like trials and cancellations. (Completed)
-4.  **408**: User asks what happens when a subscription is cancelled. (Completed)
-5.  **391**: User asks the agent to implement the backend API call after a purchase, which the agent had identified as missing. (Completed)
-6.  **374**: User asks the agent to pull the latest changes from GitHub, stating a colleague fixed the IAP issue. (Completed)
-7.  **364**: User reports that IAP is partially working but does not update the user's premium status on the backend, and requests a detailed analysis. (Completed)
-8.  **354**: User asks for final confirmation that all recent changes (Skia, IAP) are present in the project before they create a new build. (Completed)
-9.  **333**: User expresses confusion/frustration after the agent incorrectly stated that local changes were lost after a . (Resolved)
-10. **314**: User provides the GitHub repository URL. (Completed)
+1.  **404**: Asks if a new build is needed to see changes and if new features have been internationalized. (In Progress)
+2.  **307**: Confirms to proceed with implementing the web-to-mobile security system. (Completed)
+3.  **288**: Provides a massive request: create a long list of new static pages, implement SEO, and create a comprehensive web-to-mobile approval security system. (Completed)
+4.  **249**: Asks to update the landing page with new features and create other necessary pages like Privacy/Terms. (Completed)
+5.  **224**: Requests that the main landing page header should change based on login status. (Completed)
+6.  **183**: Reports that document downloads are JPGs, not PDFs, and should be fixed. (Completed)
+7.  **76**: Requests new dashboard features: a better New Folder button, document renaming, and drag-and-drop. (Completed)
+8.  **50**: Asks to fix the PDF export bug (single page exporting as two pages). (Attempted, needs verification)
+9.  **48**: Asks for confirmation that folders will sync between the web and mobile app. (Answered)
+10. **Initial confirmation (from msg 5)**: Chose to work on folder management first. (Completed)
 
 **Project Health Check:**
--   **Broken**:
-    -   PDF Export is producing incorrect files (duplicate pages).
--   **Pending Verification**:
-    -   Thumbnail rotation fix.
-    -   The overall performance and stability of the local-first architecture on a real device under various conditions (offline/online transitions, large number of documents).
-    -   The  filter implementation on a real device.
+-   **In Progress**:
+    -   Internationalization for the Web Access Security feature.
+-   **Needs Verification**:
+    -   Mobile App: PDF Export fix for duplicate pages.
+-   **Needs Implementation**:
+    -   Mobile App: Hybrid premium status logic (IAP + Backend).
+-   **Completed**:
+    -   Web Dashboard: Folder management, document rename/drag-drop, PDF downloads.
+    -   Website: Auth-aware landing page, new content sections, many new static pages, SEO files.
+    -   Security: Full web-to-mobile approval system.
 
 **3rd Party Integrations**
--   : For GPU-accelerated image filtering.
--   : For In-App Purchases and subscription management.
--   : For AdMob ads.
--   : For animations.
--   : Core to the local-first architecture for storing images.
--   : For flattening views (like annotations) into images locally.
--   : For detecting network status for the offline sync hook.
--   : For state management.
+-   **Backend**: , ,  (new)
+-   **Web Dashboard**: Google Identity Services (GIS) library
+-   **Mobile App**: , , , , 
 
 **Testing status**
--   Testing agent used after significant changes: NO
+-   Testing agent used after significant changes: NO. Agent used  tool extensively for manual UI verification and  for backend endpoint testing.
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: None.
--   Known regressions: PDF export bug, potential thumbnail rotation bug.
+-   Known regressions: The PDF export bug was a known issue, a fix was attempted but its status is unverified.
+
+**Credentials to test flow:**
+-   A test user can be created or used: , 
 
 **What agent forgot to execute**
--   The agent did not resolve the PDF duplicate pages bug. It was investigated but left unfixed.
+-   The agent was in the middle of adding translations to the backend for the new features. This task is incomplete.
+-   The agent applied a fix for the mobile PDF export bug but never followed up with a test to confirm if the fix was successful. The issue should be considered Testing Pending.
 </analysis>
