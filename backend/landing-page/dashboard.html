@@ -1027,7 +1027,7 @@
                     const data = await res.json();
                     
                     if (res.ok) {
-                        token = data.access_token;
+                        token = data.token;  // Use 'token' not 'access_token'
                         localStorage.setItem('scanup_token', token);
                         currentUser = data.user;
                         showDashboard();
