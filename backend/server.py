@@ -2109,9 +2109,14 @@ async def approve_web_access(
     if session["status"] != "pending":
         raise HTTPException(status_code=400, detail="Session already processed")
     
-    # Check if expired
-    if session.get("expires_at") and datetime.now(timezone.utc) > session["expires_at"]:
-        raise HTTPException(status_code=400, detail="Session expired")
+    # Check if expired - handle both naive and aware datetimes
+    expires_at = session.get("expires_at")
+    if expires_at:
+        # Convert to aware datetime if naive
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=400, detail="Session expired")
     
     new_status = "approved" if data.approve else "rejected"
     update_data = {
