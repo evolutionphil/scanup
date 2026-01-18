@@ -1964,7 +1964,7 @@
                 
                 if (res.ok) {
                     const data = await res.json();
-                    webAccessSessionId = data.session_id;
+                    window.webAccessSessionId = data.session_id;
                     showWebAccessModal(data.expires_in_seconds);
                     startPollingForApproval();
                 } else {
