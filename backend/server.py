@@ -274,6 +274,26 @@ class SessionDataResponse(BaseModel):
     picture: Optional[str] = None
     session_token: str
 
+# Web Access Authorization Models
+class WebAccessSession(BaseModel):
+    session_id: str
+    user_id: str
+    device_info: Optional[str] = None
+    browser_info: Optional[str] = None
+    ip_address: Optional[str] = None
+    status: str = "pending"  # pending, approved, rejected, expired
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+
+class WebAccessRequest(BaseModel):
+    device_info: Optional[str] = None
+    browser_info: Optional[str] = None
+
+class WebAccessApproval(BaseModel):
+    session_id: str
+    approve: bool = True
+
 # ==================== HELPER FUNCTIONS ====================
 
 def hash_password(password: str) -> str:
