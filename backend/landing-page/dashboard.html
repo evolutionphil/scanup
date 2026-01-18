@@ -1976,8 +1976,8 @@
                      onclick="openDocument('${doc.document_id}')">
                     <div class="document-preview">
                         ${thumb ? `<img src="${thumb}" onerror="this.style.display='none'">` : ''}
-                        <div class="placeholder" ${thumb ? 'style="display:none"' : ''}><i class="fas fa-file-alt"></i></div>
-                        <div class="document-badge">${pages} pg</div>
+                        <div class="placeholder" ${thumb ? 'style="display:none"' : ''}><i class="fas fa-file-pdf" style="color: #EF4444;"></i></div>
+                        <div class="document-badge"><i class="fas fa-file-pdf" style="margin-right: 4px;"></i>${pages} pg</div>
                     </div>
                     <div class="document-info">
                         <h3>${escapeHtml(doc.name || 'Untitled')}</h3>
@@ -1992,8 +1992,8 @@
                             <button style="background: #DBEAFE; color: #3B82F6;" onclick="event.stopPropagation(); openMoveFolderModal('${doc.document_id}')" title="Move to folder">
                                 <i class="fas fa-folder-open"></i>
                             </button>
-                            <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')" title="Download">
-                                <i class="fas fa-download"></i>
+                            <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')" title="Download PDF">
+                                <i class="fas fa-file-pdf"></i>
                             </button>
                             <button class="btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.document_id}')" title="Delete">
                                 <i class="fas fa-trash"></i>
