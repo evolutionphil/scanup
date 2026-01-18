@@ -1857,6 +1857,8 @@
             const thumb = doc.pages?.[0]?.thumbnail_url || doc.pages?.[0]?.image_url || '';
             const pages = doc.pages?.length || 0;
             const date = new Date(doc.created_at).toLocaleDateString();
+            const folder = doc.folder_id ? folders.find(f => f.folder_id === doc.folder_id) : null;
+            const folderBadge = folder ? `<span style="color: ${folder.color || '#F59E0B'}"><i class="fas fa-folder"></i> ${escapeHtml(folder.name)}</span>` : '';
             
             return `
                 <div class="document-card" onclick="openDocument('${doc.document_id}')">
@@ -1866,18 +1868,22 @@
                         <div class="document-badge">${pages} pg</div>
                     </div>
                     <div class="document-info">
-                        <h3>${doc.name || 'Untitled'}</h3>
+                        <h3>${escapeHtml(doc.name || 'Untitled')}</h3>
                         <div class="document-meta">
                             <span><i class="fas fa-calendar"></i> ${date}</span>
+                            ${folderBadge}
                         </div>
                         <div class="document-actions">
-                            <button class="btn-view" onclick="event.stopPropagation(); openDocument('${doc.document_id}')">
+                            <button class="btn-view" onclick="event.stopPropagation(); openDocument('${doc.document_id}')" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')">
+                            <button style="background: #DBEAFE; color: #3B82F6;" onclick="event.stopPropagation(); openMoveFolderModal('${doc.document_id}')" title="Move to folder">
+                                <i class="fas fa-folder-open"></i>
+                            </button>
+                            <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')" title="Download">
                                 <i class="fas fa-download"></i>
                             </button>
-                            <button class="btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.document_id}')">
+                            <button class="btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.document_id}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
