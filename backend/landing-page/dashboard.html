@@ -1862,7 +1862,8 @@
         let documentToMove = null;
         let documentToRename = null;
         let draggedDocument = null;
-        let webAccessSessionId = null;
+        // Web access security - use window for debugging
+        window.webAccessSessionId = null;
         let webAccessPollingInterval = null;
         let countdownInterval = null;
         let webAccessApproved = false;
