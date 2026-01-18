@@ -1778,6 +1778,84 @@
     </footer>
 
     <script>
+        // Auth state management
+        let currentUser = null;
+        
+        async function checkAuthState() {
+            const token = localStorage.getItem('scanup_token');
+            const authButtons = document.getElementById('authButtons');
+            
+            if (!token) {
+                // Not logged in - show login button
+                authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    currentUser = await res.json();
+                    const name = currentUser.name || currentUser.email?.split('@')[0] || 'User';
+                    const initials = name.substring(0, 2).toUpperCase();
+                    
+                    // Show user menu
+                    authButtons.innerHTML = `
+                        <div class="user-menu">
+                            <a href="/landing/dashboard" class="dashboard-btn">
+                                <i class="fas fa-folder-open"></i> My Documents
+                            </a>
+                            <div class="user-avatar" onclick="toggleUserDropdown(event)">
+                                ${initials}
+                                <div class="user-dropdown" id="userDropdown">
+                                    <div class="user-dropdown-header">
+                                        <h4>${name}</h4>
+                                        <p>${currentUser.email || ''}</p>
+                                    </div>
+                                    <a href="/landing/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
+                                    <a href="/landing/dashboard#settings"><i class="fas fa-cog"></i> Settings</a>
+                                    <a href="#" class="logout" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Token invalid - clear and show login
+                    localStorage.removeItem('scanup_token');
+                    authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                }
+            } catch (e) {
+                console.error('Auth check failed:', e);
+                authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+            }
+        }
+        
+        function toggleUserDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        function handleLogout(event) {
+            event.preventDefault();
+            localStorage.removeItem('scanup_token');
+            currentUser = null;
+            checkAuthState();
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown && !e.target.closest('.user-avatar')) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Check auth on page load
+        document.addEventListener('DOMContentLoaded', checkAuthState);
+        
         // Navbar scroll effect
         window.addEventListener('scroll', function() {
             const navbar = document.getElementById('navbar');
