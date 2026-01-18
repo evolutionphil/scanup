@@ -2150,18 +2150,32 @@ async def approve_web_access(
 
 @api_router.get("/auth/web-access/check")
 async def check_has_approved_session(
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """Check if user has any approved web session"""
+    """Check if user has any approved web session for this browser"""
+    # Get current browser fingerprint
+    user_agent = request.headers.get("user-agent", "unknown")
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Look for approved session matching this browser/IP
     approved_session = await db.web_access_sessions.find_one({
         "user_id": current_user.user_id,
         "status": "approved",
+        "browser_info": {"$regex": user_agent[:50]},  # Match browser type
         "expires_at": {"$gt": datetime.now(timezone.utc)}
     })
     
+    # If no matching approved session, require new approval
+    if not approved_session:
+        return {
+            "has_approved_session": False,
+            "session_id": None
+        }
+    
     return {
-        "has_approved_session": approved_session is not None,
-        "session_id": approved_session["session_id"] if approved_session else None
+        "has_approved_session": True,
+        "session_id": approved_session["session_id"]
     }
 
 @api_router.delete("/auth/web-access/revoke")
