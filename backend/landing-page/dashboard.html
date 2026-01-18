@@ -1926,8 +1926,9 @@
                     });
                     if (res.ok) {
                         currentUser = await res.json();
-                        showDashboard();
-                        loadDocuments();
+                        
+                        // Check if user has approved web access
+                        await checkWebAccessStatus();
                         return;
                     }
                 } catch (e) {}
@@ -1937,13 +1938,161 @@
             showAuthModal();
         }
         
+        // ==================== WEB ACCESS SECURITY ====================
+        
+        async function checkWebAccessStatus() {
+            try {
+                const res = await fetch(`${API_URL}/auth/web-access/check`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.has_approved_session) {
+                        // Has approved session, show dashboard
+                        webAccessApproved = true;
+                        webAccessSessionId = data.session_id;
+                        showDashboard();
+                        loadDocuments();
+                    } else {
+                        // No approved session, request new one
+                        await requestWebAccess();
+                    }
+                } else {
+                    // Error checking, request new access
+                    await requestWebAccess();
+                }
+            } catch (e) {
+                console.error('Web access check failed:', e);
+                await requestWebAccess();
+            }
+        }
+        
+        async function requestWebAccess() {
+            try {
+                const res = await fetch(`${API_URL}/auth/web-access/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_info: 'Web Browser',
+                        browser_info: navigator.userAgent
+                    })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    webAccessSessionId = data.session_id;
+                    showWebAccessModal(data.expires_in_seconds);
+                    startPollingForApproval();
+                } else {
+                    showToast('Failed to request web access', 'error');
+                    showAuthModal();
+                }
+            } catch (e) {
+                console.error('Web access request failed:', e);
+                showToast('Connection error', 'error');
+                showAuthModal();
+            }
+        }
+        
+        function showWebAccessModal(expiresInSeconds = 600) {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('webAccessModal').classList.remove('hidden');
+            
+            // Start countdown
+            let secondsLeft = expiresInSeconds;
+            updateCountdown(secondsLeft);
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                secondsLeft--;
+                updateCountdown(secondsLeft);
+                
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    cancelWebAccessRequest();
+                    showToast('Request expired. Please try again.', 'error');
+                }
+            }, 1000);
+        }
+        
+        function updateCountdown(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('countdownTimer').textContent = 
+                `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function startPollingForApproval() {
+            if (webAccessPollingInterval) clearInterval(webAccessPollingInterval);
+            
+            webAccessPollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_URL}/auth/web-access/status/${webAccessSessionId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        
+                        if (data.status === 'approved') {
+                            // Approved! Show dashboard
+                            stopPolling();
+                            webAccessApproved = true;
+                            document.getElementById('webAccessModal').classList.add('hidden');
+                            showDashboard();
+                            loadDocuments();
+                            showToast('Web access approved!', 'success');
+                        } else if (data.status === 'rejected') {
+                            // Rejected
+                            stopPolling();
+                            document.getElementById('webAccessModal').classList.add('hidden');
+                            showToast('Web access denied from mobile app', 'error');
+                            showAuthModal();
+                        } else if (data.status === 'expired') {
+                            // Expired
+                            stopPolling();
+                            document.getElementById('webAccessModal').classList.add('hidden');
+                            showToast('Request expired. Please try again.', 'error');
+                            showAuthModal();
+                        }
+                    }
+                } catch (e) {
+                    console.error('Polling error:', e);
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+        
+        function stopPolling() {
+            if (webAccessPollingInterval) {
+                clearInterval(webAccessPollingInterval);
+                webAccessPollingInterval = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+        
+        function cancelWebAccessRequest() {
+            stopPolling();
+            document.getElementById('webAccessModal').classList.add('hidden');
+            showAuthModal();
+        }
+        
         function showAuthModal() {
             document.getElementById('authOverlay').classList.remove('hidden');
             document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('webAccessModal').classList.add('hidden');
         }
         
         function showDashboard() {
             document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('webAccessModal').classList.add('hidden');
             document.getElementById('dashboard').classList.add('active');
             updateUserInfo();
         }
