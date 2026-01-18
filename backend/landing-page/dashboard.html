@@ -2103,6 +2103,313 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+        
+        // =====================
+        // FOLDER MANAGEMENT
+        // =====================
+        
+        async function loadFolders() {
+            try {
+                const res = await fetch(`${API_URL}/folders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    folders = await res.json();
+                    renderFolders();
+                }
+            } catch (e) {
+                console.error('Failed to load folders:', e);
+            }
+        }
+        
+        function renderFolders() {
+            const container = document.getElementById('foldersContainer');
+            const foldersSection = document.getElementById('foldersSection');
+            
+            // Hide folders section if inside a folder
+            if (currentFolderId) {
+                foldersSection.style.display = 'none';
+                return;
+            }
+            
+            foldersSection.style.display = 'block';
+            
+            // Add "Create Folder" card first
+            let html = `
+                <div class="folder-card add-folder-card" onclick="openCreateFolderModal()">
+                    <div class="folder-icon"><i class="fas fa-plus"></i></div>
+                    <h4>New Folder</h4>
+                </div>
+            `;
+            
+            // Render existing folders
+            folders.forEach(folder => {
+                const docCount = folder.document_count || 0;
+                const color = folder.color || '#F59E0B';
+                html += `
+                    <div class="folder-card" onclick="openFolder('${folder.folder_id}')">
+                        <div class="folder-icon" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <h4>${escapeHtml(folder.name)}</h4>
+                        <p>${docCount} document${docCount !== 1 ? 's' : ''}</p>
+                        <div class="folder-actions">
+                            <button onclick="event.stopPropagation(); editFolder('${folder.folder_id}')" title="Rename">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${folder.folder_id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Utility function to adjust color brightness
+        function adjustColor(color, amount) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+            const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+            const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+        
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function openFolder(folderId) {
+            currentFolderId = folderId;
+            const folder = folders.find(f => f.folder_id === folderId);
+            
+            // Show breadcrumb
+            document.getElementById('breadcrumb').style.display = 'flex';
+            document.getElementById('currentFolderName').textContent = folder?.name || 'Folder';
+            document.getElementById('documentsSectionTitle').textContent = folder?.name || 'Folder';
+            
+            // Filter documents by folder
+            filteredDocs = documents.filter(d => d.folder_id === folderId);
+            renderDocuments();
+            renderFolders();
+        }
+        
+        function goToAllDocuments() {
+            currentFolderId = null;
+            document.getElementById('breadcrumb').style.display = 'none';
+            document.getElementById('documentsSectionTitle').textContent = 'All Documents';
+            filteredDocs = [...documents];
+            renderDocuments();
+            renderFolders();
+        }
+        
+        // Create Folder Modal
+        function openCreateFolderModal() {
+            document.getElementById('createFolderModal').classList.remove('hidden');
+            document.getElementById('newFolderName').value = '';
+            document.getElementById('newFolderName').focus();
+            selectedFolderColor = '#F59E0B';
+            document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+            document.querySelector('.color-option[data-color="#F59E0B"]').classList.add('selected');
+        }
+        
+        function closeCreateFolderModal() {
+            document.getElementById('createFolderModal').classList.add('hidden');
+        }
+        
+        function selectColor(el) {
+            document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedFolderColor = el.dataset.color;
+        }
+        
+        async function createFolder() {
+            const name = document.getElementById('newFolderName').value.trim();
+            if (!name) {
+                showToast('Please enter a folder name', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/folders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        color: selectedFolderColor
+                    })
+                });
+                
+                if (res.ok) {
+                    const newFolder = await res.json();
+                    folders.push({ ...newFolder, document_count: 0 });
+                    renderFolders();
+                    closeCreateFolderModal();
+                    showToast('Folder created!', 'success');
+                } else {
+                    const data = await res.json();
+                    showToast(data.detail || 'Failed to create folder', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        async function editFolder(folderId) {
+            const folder = folders.find(f => f.folder_id === folderId);
+            if (!folder) return;
+            
+            const newName = prompt('Enter new folder name:', folder.name);
+            if (!newName || newName.trim() === '') return;
+            
+            try {
+                const res = await fetch(`${API_URL}/folders/${folderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: newName.trim() })
+                });
+                
+                if (res.ok) {
+                    folder.name = newName.trim();
+                    renderFolders();
+                    showToast('Folder renamed!', 'success');
+                } else {
+                    showToast('Failed to rename folder', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        async function deleteFolder(folderId) {
+            const folder = folders.find(f => f.folder_id === folderId);
+            if (!folder) return;
+            
+            if (!confirm(`Delete "${folder.name}"? Documents inside will be moved to root.`)) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/folders/${folderId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    folders = folders.filter(f => f.folder_id !== folderId);
+                    
+                    // Update documents that were in this folder
+                    documents.forEach(d => {
+                        if (d.folder_id === folderId) d.folder_id = null;
+                    });
+                    
+                    // If we were viewing this folder, go back to all documents
+                    if (currentFolderId === folderId) {
+                        goToAllDocuments();
+                    } else {
+                        renderFolders();
+                    }
+                    
+                    showToast('Folder deleted', 'success');
+                } else {
+                    showToast('Failed to delete folder', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        // Move to Folder Modal
+        function openMoveFolderModal(docId) {
+            documentToMove = documents.find(d => d.document_id === docId);
+            if (!documentToMove) return;
+            
+            document.getElementById('moveDocName').textContent = documentToMove.name || 'Untitled';
+            
+            // Populate folder select
+            const select = document.getElementById('targetFolderSelect');
+            select.innerHTML = '<option value="">No Folder (Root)</option>';
+            folders.forEach(f => {
+                const selected = documentToMove.folder_id === f.folder_id ? 'selected' : '';
+                select.innerHTML += `<option value="${f.folder_id}" ${selected}>${escapeHtml(f.name)}</option>`;
+            });
+            
+            document.getElementById('moveFolderModal').classList.remove('hidden');
+        }
+        
+        function closeMoveFolderModal() {
+            document.getElementById('moveFolderModal').classList.add('hidden');
+            documentToMove = null;
+        }
+        
+        async function moveDocumentToFolder() {
+            if (!documentToMove) return;
+            
+            const targetFolderId = document.getElementById('targetFolderSelect').value || null;
+            
+            try {
+                const res = await fetch(`${API_URL}/documents/${documentToMove.document_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ folder_id: targetFolderId })
+                });
+                
+                if (res.ok) {
+                    // Update local data
+                    const oldFolderId = documentToMove.folder_id;
+                    documentToMove.folder_id = targetFolderId;
+                    
+                    // Update folder counts
+                    if (oldFolderId) {
+                        const oldFolder = folders.find(f => f.folder_id === oldFolderId);
+                        if (oldFolder) oldFolder.document_count = Math.max(0, (oldFolder.document_count || 1) - 1);
+                    }
+                    if (targetFolderId) {
+                        const newFolder = folders.find(f => f.folder_id === targetFolderId);
+                        if (newFolder) newFolder.document_count = (newFolder.document_count || 0) + 1;
+                    }
+                    
+                    // Refresh view
+                    if (currentFolderId) {
+                        filteredDocs = documents.filter(d => d.folder_id === currentFolderId);
+                    } else {
+                        filteredDocs = [...documents];
+                    }
+                    
+                    renderDocuments();
+                    renderFolders();
+                    closeMoveFolderModal();
+                    
+                    const folderName = targetFolderId 
+                        ? folders.find(f => f.folder_id === targetFolderId)?.name || 'folder' 
+                        : 'root';
+                    showToast(`Moved to ${folderName}`, 'success');
+                } else {
+                    showToast('Failed to move document', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        // Update loadDocuments to also load folders
+        const originalLoadDocuments = loadDocuments;
+        loadDocuments = async function() {
+            await originalLoadDocuments();
+            await loadFolders();
+        };
     </script>
 </body>
 </html>
