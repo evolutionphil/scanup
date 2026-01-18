@@ -2002,6 +2002,176 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/")
     return {"message": "Logged out successfully"}
 
+# ==================== WEB ACCESS AUTHORIZATION ====================
+
+@api_router.post("/auth/web-access/request")
+async def request_web_access(
+    request: Request,
+    data: WebAccessRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Request web access authorization - requires mobile app approval"""
+    import secrets
+    
+    # Generate unique session ID
+    session_id = f"web_{secrets.token_hex(16)}"
+    
+    # Get client info
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    # Create web access session
+    web_session = {
+        "session_id": session_id,
+        "user_id": current_user.user_id,
+        "device_info": data.device_info or "Web Browser",
+        "browser_info": user_agent[:200],  # Limit length
+        "ip_address": client_ip,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),  # 10 min to approve
+    }
+    
+    await db.web_access_sessions.insert_one(web_session)
+    
+    logger.info(f"Web access requested for user {current_user.user_id}, session {session_id}")
+    
+    return {
+        "session_id": session_id,
+        "status": "pending",
+        "message": "Please approve this request from your mobile app",
+        "expires_in_seconds": 600
+    }
+
+@api_router.get("/auth/web-access/status/{session_id}")
+async def check_web_access_status(
+    session_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Check web access authorization status"""
+    session = await db.web_access_sessions.find_one({
+        "session_id": session_id,
+        "user_id": current_user.user_id
+    })
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Check if expired
+    if session.get("expires_at") and datetime.now(timezone.utc) > session["expires_at"]:
+        if session["status"] == "pending":
+            await db.web_access_sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {"status": "expired"}}
+            )
+            return {"session_id": session_id, "status": "expired"}
+    
+    return {
+        "session_id": session_id,
+        "status": session["status"],
+        "approved_at": session.get("approved_at")
+    }
+
+@api_router.get("/auth/web-access/pending")
+async def get_pending_web_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Get pending web access requests for mobile app approval"""
+    pending_sessions = await db.web_access_sessions.find({
+        "user_id": current_user.user_id,
+        "status": "pending",
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
+    }).to_list(10)
+    
+    return [{
+        "session_id": s["session_id"],
+        "device_info": s.get("device_info", "Unknown"),
+        "browser_info": s.get("browser_info", "Unknown"),
+        "ip_address": s.get("ip_address", "Unknown"),
+        "created_at": s["created_at"].isoformat() if isinstance(s["created_at"], datetime) else s["created_at"],
+        "expires_at": s["expires_at"].isoformat() if isinstance(s.get("expires_at"), datetime) else s.get("expires_at")
+    } for s in pending_sessions]
+
+@api_router.post("/auth/web-access/approve")
+async def approve_web_access(
+    data: WebAccessApproval,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve or reject web access request from mobile app"""
+    session = await db.web_access_sessions.find_one({
+        "session_id": data.session_id,
+        "user_id": current_user.user_id
+    })
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Session already processed")
+    
+    # Check if expired
+    if session.get("expires_at") and datetime.now(timezone.utc) > session["expires_at"]:
+        raise HTTPException(status_code=400, detail="Session expired")
+    
+    new_status = "approved" if data.approve else "rejected"
+    update_data = {
+        "status": new_status,
+        "processed_at": datetime.now(timezone.utc)
+    }
+    if data.approve:
+        update_data["approved_at"] = datetime.now(timezone.utc)
+        # Extend expiry for approved sessions (24 hours)
+        update_data["expires_at"] = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    await db.web_access_sessions.update_one(
+        {"session_id": data.session_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Web access {new_status} for session {data.session_id}")
+    
+    return {
+        "session_id": data.session_id,
+        "status": new_status,
+        "message": f"Web access {new_status}"
+    }
+
+@api_router.get("/auth/web-access/check")
+async def check_has_approved_session(
+    current_user: User = Depends(get_current_user)
+):
+    """Check if user has any approved web session"""
+    approved_session = await db.web_access_sessions.find_one({
+        "user_id": current_user.user_id,
+        "status": "approved",
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
+    })
+    
+    return {
+        "has_approved_session": approved_session is not None,
+        "session_id": approved_session["session_id"] if approved_session else None
+    }
+
+@api_router.delete("/auth/web-access/revoke")
+async def revoke_web_access(
+    session_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Revoke web access (from mobile app)"""
+    if session_id:
+        # Revoke specific session
+        result = await db.web_access_sessions.delete_one({
+            "session_id": session_id,
+            "user_id": current_user.user_id
+        })
+    else:
+        # Revoke all sessions
+        result = await db.web_access_sessions.delete_many({
+            "user_id": current_user.user_id
+        })
+    
+    return {"message": "Web access revoked", "revoked_count": result.deleted_count}
+
 # ==================== USER ENDPOINTS ====================
 
 @api_router.put("/users/subscription", response_model=UserResponse)
