@@ -8,28 +8,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Google Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --primary: #3E51FB;
             --primary-dark: #2D3ED9;
             --primary-light: #6B7BFF;
             --secondary: #10B981;
+            --warning: #F59E0B;
             --danger: #EF4444;
             --dark: #111827;
             --gray-900: #1F2937;
             --gray-700: #374151;
             --gray-500: #6B7280;
             --gray-300: #D1D5DB;
+            --gray-200: #E5E7EB;
             --gray-100: #F3F4F6;
             --gray-50: #F9FAFB;
             --white: #FFFFFF;
@@ -43,21 +39,19 @@
             min-height: 100vh;
         }
         
-        /* ========== AUTH MODAL ========== */
+        /* Auth Modal */
         .auth-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
             padding: 1rem;
+            backdrop-filter: blur(4px);
         }
-        
-        .auth-overlay.hidden {
-            display: none;
-        }
+        .auth-overlay.hidden { display: none; }
         
         .auth-modal {
             background: white;
@@ -100,20 +94,10 @@
             font-size: 1.5rem;
         }
         
-        .auth-header .logo-text {
-            font-size: 1.75rem;
-            font-weight: 800;
-        }
+        .auth-header .logo-text { font-size: 1.75rem; font-weight: 800; }
+        .auth-header h2 { font-size: 1.25rem; font-weight: 600; opacity: 0.9; }
         
-        .auth-header h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            opacity: 0.9;
-        }
-        
-        .auth-body {
-            padding: 2rem;
-        }
+        .auth-body { padding: 2rem; }
         
         .auth-tabs {
             display: flex;
@@ -140,10 +124,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
+        .form-group { margin-bottom: 1rem; }
         .form-group label {
             display: block;
             font-size: 0.875rem;
@@ -198,6 +179,13 @@
             transform: none;
         }
         
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .btn-secondary:hover { background: var(--gray-200); }
+        
         .divider {
             display: flex;
             align-items: center;
@@ -231,20 +219,13 @@
             border-color: var(--gray-300);
         }
         
-        .btn-social img {
-            width: 20px;
-            height: 20px;
-        }
-        
         .btn-apple {
             background: var(--dark);
             color: white;
             border: none;
         }
         
-        .btn-apple:hover {
-            background: var(--gray-900);
-        }
+        .btn-apple:hover { background: var(--gray-900); }
         
         .error-message {
             background: #FEF2F2;
@@ -256,48 +237,45 @@
             display: none;
         }
         
-        .error-message.show {
-            display: block;
+        .error-message.show { display: block; }
+        
+        /* Dashboard */
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        
+        /* Sidebar */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
         }
         
-        /* ========== DASHBOARD ========== */
-        .dashboard {
-            display: none;
-        }
-        
-        .dashboard.active {
-            display: block;
-        }
-        
-        /* Navbar */
-        .navbar {
+        .sidebar {
+            width: 260px;
             background: white;
-            border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 2rem;
-            position: sticky;
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
             top: 0;
+            left: 0;
+            bottom: 0;
             z-index: 100;
         }
         
-        .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-100);
         }
         
-        .nav-logo {
+        .sidebar-logo {
             display: flex;
             align-items: center;
             gap: 0.75rem;
             text-decoration: none;
             color: var(--dark);
-            font-weight: 800;
-            font-size: 1.5rem;
         }
         
-        .nav-logo .logo-icon {
+        .sidebar-logo .logo-icon {
             width: 40px;
             height: 40px;
             background: var(--gradient);
@@ -306,12 +284,79 @@
             align-items: center;
             justify-content: center;
             color: white;
+            font-size: 1.25rem;
         }
         
-        .nav-user {
+        .sidebar-logo span {
+            font-weight: 800;
+            font-size: 1.25rem;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 10px;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-size: 0.9375rem;
+        }
+        
+        .nav-item:hover { background: var(--gray-100); }
+        .nav-item.active {
+            background: rgba(62, 81, 251, 0.1);
+            color: var(--primary);
+        }
+        
+        .nav-item i { width: 20px; text-align: center; }
+        
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--primary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 50px;
+        }
+        
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--gray-100);
+        }
+        
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            background: var(--gray-50);
         }
         
         .user-avatar {
@@ -324,95 +369,95 @@
             justify-content: center;
             color: white;
             font-weight: 700;
-            cursor: pointer;
+            font-size: 0.875rem;
         }
         
-        .user-menu {
-            position: relative;
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
         }
         
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            padding: 0.5rem;
-            min-width: 200px;
-            display: none;
-            margin-top: 0.5rem;
-        }
-        
-        .user-dropdown.show {
-            display: block;
-        }
-        
-        .user-dropdown-header {
-            padding: 1rem;
-            border-bottom: 1px solid var(--gray-100);
-        }
-        
-        .user-dropdown-header h4 {
+        .user-info { flex: 1; min-width: 0; }
+        .user-info h4 {
             font-size: 0.875rem;
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
-        .user-dropdown-header p {
+        .user-info p {
             font-size: 0.75rem;
             color: var(--gray-500);
-            margin-top: 0.25rem;
         }
         
-        .user-dropdown a, .user-dropdown button {
-            display: flex;
+        .premium-badge {
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: none;
-            background: none;
-            color: var(--gray-700);
-            text-decoration: none;
-            font-size: 0.875rem;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-        
-        .user-dropdown a:hover, .user-dropdown button:hover {
-            background: var(--gray-100);
-        }
-        
-        .user-dropdown .logout {
-            color: var(--danger);
+            gap: 0.25rem;
+            background: linear-gradient(135deg, #F59E0B, #EAB308);
+            color: white;
+            font-size: 0.625rem;
+            font-weight: 700;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
         }
         
         /* Main Content */
         .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
+            flex: 1;
+            margin-left: 260px;
             padding: 2rem;
         }
         
+        /* Page Header */
         .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 2rem;
         }
         
         .page-header h1 {
             font-size: 1.75rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
         }
         
         .page-header p {
             color: var(--gray-500);
+            margin-top: 0.25rem;
         }
         
-        /* Stats Cards */
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 0 1rem;
+            width: 280px;
+        }
+        
+        .search-box i { color: var(--gray-400); }
+        .search-box input {
+            border: none;
+            padding: 0.75rem;
+            flex: 1;
+            font-size: 0.875rem;
+            outline: none;
+        }
+        
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -420,10 +465,11 @@
         .stat-card {
             background: white;
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1.25rem;
             display: flex;
             align-items: center;
             gap: 1rem;
+            border: 1px solid var(--gray-100);
         }
         
         .stat-icon {
@@ -441,28 +487,26 @@
         .stat-icon.purple { background: #F5F3FF; color: #8B5CF6; }
         .stat-icon.orange { background: #FFF7ED; color: #F97316; }
         
-        .stat-info h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .stat-info h3 { font-size: 1.5rem; font-weight: 700; }
+        .stat-info p { font-size: 0.875rem; color: var(--gray-500); }
+        
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--gray-100);
         }
         
-        .stat-info p {
-            font-size: 0.875rem;
-            color: var(--gray-500);
-        }
-        
-        /* Documents Section */
         .section-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         
-        .section-header h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
+        .section-header h2 { font-size: 1.125rem; font-weight: 600; }
         
         .view-toggle {
             display: flex;
@@ -487,29 +531,46 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
-        /* Documents Grid */
-        .documents-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .document-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            transition: all 0.3s;
+        .sort-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            outline: none;
             cursor: pointer;
         }
         
+        /* Documents Grid */
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+        
+        .documents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .document-card {
+            background: var(--gray-50);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid var(--gray-100);
+        }
+        
         .document-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+            border-color: var(--primary);
         }
         
         .document-preview {
-            height: 180px;
-            background: var(--gray-100);
+            height: 140px;
+            background: var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -524,28 +585,25 @@
         }
         
         .document-preview .placeholder {
-            font-size: 3rem;
+            font-size: 2.5rem;
             color: var(--gray-400);
         }
         
         .document-badge {
             position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            background: var(--primary);
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0,0,0,0.6);
             color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.6875rem;
             font-weight: 600;
         }
         
-        .document-info {
-            padding: 1rem;
-        }
-        
+        .document-info { padding: 1rem; }
         .document-info h3 {
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
             white-space: nowrap;
@@ -556,7 +614,7 @@
         .document-meta {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             font-size: 0.75rem;
             color: var(--gray-500);
             margin-bottom: 0.75rem;
@@ -577,7 +635,7 @@
             flex: 1;
             padding: 0.5rem;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 500;
             cursor: pointer;
@@ -588,57 +646,77 @@
             transition: all 0.2s;
         }
         
-        .btn-download {
-            background: var(--primary);
-            color: white;
+        .btn-download { background: var(--primary); color: white; }
+        .btn-download:hover { background: var(--primary-dark); }
+        .btn-view { background: var(--gray-200); color: var(--gray-700); }
+        .btn-view:hover { background: var(--gray-300); }
+        .btn-delete { background: #FEE2E2; color: var(--danger); }
+        .btn-delete:hover { background: #FECACA; }
+        
+        /* List View */
+        .document-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--gray-50);
+            border-radius: 10px;
+            transition: all 0.2s;
+            border: 1px solid var(--gray-100);
         }
         
-        .btn-download:hover {
-            background: var(--primary-dark);
+        .document-row:hover {
+            background: white;
+            border-color: var(--primary);
         }
         
-        .btn-view {
-            background: var(--gray-100);
-            color: var(--gray-700);
-        }
-        
-        .btn-view:hover {
+        .document-row .thumbnail {
+            width: 48px;
+            height: 48px;
             background: var(--gray-200);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .document-row .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .document-row .info { flex: 1; }
+        .document-row .info h4 { font-size: 0.875rem; font-weight: 600; }
+        .document-row .info p { font-size: 0.75rem; color: var(--gray-500); }
+        
+        .document-row .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .document-row .actions button {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
         }
         
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
-            background: white;
-            border-radius: 16px;
         }
         
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--gray-300);
-            margin-bottom: 1rem;
-        }
-        
-        .empty-state h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .empty-state p {
-            color: var(--gray-500);
-            margin-bottom: 1.5rem;
-        }
+        .empty-state i { font-size: 4rem; color: var(--gray-300); margin-bottom: 1rem; }
+        .empty-state h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .empty-state p { color: var(--gray-500); margin-bottom: 1.5rem; }
         
         /* Loading */
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem;
-        }
-        
+        .loading { display: flex; align-items: center; justify-content: center; padding: 4rem; }
         .spinner {
             width: 40px;
             height: 40px;
@@ -648,11 +726,9 @@
             animation: spin 0.8s linear infinite;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* Document Modal */
+        /* Modal */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -662,11 +738,10 @@
             justify-content: center;
             z-index: 1000;
             padding: 1rem;
+            backdrop-filter: blur(4px);
         }
         
-        .modal-overlay.hidden {
-            display: none;
-        }
+        .modal-overlay.hidden { display: none; }
         
         .modal {
             background: white;
@@ -680,17 +755,14 @@
         }
         
         .modal-header {
-            padding: 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         
-        .modal-header h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
+        .modal-header h3 { font-size: 1.125rem; font-weight: 600; }
         
         .modal-close {
             width: 36px;
@@ -705,47 +777,32 @@
             transition: background 0.2s;
         }
         
-        .modal-close:hover {
-            background: var(--gray-200);
-        }
+        .modal-close:hover { background: var(--gray-200); }
         
-        .modal-body {
-            flex: 1;
-            overflow: auto;
-            padding: 1.5rem;
-        }
+        .modal-body { flex: 1; overflow: auto; padding: 1.5rem; }
         
         .modal-footer {
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             border-top: 1px solid var(--gray-200);
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             justify-content: flex-end;
         }
         
-        .modal-footer .btn {
-            width: auto;
-            padding: 0.75rem 1.5rem;
-        }
-        
-        .btn-secondary {
-            background: var(--gray-100);
-            color: var(--gray-700);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--gray-200);
-        }
+        .modal-footer .btn { width: auto; padding: 0.75rem 1.25rem; }
         
         .page-preview {
             background: var(--gray-100);
             border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
         }
         
         .page-preview img {
-            width: 100%;
+            max-width: 100%;
+            max-height: 60vh;
             border-radius: 4px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
@@ -767,33 +824,129 @@
             transition: background 0.2s;
         }
         
-        .page-nav button:hover:not(:disabled) {
-            background: var(--gray-300);
+        .page-nav button:hover:not(:disabled) { background: var(--gray-300); }
+        .page-nav button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Profile Section */
+        .profile-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
         }
         
-        .page-nav button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .profile-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--gray-100);
+        }
+        
+        .profile-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .profile-card h3 i { color: var(--primary); }
+        
+        .profile-field {
+            margin-bottom: 1rem;
+        }
+        
+        .profile-field label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 0.25rem;
+        }
+        
+        .profile-field p {
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+        
+        .upgrade-card {
+            background: linear-gradient(135deg, #F59E0B 0%, #EAB308 100%);
+            color: white;
+        }
+        
+        .upgrade-card h3 { color: white; }
+        .upgrade-card h3 i { color: white; }
+        .upgrade-card .profile-field label { color: rgba(255,255,255,0.8); }
+        
+        .upgrade-card .btn {
+            background: white;
+            color: var(--warning);
+            margin-top: 1rem;
         }
         
         /* Responsive */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 1rem;
-            }
-            
-            .main-content {
-                padding: 1rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .documents-grid {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 1024px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .profile-section { grid-template-columns: 1fr; }
         }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .documents-grid { grid-template-columns: 1fr; }
+            .page-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .header-actions { width: 100%; }
+            .search-box { width: 100%; }
+        }
+        
+        /* Mobile menu button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 56px;
+            height: 56px;
+            background: var(--gradient);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(62, 81, 251, 0.4);
+            z-index: 99;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+        }
+        
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--dark);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.success { background: var(--secondary); }
+        .toast.error { background: var(--danger); }
     </style>
 </head>
 <body>
@@ -815,7 +968,6 @@
                 
                 <div class="error-message" id="authError"></div>
                 
-                <!-- Login Form -->
                 <form id="loginForm">
                     <div class="form-group">
                         <label>Email</label>
@@ -830,7 +982,6 @@
                     </button>
                 </form>
                 
-                <!-- Register Form -->
                 <form id="registerForm" style="display: none;">
                     <div class="form-group">
                         <label>Full Name</label>
@@ -852,9 +1003,7 @@
                 <div class="divider">or continue with</div>
                 
                 <div class="social-buttons">
-                    <!-- Google Sign-In Button (rendered by Google SDK) -->
-                    <div id="googleSignInBtn" style="width: 100%;"></div>
-                    
+                    <div id="googleSignInBtn"></div>
                     <button class="btn btn-social btn-apple" onclick="loginWithApple()">
                         <i class="fab fa-apple"></i>
                         <span>Continue with Apple</span>
@@ -866,90 +1015,248 @@
     
     <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
-        <!-- Navbar -->
-        <nav class="navbar">
-            <div class="nav-container">
-                <a href="/landing" class="nav-logo">
-                    <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
-                    ScanUp
-                </a>
-                <div class="nav-user">
-                    <div class="user-menu">
-                        <div class="user-avatar" id="userAvatar" onclick="toggleUserMenu()">JD</div>
-                        <div class="user-dropdown" id="userDropdown">
-                            <div class="user-dropdown-header">
-                                <h4 id="userName">John Doe</h4>
-                                <p id="userEmail">john@example.com</p>
+        <div class="app-container">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <a href="/landing/dashboard" class="sidebar-logo">
+                        <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                        <span>ScanUp</span>
+                    </a>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <div class="nav-section">
+                        <div class="nav-section-title">Menu</div>
+                        <button class="nav-item active" onclick="showPage('documents')">
+                            <i class="fas fa-folder"></i>
+                            <span>My Documents</span>
+                            <span class="badge" id="docCountBadge">0</span>
+                        </button>
+                        <button class="nav-item" onclick="showPage('profile')">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </button>
+                        <button class="nav-item" onclick="showPage('settings')">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </button>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <div class="nav-section-title">Quick Actions</div>
+                        <a href="/landing#download" class="nav-item">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Get Mobile App</span>
+                        </a>
+                        <a href="/landing/support" class="nav-item">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="user-card">
+                        <div class="user-avatar" id="sidebarAvatar">
+                            <span id="sidebarInitials">U</span>
+                        </div>
+                        <div class="user-info">
+                            <h4 id="sidebarName">User</h4>
+                            <p id="sidebarPlan">Free Plan</p>
+                        </div>
+                    </div>
+                    <button class="nav-item" onclick="logout()" style="margin-top: 0.5rem; color: var(--danger);">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Documents Page -->
+                <div id="documentsPage">
+                    <div class="page-header">
+                        <div>
+                            <h1>My Documents</h1>
+                            <p>View and manage all your scanned documents</p>
+                        </div>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search documents..." id="searchInput" oninput="filterDocuments()">
                             </div>
-                            <a href="/landing"><i class="fas fa-home"></i> Home</a>
-                            <button class="logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
+                            <div class="stat-info">
+                                <h3 id="totalDocs">0</h3>
+                                <p>Documents</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i class="fas fa-file-pdf"></i></div>
+                            <div class="stat-info">
+                                <h3 id="totalPages">0</h3>
+                                <p>Pages</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple"><i class="fas fa-cloud"></i></div>
+                            <div class="stat-info">
+                                <h3 id="storageUsed">0 MB</h3>
+                                <p>Storage</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange"><i class="fas fa-calendar"></i></div>
+                            <div class="stat-info">
+                                <h3 id="thisMonth">0</h3>
+                                <p>This Month</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>All Documents</h2>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <select class="sort-select" id="sortSelect" onchange="sortDocuments()">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="name">Name A-Z</option>
+                                    <option value="name-desc">Name Z-A</option>
+                                </select>
+                                <div class="view-toggle">
+                                    <button class="active" onclick="setView('grid', this)"><i class="fas fa-th-large"></i></button>
+                                    <button onclick="setView('list', this)"><i class="fas fa-list"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="documentsContainer">
+                            <div class="loading"><div class="spinner"></div></div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </nav>
+                
+                <!-- Profile Page -->
+                <div id="profilePage" style="display: none;">
+                    <div class="page-header">
+                        <div>
+                            <h1>My Profile</h1>
+                            <p>Manage your account settings</p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-section">
+                        <div class="profile-card">
+                            <h3><i class="fas fa-user"></i> Account Information</h3>
+                            <div class="profile-field">
+                                <label>Full Name</label>
+                                <p id="profileName">-</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Email Address</label>
+                                <p id="profileEmail">-</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Member Since</label>
+                                <p id="profileDate">-</p>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-card upgrade-card" id="upgradeCard">
+                            <h3><i class="fas fa-crown"></i> Premium Plan</h3>
+                            <div class="profile-field">
+                                <label>Current Plan</label>
+                                <p id="profilePlan">Free</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Features</label>
+                                <p>Unlimited scans, No watermarks, Cloud backup</p>
+                            </div>
+                            <button class="btn" onclick="window.location.href='/landing#pricing'" id="upgradeBtn">
+                                <i class="fas fa-arrow-up"></i> Upgrade to Premium
+                            </button>
+                        </div>
+                        
+                        <div class="profile-card">
+                            <h3><i class="fas fa-chart-bar"></i> Usage Statistics</h3>
+                            <div class="profile-field">
+                                <label>Documents Created</label>
+                                <p id="profileDocs">0</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Total Pages Scanned</label>
+                                <p id="profilePages">0</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Storage Used</label>
+                                <p id="profileStorage">0 MB</p>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-card">
+                            <h3><i class="fas fa-shield-alt"></i> Security</h3>
+                            <div class="profile-field">
+                                <label>Login Method</label>
+                                <p id="profileLoginMethod">Email & Password</p>
+                            </div>
+                            <div class="profile-field">
+                                <label>Last Login</label>
+                                <p id="profileLastLogin">-</p>
+                            </div>
+                            <button class="btn btn-secondary" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Page -->
+                <div id="settingsPage" style="display: none;">
+                    <div class="page-header">
+                        <div>
+                            <h1>Settings</h1>
+                            <p>Customize your experience</p>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-bell" style="color: var(--primary); margin-right: 0.5rem;"></i> Notifications</h3>
+                        <p style="color: var(--gray-500); margin-bottom: 1rem;">Notification settings are managed in the mobile app.</p>
+                        <a href="/landing#download" class="btn btn-secondary" style="width: auto; display: inline-flex;">
+                            <i class="fas fa-mobile-alt"></i> Open Mobile App
+                        </a>
+                    </div>
+                    
+                    <div class="section">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-trash-alt" style="color: var(--danger); margin-right: 0.5rem;"></i> Danger Zone</h3>
+                        <p style="color: var(--gray-500); margin-bottom: 1rem;">Delete all your documents. This action cannot be undone.</p>
+                        <button class="btn" style="background: var(--danger); width: auto; display: inline-flex;" onclick="deleteAllDocuments()">
+                            <i class="fas fa-trash"></i> Delete All Documents
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
         
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="page-header">
-                <h1>My Documents</h1>
-                <p>View and download all your scanned documents from the cloud.</p>
-            </div>
-            
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
-                    <div class="stat-info">
-                        <h3 id="totalDocs">0</h3>
-                        <p>Total Documents</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon green"><i class="fas fa-file-pdf"></i></div>
-                    <div class="stat-info">
-                        <h3 id="totalPages">0</h3>
-                        <p>Total Pages</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon purple"><i class="fas fa-cloud"></i></div>
-                    <div class="stat-info">
-                        <h3 id="storageUsed">0 MB</h3>
-                        <p>Storage Used</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon orange"><i class="fas fa-crown"></i></div>
-                    <div class="stat-info">
-                        <h3 id="planStatus">Free</h3>
-                        <p>Current Plan</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Documents Section -->
-            <div class="section-header">
-                <h2>Recent Documents</h2>
-                <div class="view-toggle">
-                    <button class="active" onclick="setView('grid')"><i class="fas fa-th-large"></i></button>
-                    <button onclick="setView('list')"><i class="fas fa-list"></i></button>
-                </div>
-            </div>
-            
-            <div id="documentsContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-        </main>
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
     </div>
     
-    <!-- Document Preview Modal -->
+    <!-- Document Modal -->
     <div class="modal-overlay hidden" id="documentModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modalTitle">Document Name</h3>
+                <h3 id="modalTitle">Document</h3>
                 <button class="modal-close" onclick="closeDocumentModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -972,6 +1279,12 @@
             </div>
         </div>
     </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
 
     <script>
         const API_URL = '/api';
@@ -979,70 +1292,63 @@
         let token = localStorage.getItem('scanup_token');
         let currentUser = null;
         let documents = [];
+        let filteredDocs = [];
         let currentDocument = null;
         let currentPageIndex = 0;
+        let currentView = 'grid';
         
-        // Initialize Google Sign-In
+        // Initialize
+        window.onload = function() {
+            initGoogleSignIn();
+            checkAuth();
+        };
+        
         function initGoogleSignIn() {
             if (typeof google !== 'undefined' && google.accounts) {
                 google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
-                    callback: handleGoogleSignIn,
-                    auto_select: false,
-                    cancel_on_tap_outside: true,
+                    callback: handleGoogleSignIn
                 });
-                
-                // Render the Google button
-                const googleBtnContainer = document.getElementById('googleSignInBtn');
-                if (googleBtnContainer) {
-                    google.accounts.id.renderButton(googleBtnContainer, {
+                const btn = document.getElementById('googleSignInBtn');
+                if (btn) {
+                    google.accounts.id.renderButton(btn, {
                         type: 'standard',
                         theme: 'outline',
                         size: 'large',
-                        width: '100%',
                         text: 'continue_with',
-                        shape: 'rectangular',
-                        logo_alignment: 'left'
+                        shape: 'rectangular'
                     });
                 }
             } else {
-                // Retry after a short delay if Google SDK not loaded yet
                 setTimeout(initGoogleSignIn, 500);
             }
         }
         
-        // Handle Google Sign-In callback
         async function handleGoogleSignIn(response) {
-            console.log('Google Sign-In response:', response);
-            
             if (response.credential) {
                 try {
-                    // Send the ID token to our backend
                     const res = await fetch(`${API_URL}/auth/google`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ credential: response.credential })
                     });
-                    
                     const data = await res.json();
-                    
                     if (res.ok) {
-                        token = data.token;  // Use 'token' not 'access_token'
+                        token = data.token;
                         localStorage.setItem('scanup_token', token);
                         currentUser = data.user;
                         showDashboard();
                         loadDocuments();
+                        showToast('Login successful!', 'success');
                     } else {
                         showError(data.detail || 'Google login failed');
                     }
                 } catch (e) {
-                    console.error('Google auth error:', e);
                     showError('Failed to authenticate with Google');
                 }
             }
         }
         
-        // Check if user is logged in
         async function checkAuth() {
             if (token) {
                 try {
@@ -1055,10 +1361,7 @@
                         loadDocuments();
                         return;
                     }
-                } catch (e) {
-                    console.error('Auth check failed:', e);
-                }
-                // Token invalid
+                } catch (e) {}
                 localStorage.removeItem('scanup_token');
                 token = null;
             }
@@ -1073,14 +1376,49 @@
         function showDashboard() {
             document.getElementById('authOverlay').classList.add('hidden');
             document.getElementById('dashboard').classList.add('active');
+            updateUserInfo();
+        }
+        
+        function updateUserInfo() {
+            if (!currentUser) return;
             
-            // Update user info
-            if (currentUser) {
-                const initials = (currentUser.name || currentUser.email || 'U').substring(0, 2).toUpperCase();
-                document.getElementById('userAvatar').textContent = initials;
-                document.getElementById('userName').textContent = currentUser.name || 'User';
-                document.getElementById('userEmail').textContent = currentUser.email;
-                document.getElementById('planStatus').textContent = currentUser.is_premium ? 'Premium' : 'Free';
+            const name = currentUser.name || currentUser.email?.split('@')[0] || 'User';
+            const initials = name.substring(0, 2).toUpperCase();
+            const isPremium = currentUser.is_premium;
+            
+            document.getElementById('sidebarInitials').textContent = initials;
+            document.getElementById('sidebarName').textContent = name;
+            document.getElementById('sidebarPlan').innerHTML = isPremium 
+                ? '<span class="premium-badge"><i class="fas fa-crown"></i> Premium</span>' 
+                : 'Free Plan';
+            
+            // Profile page
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileEmail').textContent = currentUser.email || '-';
+            document.getElementById('profileDate').textContent = currentUser.created_at 
+                ? new Date(currentUser.created_at).toLocaleDateString() 
+                : '-';
+            document.getElementById('profilePlan').textContent = isPremium ? 'Premium' : 'Free';
+            document.getElementById('profileLastLogin').textContent = currentUser.last_login 
+                ? new Date(currentUser.last_login).toLocaleString() 
+                : '-';
+            document.getElementById('profileLoginMethod').textContent = currentUser.google_id 
+                ? 'Google Account' 
+                : 'Email & Password';
+            
+            // Update upgrade card
+            const upgradeCard = document.getElementById('upgradeCard');
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            if (isPremium) {
+                upgradeCard.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                upgradeBtn.innerHTML = '<i class="fas fa-check"></i> You are Premium';
+                upgradeBtn.disabled = true;
+                upgradeBtn.style.opacity = '0.8';
+            }
+            
+            // Avatar with profile picture
+            if (currentUser.profile_picture) {
+                document.getElementById('sidebarAvatar').innerHTML = `<img src="${currentUser.profile_picture}" alt="${name}">`;
             }
         }
         
@@ -1089,7 +1427,6 @@
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                
                 const isLogin = tab.dataset.tab === 'login';
                 document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
                 document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
@@ -1113,20 +1450,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                
                 const data = await res.json();
-                
                 if (res.ok) {
-                    token = data.access_token;
+                    token = data.token;
                     localStorage.setItem('scanup_token', token);
                     currentUser = data.user;
                     showDashboard();
                     loadDocuments();
+                    showToast('Welcome back!', 'success');
                 } else {
                     showError(data.detail || 'Login failed');
                 }
             } catch (e) {
-                showError('Connection error. Please try again.');
+                showError('Connection error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<span>Login</span>';
@@ -1150,20 +1486,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email, password })
                 });
-                
                 const data = await res.json();
-                
                 if (res.ok) {
-                    token = data.access_token;
+                    token = data.token;
                     localStorage.setItem('scanup_token', token);
                     currentUser = data.user;
                     showDashboard();
                     loadDocuments();
+                    showToast('Account created!', 'success');
                 } else {
                     showError(data.detail || 'Registration failed');
                 }
             } catch (e) {
-                showError('Connection error. Please try again.');
+                showError('Connection error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<span>Create Account</span>';
@@ -1171,36 +1506,25 @@
         });
         
         function showError(message) {
-            const errorEl = document.getElementById('authError');
-            errorEl.textContent = message;
-            errorEl.classList.add('show');
+            const el = document.getElementById('authError');
+            el.textContent = message;
+            el.classList.add('show');
         }
         
         function loginWithApple() {
-            alert('Apple login requires Apple Developer Program. Please use email/password or Google for now.');
+            showToast('Apple login requires setup', 'error');
         }
         
-        // User menu
-        function toggleUserMenu() {
-            document.getElementById('userDropdown').classList.toggle('show');
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-menu')) {
-                document.getElementById('userDropdown').classList.remove('show');
-            }
-        });
-        
-        // Logout
         function logout() {
             localStorage.removeItem('scanup_token');
             token = null;
             currentUser = null;
+            documents = [];
             showAuthModal();
+            showToast('Logged out', 'success');
         }
         
-        // Load documents
+        // Documents
         async function loadDocuments() {
             const container = document.getElementById('documentsContainer');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -1209,73 +1533,101 @@
                 const res = await fetch(`${API_URL}/documents`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
                 if (res.ok) {
                     documents = await res.json();
+                    filteredDocs = [...documents];
                     renderDocuments();
                     updateStats();
                 } else {
-                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Error loading documents</h3><p>Please try refreshing the page.</p></div>';
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Error</h3><p>Failed to load documents</p></div>';
                 }
             } catch (e) {
-                console.error('Load documents error:', e);
-                container.innerHTML = '<div class="empty-state"><i class="fas fa-wifi"></i><h3>Connection Error</h3><p>Please check your internet connection.</p></div>';
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-wifi"></i><h3>Connection Error</h3></div>';
             }
         }
         
         function renderDocuments() {
             const container = document.getElementById('documentsContainer');
+            document.getElementById('docCountBadge').textContent = filteredDocs.length;
             
-            if (documents.length === 0) {
+            if (filteredDocs.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-file-alt"></i>
                         <h3>No documents yet</h3>
-                        <p>Scan your first document using the ScanUp mobile app.</p>
-                        <a href="/landing#download" class="btn btn-primary" style="display: inline-flex; width: auto; padding: 0.75rem 1.5rem;">
-                            <i class="fas fa-download"></i> Download App
+                        <p>Scan your first document using the mobile app</p>
+                        <a href="/landing#download" class="btn btn-primary" style="display: inline-flex; width: auto;">
+                            <i class="fas fa-download"></i> Get the App
                         </a>
                     </div>
                 `;
                 return;
             }
             
-            const html = `
-                <div class="documents-grid">
-                    ${documents.map(doc => renderDocumentCard(doc)).join('')}
-                </div>
-            `;
-            container.innerHTML = html;
+            if (currentView === 'grid') {
+                container.innerHTML = `<div class="documents-grid">${filteredDocs.map(renderGridCard).join('')}</div>`;
+            } else {
+                container.innerHTML = `<div class="documents-list">${filteredDocs.map(renderListItem).join('')}</div>`;
+            }
         }
         
-        function renderDocumentCard(doc) {
-            const thumbnail = doc.pages?.[0]?.thumbnail_url || doc.pages?.[0]?.image_url || '';
-            const pageCount = doc.pages?.length || 0;
+        function renderGridCard(doc) {
+            const thumb = doc.pages?.[0]?.thumbnail_url || doc.pages?.[0]?.image_url || '';
+            const pages = doc.pages?.length || 0;
             const date = new Date(doc.created_at).toLocaleDateString();
             
             return `
                 <div class="document-card" onclick="openDocument('${doc.document_id}')">
                     <div class="document-preview">
-                        ${thumbnail 
-                            ? `<img src="${thumbnail}" alt="${doc.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="placeholder" style="display:none"><i class="fas fa-file-alt"></i></div>`
-                            : '<div class="placeholder"><i class="fas fa-file-alt"></i></div>'
-                        }
-                        <div class="document-badge">${pageCount} page${pageCount !== 1 ? 's' : ''}</div>
+                        ${thumb ? `<img src="${thumb}" onerror="this.style.display='none'">` : ''}
+                        <div class="placeholder" ${thumb ? 'style="display:none"' : ''}><i class="fas fa-file-alt"></i></div>
+                        <div class="document-badge">${pages} pg</div>
                     </div>
                     <div class="document-info">
                         <h3>${doc.name || 'Untitled'}</h3>
                         <div class="document-meta">
                             <span><i class="fas fa-calendar"></i> ${date}</span>
-                            <span><i class="fas fa-file"></i> PDF</span>
                         </div>
                         <div class="document-actions">
                             <button class="btn-view" onclick="event.stopPropagation(); openDocument('${doc.document_id}')">
-                                <i class="fas fa-eye"></i> View
+                                <i class="fas fa-eye"></i>
                             </button>
                             <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')">
-                                <i class="fas fa-download"></i> Download
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.document_id}')">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderListItem(doc) {
+            const thumb = doc.pages?.[0]?.thumbnail_url || doc.pages?.[0]?.image_url || '';
+            const pages = doc.pages?.length || 0;
+            const date = new Date(doc.created_at).toLocaleDateString();
+            
+            return `
+                <div class="document-row" onclick="openDocument('${doc.document_id}')">
+                    <div class="thumbnail">
+                        ${thumb ? `<img src="${thumb}">` : '<i class="fas fa-file-alt" style="color: var(--gray-400);"></i>'}
+                    </div>
+                    <div class="info">
+                        <h4>${doc.name || 'Untitled'}</h4>
+                        <p>${pages} pages • ${date}</p>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-view" onclick="event.stopPropagation(); openDocument('${doc.document_id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.document_id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             `;
@@ -1283,69 +1635,94 @@
         
         function updateStats() {
             document.getElementById('totalDocs').textContent = documents.length;
+            document.getElementById('profileDocs').textContent = documents.length;
             
             let totalPages = 0;
+            let thisMonth = 0;
+            const now = new Date();
+            
             documents.forEach(doc => {
                 totalPages += doc.pages?.length || 0;
+                if (new Date(doc.created_at).getMonth() === now.getMonth()) thisMonth++;
             });
-            document.getElementById('totalPages').textContent = totalPages;
             
-            const storageMB = (totalPages * 0.5).toFixed(1);
-            document.getElementById('storageUsed').textContent = `${storageMB} MB`;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('profilePages').textContent = totalPages;
+            document.getElementById('thisMonth').textContent = thisMonth;
+            
+            const storage = (totalPages * 0.5).toFixed(1) + ' MB';
+            document.getElementById('storageUsed').textContent = storage;
+            document.getElementById('profileStorage').textContent = storage;
         }
         
-        function openDocument(docId) {
-            currentDocument = documents.find(d => d.document_id === docId);
+        function setView(view, btn) {
+            currentView = view;
+            document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderDocuments();
+        }
+        
+        function filterDocuments() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredDocs = documents.filter(d => 
+                (d.name || '').toLowerCase().includes(query)
+            );
+            renderDocuments();
+        }
+        
+        function sortDocuments() {
+            const sort = document.getElementById('sortSelect').value;
+            switch(sort) {
+                case 'newest':
+                    filteredDocs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    break;
+                case 'oldest':
+                    filteredDocs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                    break;
+                case 'name':
+                    filteredDocs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                    break;
+                case 'name-desc':
+                    filteredDocs.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+                    break;
+            }
+            renderDocuments();
+        }
+        
+        // Document modal
+        function openDocument(id) {
+            currentDocument = documents.find(d => d.document_id === id);
             if (!currentDocument) return;
-            
             currentPageIndex = 0;
-            updateModalContent();
+            updateModal();
             document.getElementById('documentModal').classList.remove('hidden');
         }
         
-        function updateModalContent() {
+        function updateModal() {
             if (!currentDocument) return;
-            
             document.getElementById('modalTitle').textContent = currentDocument.name || 'Untitled';
-            
             const page = currentDocument.pages[currentPageIndex];
-            const imgUrl = page?.image_url || page?.thumbnail_url || '';
-            document.getElementById('modalImage').src = imgUrl;
-            
-            const totalPages = currentDocument.pages.length;
-            document.getElementById('pageIndicator').textContent = `Page ${currentPageIndex + 1} of ${totalPages}`;
+            document.getElementById('modalImage').src = page?.image_url || page?.thumbnail_url || '';
+            const total = currentDocument.pages.length;
+            document.getElementById('pageIndicator').textContent = `Page ${currentPageIndex + 1} of ${total}`;
             document.getElementById('prevPageBtn').disabled = currentPageIndex === 0;
-            document.getElementById('nextPageBtn').disabled = currentPageIndex === totalPages - 1;
+            document.getElementById('nextPageBtn').disabled = currentPageIndex === total - 1;
         }
         
-        function prevPage() {
-            if (currentPageIndex > 0) {
-                currentPageIndex--;
-                updateModalContent();
-            }
-        }
+        function prevPage() { if (currentPageIndex > 0) { currentPageIndex--; updateModal(); } }
+        function nextPage() { if (currentDocument && currentPageIndex < currentDocument.pages.length - 1) { currentPageIndex++; updateModal(); } }
+        function closeDocumentModal() { document.getElementById('documentModal').classList.add('hidden'); }
         
-        function nextPage() {
-            if (currentDocument && currentPageIndex < currentDocument.pages.length - 1) {
-                currentPageIndex++;
-                updateModalContent();
-            }
-        }
-        
-        function closeDocumentModal() {
-            document.getElementById('documentModal').classList.add('hidden');
-            currentDocument = null;
-        }
-        
-        async function downloadDocument(docId) {
-            const doc = documents.find(d => d.document_id === docId);
+        async function downloadDocument(id) {
+            const doc = documents.find(d => d.document_id === id);
             if (!doc) return;
             
+            showToast('Preparing download...', 'success');
+            
             try {
-                const res = await fetch(`${API_URL}/documents/${docId}/pdf`, {
+                const res = await fetch(`${API_URL}/documents/${id}/pdf`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
                 if (res.ok) {
                     const blob = await res.blob();
                     const url = URL.createObjectURL(blob);
@@ -1354,37 +1731,96 @@
                     a.download = `${doc.name || 'document'}.pdf`;
                     a.click();
                     URL.revokeObjectURL(url);
+                    showToast('Download started!', 'success');
                 } else {
                     if (doc.pages?.[0]?.image_url) {
                         window.open(doc.pages[0].image_url, '_blank');
                     } else {
-                        alert('PDF download not available. Please use the mobile app.');
+                        showToast('Download not available', 'error');
                     }
                 }
             } catch (e) {
-                console.error('Download error:', e);
-                alert('Download failed. Please try again.');
+                showToast('Download failed', 'error');
             }
         }
         
         function downloadCurrentDocument() {
-            if (currentDocument) {
-                downloadDocument(currentDocument.document_id);
+            if (currentDocument) downloadDocument(currentDocument.document_id);
+        }
+        
+        async function deleteDocument(id) {
+            if (!confirm('Delete this document?')) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/documents/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    documents = documents.filter(d => d.document_id !== id);
+                    filteredDocs = filteredDocs.filter(d => d.document_id !== id);
+                    renderDocuments();
+                    updateStats();
+                    showToast('Document deleted', 'success');
+                } else {
+                    showToast('Delete failed', 'error');
+                }
+            } catch (e) {
+                showToast('Delete failed', 'error');
             }
         }
         
-        function setView(view) {
-            document.querySelectorAll('.view-toggle button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.closest('button').classList.add('active');
+        async function deleteAllDocuments() {
+            if (!confirm('Delete ALL documents? This cannot be undone!')) return;
+            if (!confirm('Are you absolutely sure?')) return;
+            
+            showToast('Deleting all documents...', 'success');
+            
+            for (const doc of documents) {
+                try {
+                    await fetch(`${API_URL}/documents/${doc.document_id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } catch (e) {}
+            }
+            
+            documents = [];
+            filteredDocs = [];
+            renderDocuments();
+            updateStats();
+            showToast('All documents deleted', 'success');
         }
         
-        // Initialize
-        window.onload = function() {
-            initGoogleSignIn();
-            checkAuth();
-        };
+        // Navigation
+        function showPage(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+            
+            document.getElementById('documentsPage').style.display = page === 'documents' ? 'block' : 'none';
+            document.getElementById('profilePage').style.display = page === 'profile' ? 'block' : 'none';
+            document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
+            
+            // Close sidebar on mobile
+            document.getElementById('sidebar').classList.remove('open');
+        }
+        
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+        
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+            document.getElementById('toastMessage').textContent = message;
+            
+            toast.className = 'toast ' + type;
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
     </script>
 </body>
 </html>
