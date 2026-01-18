@@ -448,10 +448,13 @@ export default function ShareModal({
     try {
       // Use same watermark logic as PDF
       const showWatermark = getWatermarkStatus();
-      console.log('[ShareModal] handlePrint - showWatermark:', showWatermark);
+      console.log('[ShareModal] handlePrint - showWatermark:', showWatermark, 'pageCount:', pages.length);
       
       // Load images from any source
       const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
+      
+      // Filter out any empty images
+      const validImages = imagesBase64.filter(img => img && img.length > 100);
 
       // Watermark HTML for print
       const watermarkHtml = showWatermark ? `
@@ -471,27 +474,47 @@ export default function ShareModal({
         ">ScanUp</div>
       ` : '';
 
-      const imageHtml = imagesBase64.map((img, index) => `
-        <div style="
-          page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; 
-          text-align: center;
-          position: relative;
-          min-height: 100vh;
-        ">
-          <img src="data:image/jpeg;base64,${img}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+      // Build HTML for each page - FIXED: same as generatePdf
+      const imageHtml = validImages.map((img, index) => {
+        const isLastPage = index === validImages.length - 1;
+        return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'}">
+          <img src="data:image/jpeg;base64,${img}" />
           ${watermarkHtml}
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
 
-      const html = `
-        <!DOCTYPE html>
-        <html>
-          <head><meta charset="UTF-8"></head>
-          <body style="margin: 0; padding: 0;">
-            ${imageHtml}
-          </body>
-        </html>
-      `;
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { margin: 5mm; size: A4; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  .page-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+  }
+  .page-container img {
+    max-width: 100%;
+    max-height: 95vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>${imageHtml}</body>
+</html>`;
 
       await Print.printAsync({ html });
     } catch (error: any) {
