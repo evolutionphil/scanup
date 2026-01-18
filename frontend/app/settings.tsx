@@ -426,6 +426,16 @@ export default function SettingsScreen() {
           onPress={() => router.push('/premium')}
         />
 
+        {/* Security */}
+        <SectionHeader title={t('security', 'SECURITY').toUpperCase()} />
+        
+        <SettingRow
+          icon="shield-checkmark-outline"
+          label={t('web_access', 'Web Access')}
+          subtitle={t('web_access_desc', 'Manage web dashboard access requests')}
+          onPress={() => router.push('/web-access')}
+        />
+
         {/* Appearance */}
         <SectionHeader title={t('appearance', 'APPEARANCE').toUpperCase()} />
         
