@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - ScanUp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #3E51FB;
+            --primary-dark: #2D3ED9;
+            --primary-light: #6B7BFF;
+            --secondary: #10B981;
+            --dark: #111827;
+            --gray-500: #6B7280;
+            --gray-100: #F3F4F6;
+            --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--dark);
+            line-height: 1.7;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-100);
+            padding: 1rem 2rem;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .hero {
+            background: var(--gradient);
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            color: white;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .search-box {
+            max-width: 500px;
+            margin: 2rem auto 0;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .search-box i {
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-500);
+        }
+        .content {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+        .faq-categories {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+        .category-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--gray-100);
+            border-radius: 50px;
+            background: white;
+            color: var(--gray-500);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .category-btn:hover, .category-btn.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(62, 81, 251, 0.05);
+        }
+        .faq-section {
+            margin-bottom: 3rem;
+        }
+        .faq-section h2 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .faq-section h2 i {
+            color: var(--primary);
+        }
+        .faq-item {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--gray-100);
+        }
+        .faq-question {
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .faq-question:hover {
+            background: var(--gray-100);
+        }
+        .faq-question i {
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+        .faq-item.open .faq-question i {
+            transform: rotate(180deg);
+        }
+        .faq-answer {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: var(--gray-500);
+        }
+        .faq-item.open .faq-answer {
+            padding: 0 1.5rem 1.5rem;
+            max-height: 500px;
+        }
+        .contact-cta {
+            background: var(--gray-100);
+            padding: 3rem;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 3rem;
+        }
+        .contact-cta h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .contact-cta p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(62, 81, 251, 0.3);
+        }
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .faq-categories { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.5rem; }
+            .category-btn { white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/landing" class="logo">
+                <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                ScanUp
+            </a>
+            <a href="/landing" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Frequently Asked Questions</h1>
+        <p>Find answers to common questions about ScanUp. Can't find what you're looking for? Contact our support team.</p>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search for answers..." id="faqSearch" onkeyup="searchFAQ()">
+        </div>
+    </section>
+
+    <div class="content">
+        <div class="faq-categories">
+            <button class="category-btn active" onclick="filterCategory('all')">All</button>
+            <button class="category-btn" onclick="filterCategory('getting-started')">Getting Started</button>
+            <button class="category-btn" onclick="filterCategory('features')">Features</button>
+            <button class="category-btn" onclick="filterCategory('subscription')">Subscription</button>
+            <button class="category-btn" onclick="filterCategory('web-dashboard')">Web Dashboard</button>
+            <button class="category-btn" onclick="filterCategory('security')">Security</button>
+        </div>
+
+        <div class="faq-section" data-category="getting-started">
+            <h2><i class="fas fa-rocket"></i> Getting Started</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How do I scan my first document?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Open the ScanUp app and tap the camera button at the bottom. Point your camera at the document - our AI will automatically detect the edges. Once captured, you can adjust the crop, apply filters, and save as PDF.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Is ScanUp available on both iOS and Android?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! ScanUp is available on both the Apple App Store and Google Play Store. The app works identically on both platforms, and your documents sync across all your devices.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Do I need an account to use ScanUp?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>You can use basic scanning features without an account. However, creating a free account enables cloud backup, cross-device sync, and access to the web dashboard.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section" data-category="features">
+            <h2><i class="fas fa-magic"></i> Features</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How does auto edge detection work?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Our AI-powered edge detection uses computer vision to identify document boundaries automatically. It works on any background and can detect documents at various angles.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Can I add digital signatures to documents?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! Premium users can create and save multiple signatures. Draw your signature once, then apply it to any document with a single tap. Signatures are stored securely on your device.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>What export formats are supported?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>You can export documents as PDF (recommended for sharing), JPEG, or PNG. Multi-page documents are automatically combined into a single PDF file.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section" data-category="web-dashboard">
+            <h2><i class="fas fa-globe"></i> Web Dashboard</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>What is the Web Dashboard?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>The Web Dashboard lets you access and manage your scanned documents from any web browser. You can view, organize into folders, rename, download as PDF, and delete documents - all from your computer.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How do I access the Web Dashboard?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Visit <a href="/landing/dashboard">scanup.app/dashboard</a> and sign in with your account. You can use email/password or Google Sign-In. Your documents will sync automatically.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Can I create folders on the web?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! You can create custom folders with different colors to organize your documents. Simply drag and drop documents into folders, or use the "Move to Folder" button.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Do changes on web sync to my phone?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Absolutely! All changes sync in real-time. Rename a document on the web, and it updates on your phone. Create a folder on your phone, and it appears on the web dashboard.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section" data-category="subscription">
+            <h2><i class="fas fa-crown"></i> Subscription & Pricing</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>What's included in the free version?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Free users get 10 scans per month, basic filters, PDF export (with watermark), and local storage. It's perfect for occasional scanning needs.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>What does Pro subscription include?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Pro ($4.99/month) includes unlimited scans, all premium filters, digital signatures, cloud backup, no watermarks, OCR text recognition, and priority support.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Is there a lifetime purchase option?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! For $49.99 one-time, you get all Pro features forever with lifetime updates. It's the best value if you plan to use ScanUp long-term.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>How do I cancel my subscription?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Subscriptions are managed through the App Store (iOS) or Google Play (Android). Go to your device's subscription settings to cancel. You'll retain access until the end of your billing period.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section" data-category="security">
+            <h2><i class="fas fa-shield-alt"></i> Privacy & Security</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Are my documents stored securely?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! All data is encrypted using AES-256 at rest and TLS/SSL in transit. We follow industry best practices and use SOC 2 compliant cloud infrastructure.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Can I password-protect sensitive documents?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Premium users can add password protection to individual documents or folders. The password is required to view or export the document.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <span>Does ScanUp sell my data?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Never. We do not sell, share, or monetize your personal data or documents. Your documents are yours alone. Read our <a href="/landing/privacy">Privacy Policy</a> for full details.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="contact-cta">
+            <h3>Still have questions?</h3>
+            <p>Our support team is ready to help you with any questions or issues.</p>
+            <a href="/landing/support" class="btn">
+                <i class="fas fa-headset"></i> Contact Support
+            </a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ScanUp Inc. All rights reserved. | <a href="/landing/terms">Terms</a> | <a href="/landing/privacy">Privacy</a> | <a href="/landing/support">Support</a></p>
+    </footer>
+
+    <script>
+        function toggleFAQ(element) {
+            const item = element.parentElement;
+            item.classList.toggle('open');
+        }
+        
+        function filterCategory(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.faq-section').forEach(section => {
+                if (category === 'all' || section.dataset.category === category) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+        
+        function searchFAQ() {
+            const query = document.getElementById('faqSearch').value.toLowerCase();
+            document.querySelectorAll('.faq-item').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(query) ? 'block' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
