@@ -1,0 +1,65 @@
+# ScanUp Robots.txt
+# https://scanup.app
+
+# Allow all search engine crawlers
+User-agent: *
+Allow: /
+Allow: /landing
+Allow: /landing/features
+Allow: /landing/pricing
+Allow: /landing/download
+Allow: /landing/reviews
+Allow: /landing/faq
+Allow: /landing/support
+Allow: /landing/contact
+Allow: /landing/status
+Allow: /landing/terms
+Allow: /landing/privacy
+Allow: /landing/cookies
+Allow: /landing/gdpr
+
+# Disallow private/secure areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /admin-dashboard/
+Disallow: /landing/dashboard
+Disallow: /*.json$
+Disallow: /*?token=
+Disallow: /*?auth=
+
+# Block AI crawlers from user content
+User-agent: GPTBot
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: ChatGPT-User
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: CCBot
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: anthropic-ai
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: Claude-Web
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: Google-Extended
+Disallow: /api/
+Disallow: /landing/dashboard
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://scanup.app/sitemap.xml
+
+# Crawl-delay for polite crawlers
+Crawl-delay: 1

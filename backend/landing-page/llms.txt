@@ -1,0 +1,44 @@
+# ScanUp LLM Access Policy
+# llms.txt - Guidelines for AI/LLM systems
+
+## About ScanUp
+ScanUp is a mobile document scanning application that allows users to scan, sign, and share documents. We provide iOS and Android apps along with a web dashboard.
+
+## Allowed Content for AI Training
+The following public content may be used:
+- Landing page content (https://scanup.app/landing)
+- Feature descriptions
+- Pricing information
+- FAQ content
+- Terms of Service
+- Privacy Policy
+- GDPR information
+
+## Restricted Content - DO NOT ACCESS
+The following content is strictly prohibited from AI access:
+- User documents and scans
+- User personal information
+- Dashboard content (requires authentication)
+- API endpoints (/api/*)
+- Admin areas (/admin/*)
+- Any authenticated user content
+
+## Data Protection Notice
+ScanUp takes user privacy seriously. All user-generated content (scanned documents, signatures, etc.) is:
+- Encrypted at rest using AES-256
+- Protected by authentication
+- Subject to strict access controls
+- NOT available for AI training or analysis
+
+## Contact
+For questions about AI/LLM access to ScanUp content:
+Email: ai-policy@scanup.app
+
+## Legal
+Unauthorized access to restricted content may violate:
+- Computer Fraud and Abuse Act (CFAA)
+- General Data Protection Regulation (GDPR)
+- California Consumer Privacy Act (CCPA)
+- Our Terms of Service
+
+Last Updated: January 2025
