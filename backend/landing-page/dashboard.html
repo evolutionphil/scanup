@@ -2010,12 +2010,12 @@
         function startPollingForApproval() {
             if (webAccessPollingInterval) clearInterval(webAccessPollingInterval);
             
-            console.log('Starting polling for session:', webAccessSessionId);
+            console.log('Starting polling for session:', window.webAccessSessionId);
             
             webAccessPollingInterval = setInterval(async () => {
                 try {
-                    console.log('Polling status for:', webAccessSessionId);
-                    const res = await fetch(`${API_URL}/auth/web-access/status/${webAccessSessionId}`, {
+                    console.log('Polling status for:', window.webAccessSessionId);
+                    const res = await fetch(`${API_URL}/auth/web-access/status/${window.webAccessSessionId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
