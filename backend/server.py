@@ -1445,16 +1445,28 @@ async def google_auth(data: GoogleAuthRequest):
             
             if existing_user:
                 # User exists - update Google info and login
+                # Also ensure required fields exist for older users
+                update_fields = {
+                    "google_id": google_id,
+                    "profile_picture": picture or existing_user.get("profile_picture"),
+                    "name": name or existing_user.get("name"),
+                    "email_verified": True,
+                    "last_login": now,
+                    "updated_at": now
+                }
+                # Add missing required fields if they don't exist
+                if "is_premium" not in existing_user:
+                    update_fields["is_premium"] = False
+                if "ocr_remaining_today" not in existing_user:
+                    update_fields["ocr_remaining_today"] = 10
+                if "scans_remaining_today" not in existing_user:
+                    update_fields["scans_remaining_today"] = 50
+                if "scans_remaining_month" not in existing_user:
+                    update_fields["scans_remaining_month"] = 100
+                    
                 await db.users.update_one(
                     {"email": email},
-                    {"$set": {
-                        "google_id": google_id,
-                        "profile_picture": picture or existing_user.get("profile_picture"),
-                        "name": name or existing_user.get("name"),
-                        "email_verified": True,
-                        "last_login": now,
-                        "updated_at": now
-                    }}
+                    {"$set": update_fields}
                 )
                 user_id = existing_user["user_id"]
                 is_new = False
