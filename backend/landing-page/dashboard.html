@@ -2543,6 +2543,158 @@
             }
         }
         
+        // =====================
+        // DRAG AND DROP
+        // =====================
+        
+        function handleDragStart(event, docId) {
+            draggedDocument = documents.find(d => d.document_id === docId);
+            event.target.classList.add('dragging');
+            event.dataTransfer.setData('text/plain', docId);
+            event.dataTransfer.effectAllowed = 'move';
+        }
+        
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            draggedDocument = null;
+            // Remove drag-over class from all folders
+            document.querySelectorAll('.folder-card.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        }
+        
+        function handleFolderDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            event.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleFolderDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+        
+        async function handleFolderDrop(event, folderId) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
+            const docId = event.dataTransfer.getData('text/plain');
+            if (!docId) return;
+            
+            const doc = documents.find(d => d.document_id === docId);
+            if (!doc) return;
+            
+            // Don't move if already in this folder
+            if (doc.folder_id === folderId) {
+                showToast('Document is already in this folder', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/documents/${docId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ folder_id: folderId })
+                });
+                
+                if (res.ok) {
+                    // Update local data
+                    const oldFolderId = doc.folder_id;
+                    doc.folder_id = folderId;
+                    
+                    // Update folder counts
+                    if (oldFolderId) {
+                        const oldFolder = folders.find(f => f.folder_id === oldFolderId);
+                        if (oldFolder) oldFolder.document_count = Math.max(0, (oldFolder.document_count || 1) - 1);
+                    }
+                    const newFolder = folders.find(f => f.folder_id === folderId);
+                    if (newFolder) newFolder.document_count = (newFolder.document_count || 0) + 1;
+                    
+                    // Refresh views
+                    if (currentFolderId) {
+                        filteredDocs = documents.filter(d => d.folder_id === currentFolderId);
+                    } else {
+                        filteredDocs = [...documents];
+                    }
+                    
+                    renderDocuments();
+                    renderFolders();
+                    
+                    const folderName = newFolder?.name || 'folder';
+                    showToast(`Moved to ${folderName}`, 'success');
+                } else {
+                    showToast('Failed to move document', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        // =====================
+        // RENAME DOCUMENT
+        // =====================
+        
+        function openRenameDocModal(docId) {
+            documentToRename = documents.find(d => d.document_id === docId);
+            if (!documentToRename) return;
+            
+            document.getElementById('renameDocInput').value = documentToRename.name || '';
+            document.getElementById('renameDocModal').classList.remove('hidden');
+            document.getElementById('renameDocInput').focus();
+            document.getElementById('renameDocInput').select();
+        }
+        
+        function closeRenameDocModal() {
+            document.getElementById('renameDocModal').classList.add('hidden');
+            documentToRename = null;
+        }
+        
+        async function renameDocument() {
+            if (!documentToRename) return;
+            
+            const newName = document.getElementById('renameDocInput').value.trim();
+            if (!newName) {
+                showToast('Please enter a name', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/documents/${documentToRename.document_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: newName })
+                });
+                
+                if (res.ok) {
+                    documentToRename.name = newName;
+                    renderDocuments();
+                    closeRenameDocModal();
+                    showToast('Document renamed!', 'success');
+                } else {
+                    showToast('Failed to rename document', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        // Handle Enter key in rename input
+        document.addEventListener('DOMContentLoaded', () => {
+            const renameInput = document.getElementById('renameDocInput');
+            if (renameInput) {
+                renameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        renameDocument();
+                    }
+                });
+            }
+        });
+        
         // Update loadDocuments to also load folders
         const originalLoadDocuments = loadDocuments;
         loadDocuments = async function() {
