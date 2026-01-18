@@ -6961,4 +6961,11 @@ if os_module.path.exists(landing_page_path):
             return FileResponse(support_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="Support page not found")
     
+    @app.get("/landing/dashboard")
+    async def serve_dashboard_page():
+        dashboard_path = os_module.path.join(landing_page_path, "dashboard.html")
+        if os_module.path.exists(dashboard_path):
+            return FileResponse(dashboard_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Dashboard page not found")
+    
     logger.info("✅ Landing page mounted at /landing")
