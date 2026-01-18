@@ -1500,6 +1500,69 @@
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage">Success!</span>
     </div>
+    
+    <!-- Create Folder Modal -->
+    <div class="modal-overlay hidden" id="createFolderModal">
+        <div class="modal form-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-folder-plus" style="color: var(--warning); margin-right: 0.5rem;"></i> Create New Folder</h3>
+                <button class="modal-close" onclick="closeCreateFolderModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Folder Name</label>
+                    <input type="text" id="newFolderName" placeholder="My Folder" required>
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background: #F59E0B;" data-color="#F59E0B" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #3B82F6;" data-color="#3B82F6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #10B981;" data-color="#10B981" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #8B5CF6;" data-color="#8B5CF6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #EF4444;" data-color="#EF4444" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #EC4899;" data-color="#EC4899" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #6366F1;" data-color="#6366F1" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background: #14B8A6;" data-color="#14B8A6" onclick="selectColor(this)"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateFolderModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createFolder()">
+                    <i class="fas fa-plus"></i> Create Folder
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Move to Folder Modal -->
+    <div class="modal-overlay hidden" id="moveFolderModal">
+        <div class="modal form-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-folder-open" style="color: var(--primary); margin-right: 0.5rem;"></i> Move to Folder</h3>
+                <button class="modal-close" onclick="closeMoveFolderModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--gray-600);">Select a folder to move "<span id="moveDocName"></span>" to:</p>
+                <div class="form-group">
+                    <select id="targetFolderSelect">
+                        <option value="">No Folder (Root)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMoveFolderModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="moveDocumentToFolder()">
+                    <i class="fas fa-arrow-right"></i> Move
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const API_URL = '/api';
@@ -1507,10 +1570,14 @@
         let token = localStorage.getItem('scanup_token');
         let currentUser = null;
         let documents = [];
+        let folders = [];
         let filteredDocs = [];
         let currentDocument = null;
         let currentPageIndex = 0;
         let currentView = 'grid';
+        let currentFolderId = null;
+        let selectedFolderColor = '#F59E0B';
+        let documentToMove = null;
         
         // Initialize
         window.onload = function() {
