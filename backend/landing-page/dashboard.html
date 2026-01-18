@@ -2263,20 +2263,20 @@
             
             foldersSection.style.display = 'block';
             
-            // Add "Create Folder" card first
-            let html = `
-                <div class="folder-card add-folder-card" onclick="openCreateFolderModal()">
-                    <div class="folder-icon"><i class="fas fa-plus"></i></div>
-                    <h4>New Folder</h4>
-                </div>
-            `;
+            // Render existing folders (no "New Folder" card since we have header button)
+            let html = '';
             
-            // Render existing folders
+            // Render existing folders with drag-drop support
             folders.forEach(folder => {
                 const docCount = folder.document_count || 0;
                 const color = folder.color || '#F59E0B';
                 html += `
-                    <div class="folder-card" onclick="openFolder('${folder.folder_id}')">
+                    <div class="folder-card" 
+                         data-folder-id="${folder.folder_id}"
+                         onclick="openFolder('${folder.folder_id}')"
+                         ondragover="handleFolderDragOver(event)"
+                         ondragleave="handleFolderDragLeave(event)"
+                         ondrop="handleFolderDrop(event, '${folder.folder_id}')">
                         <div class="folder-icon" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
                             <i class="fas fa-folder"></i>
                         </div>
@@ -2293,6 +2293,16 @@
                     </div>
                 `;
             });
+            
+            // Show empty state if no folders
+            if (folders.length === 0) {
+                html = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--gray-500);">
+                        <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <p>No folders yet. Click "New Folder" to create one.</p>
+                    </div>
+                `;
+            }
             
             container.innerHTML = html;
         }
