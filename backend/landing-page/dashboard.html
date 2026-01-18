@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Documents - ScanUp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #3E51FB;
+            --primary-dark: #2D3ED9;
+            --primary-light: #6B7BFF;
+            --secondary: #10B981;
+            --danger: #EF4444;
+            --dark: #111827;
+            --gray-900: #1F2937;
+            --gray-700: #374151;
+            --gray-500: #6B7280;
+            --gray-300: #D1D5DB;
+            --gray-100: #F3F4F6;
+            --gray-50: #F9FAFB;
+            --white: #FFFFFF;
+            --gradient: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+        
+        /* ========== AUTH MODAL ========== */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .auth-overlay.hidden {
+            display: none;
+        }
+        
+        .auth-modal {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .auth-header {
+            background: var(--gradient);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .auth-header .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-header .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .auth-header .logo-text {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+        
+        .auth-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+        
+        .auth-body {
+            padding: 2rem;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--gray-500);
+        }
+        
+        .auth-tab.active {
+            background: white;
+            color: var(--dark);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            outline: none;
+        }
+        
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(62, 81, 251, 0.1);
+        }
+        
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(62, 81, 251, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-300);
+        }
+        
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .btn-social {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--dark);
+        }
+        
+        .btn-social:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-300);
+        }
+        
+        .btn-social img {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .btn-apple {
+            background: var(--dark);
+            color: white;
+            border: none;
+        }
+        
+        .btn-apple:hover {
+            background: var(--gray-900);
+        }
+        
+        .error-message {
+            background: #FEF2F2;
+            color: var(--danger);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        /* ========== DASHBOARD ========== */
+        .dashboard {
+            display: none;
+        }
+        
+        .dashboard.active {
+            display: block;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 800;
+            font-size: 1.5rem;
+        }
+        
+        .nav-logo .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 0.5rem;
+            min-width: 200px;
+            display: none;
+            margin-top: 0.5rem;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+        }
+        
+        .user-dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .user-dropdown-header h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .user-dropdown-header p {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+        
+        .user-dropdown a, .user-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            color: var(--gray-700);
+            text-decoration: none;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .user-dropdown a:hover, .user-dropdown button:hover {
+            background: var(--gray-100);
+        }
+        
+        .user-dropdown .logout {
+            color: var(--danger);
+        }
+        
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-header p {
+            color: var(--gray-500);
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .stat-icon.blue { background: #EFF6FF; color: #3B82F6; }
+        .stat-icon.green { background: #ECFDF5; color: #10B981; }
+        .stat-icon.purple { background: #F5F3FF; color: #8B5CF6; }
+        .stat-icon.orange { background: #FFF7ED; color: #F97316; }
+        
+        .stat-info h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .stat-info p {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+        
+        /* Documents Section */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .view-toggle {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        
+        .view-toggle button {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+        
+        .view-toggle button.active {
+            background: white;
+            color: var(--dark);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* Documents Grid */
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .document-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .document-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+        
+        .document-preview {
+            height: 180px;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .document-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .document-preview .placeholder {
+            font-size: 3rem;
+            color: var(--gray-400);
+        }
+        
+        .document-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .document-info {
+            padding: 1rem;
+        }
+        
+        .document-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .document-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 0.75rem;
+        }
+        
+        .document-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .document-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-download {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-view {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .btn-view:hover {
+            background: var(--gray-200);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 16px;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Document Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .modal-overlay.hidden {
+            display: none;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+        
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        .modal-footer .btn {
+            width: auto;
+            padding: 0.75rem 1.5rem;
+        }
+        
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+        
+        .page-preview {
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .page-preview img {
+            width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .page-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .page-nav button {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .page-nav button:hover:not(:disabled) {
+            background: var(--gray-300);
+        }
+        
+        .page-nav button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .documents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-modal">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                    <span class="logo-text">ScanUp</span>
+                </div>
+                <h2>Access your documents anywhere</h2>
+            </div>
+            <div class="auth-body">
+                <div class="auth-tabs">
+                    <div class="auth-tab active" data-tab="login">Login</div>
+                    <div class="auth-tab" data-tab="register">Register</div>
+                </div>
+                
+                <div class="error-message" id="authError"></div>
+                
+                <!-- Login Form -->
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
+                        <span>Login</span>
+                    </button>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="registerName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" placeholder="Min 6 characters" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="registerBtn">
+                        <span>Create Account</span>
+                    </button>
+                </form>
+                
+                <div class="divider">or continue with</div>
+                
+                <div class="social-buttons">
+                    <button class="btn btn-social" onclick="loginWithGoogle()">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        <span>Continue with Google</span>
+                    </button>
+                    <button class="btn btn-social btn-apple" onclick="loginWithApple()">
+                        <i class="fab fa-apple"></i>
+                        <span>Continue with Apple</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="/landing" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                    ScanUp
+                </a>
+                <div class="nav-user">
+                    <div class="user-menu">
+                        <div class="user-avatar" id="userAvatar" onclick="toggleUserMenu()">JD</div>
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="user-dropdown-header">
+                                <h4 id="userName">John Doe</h4>
+                                <p id="userEmail">john@example.com</p>
+                            </div>
+                            <a href="/landing"><i class="fas fa-home"></i> Home</a>
+                            <button class="logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>My Documents</h1>
+                <p>View and download all your scanned documents from the cloud.</p>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-info">
+                        <h3 id="totalDocs">0</h3>
+                        <p>Total Documents</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-file-pdf"></i></div>
+                    <div class="stat-info">
+                        <h3 id="totalPages">0</h3>
+                        <p>Total Pages</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-cloud"></i></div>
+                    <div class="stat-info">
+                        <h3 id="storageUsed">0 MB</h3>
+                        <p>Storage Used</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fas fa-crown"></i></div>
+                    <div class="stat-info">
+                        <h3 id="planStatus">Free</h3>
+                        <p>Current Plan</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Documents Section -->
+            <div class="section-header">
+                <h2>Recent Documents</h2>
+                <div class="view-toggle">
+                    <button class="active" onclick="setView('grid')"><i class="fas fa-th-large"></i></button>
+                    <button onclick="setView('list')"><i class="fas fa-list"></i></button>
+                </div>
+            </div>
+            
+            <div id="documentsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Document Preview Modal -->
+    <div class="modal-overlay hidden" id="documentModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Document Name</h3>
+                <button class="modal-close" onclick="closeDocumentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="page-preview">
+                    <img id="modalImage" src="" alt="Document page">
+                </div>
+                <div class="page-nav">
+                    <button onclick="prevPage()" id="prevPageBtn"><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="pageIndicator">Page 1 of 1</span>
+                    <button onclick="nextPage()" id="nextPageBtn">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDocumentModal()">Close</button>
+                <button class="btn btn-primary" onclick="downloadCurrentDocument()">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let token = localStorage.getItem('scanup_token');
+        let currentUser = null;
+        let documents = [];
+        let currentDocument = null;
+        let currentPageIndex = 0;
+        
+        // Check if user is logged in
+        async function checkAuth() {
+            if (token) {
+                try {
+                    const res = await fetch(`${API_URL}/users/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        currentUser = await res.json();
+                        showDashboard();
+                        loadDocuments();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Auth check failed:', e);
+                }
+                // Token invalid
+                localStorage.removeItem('scanup_token');
+                token = null;
+            }
+            showAuthModal();
+        }
+        
+        function showAuthModal() {
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('dashboard').classList.remove('active');
+        }
+        
+        function showDashboard() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('active');
+            
+            // Update user info
+            if (currentUser) {
+                const initials = (currentUser.name || currentUser.email || 'U').substring(0, 2).toUpperCase();
+                document.getElementById('userAvatar').textContent = initials;
+                document.getElementById('userName').textContent = currentUser.name || 'User';
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('planStatus').textContent = currentUser.is_premium ? 'Premium' : 'Free';
+            }
+        }
+        
+        // Auth tabs
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const isLogin = tab.dataset.tab === 'login';
+                document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+                document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
+                document.getElementById('authError').classList.remove('show');
+            });
+        });
+        
+        // Login form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.access_token;
+                    localStorage.setItem('scanup_token', token);
+                    currentUser = data.user;
+                    showDashboard();
+                    loadDocuments();
+                } else {
+                    showError(data.detail || 'Login failed');
+                }
+            } catch (e) {
+                showError('Connection error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Login</span>';
+            }
+        });
+        
+        // Register form
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const btn = document.getElementById('registerBtn');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.access_token;
+                    localStorage.setItem('scanup_token', token);
+                    currentUser = data.user;
+                    showDashboard();
+                    loadDocuments();
+                } else {
+                    showError(data.detail || 'Registration failed');
+                }
+            } catch (e) {
+                showError('Connection error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Create Account</span>';
+            }
+        });
+        
+        function showError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+        
+        // Social login (placeholder - needs OAuth setup)
+        function loginWithGoogle() {
+            alert('Google login requires OAuth setup. Please use email/password for now.');
+        }
+        
+        function loginWithApple() {
+            alert('Apple login requires OAuth setup. Please use email/password for now.');
+        }
+        
+        // User menu
+        function toggleUserMenu() {
+            document.getElementById('userDropdown').classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-menu')) {
+                document.getElementById('userDropdown').classList.remove('show');
+            }
+        });
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('scanup_token');
+            token = null;
+            currentUser = null;
+            showAuthModal();
+        }
+        
+        // Load documents
+        async function loadDocuments() {
+            const container = document.getElementById('documentsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                const res = await fetch(`${API_URL}/documents`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    documents = await res.json();
+                    renderDocuments();
+                    updateStats();
+                } else {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Error loading documents</h3><p>Please try refreshing the page.</p></div>';
+                }
+            } catch (e) {
+                console.error('Load documents error:', e);
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-wifi"></i><h3>Connection Error</h3><p>Please check your internet connection.</p></div>';
+            }
+        }
+        
+        function renderDocuments() {
+            const container = document.getElementById('documentsContainer');
+            
+            if (documents.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No documents yet</h3>
+                        <p>Scan your first document using the ScanUp mobile app.</p>
+                        <a href="#download" class="btn btn-primary" style="display: inline-flex; width: auto; padding: 0.75rem 1.5rem;">
+                            <i class="fas fa-download"></i> Download App
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = `
+                <div class="documents-grid">
+                    ${documents.map(doc => renderDocumentCard(doc)).join('')}
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+        
+        function renderDocumentCard(doc) {
+            const thumbnail = doc.pages?.[0]?.thumbnail_url || doc.pages?.[0]?.image_url || '';
+            const pageCount = doc.pages?.length || 0;
+            const date = new Date(doc.created_at).toLocaleDateString();
+            
+            return `
+                <div class="document-card" onclick="openDocument('${doc.document_id}')">
+                    <div class="document-preview">
+                        ${thumbnail 
+                            ? `<img src="${thumbnail}" alt="${doc.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="placeholder" style="display:none"><i class="fas fa-file-alt"></i></div>`
+                            : '<div class="placeholder"><i class="fas fa-file-alt"></i></div>'
+                        }
+                        <div class="document-badge">${pageCount} page${pageCount !== 1 ? 's' : ''}</div>
+                    </div>
+                    <div class="document-info">
+                        <h3>${doc.name || 'Untitled'}</h3>
+                        <div class="document-meta">
+                            <span><i class="fas fa-calendar"></i> ${date}</span>
+                            <span><i class="fas fa-file"></i> PDF</span>
+                        </div>
+                        <div class="document-actions">
+                            <button class="btn-view" onclick="event.stopPropagation(); openDocument('${doc.document_id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn-download" onclick="event.stopPropagation(); downloadDocument('${doc.document_id}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateStats() {
+            document.getElementById('totalDocs').textContent = documents.length;
+            
+            let totalPages = 0;
+            documents.forEach(doc => {
+                totalPages += doc.pages?.length || 0;
+            });
+            document.getElementById('totalPages').textContent = totalPages;
+            
+            // Estimate storage (rough estimate: 500KB per page)
+            const storageMB = (totalPages * 0.5).toFixed(1);
+            document.getElementById('storageUsed').textContent = `${storageMB} MB`;
+        }
+        
+        // Document modal
+        function openDocument(docId) {
+            currentDocument = documents.find(d => d.document_id === docId);
+            if (!currentDocument) return;
+            
+            currentPageIndex = 0;
+            updateModalContent();
+            document.getElementById('documentModal').classList.remove('hidden');
+        }
+        
+        function updateModalContent() {
+            if (!currentDocument) return;
+            
+            document.getElementById('modalTitle').textContent = currentDocument.name || 'Untitled';
+            
+            const page = currentDocument.pages[currentPageIndex];
+            const imgUrl = page?.image_url || page?.thumbnail_url || '';
+            document.getElementById('modalImage').src = imgUrl;
+            
+            const totalPages = currentDocument.pages.length;
+            document.getElementById('pageIndicator').textContent = `Page ${currentPageIndex + 1} of ${totalPages}`;
+            document.getElementById('prevPageBtn').disabled = currentPageIndex === 0;
+            document.getElementById('nextPageBtn').disabled = currentPageIndex === totalPages - 1;
+        }
+        
+        function prevPage() {
+            if (currentPageIndex > 0) {
+                currentPageIndex--;
+                updateModalContent();
+            }
+        }
+        
+        function nextPage() {
+            if (currentDocument && currentPageIndex < currentDocument.pages.length - 1) {
+                currentPageIndex++;
+                updateModalContent();
+            }
+        }
+        
+        function closeDocumentModal() {
+            document.getElementById('documentModal').classList.add('hidden');
+            currentDocument = null;
+        }
+        
+        // Download document
+        async function downloadDocument(docId) {
+            const doc = documents.find(d => d.document_id === docId);
+            if (!doc) return;
+            
+            try {
+                // Try to get PDF from backend
+                const res = await fetch(`${API_URL}/documents/${docId}/pdf`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${doc.name || 'document'}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    // Fallback: download first image
+                    if (doc.pages?.[0]?.image_url) {
+                        window.open(doc.pages[0].image_url, '_blank');
+                    } else {
+                        alert('PDF download not available. Please use the mobile app.');
+                    }
+                }
+            } catch (e) {
+                console.error('Download error:', e);
+                alert('Download failed. Please try again.');
+            }
+        }
+        
+        function downloadCurrentDocument() {
+            if (currentDocument) {
+                downloadDocument(currentDocument.document_id);
+            }
+        }
+        
+        function setView(view) {
+            document.querySelectorAll('.view-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('button').classList.add('active');
+            // View change logic can be added here
+        }
+        
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>
