@@ -1502,14 +1502,13 @@ async def google_auth(data: GoogleAuthRequest):
                     logger.error(f"Failed to send welcome email: {e}")
             
             # Generate JWT token
-            token = create_jwt_token(user_id)
+            jwt_token = create_jwt_token(user_id)
             
             # Get updated user data
             user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
             
             return AuthResponse(
-                access_token=token,
-                token_type="bearer",
+                token=jwt_token,
                 user=UserResponse(**user_doc)
             )
             
