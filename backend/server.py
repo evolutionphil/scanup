@@ -2533,6 +2533,124 @@ async def delete_document(
     
     return {"message": "Document deleted successfully"}
 
+@api_router.get("/documents/{document_id}/pdf")
+async def download_document_as_pdf(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download document as PDF"""
+    from PIL import Image
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    import requests
+    import base64
+    
+    document = await db.documents.find_one(
+        {"document_id": document_id, "user_id": current_user.user_id},
+        {"_id": 0}
+    )
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    pages = document.get("pages", [])
+    if not pages:
+        raise HTTPException(status_code=400, detail="Document has no pages")
+    
+    # Create PDF in memory
+    pdf_buffer = BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=A4)
+    page_width, page_height = A4
+    
+    for i, page in enumerate(pages):
+        try:
+            img = None
+            
+            # Try to get image from different sources
+            if page.get("image_base64"):
+                # From base64
+                img_data = base64.b64decode(page["image_base64"])
+                img = Image.open(BytesIO(img_data))
+            elif page.get("image_url"):
+                # From URL
+                response = requests.get(page["image_url"], timeout=30)
+                if response.status_code == 200:
+                    img = Image.open(BytesIO(response.content))
+            elif page.get("thumbnail_base64"):
+                # Fallback to thumbnail
+                img_data = base64.b64decode(page["thumbnail_base64"])
+                img = Image.open(BytesIO(img_data))
+            elif page.get("thumbnail_url"):
+                # From thumbnail URL
+                response = requests.get(page["thumbnail_url"], timeout=30)
+                if response.status_code == 200:
+                    img = Image.open(BytesIO(response.content))
+            
+            if img:
+                # Convert to RGB if necessary
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Calculate dimensions to fit page while maintaining aspect ratio
+                img_width, img_height = img.size
+                aspect = img_width / img_height
+                
+                # Fit within A4 with margins
+                margin = 20
+                max_width = page_width - 2 * margin
+                max_height = page_height - 2 * margin
+                
+                if aspect > (max_width / max_height):
+                    # Width limited
+                    new_width = max_width
+                    new_height = max_width / aspect
+                else:
+                    # Height limited
+                    new_height = max_height
+                    new_width = max_height * aspect
+                
+                # Center on page
+                x = (page_width - new_width) / 2
+                y = (page_height - new_height) / 2
+                
+                # Save image to temp buffer
+                img_buffer = BytesIO()
+                img.save(img_buffer, format='JPEG', quality=85)
+                img_buffer.seek(0)
+                
+                # Draw image on PDF
+                from reportlab.lib.utils import ImageReader
+                img_reader = ImageReader(img_buffer)
+                c.drawImage(img_reader, x, y, width=new_width, height=new_height)
+            
+            # Add new page if not last
+            if i < len(pages) - 1:
+                c.showPage()
+                
+        except Exception as e:
+            logger.error(f"Error processing page {i}: {e}")
+            continue
+    
+    c.save()
+    pdf_buffer.seek(0)
+    
+    # Return PDF as downloadable file
+    filename = f"{document.get('name', 'document')}.pdf"
+    # Sanitize filename
+    filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')).strip()
+    if not filename.endswith('.pdf'):
+        filename += '.pdf'
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
 @api_router.post("/documents/{document_id}/pages", response_model=Document)
 async def add_page_to_document(
     document_id: str,
