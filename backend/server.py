@@ -6220,6 +6220,16 @@ async def init_content_collections():
             })
             logger.info("✅ German translations initialized")
         
+        # Initialize Turkish translations
+        tr_trans = await db.translations.find_one({"language_code": "tr"})
+        if not tr_trans:
+            await db.translations.insert_one({
+                "language_code": "tr",
+                "translations": DEFAULT_TRANSLATIONS_TR,
+                "updated_at": datetime.now(timezone.utc)
+            })
+            logger.info("✅ Turkish translations initialized")
+        
         # Initialize legal pages
         for page_type, content in DEFAULT_LEGAL_PAGES.items():
             for lang_code, page_content in content.items():
