@@ -34,7 +34,7 @@ export default function WebAccessScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+  const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_API_URL || '';
 
   const fetchPendingRequests = useCallback(async () => {
     try {
