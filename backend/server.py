@@ -5168,6 +5168,16 @@ async def startup_db_client():
         # Initialize content management collections (languages, translations, legal pages)
         await init_content_collections()
         
+        # Load admin password from database if exists
+        global ADMIN_PASSWORD
+        try:
+            saved_password = await db.settings.find_one({"key": "admin_password"})
+            if saved_password and saved_password.get("value"):
+                ADMIN_PASSWORD = saved_password["value"]
+                logger.info("✅ Admin password loaded from database")
+        except Exception as pwd_err:
+            logger.warning(f"Could not load admin password from DB: {pwd_err}")
+        
     except Exception as e:
         logger.warning(f"⚠️ MongoDB Atlas connection issue (will retry on demand): {e}")
         # Don't raise - let app start and handle DB errors at request time
