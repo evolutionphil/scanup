@@ -10,9 +10,23 @@ const GUEST_DOCUMENTS_KEY = 'guest_documents_meta'; // Only stores metadata now
 const GUEST_FOLDERS_KEY = 'guest_folders';
 const PENDING_SYNC_KEY = 'pending_sync_documents';
 const LOCAL_DOCUMENTS_KEY = 'local_documents_meta'; // Only stores metadata now
+const LOCAL_MANIFEST_KEY = 'scanup_local_manifest'; // ⭐ Manifest for efficient sync
+const LAST_SYNC_KEY = 'scanup_last_sync_time'; // ⭐ Last successful sync timestamp
 
 // Image storage directory
 const IMAGE_DIR = `${FileSystem.documentDirectory}scanup_images/`;
+
+// Manifest entry type for efficient sync
+interface ManifestEntry {
+  document_id: string;
+  name: string;
+  folder_id: string | null;
+  updated_at: string;
+  created_at: string;
+  page_count: number;
+  tags?: string[];
+  is_password_protected?: boolean;
+}
 
 // Clear ALL corrupted AsyncStorage data (nuclear option for SQLITE_FULL)
 const clearCorruptedAsyncStorage = async (): Promise<boolean> => {
