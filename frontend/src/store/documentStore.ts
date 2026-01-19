@@ -813,8 +813,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return;
     }
 
-    // ⭐ First time cloud sync - show loading indicator
-    console.log('[fetchDocuments] 🌐 Starting initial cloud sync...');
+    // ⭐ MANIFEST-BASED SMART SYNC
+    console.log('[fetchDocuments] 🌐 Starting manifest-based smart sync...');
     set({ isInitialCloudSyncing: true });
 
     // Set a maximum sync timeout (30 seconds)
@@ -823,19 +823,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
     }, 30000);
 
-    // Background fetch from server with timeout
     try {
-      const queryParams = new URLSearchParams();
-      if (params.folder_id) queryParams.append('folder_id', params.folder_id);
-      if (params.search) queryParams.append('search', params.search);
-      if (params.tag) queryParams.append('tag', params.tag);
-
       // Create abort controller for fetch timeout
       const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      const fetchTimeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout for manifest
 
-      const response = await fetch(
-        `${BACKEND_URL}/api/documents?${queryParams}`,
+      // ⭐ Step 1: Fetch lightweight manifest from server (not full documents)
+      const manifestResponse = await fetch(
+        `${BACKEND_URL}/api/documents/manifest`,
         { 
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal
@@ -844,43 +839,131 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       
       clearTimeout(fetchTimeout);
 
-      if (!response.ok) {
-        console.error('[fetchDocuments] Server fetch failed:', response.status);
+      if (!manifestResponse.ok) {
+        console.error('[fetchDocuments] Manifest fetch failed:', manifestResponse.status);
         clearTimeout(syncTimeout);
         set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
-        return; // Don't throw - we have local cache
+        return;
       }
       
-      const serverDocs = await response.json();
-      console.log('[fetchDocuments] ✅ Fetched', serverDocs.length, 'docs from server');
+      const manifestData = await manifestResponse.json();
+      const cloudManifest: ManifestEntry[] = manifestData.documents || [];
+      const serverTime = manifestData.server_time;
       
-      // Merge with any unsycned local documents
+      console.log('[fetchDocuments] 📋 Got manifest with', cloudManifest.length, 'documents');
+
+      // ⭐ Step 2: Load local manifest for comparison
+      const localManifestStr = await AsyncStorage.getItem(LOCAL_MANIFEST_KEY);
+      const localManifest: ManifestEntry[] = localManifestStr ? JSON.parse(localManifestStr) : [];
+      
+      // ⭐ Step 3: Compare manifests to find what needs syncing
+      const localMap = new Map(localManifest.map(m => [m.document_id, m]));
+      const cloudMap = new Map(cloudManifest.map(m => [m.document_id, m]));
+      
+      const docsToFetch: string[] = []; // Documents to download from cloud
+      const docsToDelete: string[] = []; // Documents deleted on cloud
+      
+      // Find new/updated documents on cloud
+      for (const cloudDoc of cloudManifest) {
+        const localDoc = localMap.get(cloudDoc.document_id);
+        if (!localDoc) {
+          // New document on cloud
+          docsToFetch.push(cloudDoc.document_id);
+        } else if (new Date(cloudDoc.updated_at) > new Date(localDoc.updated_at)) {
+          // Document updated on cloud
+          docsToFetch.push(cloudDoc.document_id);
+        }
+      }
+      
+      // Find documents deleted on cloud
+      for (const localDoc of localManifest) {
+        if (!cloudMap.has(localDoc.document_id) && !localDoc.document_id.startsWith('local_')) {
+          docsToDelete.push(localDoc.document_id);
+        }
+      }
+      
+      console.log('[fetchDocuments] 📊 Sync analysis:', {
+        totalCloud: cloudManifest.length,
+        totalLocal: localManifest.length,
+        toFetch: docsToFetch.length,
+        toDelete: docsToDelete.length
+      });
+
+      // ⭐ Step 4: If no changes, just use local data
+      if (docsToFetch.length === 0 && docsToDelete.length === 0) {
+        console.log('[fetchDocuments] ✅ Everything in sync, using local cache');
+        clearTimeout(syncTimeout);
+        
+        // Update manifest timestamp
+        await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
+        
+        set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
+        return;
+      }
+
+      // ⭐ Step 5: Fetch only changed documents (asynchronously)
       const { documents: currentDocs } = get();
-      const localOnlyDocs = currentDocs.filter(d => 
-        d.document_id.startsWith('local_') && 
-        !serverDocs.some((s: Document) => s.document_id === d.document_id)
-      );
+      let updatedDocs = [...currentDocs];
       
-      const mergedDocs = [...localOnlyDocs, ...serverDocs];
+      // Remove deleted documents
+      if (docsToDelete.length > 0) {
+        updatedDocs = updatedDocs.filter(d => !docsToDelete.includes(d.document_id));
+        console.log('[fetchDocuments] 🗑️ Removed', docsToDelete.length, 'deleted documents');
+      }
+      
+      // Fetch new/updated documents in batches (non-blocking)
+      if (docsToFetch.length > 0) {
+        console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents...');
+        
+        // Fetch full documents for changed items
+        const fullResponse = await fetch(
+          `${BACKEND_URL}/api/documents`,
+          { 
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(20000)
+          }
+        );
+        
+        if (fullResponse.ok) {
+          const allDocs = await fullResponse.json();
+          
+          // Replace/add fetched documents
+          for (const fetchedDoc of allDocs) {
+            const existingIdx = updatedDocs.findIndex(d => d.document_id === fetchedDoc.document_id);
+            if (existingIdx >= 0) {
+              updatedDocs[existingIdx] = fetchedDoc;
+            } else {
+              updatedDocs.push(fetchedDoc);
+            }
+          }
+          console.log('[fetchDocuments] ✅ Updated', allDocs.length, 'documents');
+        }
+      }
+      
+      // ⭐ Step 6: Update state and save
       clearTimeout(syncTimeout);
       set({ 
-        documents: mergedDocs,
+        documents: updatedDocs,
         isInitialCloudSyncing: false,
-        initialCloudSyncDone: true  // ⭐ Mark initial sync as complete
+        initialCloudSyncDone: true
       });
       
-      // Save to local cache for next time (strips base64, saves to file system)
+      // Update local manifest with cloud version
+      await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
+      await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
+      
+      // Save to local cache
       await get().saveLocalCache();
-      console.log('[fetchDocuments] ✅ Initial cloud sync COMPLETE');
+      console.log('[fetchDocuments] ✅ Smart sync COMPLETE');
+      
     } catch (e: any) {
       clearTimeout(syncTimeout);
-      if (e.name === 'AbortError') {
-        console.error('[fetchDocuments] Request timed out after 20s');
+      if (e.name === 'AbortError' || e.name === 'TimeoutError') {
+        console.error('[fetchDocuments] Request timed out');
       } else {
-        console.error('[fetchDocuments] Server fetch error:', e);
+        console.error('[fetchDocuments] Sync error:', e);
       }
       set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
-      // Don't throw - we have local cache
     }
   },
 
