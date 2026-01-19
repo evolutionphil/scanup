@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { useAuthStore } from '../src/store/authStore';
 import { usePurchaseStore } from '../src/store/purchaseStore';
 import { useMonetizationStore } from '../src/store/monetizationStore';
 import { useOfflineSync } from '../src/hooks/useOfflineSync';
+import * as Notifications from 'expo-notifications';
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
