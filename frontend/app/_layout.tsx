@@ -50,14 +50,20 @@ export default function RootLayout() {
             });
         }, 1500);
         
-        // 2️⃣ Initialize Firebase services (Android only for now)
+        // 2️⃣ Initialize Push Notifications (iOS and Android)
         if (Platform.OS === 'android') {
+          // Android: Initialize Firebase first, then setup push
           initializeFirebase().then(() => {
             setupPushNotifications(user?.user_id).catch(err => {
               console.log('[RootLayout] Push notification setup error:', err);
             });
           }).catch(err => {
             console.log('[RootLayout] Firebase init error:', err);
+          });
+        } else if (Platform.OS === 'ios') {
+          // iOS: Setup push notifications directly (uses APNs)
+          setupPushNotifications(user?.user_id).catch(err => {
+            console.log('[RootLayout] iOS Push notification setup error:', err);
           });
         }
         
