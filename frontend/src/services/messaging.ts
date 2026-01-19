@@ -182,7 +182,8 @@ export const savePushTokenToBackend = async (token: string): Promise<boolean> =>
 // Remove push token from backend (on logout)
 export const removePushTokenFromBackend = async (): Promise<boolean> => {
   try {
-    const response = await fetch('/api/notifications/unregister-token', {
+    const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+    const response = await fetch(`${API_URL}/api/notifications/unregister-token`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
