@@ -1561,6 +1561,9 @@
                         <div class="section-header">
                             <h2 id="documentsSectionTitle">All Documents</h2>
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <button class="reload-btn" onclick="reloadDocuments()" title="Refresh documents">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
                                 <select class="sort-select" id="sortSelect" onchange="sortDocuments()">
                                     <option value="newest">Newest First</option>
                                     <option value="oldest">Oldest First</option>
