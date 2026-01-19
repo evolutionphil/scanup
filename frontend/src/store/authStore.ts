@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDocumentStore } from './documentStore';
 import { usePurchaseStore } from './purchaseStore';
+import { getPushToken, savePushTokenToBackend, removePushTokenFromBackend } from '../services/messaging';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
