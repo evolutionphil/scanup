@@ -2036,6 +2036,35 @@ async def request_web_access(
     
     logger.info(f"Web access requested for user {current_user.user_id}, session {session_id}")
     
+    # Send push notification to user's mobile device
+    try:
+        user = await db.users.find_one({"user_id": current_user.user_id})
+        if user and user.get("push_token"):
+            push_token = user["push_token"]
+            # Send Expo push notification
+            import httpx
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    "https://exp.host/--/api/v2/push/send",
+                    json={
+                        "to": push_token,
+                        "title": "🔐 Web Access Request",
+                        "body": f"Someone is trying to access your documents from {data.device_info or 'a web browser'}. Tap to approve or deny.",
+                        "data": {
+                            "type": "web_access_request",
+                            "session_id": session_id,
+                            "screen": "web-access"
+                        },
+                        "sound": "default",
+                        "priority": "high",
+                        "channelId": "default"
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
+            logger.info(f"Push notification sent for web access request {session_id}")
+    except Exception as e:
+        logger.error(f"Failed to send push notification: {e}")
+    
     return {
         "session_id": session_id,
         "status": "pending",
