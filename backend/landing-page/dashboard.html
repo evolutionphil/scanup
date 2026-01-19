@@ -2056,9 +2056,10 @@
                         console.log('Poll data:', data);
                         
                         if (data.status === 'approved') {
-                            // Approved! Show dashboard
+                            // Approved! Save to localStorage and show dashboard
                             console.log('Session approved! Showing dashboard...');
                             stopPolling();
+                            localStorage.setItem('scanup_web_approved', 'true');
                             webAccessApproved = true;
                             document.getElementById('webAccessModal').classList.add('hidden');
                             showDashboard();
