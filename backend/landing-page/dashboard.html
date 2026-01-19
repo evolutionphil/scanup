@@ -1943,8 +1943,38 @@
         // ==================== WEB ACCESS SECURITY ====================
         
         async function checkWebAccessStatus() {
-            // Each login requires fresh approval - don't use cached sessions
-            // Always request new web access for security
+            // Check if this browser was already approved (stored in localStorage)
+            const approvedSession = localStorage.getItem('scanup_web_approved');
+            if (approvedSession) {
+                // Already approved before, go directly to dashboard
+                webAccessApproved = true;
+                showDashboard();
+                loadDocuments();
+                return;
+            }
+            
+            // Check server for existing approved session
+            try {
+                const res = await fetch(`${API_URL}/auth/web-access/check`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.has_approved_session) {
+                        // Has approved session on server
+                        localStorage.setItem('scanup_web_approved', 'true');
+                        webAccessApproved = true;
+                        showDashboard();
+                        loadDocuments();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Check web access error:', e);
+            }
+            
+            // No approved session, request new one
             await requestWebAccess();
         }
         
