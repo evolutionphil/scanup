@@ -548,7 +548,7 @@ agent_communication:
     message: "SCANUP SETTINGS SCREEN AND DARK MODE TESTING COMPLETED ✅
     
     ## Test Environment:
-    - **Frontend URL**: https://docvault-101.preview.emergentagent.com
+    - **Frontend URL**: https://secure-scan-app-1.preview.emergentagent.com
     - **Mobile Viewport**: 390x844 (iPhone-like)
     - **Testing Mode**: Guest mode
     
@@ -1036,7 +1036,7 @@ agent_communication:
     ### Root Cause Analysis:
     🔍 **Configuration Issue Identified**: 
     - Frontend is trying to fetch from `https://scanup-production.up.railway.app` (404 error)
-    - Should be fetching from `https://docvault-101.preview.emergentagent.com`
+    - Should be fetching from `https://secure-scan-app-1.preview.emergentagent.com`
     - Backend APIs are working correctly (verified via direct curl tests)
     - Issue is in frontend configuration not picking up correct EXPO_PUBLIC_BACKEND_URL
     
@@ -1106,7 +1106,7 @@ agent_communication:
     message: "SCANUP MOBILE APP FRONTEND TESTING COMPLETED ✅
     
     ## Test Environment:
-    - **Frontend URL**: https://docvault-101.preview.emergentagent.com
+    - **Frontend URL**: https://secure-scan-app-1.preview.emergentagent.com
     - **Mobile Viewport**: 390x844 (iPhone-like)
     - **Testing Mode**: Guest mode (no authentication required)
     
@@ -1166,7 +1166,7 @@ agent_communication:
     - **State Management**: Zustand stores for auth, theme, documents, i18n
     - **Styling**: Custom StyleSheet with theme support
     - **Navigation**: Tab-based with modal overlays for actions
-    - **Backend Integration**: REST API calls to https://docvault-101.preview.emergentagent.com
+    - **Backend Integration**: REST API calls to https://secure-scan-app-1.preview.emergentagent.com
     
     ## Testing Limitations:
     1. **Document Creation**: Requires camera/scanner functionality not testable in browser automation

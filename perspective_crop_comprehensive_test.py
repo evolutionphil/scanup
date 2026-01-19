@@ -15,7 +15,7 @@ import numpy as np
 import uuid
 
 # Test configuration
-BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://docvault-101.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://secure-scan-app-1.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class PerspectiveCropTester:
