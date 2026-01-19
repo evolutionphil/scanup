@@ -2039,31 +2039,69 @@ async def request_web_access(
     # Send push notification to user's mobile device
     try:
         user = await db.users.find_one({"user_id": current_user.user_id})
-        if user and user.get("push_token"):
-            push_token = user["push_token"]
-            # Send Expo push notification
-            import httpx
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    "https://exp.host/--/api/v2/push/send",
-                    json={
-                        "to": push_token,
-                        "title": "🔐 Web Access Request",
-                        "body": f"Someone is trying to access your documents from {data.device_info or 'a web browser'}. Tap to approve or deny.",
-                        "data": {
-                            "type": "web_access_request",
-                            "session_id": session_id,
-                            "screen": "web-access"
-                        },
-                        "sound": "default",
-                        "priority": "high",
-                        "channelId": "default"
+        logger.info(f"🔔 Push notification check for user {current_user.user_id}")
+        
+        if user:
+            push_token = user.get("push_token")
+            device_type = user.get("device_type", "unknown")
+            logger.info(f"🔔 User push_token: {push_token[:50] if push_token else 'NONE'}..., device_type: {device_type}")
+            
+            if push_token and push_token.strip():
+                # Validate Expo push token format
+                if not push_token.startswith("ExponentPushToken["):
+                    logger.warning(f"⚠️ Invalid push token format: {push_token[:30]}...")
+                
+                # Send Expo push notification
+                import httpx
+                push_payload = {
+                    "to": push_token,
+                    "title": "🔐 Web Access Request",
+                    "body": f"Someone is trying to access your documents from {data.device_info or 'a web browser'}. Tap to approve or deny.",
+                    "data": {
+                        "type": "web_access_request",
+                        "session_id": session_id,
+                        "screen": "web-access"
                     },
-                    headers={"Content-Type": "application/json"}
-                )
-            logger.info(f"Push notification sent for web access request {session_id}")
+                    "sound": "default",
+                    "priority": "high",
+                    "channelId": "default"
+                }
+                
+                logger.info(f"🔔 Sending push to Expo API: {push_payload['to'][:50]}...")
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "https://exp.host/--/api/v2/push/send",
+                        json=push_payload,
+                        headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "Accept-Encoding": "gzip, deflate"
+                        },
+                        timeout=30.0
+                    )
+                    
+                    response_data = response.json()
+                    logger.info(f"🔔 Expo API Response Status: {response.status_code}")
+                    logger.info(f"🔔 Expo API Response Body: {response_data}")
+                    
+                    # Check for errors in response
+                    if response.status_code != 200:
+                        logger.error(f"❌ Expo API error: Status {response.status_code}, Body: {response_data}")
+                    elif "data" in response_data:
+                        for ticket in response_data.get("data", []):
+                            if ticket.get("status") == "error":
+                                logger.error(f"❌ Push ticket error: {ticket.get('message')} - Details: {ticket.get('details')}")
+                            else:
+                                logger.info(f"✅ Push ticket OK: {ticket.get('id', 'no-id')}")
+                    
+            else:
+                logger.warning(f"⚠️ User {current_user.user_id} has no push_token registered")
+        else:
+            logger.warning(f"⚠️ User {current_user.user_id} not found in database")
+            
     except Exception as e:
-        logger.error(f"Failed to send push notification: {e}")
+        logger.error(f"❌ Failed to send push notification: {type(e).__name__}: {e}")
     
     return {
         "session_id": session_id,
