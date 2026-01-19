@@ -6625,11 +6625,11 @@ async def register_push_token(request: PushTokenRequest, current_user: User = De
         raise HTTPException(status_code=500, detail="Failed to register push token")
 
 @api_router.delete("/notifications/unregister-token")
-async def unregister_push_token(user: dict = Depends(get_current_user)):
+async def unregister_push_token(current_user: User = Depends(get_current_user)):
     """Remove push token for a user (on logout)"""
     try:
         await db.users.update_one(
-            {"user_id": user["user_id"]},
+            {"user_id": current_user.user_id},
             {
                 "$unset": {
                     "push_token": "",
@@ -6639,7 +6639,7 @@ async def unregister_push_token(user: dict = Depends(get_current_user)):
             }
         )
         
-        logger.info(f"Push token removed for user {user['user_id']}")
+        logger.info(f"Push token removed for user {current_user.user_id}")
         return {"success": True, "message": "Push token removed"}
     except Exception as e:
         logger.error(f"Failed to unregister push token: {e}")
