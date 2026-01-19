@@ -134,15 +134,31 @@ export default function SettingsScreen() {
 
   // Re-register push token manually
   const reRegisterPush = async () => {
-    setPushStatus('Registering...');
+    setPushStatus('🔄 Registering...');
     try {
+      // Step 1: Get push token from Expo
       const pushToken = await getPushToken();
-      if (pushToken) {
-        Alert.alert('Success', `Push token registered!\n\n${pushToken.substring(0, 40)}...`);
-        setPushStatus(`✅ Registered: ${pushToken.substring(0, 25)}...`);
+      if (!pushToken) {
+        Alert.alert('Failed', 'Could not get push token from Expo. Check notification permissions.');
+        setPushStatus('❌ Token failed (Expo)');
+        return;
+      }
+      
+      // Step 2: Save to backend
+      const savedToBackend = await savePushTokenToBackend(pushToken);
+      
+      if (savedToBackend) {
+        Alert.alert(
+          '✅ Success', 
+          `Push token registered!\n\nToken: ${pushToken.substring(0, 40)}...\n\nBackend: Saved ✓`
+        );
+        setPushStatus(`✅ ${pushToken.substring(0, 20)}... (Saved)`);
       } else {
-        Alert.alert('Failed', 'Could not get push token. Check notification permissions.');
-        setPushStatus('❌ Registration failed');
+        Alert.alert(
+          '⚠️ Partial Success', 
+          `Token obtained but NOT saved to backend!\n\nToken: ${pushToken.substring(0, 40)}...\n\nCheck logs for details.`
+        );
+        setPushStatus(`⚠️ ${pushToken.substring(0, 20)}... (NOT saved)`);
       }
     } catch (e: any) {
       Alert.alert('Error', e.message);
