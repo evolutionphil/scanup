@@ -91,9 +91,10 @@ const LANGUAGE_INFO: Record<string, { label: string; flag: string }> = {
 
 export default function SettingsScreen() {
   const { theme, isDark, toggleTheme } = useThemeStore();
-  const { user, isGuest, logout } = useAuthStore();
+  const { user, isGuest, logout, token } = useAuthStore();
   const { currentLanguage, setLanguage, t, availableLanguages } = useI18n();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [pushStatus, setPushStatus] = useState<string>('Checking...');
   
   // Generate language options from availableLanguages
   const languageOptions = availableLanguages.map(code => ({
@@ -105,9 +106,54 @@ export default function SettingsScreen() {
   const [showFilterPicker, setShowFilterPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
+  // Check push notification status
+  const checkPushStatus = async () => {
+    if (Platform.OS === 'web') {
+      setPushStatus('Web - N/A');
+      return;
+    }
+    
+    try {
+      const hasPermission = await checkNotificationPermission();
+      if (!hasPermission) {
+        setPushStatus('❌ Permission denied');
+        return;
+      }
+      
+      // Try to get push token
+      const pushToken = await getPushToken();
+      if (pushToken) {
+        setPushStatus(`✅ Registered: ${pushToken.substring(0, 25)}...`);
+      } else {
+        setPushStatus('❌ Token failed');
+      }
+    } catch (e: any) {
+      setPushStatus(`❌ Error: ${e.message}`);
+    }
+  };
+
+  // Re-register push token manually
+  const reRegisterPush = async () => {
+    setPushStatus('Registering...');
+    try {
+      const pushToken = await getPushToken();
+      if (pushToken) {
+        Alert.alert('Success', `Push token registered!\n\n${pushToken.substring(0, 40)}...`);
+        setPushStatus(`✅ Registered: ${pushToken.substring(0, 25)}...`);
+      } else {
+        Alert.alert('Failed', 'Could not get push token. Check notification permissions.');
+        setPushStatus('❌ Registration failed');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+      setPushStatus(`❌ Error: ${e.message}`);
+    }
+  };
+
   // Load settings on mount
   useEffect(() => {
     loadSettings();
+    checkPushStatus();
   }, []);
 
   // Sync language setting with i18n store
