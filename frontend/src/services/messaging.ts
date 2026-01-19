@@ -152,7 +152,8 @@ export const getPushToken = async (): Promise<string | null> => {
 // Save push token to backend
 export const savePushTokenToBackend = async (token: string): Promise<boolean> => {
   try {
-    const response = await fetch('/api/notifications/register-token', {
+    const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+    const response = await fetch(`${API_URL}/api/notifications/register-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
