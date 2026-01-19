@@ -37,6 +37,9 @@ export default function WebAccessScreen() {
   const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_API_URL || '';
 
   const fetchPendingRequests = useCallback(async () => {
+    console.log('🔍 Fetching pending requests from:', API_URL);
+    console.log('🔑 Using token:', token?.substring(0, 30) + '...');
+    
     try {
       const response = await fetch(`${API_URL}/api/auth/web-access/pending`, {
         headers: {
@@ -44,9 +47,15 @@ export default function WebAccessScreen() {
         },
       });
 
+      console.log('📡 Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📋 Pending requests received:', data.length, data);
         setPendingRequests(data);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Response error:', errorText);
       }
     } catch (error) {
       console.error('Failed to fetch pending requests:', error);
