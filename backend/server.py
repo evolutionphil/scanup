@@ -2654,6 +2654,70 @@ async def create_document(
     document.pop("_id", None)
     return Document(**document)
 
+# ⭐ MANIFEST-BASED SYNC - Lightweight document metadata for efficient sync
+@api_router.get("/documents/manifest")
+async def get_documents_manifest(
+    since: Optional[str] = None,  # ISO timestamp for incremental sync
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get lightweight manifest of all documents for efficient sync.
+    Returns only metadata (no images/content) for fast comparison.
+    
+    Query params:
+    - since: ISO timestamp to get only documents changed after this time
+    """
+    query = {"user_id": current_user.user_id}
+    
+    # If 'since' provided, only return documents changed after that time
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace('Z', '+00:00'))
+            query["updated_at"] = {"$gt": since_dt}
+        except:
+            pass  # Invalid date, ignore filter
+    
+    # Only fetch lightweight fields - no images, no OCR text
+    projection = {
+        "_id": 0,
+        "document_id": 1,
+        "name": 1,
+        "folder_id": 1,
+        "updated_at": 1,
+        "created_at": 1,
+        "page_count": {"$size": {"$ifNull": ["$pages", []]}},
+        "tags": 1,
+        "is_password_protected": 1
+    }
+    
+    # Use aggregation for page_count calculation
+    pipeline = [
+        {"$match": query},
+        {"$project": {
+            "_id": 0,
+            "document_id": 1,
+            "name": 1,
+            "folder_id": 1,
+            "updated_at": 1,
+            "created_at": 1,
+            "page_count": {"$size": {"$ifNull": ["$pages", []]}},
+            "tags": 1,
+            "is_password_protected": 1
+        }},
+        {"$sort": {"updated_at": -1}}
+    ]
+    
+    manifests = await db.documents.aggregate(pipeline).to_list(1000)
+    
+    # Get server timestamp for next sync
+    server_time = datetime.now(timezone.utc).isoformat()
+    
+    return {
+        "server_time": server_time,
+        "count": len(manifests),
+        "documents": manifests
+    }
+
 @api_router.get("/documents", response_model=List[Document])
 async def get_documents(
     folder_id: Optional[str] = None,
