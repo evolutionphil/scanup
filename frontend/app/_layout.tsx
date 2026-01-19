@@ -82,6 +82,22 @@ export default function RootLayout() {
             router.push('/web-access');
           }
         });
+        
+        // 4️⃣ Check if app was opened from a notification (killed state)
+        Notifications.getLastNotificationResponseAsync().then(response => {
+          if (response) {
+            console.log('[RootLayout] App opened from notification:', response);
+            const data = response.notification.request.content.data;
+            
+            if (data?.type === 'web_access_request' || data?.screen === 'web-access') {
+              console.log('[RootLayout] Navigating to web-access (from killed state)');
+              // Small delay to ensure navigation is ready
+              setTimeout(() => {
+                router.push('/web-access');
+              }, 500);
+            }
+          }
+        });
       }
     }
     
