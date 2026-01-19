@@ -2294,6 +2294,22 @@
             showToast('Logged out', 'success');
         }
         
+        // Reload documents button handler
+        async function reloadDocuments() {
+            const btn = document.querySelector('.reload-btn');
+            btn.classList.add('spinning');
+            
+            try {
+                await loadDocuments();
+                await loadFolders();
+                showToast('Documents refreshed', 'success');
+            } catch (e) {
+                showToast('Failed to refresh', 'error');
+            } finally {
+                btn.classList.remove('spinning');
+            }
+        }
+        
         // Documents
         async function loadDocuments() {
             const container = document.getElementById('documentsContainer');
