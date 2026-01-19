@@ -7873,11 +7873,10 @@ if os_module.path.exists(landing_page_path):
         raise HTTPException(status_code=404, detail="Robots.txt not found")
     
     @app.get("/llms.txt")
-    @app.get("/landing/llms.txt")
     async def serve_llms_txt():
         path = os_module.path.join(landing_page_path, "llms.txt")
         if os_module.path.exists(path):
             return FileResponse(path, media_type="text/plain")
         raise HTTPException(status_code=404, detail="LLMs.txt not found")
     
-    logger.info("✅ Landing page mounted at /landing")
+    logger.info("✅ Landing page mounted at root (/)")
