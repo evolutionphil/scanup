@@ -8,10 +8,13 @@ import * as SecureStore from 'expo-secure-store';
 // Helper to get auth token from correct storage
 const getAuthToken = async (): Promise<string | null> => {
   try {
+    // IMPORTANT: Must match the key used in authStore.ts
+    const TOKEN_KEY = 'scanup_token';
+    
     if (Platform.OS === 'web') {
-      return await AsyncStorage.getItem('@scanup_auth_token');
+      return await AsyncStorage.getItem(TOKEN_KEY);
     }
-    return await SecureStore.getItemAsync('@scanup_auth_token');
+    return await SecureStore.getItemAsync(TOKEN_KEY);
   } catch (e) {
     console.error('[Notifications] Failed to get auth token:', e);
     return null;
