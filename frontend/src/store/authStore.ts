@@ -160,6 +160,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await setStorage(USER_KEY, JSON.stringify(data.user));
     
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
+    
+    // Register push token for this user
+    if (Platform.OS !== 'web') {
+      setTimeout(async () => {
+        try {
+          const pushToken = await getPushToken();
+          if (pushToken) {
+            await savePushTokenToBackend(pushToken);
+            console.log('[Auth] Push token registered after register');
+          }
+        } catch (err) {
+          console.log('[Auth] Push token registration failed:', err);
+        }
+      }, 1000);
+    }
   },
 
   googleLogin: async (sessionId: string) => {
