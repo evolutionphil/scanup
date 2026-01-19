@@ -959,29 +959,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // Update manifests after all fetches
       await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
       await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
-          for (const fetchedDoc of allDocs) {
-            const existingIdx = updatedDocs.findIndex(d => d.document_id === fetchedDoc.document_id);
-            if (existingIdx >= 0) {
-              updatedDocs[existingIdx] = fetchedDoc;
-            } else {
-              updatedDocs.push(fetchedDoc);
-            }
-          }
-          console.log('[fetchDocuments] ✅ Updated', allDocs.length, 'documents');
-        }
-      }
-      
-      // ⭐ Step 6: Update state and save
-      clearTimeout(syncTimeout);
-      set({ 
-        documents: updatedDocs,
-        isInitialCloudSyncing: false,
-        initialCloudSyncDone: true
-      });
-      
-      // Update local manifest with cloud version
-      await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
-      await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
       
       // Save to local cache
       await get().saveLocalCache();
