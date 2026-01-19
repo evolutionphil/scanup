@@ -178,12 +178,24 @@ export const getPushToken = async (): Promise<string | null> => {
 // Save push token to backend
 export const savePushTokenToBackend = async (token: string): Promise<boolean> => {
   try {
+    const authToken = await getAuthToken();
+    console.log('[Notifications] savePushTokenToBackend called');
+    console.log('[Notifications] Push token to save:', token.substring(0, 40) + '...');
+    console.log('[Notifications] Auth token available:', !!authToken, authToken ? authToken.substring(0, 20) + '...' : 'NONE');
+    
+    if (!authToken) {
+      console.error('[Notifications] No auth token - cannot save push token');
+      return false;
+    }
+    
     const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+    console.log('[Notifications] Saving to API URL:', API_URL);
+    
     const response = await fetch(`${API_URL}/api/notifications/register-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await getAuthToken()}`,
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         push_token: token,
@@ -192,11 +204,14 @@ export const savePushTokenToBackend = async (token: string): Promise<boolean> =>
       }),
     });
 
+    console.log('[Notifications] Backend response status:', response.status);
+    
     if (response.ok) {
-      console.log('[Notifications] Push token saved to backend');
+      console.log('[Notifications] ✅ Push token saved to backend successfully!');
       return true;
     } else {
-      console.error('[Notifications] Failed to save token to backend:', response.status);
+      const errorText = await response.text();
+      console.error('[Notifications] ❌ Failed to save token to backend:', response.status, errorText);
       return false;
     }
   } catch (error) {
