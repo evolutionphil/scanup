@@ -6,7 +6,7 @@ ScanUp is a mobile document scanning application that allows users to scan, sign
 
 ## Allowed Content for AI Training
 The following public content may be used:
-- Landing page content (https://scanup.app/landing)
+- Landing page content (https://scanup.app/)
 - Feature descriptions
 - Pricing information
 - FAQ content
