@@ -803,20 +803,36 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     console.log('[fetchDocuments] 🌐 Starting initial cloud sync...');
     set({ isInitialCloudSyncing: true });
 
-    // Background fetch from server
+    // Set a maximum sync timeout (30 seconds)
+    const syncTimeout = setTimeout(() => {
+      console.warn('[fetchDocuments] ⚠️ Sync timeout reached, forcing completion');
+      set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
+    }, 30000);
+
+    // Background fetch from server with timeout
     try {
       const queryParams = new URLSearchParams();
       if (params.folder_id) queryParams.append('folder_id', params.folder_id);
       if (params.search) queryParams.append('search', params.search);
       if (params.tag) queryParams.append('tag', params.tag);
 
+      // Create abort controller for fetch timeout
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
       const response = await fetch(
         `${BACKEND_URL}/api/documents?${queryParams}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        }
       );
+      
+      clearTimeout(fetchTimeout);
 
       if (!response.ok) {
         console.error('[fetchDocuments] Server fetch failed:', response.status);
+        clearTimeout(syncTimeout);
         set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
         return; // Don't throw - we have local cache
       }
@@ -832,6 +848,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       );
       
       const mergedDocs = [...localOnlyDocs, ...serverDocs];
+      clearTimeout(syncTimeout);
       set({ 
         documents: mergedDocs,
         isInitialCloudSyncing: false,
@@ -841,8 +858,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // Save to local cache for next time (strips base64, saves to file system)
       await get().saveLocalCache();
       console.log('[fetchDocuments] ✅ Initial cloud sync COMPLETE');
-    } catch (e) {
-      console.error('[fetchDocuments] Server fetch error:', e);
+    } catch (e: any) {
+      clearTimeout(syncTimeout);
+      if (e.name === 'AbortError') {
+        console.error('[fetchDocuments] Request timed out after 20s');
+      } else {
+        console.error('[fetchDocuments] Server fetch error:', e);
+      }
       set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
       // Don't throw - we have local cache
     }
