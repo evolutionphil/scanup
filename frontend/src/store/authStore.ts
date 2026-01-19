@@ -341,6 +341,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           
           // Refresh user data in background
           get().refreshUser();
+          
+          // Register push token for returning user (after app restart)
+          if (Platform.OS !== 'web') {
+            setTimeout(async () => {
+              try {
+                const pushToken = await getPushToken();
+                if (pushToken) {
+                  await savePushTokenToBackend(pushToken);
+                  console.log('[Auth] Push token registered for returning user');
+                }
+              } catch (err) {
+                console.log('[Auth] Push token registration failed:', err);
+              }
+            }, 2000); // Wait 2 seconds for app to fully load
+          }
         } catch (parseError) {
           console.error('Failed to parse stored user:', parseError);
           // Clear corrupt data
