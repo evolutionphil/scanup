@@ -19,6 +19,8 @@ export default function RootLayout() {
   const initializePurchases = usePurchaseStore((state) => state.initialize);
   const initializeMonetization = useMonetizationStore((state) => state.init);
   const hasInitialized = useRef(false);
+  const notificationListener = useRef<any>();
+  const responseListener = useRef<any>();
   
   // ⭐ OFFLINE SYNC - Automatically syncs when network is restored
   useOfflineSync();
@@ -58,8 +60,33 @@ export default function RootLayout() {
             console.log('[RootLayout] Firebase init error:', err);
           });
         }
+        
+        // 3️⃣ Setup notification listeners for web access requests
+        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+          console.log('[RootLayout] Notification received:', notification);
+        });
+
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+          console.log('[RootLayout] Notification response:', response);
+          const data = response.notification.request.content.data;
+          
+          // Handle web access request notification tap
+          if (data?.type === 'web_access_request' || data?.screen === 'web-access') {
+            console.log('[RootLayout] Navigating to web-access screen');
+            router.push('/web-access');
+          }
+        });
       }
     }
+    
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
   }, []);
 
   // Update user context when user changes
