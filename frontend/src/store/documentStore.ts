@@ -919,14 +919,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // ⭐ Step 5: Fetch ONLY changed documents using BATCH endpoint
       console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents via batch API...');
       
-      // Mark sync as complete so UI is not blocked
-      // Documents will load in background
-      set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
-      clearTimeout(syncTimeout);
+      // Keep syncing flag true until documents are fetched
+      // This ensures UI shows loading state
       
       // Fetch documents in batches of 50 (much faster than one-by-one)
       const BATCH_SIZE = 50;
       let useBatchEndpoint = true; // Flag to track if batch endpoint works
+      let fetchedAny = false; // Track if we fetched any documents
       
       for (let i = 0; i < docsToFetch.length; i += BATCH_SIZE) {
         const batchIds = docsToFetch.slice(i, i + BATCH_SIZE);
@@ -961,6 +960,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
               }
               
               set({ documents: Array.from(docMap.values()) });
+              fetchedAny = true;
               continue; // Skip fallback for this batch
             } else {
               console.warn('[fetchDocuments] ⚠️ Batch endpoint returned:', batchResponse.status, '- switching to fallback');
@@ -993,6 +993,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 docs.push(fetchedDoc);
               }
               set({ documents: [...docs] });
+              fetchedAny = true;
               console.log('[fetchDocuments] ✅ Fetched:', fetchedDoc.name);
             }
           } catch (e) {
@@ -1001,7 +1002,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         }
       }
       
-      // Update manifests after all fetches
+      // ⭐ NOW mark sync as complete AFTER all documents are fetched
+      clearTimeout(syncTimeout);
+      set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
       await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
       await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
       
