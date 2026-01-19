@@ -269,6 +269,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = get().token;
     const wasGuest = get().isGuest;
     
+    // Remove push token from backend before logout
+    if (Platform.OS !== 'web' && !wasGuest) {
+      try {
+        await removePushTokenFromBackend();
+        console.log('[Auth] Push token removed on logout');
+      } catch (err) {
+        console.log('[Auth] Push token removal failed:', err);
+      }
+    }
+    
     // CRITICAL: Set to guest state immediately to prevent null user causing infinite loops
     // Do NOT set user to null - always transition to guest state
     set({ user: guestUser, token: null, isAuthenticated: true, isGuest: true, isLoading: false });
