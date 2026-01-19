@@ -115,7 +115,10 @@ export const checkNotificationPermission = async (): Promise<boolean> => {
 
 // Get Expo Push Token
 export const getPushToken = async (): Promise<string | null> => {
+  console.log('[Notifications] getPushToken called, Platform:', Platform.OS);
+  
   if (Platform.OS === 'web') {
+    console.log('[Notifications] Web platform, skipping push token');
     return null;
   }
   
@@ -127,8 +130,12 @@ export const getPushToken = async (): Promise<string | null> => {
   try {
     // Check permission first
     const hasPermission = await checkNotificationPermission();
+    console.log('[Notifications] Has permission:', hasPermission);
+    
     if (!hasPermission) {
+      console.log('[Notifications] Requesting permission...');
       const granted = await requestNotificationPermission();
+      console.log('[Notifications] Permission granted:', granted);
       if (!granted) {
         return null;
       }
@@ -136,25 +143,30 @@ export const getPushToken = async (): Promise<string | null> => {
     
     // Get project ID from app config
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    console.log('[Notifications] Project ID:', projectId);
     
     if (!projectId) {
       console.error('[Notifications] No project ID found in app config');
+      console.log('[Notifications] Full expoConfig:', JSON.stringify(Constants.expoConfig?.extra));
       return null;
     }
     
     // Get Expo Push Token
+    console.log('[Notifications] Getting Expo push token...');
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
     
     const token = tokenData.data;
-    console.log('[Notifications] Push token:', token.substring(0, 30) + '...');
+    console.log('[Notifications] Push token obtained:', token.substring(0, 40) + '...');
     
     // Store token locally
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
     
     // Save token to backend
-    await savePushTokenToBackend(token);
+    console.log('[Notifications] Saving token to backend...');
+    const saved = await savePushTokenToBackend(token);
+    console.log('[Notifications] Token saved to backend:', saved);
     
     return token;
   } catch (error) {
