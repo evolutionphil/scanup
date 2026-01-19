@@ -889,45 +889,76 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         toDelete: docsToDelete.length
       });
 
-      // ⭐ Step 4: If no changes, just use local data
-      if (docsToFetch.length === 0 && docsToDelete.length === 0) {
-        console.log('[fetchDocuments] ✅ Everything in sync, using local cache');
-        clearTimeout(syncTimeout);
-        
-        // Update manifest timestamp
-        await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
-        
-        set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
-        return;
-      }
-
-      // ⭐ Step 5: Fetch only changed documents (asynchronously)
+      // ⭐ Step 4: Process changes
       const { documents: currentDocs } = get();
       let updatedDocs = [...currentDocs];
       
-      // Remove deleted documents
+      // Remove deleted documents IMMEDIATELY (no network needed)
       if (docsToDelete.length > 0) {
         updatedDocs = updatedDocs.filter(d => !docsToDelete.includes(d.document_id));
         console.log('[fetchDocuments] 🗑️ Removed', docsToDelete.length, 'deleted documents');
+        
+        // Update state immediately so UI reflects deletion
+        set({ documents: updatedDocs });
       }
       
-      // Fetch new/updated documents in batches (non-blocking)
-      if (docsToFetch.length > 0) {
-        console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents...');
+      // If no new documents to fetch, we're done!
+      if (docsToFetch.length === 0) {
+        console.log('[fetchDocuments] ✅ Only deletions processed, sync complete');
+        clearTimeout(syncTimeout);
         
-        // Fetch full documents for changed items
-        const fullResponse = await fetch(
-          `${BACKEND_URL}/api/documents`,
-          { 
-            headers: { Authorization: `Bearer ${token}` },
-            signal: AbortSignal.timeout(20000)
-          }
-        );
+        // Update manifests
+        await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
+        await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
         
-        if (fullResponse.ok) {
-          const allDocs = await fullResponse.json();
+        set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
+        await get().saveLocalCache();
+        return;
+      }
+
+      // ⭐ Step 5: Fetch ONLY changed documents (not all)
+      console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents in background...');
+      
+      // Mark sync as complete so UI is not blocked
+      // Documents will load in background
+      set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
+      clearTimeout(syncTimeout);
+      
+      // Fetch documents one by one in background (non-blocking)
+      for (const docId of docsToFetch) {
+        try {
+          const docResponse = await fetch(
+            `${BACKEND_URL}/api/documents/${docId}`,
+            { 
+              headers: { Authorization: `Bearer ${token}` },
+              signal: AbortSignal.timeout(10000)
+            }
+          );
           
-          // Replace/add fetched documents
+          if (docResponse.ok) {
+            const fetchedDoc = await docResponse.json();
+            
+            // Update state with new document
+            const { documents: latestDocs } = get();
+            const existingIdx = latestDocs.findIndex(d => d.document_id === docId);
+            
+            if (existingIdx >= 0) {
+              latestDocs[existingIdx] = fetchedDoc;
+            } else {
+              latestDocs.push(fetchedDoc);
+            }
+            
+            set({ documents: [...latestDocs] });
+            console.log('[fetchDocuments] ✅ Fetched:', fetchedDoc.name);
+          }
+        } catch (e) {
+          console.warn('[fetchDocuments] Failed to fetch doc:', docId, e);
+        }
+      }
+      
+      // Update manifests after all fetches
+      await AsyncStorage.setItem(LOCAL_MANIFEST_KEY, JSON.stringify(cloudManifest));
+      await AsyncStorage.setItem(LAST_SYNC_KEY, serverTime);
           for (const fetchedDoc of allDocs) {
             const existingIdx = updatedDocs.findIndex(d => d.document_id === fetchedDoc.document_id);
             if (existingIdx >= 0) {
