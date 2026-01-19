@@ -926,66 +926,78 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       
       // Fetch documents in batches of 50 (much faster than one-by-one)
       const BATCH_SIZE = 50;
+      let useBatchEndpoint = true; // Flag to track if batch endpoint works
+      
       for (let i = 0; i < docsToFetch.length; i += BATCH_SIZE) {
         const batchIds = docsToFetch.slice(i, i + BATCH_SIZE);
         
-        try {
-          const batchResponse = await fetch(
-            `${BACKEND_URL}/api/documents/batch`,
-            { 
-              method: 'POST',
-              headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ document_ids: batchIds }),
-              signal: AbortSignal.timeout(30000) // 30s timeout for batch
-            }
-          );
-          
-          if (batchResponse.ok) {
-            const fetchedDocs: Document[] = await batchResponse.json();
-            console.log('[fetchDocuments] ✅ Batch fetched:', fetchedDocs.length, 'documents');
-            
-            // Update state with all fetched documents
-            const { documents: latestDocs } = get();
-            const docMap = new Map(latestDocs.map(d => [d.document_id, d]));
-            
-            for (const fetchedDoc of fetchedDocs) {
-              docMap.set(fetchedDoc.document_id, fetchedDoc);
-            }
-            
-            set({ documents: Array.from(docMap.values()) });
-          } else {
-            console.warn('[fetchDocuments] Batch fetch failed:', batchResponse.status);
-            // Fallback: fetch one by one for this batch
-            for (const docId of batchIds) {
-              try {
-                const docResponse = await fetch(
-                  `${BACKEND_URL}/api/documents/${docId}`,
-                  { 
-                    headers: { Authorization: `Bearer ${token}` },
-                    signal: AbortSignal.timeout(10000)
-                  }
-                );
-                if (docResponse.ok) {
-                  const fetchedDoc = await docResponse.json();
-                  const { documents: docs } = get();
-                  const idx = docs.findIndex(d => d.document_id === docId);
-                  if (idx >= 0) {
-                    docs[idx] = fetchedDoc;
-                  } else {
-                    docs.push(fetchedDoc);
-                  }
-                  set({ documents: [...docs] });
-                }
-              } catch (e) {
-                console.warn('[fetchDocuments] Failed to fetch doc:', docId, e);
+        // Try batch endpoint first (if not already failed)
+        if (useBatchEndpoint) {
+          try {
+            console.log('[fetchDocuments] 📦 Trying batch endpoint for', batchIds.length, 'docs...');
+            const batchResponse = await fetch(
+              `${BACKEND_URL}/api/documents/batch`,
+              { 
+                method: 'POST',
+                headers: { 
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ document_ids: batchIds }),
+                signal: AbortSignal.timeout(30000)
               }
+            );
+            
+            if (batchResponse.ok) {
+              const fetchedDocs: Document[] = await batchResponse.json();
+              console.log('[fetchDocuments] ✅ Batch fetched:', fetchedDocs.length, 'documents');
+              
+              // Update state with all fetched documents
+              const { documents: latestDocs } = get();
+              const docMap = new Map(latestDocs.map(d => [d.document_id, d]));
+              
+              for (const fetchedDoc of fetchedDocs) {
+                docMap.set(fetchedDoc.document_id, fetchedDoc);
+              }
+              
+              set({ documents: Array.from(docMap.values()) });
+              continue; // Skip fallback for this batch
+            } else {
+              console.warn('[fetchDocuments] ⚠️ Batch endpoint returned:', batchResponse.status, '- switching to fallback');
+              useBatchEndpoint = false; // Disable batch for remaining requests
             }
+          } catch (e) {
+            console.warn('[fetchDocuments] ⚠️ Batch request error:', e, '- switching to fallback');
+            useBatchEndpoint = false;
           }
-        } catch (e) {
-          console.warn('[fetchDocuments] Batch request failed:', e);
+        }
+        
+        // Fallback: fetch one by one for this batch
+        console.log('[fetchDocuments] 🔄 Fallback: fetching', batchIds.length, 'docs one-by-one...');
+        for (const docId of batchIds) {
+          try {
+            const docResponse = await fetch(
+              `${BACKEND_URL}/api/documents/${docId}`,
+              { 
+                headers: { Authorization: `Bearer ${token}` },
+                signal: AbortSignal.timeout(10000)
+              }
+            );
+            if (docResponse.ok) {
+              const fetchedDoc = await docResponse.json();
+              const { documents: docs } = get();
+              const idx = docs.findIndex(d => d.document_id === docId);
+              if (idx >= 0) {
+                docs[idx] = fetchedDoc;
+              } else {
+                docs.push(fetchedDoc);
+              }
+              set({ documents: [...docs] });
+              console.log('[fetchDocuments] ✅ Fetched:', fetchedDoc.name);
+            }
+          } catch (e) {
+            console.warn('[fetchDocuments] Failed to fetch doc:', docId, e);
+          }
         }
       }
       
