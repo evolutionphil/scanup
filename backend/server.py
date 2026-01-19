@@ -2743,6 +2743,35 @@ async def get_documents(
     documents = await db.documents.find(query, {"_id": 0}).sort("updated_at", -1).to_list(1000)
     return [Document(**doc) for doc in documents]
 
+# ⭐ BATCH FETCH - Get multiple documents by IDs (for efficient sync)
+class BatchDocumentRequest(BaseModel):
+    document_ids: List[str]
+
+@api_router.post("/documents/batch", response_model=List[Document])
+async def get_documents_batch(
+    request: BatchDocumentRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get multiple documents by their IDs in a single request.
+    Much more efficient than fetching one by one for sync operations.
+    """
+    if not request.document_ids:
+        return []
+    
+    # Limit batch size to prevent abuse
+    doc_ids = request.document_ids[:50]  # Max 50 documents per batch
+    
+    documents = await db.documents.find(
+        {
+            "document_id": {"$in": doc_ids},
+            "user_id": current_user.user_id
+        },
+        {"_id": 0}
+    ).to_list(50)
+    
+    return [Document(**doc) for doc in documents]
+
 @api_router.get("/documents/{document_id}", response_model=Document)
 async def get_document(
     document_id: str,
