@@ -256,7 +256,12 @@ class OfflineQueueService {
 
   // Process individual operation
   private async processOperation(operation: PendingOperation): Promise<void> {
-    const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://docvault-101.preview.emergentagent.com';
+    const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+    
+    if (!BACKEND_URL) {
+      console.error('[OfflineQueue] No backend URL configured');
+      throw new Error('Backend URL not configured');
+    }
     
     switch (operation.type) {
       case 'apply_signature':
