@@ -483,6 +483,16 @@ export default function SettingsScreen() {
           subtitle={t('web_access_desc', 'Manage web dashboard access requests')}
           onPress={() => router.push('/web-access')}
         />
+        
+        {/* Push Notification Debug - Only show on mobile */}
+        {Platform.OS !== 'web' && (
+          <SettingRow
+            icon="notifications-outline"
+            label="Push Notifications"
+            subtitle={pushStatus}
+            onPress={reRegisterPush}
+          />
+        )}
 
         {/* Appearance */}
         <SectionHeader title={t('appearance', 'APPEARANCE').toUpperCase()} />
