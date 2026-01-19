@@ -171,7 +171,7 @@ export const savePushTokenToBackend = async (token: string): Promise<boolean> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await AsyncStorage.getItem('@scanup_auth_token')}`,
+        'Authorization': `Bearer ${await getAuthToken()}`,
       },
       body: JSON.stringify({
         push_token: token,
@@ -201,7 +201,7 @@ export const removePushTokenFromBackend = async (): Promise<boolean> => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await AsyncStorage.getItem('@scanup_auth_token')}`,
+        'Authorization': `Bearer ${await getAuthToken()}`,
       },
     });
 
