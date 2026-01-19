@@ -916,43 +916,76 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         return;
       }
 
-      // ⭐ Step 5: Fetch ONLY changed documents (not all)
-      console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents in background...');
+      // ⭐ Step 5: Fetch ONLY changed documents using BATCH endpoint
+      console.log('[fetchDocuments] ⬇️ Fetching', docsToFetch.length, 'changed documents via batch API...');
       
       // Mark sync as complete so UI is not blocked
       // Documents will load in background
       set({ isInitialCloudSyncing: false, initialCloudSyncDone: true });
       clearTimeout(syncTimeout);
       
-      // Fetch documents one by one in background (non-blocking)
-      for (const docId of docsToFetch) {
+      // Fetch documents in batches of 50 (much faster than one-by-one)
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < docsToFetch.length; i += BATCH_SIZE) {
+        const batchIds = docsToFetch.slice(i, i + BATCH_SIZE);
+        
         try {
-          const docResponse = await fetch(
-            `${BACKEND_URL}/api/documents/${docId}`,
+          const batchResponse = await fetch(
+            `${BACKEND_URL}/api/documents/batch`,
             { 
-              headers: { Authorization: `Bearer ${token}` },
-              signal: AbortSignal.timeout(10000)
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ document_ids: batchIds }),
+              signal: AbortSignal.timeout(30000) // 30s timeout for batch
             }
           );
           
-          if (docResponse.ok) {
-            const fetchedDoc = await docResponse.json();
+          if (batchResponse.ok) {
+            const fetchedDocs: Document[] = await batchResponse.json();
+            console.log('[fetchDocuments] ✅ Batch fetched:', fetchedDocs.length, 'documents');
             
-            // Update state with new document
+            // Update state with all fetched documents
             const { documents: latestDocs } = get();
-            const existingIdx = latestDocs.findIndex(d => d.document_id === docId);
+            const docMap = new Map(latestDocs.map(d => [d.document_id, d]));
             
-            if (existingIdx >= 0) {
-              latestDocs[existingIdx] = fetchedDoc;
-            } else {
-              latestDocs.push(fetchedDoc);
+            for (const fetchedDoc of fetchedDocs) {
+              docMap.set(fetchedDoc.document_id, fetchedDoc);
             }
             
-            set({ documents: [...latestDocs] });
-            console.log('[fetchDocuments] ✅ Fetched:', fetchedDoc.name);
+            set({ documents: Array.from(docMap.values()) });
+          } else {
+            console.warn('[fetchDocuments] Batch fetch failed:', batchResponse.status);
+            // Fallback: fetch one by one for this batch
+            for (const docId of batchIds) {
+              try {
+                const docResponse = await fetch(
+                  `${BACKEND_URL}/api/documents/${docId}`,
+                  { 
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal: AbortSignal.timeout(10000)
+                  }
+                );
+                if (docResponse.ok) {
+                  const fetchedDoc = await docResponse.json();
+                  const { documents: docs } = get();
+                  const idx = docs.findIndex(d => d.document_id === docId);
+                  if (idx >= 0) {
+                    docs[idx] = fetchedDoc;
+                  } else {
+                    docs.push(fetchedDoc);
+                  }
+                  set({ documents: [...docs] });
+                }
+              } catch (e) {
+                console.warn('[fetchDocuments] Failed to fetch doc:', docId, e);
+              }
+            }
           }
         } catch (e) {
-          console.warn('[fetchDocuments] Failed to fetch doc:', docId, e);
+          console.warn('[fetchDocuments] Batch request failed:', e);
         }
       }
       
