@@ -1437,7 +1437,7 @@
             
             <!-- Auth buttons container - will be updated by JS -->
             <div id="authButtons">
-                <a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>
+                <a href="/dashboard" class="nav-cta">Login / Sign Up</a>
             </div>
             
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -1705,7 +1705,7 @@
                     </div>
                 </div>
                 <div class="dashboard-cta fade-in">
-                    <a href="/landing/dashboard" class="btn btn-primary btn-large">
+                    <a href="/dashboard" class="btn btn-primary btn-large">
                         <i class="fas fa-external-link-alt"></i> Try Web Dashboard
                     </a>
                     <p class="dashboard-cta-note">Free for all users • No download required</p>
@@ -1917,28 +1917,28 @@
                 <div class="footer-column">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="/landing/support">Help Center</a></li>
-                        <li><a href="/landing/contact">Contact Us</a></li>
-                        <li><a href="/landing/faq">FAQ</a></li>
-                        <li><a href="/landing/status">Status</a></li>
+                        <li><a href="/support">Help Center</a></li>
+                        <li><a href="/contact">Contact Us</a></li>
+                        <li><a href="/faq">FAQ</a></li>
+                        <li><a href="/status">Status</a></li>
                     </ul>
                 </div>
                 <div class="footer-column">
                     <h4>Legal</h4>
                     <ul>
-                        <li><a href="/landing/terms">Terms of Service</a></li>
-                        <li><a href="/landing/privacy">Privacy Policy</a></li>
-                        <li><a href="/landing/cookies">Cookie Policy</a></li>
-                        <li><a href="/landing/gdpr">GDPR</a></li>
+                        <li><a href="/terms">Terms of Service</a></li>
+                        <li><a href="/privacy">Privacy Policy</a></li>
+                        <li><a href="/cookies">Cookie Policy</a></li>
+                        <li><a href="/gdpr">GDPR</a></li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2025 ScanUp Inc. All rights reserved.</p>
                 <div class="footer-links">
-                    <a href="/landing/terms">Terms</a>
-                    <a href="/landing/privacy">Privacy</a>
-                    <a href="/landing/support">Support</a>
+                    <a href="/terms">Terms</a>
+                    <a href="/privacy">Privacy</a>
+                    <a href="/support">Support</a>
                 </div>
             </div>
         </div>
@@ -1954,7 +1954,7 @@
             
             if (!token) {
                 // Not logged in - show login button
-                authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
                 return;
             }
             
@@ -1971,7 +1971,7 @@
                     // Show user menu
                     authButtons.innerHTML = `
                         <div class="user-menu">
-                            <a href="/landing/dashboard" class="dashboard-btn">
+                            <a href="/dashboard" class="dashboard-btn">
                                 <i class="fas fa-folder-open"></i> My Documents
                             </a>
                             <div class="user-avatar" onclick="toggleUserDropdown(event)">
@@ -1981,8 +1981,8 @@
                                         <h4>${name}</h4>
                                         <p>${currentUser.email || ''}</p>
                                     </div>
-                                    <a href="/landing/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
-                                    <a href="/landing/dashboard#settings"><i class="fas fa-cog"></i> Settings</a>
+                                    <a href="/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
+                                    <a href="/dashboard#settings"><i class="fas fa-cog"></i> Settings</a>
                                     <a href="#" class="logout" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i> Logout</a>
                                 </div>
                             </div>
@@ -1991,11 +1991,11 @@
                 } else {
                     // Token invalid - clear and show login
                     localStorage.removeItem('scanup_token');
-                    authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                    authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
                 }
             } catch (e) {
                 console.error('Auth check failed:', e);
-                authButtons.innerHTML = `<a href="/landing/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
             }
         }
         
