@@ -6599,12 +6599,15 @@ class SendNotificationRequest(BaseModel):
     data: Optional[Dict[str, Any]] = None
 
 @api_router.post("/notifications/register-token")
-async def register_push_token(request: PushTokenRequest, user: dict = Depends(get_current_user)):
+async def register_push_token(request: PushTokenRequest, current_user: User = Depends(get_current_user)):
     """Register push token for a user"""
     try:
+        logger.info(f"🔔 Registering push token for user {current_user.user_id}")
+        logger.info(f"🔔 Token: {request.push_token[:40]}..., device: {request.device_type}")
+        
         # Update user with push token
-        await db.users.update_one(
-            {"user_id": user["user_id"]},
+        result = await db.users.update_one(
+            {"user_id": current_user.user_id},
             {
                 "$set": {
                     "push_token": request.push_token,
@@ -6615,10 +6618,10 @@ async def register_push_token(request: PushTokenRequest, user: dict = Depends(ge
             }
         )
         
-        logger.info(f"Push token registered for user {user['user_id']}")
+        logger.info(f"✅ Push token registered for user {current_user.user_id}, modified: {result.modified_count}")
         return {"success": True, "message": "Push token registered"}
     except Exception as e:
-        logger.error(f"Failed to register push token: {e}")
+        logger.error(f"❌ Failed to register push token: {e}")
         raise HTTPException(status_code=500, detail="Failed to register push token")
 
 @api_router.delete("/notifications/unregister-token")
