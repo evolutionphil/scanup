@@ -532,6 +532,35 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
+        .reload-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .reload-btn:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .reload-btn.spinning i {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         .sort-select {
             padding: 0.5rem 1rem;
             border: 1px solid var(--gray-200);
