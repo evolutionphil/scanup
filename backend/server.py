@@ -7837,6 +7837,121 @@ async def save_admin_settings(
         logger.error(f"Save settings error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== DANGER ZONE ENDPOINTS ==============
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@api_router.post("/admin/change-password")
+async def change_admin_password(request: ChangePasswordRequest, admin: dict = Depends(get_admin_user)):
+    """Change admin password"""
+    global ADMIN_PASSWORD
+    
+    # Verify current password
+    if request.current_password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Validate new password
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    
+    # Update password in memory (for current session)
+    ADMIN_PASSWORD = request.new_password
+    
+    # Save to database for persistence
+    await db.settings.update_one(
+        {"key": "admin_password"},
+        {"$set": {"key": "admin_password", "value": request.new_password}},
+        upsert=True
+    )
+    
+    logger.info("Admin password changed successfully")
+    return {"message": "Password changed successfully"}
+
+@api_router.delete("/admin/danger/clear-documents")
+async def clear_all_documents(admin: dict = Depends(get_admin_user)):
+    """Delete ALL documents from ALL users - DANGER!"""
+    try:
+        # Delete all documents from database
+        result = await db.documents.delete_many({})
+        deleted_count = result.deleted_count
+        
+        # Also try to clear S3 storage (optional, may fail if many files)
+        try:
+            if s3_client and AWS_S3_BUCKET_NAME:
+                # List and delete all objects (up to 1000 at a time)
+                response = s3_client.list_objects_v2(Bucket=AWS_S3_BUCKET_NAME, MaxKeys=1000)
+                if 'Contents' in response:
+                    objects = [{'Key': obj['Key']} for obj in response['Contents']]
+                    if objects:
+                        s3_client.delete_objects(
+                            Bucket=AWS_S3_BUCKET_NAME,
+                            Delete={'Objects': objects}
+                        )
+                        logger.info(f"Deleted {len(objects)} S3 objects")
+        except Exception as s3_error:
+            logger.warning(f"S3 cleanup warning (non-critical): {s3_error}")
+        
+        logger.warning(f"⚠️ DANGER ZONE: Cleared {deleted_count} documents from database")
+        return {"message": f"Deleted {deleted_count} documents", "deleted_count": deleted_count}
+    except Exception as e:
+        logger.error(f"Clear documents error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/danger/reset-database")
+async def reset_database(admin: dict = Depends(get_admin_user)):
+    """Reset ALL data to default state - EXTREME DANGER!"""
+    try:
+        # Collections to clear
+        collections_to_clear = [
+            "documents",
+            "folders", 
+            "signatures",
+            "web_access_sessions",
+            "user_sessions"
+        ]
+        
+        deleted_counts = {}
+        
+        for collection_name in collections_to_clear:
+            try:
+                collection = db[collection_name]
+                result = await collection.delete_many({})
+                deleted_counts[collection_name] = result.deleted_count
+            except Exception as col_error:
+                logger.error(f"Error clearing {collection_name}: {col_error}")
+                deleted_counts[collection_name] = f"error: {str(col_error)}"
+        
+        # Reset user documents count but keep users
+        await db.users.update_many(
+            {},
+            {"$set": {"document_count": 0, "ocr_pages_this_month": 0}}
+        )
+        
+        # Clear S3 bucket
+        try:
+            if s3_client and AWS_S3_BUCKET_NAME:
+                paginator = s3_client.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=AWS_S3_BUCKET_NAME):
+                    if 'Contents' in page:
+                        objects = [{'Key': obj['Key']} for obj in page['Contents']]
+                        if objects:
+                            s3_client.delete_objects(
+                                Bucket=AWS_S3_BUCKET_NAME,
+                                Delete={'Objects': objects}
+                            )
+                deleted_counts["s3_storage"] = "cleared"
+        except Exception as s3_error:
+            logger.warning(f"S3 cleanup warning: {s3_error}")
+            deleted_counts["s3_storage"] = f"warning: {str(s3_error)}"
+        
+        logger.warning(f"⚠️ DANGER ZONE: Database reset completed: {deleted_counts}")
+        return {"message": "Database reset completed", "details": deleted_counts}
+    except Exception as e:
+        logger.error(f"Reset database error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/admin/system-status")
 async def get_system_status(admin: dict = Depends(get_admin_user)):
     """Get system status"""
