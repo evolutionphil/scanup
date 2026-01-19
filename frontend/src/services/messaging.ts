@@ -3,6 +3,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+
+// Helper to get auth token from correct storage
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem('@scanup_auth_token');
+    }
+    return await SecureStore.getItemAsync('@scanup_auth_token');
+  } catch (e) {
+    console.error('[Notifications] Failed to get auth token:', e);
+    return null;
+  }
+};
 
 const PUSH_TOKEN_KEY = '@scanup_push_token';
 
