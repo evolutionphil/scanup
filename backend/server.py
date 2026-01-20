@@ -1681,8 +1681,15 @@ async def verify_email(data: VerifyEmailRequest):
     if not stored_code or stored_code != data.code:
         raise HTTPException(status_code=400, detail="Invalid or expired code")
     
-    if expires and expires < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Code has expired")
+    # Check expiration - handle both timezone-aware and naive datetimes
+    if expires:
+        now = datetime.now(timezone.utc)
+        # Convert expires to timezone-aware if it's naive
+        if isinstance(expires, datetime):
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires < now:
+                raise HTTPException(status_code=400, detail="Code has expired")
     
     # Mark as verified
     now = datetime.now(timezone.utc)
