@@ -6184,7 +6184,7 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 ## 10. Contact Us
 
 If you have questions about this Privacy Policy, please contact us at:
-- Email: privacy@scanup.app
+- Email: support@scanup.app
 """,
         "de": """# Datenschutzrichtlinie
 
@@ -6254,7 +6254,7 @@ Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren.
 ## 10. Kontakt
 
 Bei Fragen zu dieser Datenschutzrichtlinie kontaktieren Sie uns bitte unter:
-- E-Mail: privacy@scanup.app
+- E-Mail: support@scanup.app
 """
     },
     "support": {
