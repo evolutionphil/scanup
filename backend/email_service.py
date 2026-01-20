@@ -458,10 +458,10 @@ async def send_premium_welcome_email(to_email: str, user_name: str, plan_name: s
 
 
 def generate_verification_code() -> str:
-    """Generate a 6-digit verification code"""
-    return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+    """Generate a 4-digit verification code"""
+    return ''.join([str(secrets.randbelow(10)) for _ in range(4)])
 
 
 def generate_reset_code() -> str:
-    """Generate a 6-digit reset code"""
-    return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+    """Generate a 4-digit reset code"""
+    return ''.join([str(secrets.randbelow(10)) for _ in range(4)])
