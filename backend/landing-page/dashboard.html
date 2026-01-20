@@ -1940,6 +1940,7 @@
                         token = data.token;
                         localStorage.setItem('scanup_token', token);
                         currentUser = data.user;
+                        window.currentUserId = data.user?.user_id || data.user?.email; // Set user ID for web access key
                         // Don't show dashboard directly - check web access security first
                         await checkWebAccessStatus();
                         showToast('Login successful!', 'success');
@@ -1960,6 +1961,7 @@
                     });
                     if (res.ok) {
                         currentUser = await res.json();
+                        window.currentUserId = currentUser?.user_id || currentUser?.email; // Set user ID for web access key
                         
                         // Check if user has approved web access
                         await checkWebAccessStatus();
