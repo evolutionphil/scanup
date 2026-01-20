@@ -8001,6 +8001,14 @@ if os_module.path.exists(admin_static_path):
     # Mount static assets (JS, CSS)
     app.mount("/admin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
     
+    # Serve admin settings page
+    @app.get("/admin/admin-settings")
+    async def serve_admin_settings():
+        settings_path = os_module.path.join(admin_static_path, "admin-settings.html")
+        if os_module.path.exists(settings_path):
+            return FileResponse(settings_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Admin settings page not found")
+    
     # Serve admin dashboard index.html for all /admin routes (SPA support)
     @app.get("/admin")
     @app.get("/admin/")
