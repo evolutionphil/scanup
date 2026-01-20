@@ -152,7 +152,7 @@
       "router": {
         "origin": false
       },
-      "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app",
+      "EXPO_PUBLIC_BACKEND_URL": "https://api.scanup.app",
       "eas": {
         "projectId": "4c3b5675-c4ad-42eb-9b9b-e3410dae2f85"
       }
