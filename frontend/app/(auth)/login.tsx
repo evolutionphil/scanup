@@ -465,4 +465,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
