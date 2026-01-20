@@ -1974,11 +1974,18 @@
         
         // ==================== WEB ACCESS SECURITY ====================
         
+        // Get user-specific localStorage key for web access approval
+        function getWebApprovalKey() {
+            // Use user_id from current user for unique key per account
+            return `scanup_web_approved_${window.currentUserId || 'unknown'}`;
+        }
+        
         async function checkWebAccessStatus() {
-            // Check if this browser was already approved (stored in localStorage)
-            const approvedSession = localStorage.getItem('scanup_web_approved');
+            // Check if this browser was already approved for THIS USER (stored in localStorage)
+            const approvalKey = getWebApprovalKey();
+            const approvedSession = localStorage.getItem(approvalKey);
             if (approvedSession) {
-                // Already approved before, go directly to dashboard
+                // Already approved before for this user, go directly to dashboard
                 webAccessApproved = true;
                 showDashboard();
                 loadDocuments();
@@ -1995,7 +2002,7 @@
                     const data = await res.json();
                     if (data.has_approved_session) {
                         // Has approved session on server
-                        localStorage.setItem('scanup_web_approved', 'true');
+                        localStorage.setItem(approvalKey, 'true');
                         webAccessApproved = true;
                         showDashboard();
                         loadDocuments();
