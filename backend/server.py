@@ -6615,7 +6615,22 @@ async def register_push_token(request: PushTokenRequest, current_user: User = De
         logger.info(f"🔔 Registering push token for user {current_user.user_id}")
         logger.info(f"🔔 Token: {request.push_token[:40]}..., device: {request.device_type}")
         
-        # Update user with push token
+        # IMPORTANT: First, remove this token from any OTHER users (one token = one user)
+        await db.users.update_many(
+            {
+                "push_token": request.push_token,
+                "user_id": {"$ne": current_user.user_id}  # Not the current user
+            },
+            {
+                "$unset": {
+                    "push_token": "",
+                    "device_type": "",
+                    "device_id": ""
+                }
+            }
+        )
+        
+        # Now update current user with push token
         result = await db.users.update_one(
             {"user_id": current_user.user_id},
             {
