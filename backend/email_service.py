@@ -24,9 +24,9 @@ else:
     logger.warning("⚠️ RESEND_API_KEY not found in environment")
 
 # Email configuration
-FROM_EMAIL = "ScanUp <onboarding@resend.dev>"  # Use your verified domain later
+FROM_EMAIL = "ScanUp <noreply@scanup.app>"  # Verified domain
 APP_NAME = "ScanUp"
-APP_URL = "https://scanup.app"  # Update with your actual app URL
+APP_URL = "https://scanup.app"
 
 # Email Templates
 def get_welcome_email_html(user_name: str) -> str:
