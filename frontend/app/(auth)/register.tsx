@@ -84,8 +84,13 @@ export default function RegisterScreen() {
     try {
       console.log('[Register] Calling register API...');
       await register(email, password, name);
-      console.log('[Register] Success! Navigating...');
-      navigateAfterLogin();
+      console.log('[Register] Success! Redirecting to email verification...');
+      
+      // Redirect to verify-email screen instead of main app
+      router.replace({
+        pathname: '/(auth)/verify-email',
+        params: { email: email.trim().toLowerCase(), returnTo: returnTo || '' }
+      });
     } catch (error: any) {
       console.error('[Register] Error:', error.message);
       const msg = error.message || t('please_try_again', 'Please try again');
