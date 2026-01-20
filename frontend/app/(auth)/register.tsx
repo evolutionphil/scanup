@@ -240,7 +240,13 @@ export default function RegisterScreen() {
 
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.textMuted }]}>{t('already_have_account', 'Already have an account?')} </Text>
-              <TouchableOpacity onPress={() => router.push(returnTo ? `/(auth)/login?returnTo=${encodeURIComponent(returnTo)}` : '/(auth)/login')}>
+              <TouchableOpacity onPress={() => {
+                if (returnTo && returnTo.length > 0) {
+                  router.push(`/(auth)/login?returnTo=${encodeURIComponent(returnTo)}`);
+                } else {
+                  router.push('/(auth)/login');
+                }
+              }}>
                 <Text style={[styles.linkText, { color: theme.primary }]}>{t('sign_in', 'Sign In')}</Text>
               </TouchableOpacity>
             </View>
