@@ -63,7 +63,14 @@ export default function VerifyEmailScreen() {
           t('email_verified_success', 'Your email has been verified! You can now login.'),
           [{ 
             text: 'OK', 
-            onPress: () => router.replace(returnTo ? `/(auth)/login?returnTo=${encodeURIComponent(returnTo)}` : '/(auth)/login') 
+            onPress: () => {
+              // Safely navigate to login
+              if (returnTo && returnTo.length > 0) {
+                router.replace(`/(auth)/login?returnTo=${encodeURIComponent(returnTo)}`);
+              } else {
+                router.replace('/(auth)/login');
+              }
+            }
           }]
         );
       } else {
