@@ -2100,7 +2100,7 @@
                             // Approved! Save to localStorage and show dashboard
                             console.log('Session approved! Showing dashboard...');
                             stopPolling();
-                            localStorage.setItem('scanup_web_approved', 'true');
+                            localStorage.setItem(getWebApprovalKey(), 'true'); // Use user-specific key
                             webAccessApproved = true;
                             document.getElementById('webAccessModal').classList.add('hidden');
                             showDashboard();
