@@ -51,7 +51,7 @@ export default function VerifyEmailScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.toLowerCase(),
-          verification_code: code,
+          code: code,  // Backend expects "code" not "verification_code"
         }),
       });
 
