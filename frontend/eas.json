@@ -40,7 +40,8 @@
         "image": "latest"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://scanup-production.up.railway.app",
+        "CI": "0"
       },
       "node": "22.16.0"
     }
