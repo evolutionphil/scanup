@@ -130,20 +130,13 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "kotlinVersion": "1.9.25"
           }
         }
       ],
       "expo-tracking-transparency",
-      "react-native-iap",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "2.2.0"
-          }
-        }
-      ]
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true
