@@ -4,261 +4,454 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy - ScanUp</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta name="description" content="ScanUp Privacy Policy - Learn how we collect, use, and protect your personal information.">
+    <link rel="canonical" href="https://scanup.app/privacy">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #3E51FB;
-            --dark: #111827;
-            --gray-700: #374151;
-            --gray-500: #6B7280;
-            --gray-300: #D1D5DB;
-            --gray-100: #F3F4F6;
-            --white: #FFFFFF;
-        }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--dark);
             line-height: 1.7;
-            background: var(--gray-100);
+            color: #1a1a2e;
+            background: #f8fafc;
         }
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--gray-100);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--dark);
-        }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .header {
+            background: linear-gradient(135deg, #4361EE 0%, #3730A3 100%);
             color: white;
-        }
-        .back-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--gray-700);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        .back-btn:hover { color: var(--primary); }
-        .legal-page {
-            padding: 8rem 2rem 4rem;
-            min-height: 100vh;
-        }
-        .legal-content {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-        .legal-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-        }
-        .last-updated {
-            color: var(--gray-500);
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-        .legal-content h2 {
-            font-size: 1.35rem;
-            margin: 2.5rem 0 1rem;
-            color: var(--dark);
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray-100);
-        }
-        .legal-content h3 {
-            font-size: 1.1rem;
-            margin: 1.5rem 0 0.75rem;
-            color: var(--dark);
-        }
-        .legal-content p {
-            color: var(--gray-700);
-            margin-bottom: 1rem;
-        }
-        .legal-content ul {
-            margin-left: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--gray-700);
-        }
-        .legal-content li { margin-bottom: 0.5rem; }
-        .highlight-box {
-            background: var(--gray-100);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--primary);
-        }
-        .footer {
-            background: var(--dark);
-            color: white;
-            padding: 2rem;
+            padding: 60px 20px;
             text-align: center;
         }
-        .footer p {
-            color: var(--gray-500);
-            font-size: 0.875rem;
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
-        .footer-links {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            margin-bottom: 1rem;
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
         }
-        .footer-links a {
-            color: var(--gray-300);
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .last-updated {
+            background: #EEF2FF;
+            color: #4361EE;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+        h2 {
+            color: #1a1a2e;
+            font-size: 1.5rem;
+            margin: 35px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #EEF2FF;
+        }
+        h3 {
+            color: #374151;
+            font-size: 1.1rem;
+            margin: 25px 0 10px 0;
+        }
+        p {
+            color: #4b5563;
+            margin-bottom: 15px;
+        }
+        ul, ol {
+            color: #4b5563;
+            margin: 15px 0 15px 25px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .highlight-box {
+            background: #ECFDF5;
+            border-left: 4px solid #10B981;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        .highlight-box p {
+            color: #065F46;
+            margin: 0;
+        }
+        .warning-box {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        .warning-box p {
+            color: #92400E;
+            margin: 0;
+        }
+        .company-info {
+            background: #F3F4F6;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        .company-info h3 {
+            margin-top: 0;
+            color: #1a1a2e;
+        }
+        .company-info p {
+            margin-bottom: 8px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #E5E7EB;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .data-table th {
+            background: #F9FAFB;
+            font-weight: 600;
+            color: #374151;
+        }
+        .data-table td {
+            color: #4b5563;
+        }
+        a {
+            color: #4361EE;
             text-decoration: none;
-            font-size: 0.875rem;
         }
-        .footer-links a:hover { color: white; }
-        @media (max-width: 768px) {
-            .legal-content { padding: 2rem 1.5rem; }
-            .legal-content h1 { font-size: 1.75rem; }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        .footer a {
+            color: #4361EE;
+            margin: 0 15px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #4361EE;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .gdpr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #DBEAFE;
+            color: #1E40AF;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.8rem; }
+            .content { padding: 25px; }
+            .data-table { font-size: 0.8rem; }
+            .data-table th, .data-table td { padding: 8px 10px; }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="logo">
-                <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
-                ScanUp
-            </a>
-            <a href="/" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-                Back to Home
-            </a>
-        </div>
-    </nav>
+    <div class="header">
+        <h1>🔒 Privacy Policy</h1>
+        <p>ScanUp - Secure Document Scanner</p>
+    </div>
 
-    <section class="legal-page">
-        <div class="legal-content">
-            <h1>Privacy Policy</h1>
-            <p class="last-updated">Last updated: January 2025</p>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+        
+        <div class="content">
+            <div class="gdpr-badge">🇪🇺 GDPR Compliant</div>
+            <div class="last-updated">Last Updated: January 21, 2026</div>
 
-            <h2>1. Introduction</h2>
-            <p>ScanUp ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.</p>
+            <p>At Vision Go GmbH ("Company", "we", "us", or "our"), we are committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the ScanUp mobile application and related services.</p>
 
             <div class="highlight-box">
-                <strong>Key Point:</strong> Your documents are stored locally on your device by default. We only access your data when you explicitly use cloud features.
+                <p><strong>Your Privacy Matters:</strong> We believe in transparency and giving you control over your data. ScanUp is designed with privacy-first principles, and we only collect data necessary to provide our services.</p>
             </div>
 
-            <h2>2. Information We Collect</h2>
+            <div class="company-info">
+                <h3>🏢 Data Controller</h3>
+                <p><strong>Vision Go GmbH</strong></p>
+                <p>Bäckerstrasse 7/7</p>
+                <p>1010 Vienna, Austria</p>
+                <p>Email: <a href="mailto:info@scanup.app">info@scanup.app</a></p>
+                <p>GLN: 9110037103993</p>
+            </div>
+
+            <h2>1. Information We Collect</h2>
             
-            <h3>Information You Provide</h3>
+            <h3>1.1 Information You Provide</h3>
+            <table class="data-table">
+                <tr>
+                    <th>Data Type</th>
+                    <th>Purpose</th>
+                    <th>Legal Basis</th>
+                </tr>
+                <tr>
+                    <td>Email address</td>
+                    <td>Account creation, communication</td>
+                    <td>Contract performance</td>
+                </tr>
+                <tr>
+                    <td>Name (optional)</td>
+                    <td>Personalization</td>
+                    <td>Consent</td>
+                </tr>
+                <tr>
+                    <td>Password (hashed)</td>
+                    <td>Account security</td>
+                    <td>Contract performance</td>
+                </tr>
+                <tr>
+                    <td>Documents you scan</td>
+                    <td>Core service functionality</td>
+                    <td>Contract performance</td>
+                </tr>
+                <tr>
+                    <td>Digital signatures</td>
+                    <td>Signature feature</td>
+                    <td>Contract performance</td>
+                </tr>
+            </table>
+
+            <h3>1.2 Automatically Collected Information</h3>
+            <table class="data-table">
+                <tr>
+                    <th>Data Type</th>
+                    <th>Purpose</th>
+                    <th>Legal Basis</th>
+                </tr>
+                <tr>
+                    <td>Device type & OS version</td>
+                    <td>App optimization, support</td>
+                    <td>Legitimate interest</td>
+                </tr>
+                <tr>
+                    <td>App usage analytics</td>
+                    <td>Service improvement</td>
+                    <td>Legitimate interest</td>
+                </tr>
+                <tr>
+                    <td>Crash reports</td>
+                    <td>Bug fixing</td>
+                    <td>Legitimate interest</td>
+                </tr>
+                <tr>
+                    <td>Push notification token</td>
+                    <td>Sending notifications</td>
+                    <td>Consent</td>
+                </tr>
+            </table>
+
+            <h3>1.3 Information We Do NOT Collect</h3>
             <ul>
-                <li><strong>Account Information:</strong> Email address and name (if you create an account)</li>
-                <li><strong>Documents:</strong> Scanned documents (stored locally on your device)</li>
-                <li><strong>Signatures:</strong> Digital signatures you create</li>
-                <li><strong>Support Requests:</strong> Information you provide when contacting us</li>
+                <li>We do NOT read or analyze the content of your scanned documents</li>
+                <li>We do NOT sell your personal data to third parties</li>
+                <li>We do NOT track your location</li>
+                <li>We do NOT access your contacts, photos (except camera for scanning), or other personal files</li>
             </ul>
 
-            <h3>Automatically Collected Information</h3>
+            <h2>2. How We Use Your Information</h2>
+            <p>We use the collected information to:</p>
             <ul>
-                <li><strong>Device Information:</strong> Device type, operating system version</li>
-                <li><strong>Usage Data:</strong> App features used, interaction patterns</li>
-                <li><strong>Crash Reports:</strong> Technical data to help us fix bugs</li>
+                <li><strong>Provide Services:</strong> Enable document scanning, storage, and synchronization</li>
+                <li><strong>Manage Accounts:</strong> Create and maintain your user account</li>
+                <li><strong>Process Payments:</strong> Handle Premium subscription transactions (via Apple/Google)</li>
+                <li><strong>Send Notifications:</strong> Alert you about web access requests and important updates</li>
+                <li><strong>Improve Services:</strong> Analyze usage patterns to enhance the app</li>
+                <li><strong>Provide Support:</strong> Respond to your inquiries and resolve issues</li>
+                <li><strong>Ensure Security:</strong> Protect against fraud and unauthorized access</li>
             </ul>
 
-            <h2>3. How We Use Your Information</h2>
-            <p>We use your information to:</p>
+            <h2>3. Data Storage and Security</h2>
+            
+            <h3>3.1 Where We Store Your Data</h3>
+            <p>Your data is stored on secure servers provided by:</p>
             <ul>
-                <li>Provide and maintain our services</li>
-                <li>Sync your documents across devices (if you enable cloud sync)</li>
-                <li>Send important updates about the app</li>
-                <li>Improve our app and user experience</li>
-                <li>Respond to your support requests</li>
-                <li>Detect and prevent fraud or abuse</li>
+                <li><strong>Amazon Web Services (AWS):</strong> Document storage in EU region (Frankfurt)</li>
+                <li><strong>MongoDB Atlas:</strong> User data and metadata (EU region)</li>
             </ul>
 
-            <h2>4. Data Storage and Security</h2>
-            <ul>
-                <li><strong>Local Storage:</strong> By default, all documents are stored only on your device</li>
-                <li><strong>Cloud Sync:</strong> If enabled, documents are encrypted before upload</li>
-                <li><strong>Encryption:</strong> We use industry-standard AES-256 encryption</li>
-                <li><strong>Access Control:</strong> Only you can access your documents</li>
-            </ul>
-
+            <h3>3.2 Security Measures</h3>
             <div class="highlight-box">
-                <strong>Security Note:</strong> We never sell your personal data or documents to third parties.
+                <p><strong>Your documents are protected with:</strong></p>
+            </div>
+            <ul>
+                <li>🔐 <strong>Encryption in Transit:</strong> All data transfers use TLS 1.3 encryption</li>
+                <li>🔐 <strong>Encryption at Rest:</strong> Documents are encrypted on our servers</li>
+                <li>🔐 <strong>Secure Authentication:</strong> JWT tokens with expiration</li>
+                <li>🔐 <strong>Web Access Protection:</strong> Mobile approval required for web dashboard access</li>
+                <li>🔐 <strong>Password Hashing:</strong> Passwords are securely hashed using bcrypt</li>
+            </ul>
+
+            <h2>4. Data Sharing</h2>
+            <p>We do NOT sell your personal data. We may share your information only with:</p>
+            
+            <h3>4.1 Service Providers</h3>
+            <table class="data-table">
+                <tr>
+                    <th>Provider</th>
+                    <th>Purpose</th>
+                    <th>Data Shared</th>
+                </tr>
+                <tr>
+                    <td>Amazon Web Services</td>
+                    <td>Cloud storage</td>
+                    <td>Encrypted documents</td>
+                </tr>
+                <tr>
+                    <td>MongoDB Atlas</td>
+                    <td>Database hosting</td>
+                    <td>User data (encrypted)</td>
+                </tr>
+                <tr>
+                    <td>Resend</td>
+                    <td>Email delivery</td>
+                    <td>Email address</td>
+                </tr>
+                <tr>
+                    <td>Expo</td>
+                    <td>Push notifications</td>
+                    <td>Device tokens</td>
+                </tr>
+                <tr>
+                    <td>Apple/Google</td>
+                    <td>In-app purchases</td>
+                    <td>Transaction data</td>
+                </tr>
+            </table>
+
+            <h3>4.2 Legal Requirements</h3>
+            <p>We may disclose your information if required by law or in response to valid legal requests from public authorities.</p>
+
+            <h2>5. Your Rights (GDPR)</h2>
+            <p>As a user in the European Union, you have the following rights:</p>
+            <ul>
+                <li><strong>Right to Access:</strong> Request a copy of your personal data</li>
+                <li><strong>Right to Rectification:</strong> Correct inaccurate personal data</li>
+                <li><strong>Right to Erasure:</strong> Request deletion of your personal data ("right to be forgotten")</li>
+                <li><strong>Right to Portability:</strong> Receive your data in a structured, machine-readable format</li>
+                <li><strong>Right to Restrict Processing:</strong> Limit how we use your data</li>
+                <li><strong>Right to Object:</strong> Object to processing based on legitimate interests</li>
+                <li><strong>Right to Withdraw Consent:</strong> Withdraw consent at any time</li>
+            </ul>
+            
+            <div class="warning-box">
+                <p><strong>To exercise your rights:</strong> Send an email to <a href="mailto:info@scanup.app">info@scanup.app</a> with your request. We will respond within 30 days.</p>
             </div>
 
-            <h2>5. Your Rights</h2>
-            <p>You have the right to:</p>
-            <ul>
-                <li><strong>Access:</strong> Request a copy of your personal data</li>
-                <li><strong>Delete:</strong> Delete your account and all associated data</li>
-                <li><strong>Export:</strong> Export all your documents</li>
-                <li><strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
-                <li><strong>Correct:</strong> Update or correct your personal information</li>
-            </ul>
-
-            <h2>6. Third-Party Services</h2>
-            <p>We may use the following third-party services:</p>
-            <ul>
-                <li><strong>Analytics:</strong> To understand app usage (anonymized data)</li>
-                <li><strong>Cloud Storage:</strong> For optional backup features (AWS/Google Cloud)</li>
-                <li><strong>Payment Processing:</strong> Handled by app stores (Apple/Google)</li>
-            </ul>
+            <h2>6. Data Retention</h2>
+            <p>We retain your data for the following periods:</p>
+            <table class="data-table">
+                <tr>
+                    <th>Data Type</th>
+                    <th>Retention Period</th>
+                </tr>
+                <tr>
+                    <td>Account data</td>
+                    <td>Until account deletion + 30 days</td>
+                </tr>
+                <tr>
+                    <td>Documents</td>
+                    <td>Until deleted by user or account deletion</td>
+                </tr>
+                <tr>
+                    <td>Usage analytics</td>
+                    <td>24 months</td>
+                </tr>
+                <tr>
+                    <td>Payment records</td>
+                    <td>7 years (legal requirement)</td>
+                </tr>
+                <tr>
+                    <td>Support communications</td>
+                    <td>3 years</td>
+                </tr>
+            </table>
 
             <h2>7. Children's Privacy</h2>
-            <p>Our app is not intended for children under 13. We do not knowingly collect personal information from children under 13.</p>
+            <p>ScanUp is not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16. If you believe we have collected data from a child, please contact us immediately at <a href="mailto:info@scanup.app">info@scanup.app</a>.</p>
 
             <h2>8. International Data Transfers</h2>
-            <p>If you use our cloud features, your data may be processed in data centers located in the United States or European Union, with appropriate safeguards in place.</p>
+            <p>Your data is primarily stored within the European Union. If data is transferred outside the EU, we ensure appropriate safeguards are in place, such as:</p>
+            <ul>
+                <li>Standard Contractual Clauses (SCCs)</li>
+                <li>Adequacy decisions by the European Commission</li>
+            </ul>
 
-            <h2>9. Changes to This Policy</h2>
-            <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.</p>
+            <h2>9. Cookies and Tracking</h2>
+            <p>The ScanUp mobile app does not use cookies. Our website uses minimal, essential cookies for:</p>
+            <ul>
+                <li>Session management (login state)</li>
+                <li>Security (CSRF protection)</li>
+            </ul>
+            <p>We do not use tracking cookies or third-party advertising cookies.</p>
 
-            <h2>10. Contact Us</h2>
-            <p>If you have questions about this Privacy Policy or want to exercise your rights, please contact us:</p>
-            <p><strong>Email:</strong> support@scanup.app</p>
-            <p><strong>Address:</strong> ScanUp Inc., 123 Tech Street, San Francisco, CA 94102</p>
+            <h2>10. Third-Party Links</h2>
+            <p>Our app may contain links to third-party websites or services. We are not responsible for the privacy practices of these external sites. We encourage you to read their privacy policies.</p>
+
+            <h2>11. Changes to This Policy</h2>
+            <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by:</p>
+            <ul>
+                <li>Posting the updated policy on our website</li>
+                <li>Sending an email notification</li>
+                <li>Displaying a notice in the app</li>
+            </ul>
+            <p>The "Last Updated" date at the top indicates when changes were made.</p>
+
+            <h2>12. Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+            <div class="company-info">
+                <h3>📬 Contact Information</h3>
+                <p><strong>Vision Go GmbH</strong></p>
+                <p>Bäckerstrasse 7/7</p>
+                <p>1010 Vienna, Austria</p>
+                <p>Email: <a href="mailto:info@scanup.app">info@scanup.app</a></p>
+                <p>Website: <a href="https://scanup.app">https://scanup.app</a></p>
+            </div>
+
+            <h3>Supervisory Authority</h3>
+            <p>If you are not satisfied with our response, you have the right to lodge a complaint with the Austrian Data Protection Authority:</p>
+            <div class="company-info">
+                <p><strong>Österreichische Datenschutzbehörde</strong></p>
+                <p>Barichgasse 40-42</p>
+                <p>1030 Vienna, Austria</p>
+                <p>Website: <a href="https://www.dsb.gv.at" target="_blank">www.dsb.gv.at</a></p>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <footer class="footer">
-        <div class="footer-links">
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/support">Support</a>
-        </div>
-        <p>&copy; 2025 ScanUp Inc. All rights reserved.</p>
-    </footer>
+    <div class="footer">
+        <p>© 2026 Vision Go GmbH. All rights reserved.</p>
+        <p style="margin-top: 15px;">
+            <a href="/">Home</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+            <a href="/contact">Contact</a>
+        </p>
+    </div>
 </body>
 </html>
