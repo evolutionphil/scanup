@@ -178,6 +178,10 @@ export default function PremiumScreen() {
     router.push('/legal?type=terms');
   };
 
+  const openPrivacy = () => {
+    router.push('/legal?type=privacy');
+  };
+
   const handlePurchaseUpdate = async (purchase: any) => {
     const status = await processPurchase(purchase);
     
