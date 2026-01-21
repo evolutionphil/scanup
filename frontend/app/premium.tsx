@@ -459,6 +459,9 @@ export default function PremiumScreen() {
           <TouchableOpacity onPress={openTerms}>
             <Text style={styles.footerLinkText}>Terms of Use</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={openPrivacy}>
+            <Text style={styles.footerLinkText}>Privacy Policy</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
