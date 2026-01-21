@@ -3,230 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms of Service - ScanUp</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Terms of Use - ScanUp</title>
+    <meta name="description" content="ScanUp Terms of Use - Read our terms and conditions for using the ScanUp document scanning application.">
+    <link rel="canonical" href="https://scanup.app/terms">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #3E51FB;
-            --dark: #111827;
-            --gray-700: #374151;
-            --gray-500: #6B7280;
-            --gray-300: #D1D5DB;
-            --gray-100: #F3F4F6;
-            --white: #FFFFFF;
-        }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--dark);
             line-height: 1.7;
-            background: var(--gray-100);
+            color: #1a1a2e;
+            background: #f8fafc;
         }
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--gray-100);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--dark);
-        }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #3E51FB 0%, #6B7BFF 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .header {
+            background: linear-gradient(135deg, #4361EE 0%, #3730A3 100%);
             color: white;
-        }
-        .back-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--gray-700);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        .back-btn:hover { color: var(--primary); }
-        .legal-page {
-            padding: 8rem 2rem 4rem;
-            min-height: 100vh;
-        }
-        .legal-content {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-        .legal-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--dark);
-        }
-        .last-updated {
-            color: var(--gray-500);
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-        .legal-content h2 {
-            font-size: 1.35rem;
-            margin: 2.5rem 0 1rem;
-            color: var(--dark);
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray-100);
-        }
-        .legal-content p {
-            color: var(--gray-700);
-            margin-bottom: 1rem;
-        }
-        .legal-content ul {
-            margin-left: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--gray-700);
-        }
-        .legal-content li { margin-bottom: 0.5rem; }
-        .footer {
-            background: var(--dark);
-            color: white;
-            padding: 2rem;
+            padding: 60px 20px;
             text-align: center;
         }
-        .footer p {
-            color: var(--gray-500);
-            font-size: 0.875rem;
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
-        .footer-links {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            margin-bottom: 1rem;
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
         }
-        .footer-links a {
-            color: var(--gray-300);
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .last-updated {
+            background: #EEF2FF;
+            color: #4361EE;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+        h2 {
+            color: #1a1a2e;
+            font-size: 1.5rem;
+            margin: 35px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #EEF2FF;
+        }
+        h3 {
+            color: #374151;
+            font-size: 1.1rem;
+            margin: 25px 0 10px 0;
+        }
+        p {
+            color: #4b5563;
+            margin-bottom: 15px;
+        }
+        ul, ol {
+            color: #4b5563;
+            margin: 15px 0 15px 25px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .highlight-box {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        .highlight-box p {
+            color: #92400E;
+            margin: 0;
+        }
+        .company-info {
+            background: #F3F4F6;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        .company-info h3 {
+            margin-top: 0;
+            color: #1a1a2e;
+        }
+        .company-info p {
+            margin-bottom: 8px;
+        }
+        a {
+            color: #4361EE;
             text-decoration: none;
-            font-size: 0.875rem;
         }
-        .footer-links a:hover { color: white; }
-        @media (max-width: 768px) {
-            .legal-content { padding: 2rem 1.5rem; }
-            .legal-content h1 { font-size: 1.75rem; }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        .footer a {
+            color: #4361EE;
+            margin: 0 15px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #4361EE;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.8rem; }
+            .content { padding: 25px; }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="logo">
-                <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
-                ScanUp
-            </a>
-            <a href="/" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-                Back to Home
-            </a>
-        </div>
-    </nav>
+    <div class="header">
+        <h1>📄 Terms of Use</h1>
+        <p>ScanUp - Secure Document Scanner</p>
+    </div>
 
-    <section class="legal-page">
-        <div class="legal-content">
-            <h1>Terms of Service</h1>
-            <p class="last-updated">Last updated: January 2025</p>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+        
+        <div class="content">
+            <div class="last-updated">Last Updated: January 21, 2026</div>
+
+            <p>Welcome to ScanUp! These Terms of Use ("Terms") govern your access to and use of the ScanUp mobile application ("App"), website, and related services (collectively, the "Service") provided by Vision Go GmbH ("Company", "we", "us", or "our").</p>
+
+            <div class="highlight-box">
+                <p><strong>Important:</strong> By downloading, installing, or using ScanUp, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our Service.</p>
+            </div>
+
+            <div class="company-info">
+                <h3>🏢 Service Provider</h3>
+                <p><strong>Vision Go GmbH</strong></p>
+                <p>Bäckerstrasse 7/7</p>
+                <p>1010 Vienna, Austria</p>
+                <p>Email: <a href="mailto:info@scanup.app">info@scanup.app</a></p>
+                <p>GLN: 9110037103993</p>
+            </div>
 
             <h2>1. Acceptance of Terms</h2>
-            <p>By downloading, installing, or using ScanUp ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.</p>
+            <p>By accessing or using ScanUp, you confirm that:</p>
+            <ul>
+                <li>You are at least 16 years of age (or the age of majority in your jurisdiction)</li>
+                <li>You have the legal capacity to enter into these Terms</li>
+                <li>You will comply with all applicable laws and regulations</li>
+                <li>You have read and understood our <a href="/privacy">Privacy Policy</a></li>
+            </ul>
 
             <h2>2. Description of Service</h2>
-            <p>ScanUp is a mobile document scanning application that allows users to:</p>
+            <p>ScanUp is a mobile document scanning application that allows you to:</p>
             <ul>
-                <li>Scan documents using your device's camera</li>
-                <li>Edit and enhance scanned documents</li>
-                <li>Save documents as PDF files</li>
-                <li>Sign documents digitally</li>
-                <li>Share documents securely</li>
-                <li>Organize documents in folders</li>
+                <li>Scan physical documents using your device's camera</li>
+                <li>Convert scanned documents to PDF format</li>
+                <li>Organize documents into folders</li>
+                <li>Apply digital signatures to documents</li>
+                <li>Perform OCR (Optical Character Recognition) on scanned documents</li>
+                <li>Store and sync documents securely in the cloud</li>
+                <li>Access documents via web dashboard</li>
             </ul>
 
             <h2>3. User Accounts</h2>
-            <p>You may use ScanUp in guest mode or create an account for additional features. When creating an account:</p>
+            <h3>3.1 Account Registration</h3>
+            <p>To use certain features of ScanUp, you must create an account. You agree to:</p>
             <ul>
-                <li>You must provide accurate and complete information</li>
-                <li>You are responsible for maintaining the confidentiality of your account</li>
-                <li>You are responsible for all activities under your account</li>
-                <li>You must notify us immediately of any unauthorized use</li>
+                <li>Provide accurate, current, and complete information</li>
+                <li>Maintain and promptly update your account information</li>
+                <li>Keep your login credentials secure and confidential</li>
+                <li>Immediately notify us of any unauthorized use of your account</li>
             </ul>
 
-            <h2>4. Acceptable Use</h2>
-            <p>You agree not to:</p>
+            <h3>3.2 Account Responsibility</h3>
+            <p>You are solely responsible for all activities that occur under your account. We are not liable for any loss or damage arising from your failure to protect your account credentials.</p>
+
+            <h2>4. Premium Subscription</h2>
+            <h3>4.1 Subscription Plans</h3>
+            <p>ScanUp offers premium subscription plans ("Premium") that provide additional features such as:</p>
             <ul>
-                <li>Use the service for any illegal purposes</li>
-                <li>Upload harmful or malicious content</li>
-                <li>Attempt to gain unauthorized access to our systems</li>
-                <li>Interfere with or disrupt the service</li>
-                <li>Violate intellectual property rights</li>
-                <li>Use the app to harass or harm others</li>
+                <li>Unlimited document storage</li>
+                <li>Advanced OCR capabilities</li>
+                <li>Digital signature tools</li>
+                <li>Priority cloud sync</li>
+                <li>No watermarks on exports</li>
             </ul>
 
-            <h2>5. Intellectual Property</h2>
-            <p>ScanUp and its original content, features, and functionality are owned by ScanUp Inc. and are protected by international copyright, trademark, and other intellectual property laws.</p>
-            <p>You retain ownership of all documents you scan and create using the App.</p>
-
-            <h2>6. Privacy</h2>
-            <p>Your privacy is important to us. Please review our <a href="/privacy">Privacy Policy</a> to understand how we collect, use, and protect your information.</p>
-
-            <h2>7. Subscription and Payments</h2>
-            <p>Some features require a paid subscription. By subscribing:</p>
+            <h3>4.2 Billing and Renewal</h3>
+            <div class="highlight-box">
+                <p><strong>Auto-Renewal:</strong> Premium subscriptions automatically renew unless canceled at least 24 hours before the end of the current billing period. Your payment method will be charged at the start of each billing cycle.</p>
+            </div>
             <ul>
-                <li>You authorize us to charge your payment method</li>
-                <li>Subscriptions automatically renew unless cancelled</li>
-                <li>Refunds are handled according to the app store policies</li>
+                <li>Payment will be charged to your Apple ID or Google Play account at confirmation of purchase</li>
+                <li>Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period</li>
+                <li>Your account will be charged for renewal within 24 hours prior to the end of the current period</li>
+                <li>You can manage and cancel your subscriptions by going to your account settings on the App Store or Google Play Store after purchase</li>
             </ul>
 
-            <h2>8. Limitation of Liability</h2>
-            <p>ScanUp is provided "as is" without warranties of any kind. We shall not be liable for any indirect, incidental, special, or consequential damages.</p>
+            <h3>4.3 Cancellation</h3>
+            <p>You may cancel your Premium subscription at any time through your device's app store settings. Upon cancellation:</p>
+            <ul>
+                <li>Your subscription remains active until the end of the current billing period</li>
+                <li>You will not receive a refund for any unused portion of the subscription</li>
+                <li>You will lose access to Premium features at the end of the billing period</li>
+            </ul>
 
-            <h2>9. Changes to Terms</h2>
-            <p>We reserve the right to modify these terms at any time. We will notify users of significant changes. Continued use of the App after changes constitutes acceptance of the new terms.</p>
+            <h3>4.4 Refunds</h3>
+            <p>Refund requests are handled by Apple (App Store) or Google (Play Store) according to their respective refund policies. Please contact Apple or Google directly for refund inquiries.</p>
 
-            <h2>10. Contact Us</h2>
-            <p>If you have questions about these Terms, please contact us at:</p>
-            <p><strong>Email:</strong> support@scanup.app</p>
+            <h2>5. User Content</h2>
+            <h3>5.1 Your Content</h3>
+            <p>You retain all ownership rights to the documents and content you create, upload, or store using ScanUp ("User Content"). By using our Service, you grant us a limited license to process your User Content solely for the purpose of providing the Service.</p>
+
+            <h3>5.2 Content Restrictions</h3>
+            <p>You agree not to use ScanUp to store, process, or transmit:</p>
+            <ul>
+                <li>Content that violates any applicable law or regulation</li>
+                <li>Content that infringes on intellectual property rights of others</li>
+                <li>Malicious software, viruses, or harmful code</li>
+                <li>Content that is defamatory, obscene, or offensive</li>
+                <li>Fraudulent or deceptive content</li>
+            </ul>
+
+            <h2>6. Intellectual Property</h2>
+            <p>The ScanUp application, including its design, features, code, graphics, and content (excluding User Content), is owned by Vision Go GmbH and protected by copyright, trademark, and other intellectual property laws.</p>
+            <p>You may not:</p>
+            <ul>
+                <li>Copy, modify, or distribute the App</li>
+                <li>Reverse engineer or decompile the App</li>
+                <li>Remove any copyright or proprietary notices</li>
+                <li>Use our trademarks without prior written consent</li>
+            </ul>
+
+            <h2>7. Privacy and Data Protection</h2>
+            <p>Your privacy is important to us. Our collection and use of personal information is governed by our <a href="/privacy">Privacy Policy</a>, which is incorporated into these Terms by reference. By using ScanUp, you consent to our data practices as described in the Privacy Policy.</p>
+
+            <h2>8. Security</h2>
+            <p>We implement industry-standard security measures to protect your data, including:</p>
+            <ul>
+                <li>End-to-end encryption for document transfers</li>
+                <li>Secure cloud storage with AWS</li>
+                <li>Two-factor authentication for web access</li>
+                <li>Regular security audits and updates</li>
+            </ul>
+            <p>However, no method of transmission or storage is 100% secure. You acknowledge that you use the Service at your own risk.</p>
+
+            <h2>9. Limitation of Liability</h2>
+            <p>To the maximum extent permitted by applicable law:</p>
+            <ul>
+                <li>ScanUp is provided "AS IS" without warranties of any kind</li>
+                <li>We do not guarantee uninterrupted or error-free service</li>
+                <li>We are not liable for any indirect, incidental, or consequential damages</li>
+                <li>Our total liability shall not exceed the amount you paid for the Service in the 12 months preceding the claim</li>
+            </ul>
+
+            <h2>10. Indemnification</h2>
+            <p>You agree to indemnify and hold harmless Vision Go GmbH, its officers, directors, employees, and agents from any claims, damages, or expenses arising from:</p>
+            <ul>
+                <li>Your use of the Service</li>
+                <li>Your violation of these Terms</li>
+                <li>Your violation of any third-party rights</li>
+            </ul>
+
+            <h2>11. Termination</h2>
+            <p>We may suspend or terminate your access to ScanUp at any time, with or without cause, including for:</p>
+            <ul>
+                <li>Violation of these Terms</li>
+                <li>Fraudulent or illegal activity</li>
+                <li>Non-payment of fees</li>
+                <li>Extended period of inactivity</li>
+            </ul>
+            <p>Upon termination, your right to use the Service ceases immediately. You may export your data before termination.</p>
+
+            <h2>12. Changes to Terms</h2>
+            <p>We may update these Terms from time to time. We will notify you of significant changes by:</p>
+            <ul>
+                <li>Posting the updated Terms on our website</li>
+                <li>Sending an email notification</li>
+                <li>Displaying a notice in the App</li>
+            </ul>
+            <p>Your continued use of ScanUp after changes become effective constitutes acceptance of the revised Terms.</p>
+
+            <h2>13. Governing Law and Disputes</h2>
+            <p>These Terms are governed by the laws of Austria, without regard to conflict of law principles. Any disputes arising from these Terms shall be resolved in the courts of Vienna, Austria.</p>
+            <p>For EU consumers: You may also be entitled to use the European Commission's Online Dispute Resolution platform at <a href="https://ec.europa.eu/consumers/odr" target="_blank">https://ec.europa.eu/consumers/odr</a></p>
+
+            <h2>14. Severability</h2>
+            <p>If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+
+            <h2>15. Contact Us</h2>
+            <p>If you have any questions about these Terms, please contact us:</p>
+            <div class="company-info">
+                <p><strong>Vision Go GmbH</strong></p>
+                <p>Bäckerstrasse 7/7</p>
+                <p>1010 Vienna, Austria</p>
+                <p>Email: <a href="mailto:info@scanup.app">info@scanup.app</a></p>
+                <p>Website: <a href="https://scanup.app">https://scanup.app</a></p>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <footer class="footer">
-        <div class="footer-links">
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/support">Support</a>
-        </div>
-        <p>&copy; 2025 ScanUp Inc. All rights reserved.</p>
-    </footer>
+    <div class="footer">
+        <p>© 2026 Vision Go GmbH. All rights reserved.</p>
+        <p style="margin-top: 15px;">
+            <a href="/">Home</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+            <a href="/contact">Contact</a>
+        </p>
+    </div>
 </body>
 </html>
