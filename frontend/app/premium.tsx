@@ -452,6 +452,19 @@ export default function PremiumScreen() {
         )}
 
         {/* Footer Links */}
+        {/* Subscription Terms - Required by Apple */}
+        <View style={styles.subscriptionTerms}>
+          <Text style={styles.subscriptionTermsText}>
+            Payment will be charged to your Apple ID account at confirmation of purchase.
+          </Text>
+          <Text style={styles.subscriptionTermsText}>
+            Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
+          </Text>
+          <Text style={styles.subscriptionTermsText}>
+            You can manage or cancel your subscription anytime in your App Store Account Settings.
+          </Text>
+        </View>
+
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={handleRestore}>
             <Text style={styles.footerLinkText}>Restore Purchases</Text>
