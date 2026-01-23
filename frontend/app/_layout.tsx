@@ -12,6 +12,29 @@ import { useMonetizationStore } from '../src/store/monetizationStore';
 import { useOfflineSync } from '../src/hooks/useOfflineSync';
 import * as Notifications from 'expo-notifications';
 
+// iOS App Tracking Transparency - must be called early
+const requestTrackingPermission = async () => {
+  if (Platform.OS !== 'ios') return;
+  
+  try {
+    const { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+    
+    // Check current status first
+    const { status: currentStatus } = await getTrackingPermissionsAsync();
+    console.log('[ATT] Current tracking status:', currentStatus);
+    
+    // Only request if not determined yet
+    if (currentStatus === 'undetermined') {
+      // Small delay to ensure app is fully loaded
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { status } = await requestTrackingPermissionsAsync();
+      console.log('[ATT] Permission requested, new status:', status);
+    }
+  } catch (error) {
+    console.log('[ATT] Error requesting tracking permission:', error);
+  }
+};
+
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
   const initializeI18n = useI18n((state) => state.initialize);
@@ -38,6 +61,11 @@ export default function RootLayout() {
       if (Platform.OS !== 'web') {
         // ⚠️ NO ADS INIT HERE - Ads will be initialized lazily after user action
         // This prevents iOS crash with New Architecture
+        
+        // 0️⃣ Request ATT permission FIRST (iOS requirement - must be before any tracking)
+        if (Platform.OS === 'ios') {
+          requestTrackingPermission();
+        }
         
         // 1️⃣ Initialize IAP - DELAYED for stability
         setTimeout(() => {
@@ -148,19 +176,6 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-
-// iOS App Tracking Transparency izni
-const requestTrackingPermission = async () => {
-  if (Platform.OS !== 'ios') return;
-  
-  try {
-    const { requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
-    const { status } = await requestTrackingPermissionsAsync();
-    console.log('[RootLayout] ATT permission status:', status);
-  } catch (error) {
-    console.log('[RootLayout] ATT not available:', error);
-  }
-};
 
 const styles = StyleSheet.create({
   container: {
