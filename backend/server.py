@@ -2316,6 +2316,91 @@ async def update_profile(
     user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
     return user_to_response(user)
 
+@api_router.delete("/users/account")
+async def delete_user_account(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete user account and all associated data.
+    This permanently deletes:
+    - User account
+    - All documents and their pages
+    - All folders
+    - All signatures
+    - All S3 stored images
+    """
+    user_id = current_user.user_id
+    logger.info(f"[Account Delete] Starting deletion for user: {user_id}")
+    
+    try:
+        # 1. Get all documents for S3 cleanup
+        documents = await db.documents.find({"user_id": user_id}).to_list(None)
+        
+        # 2. Delete from S3 (if configured)
+        if s3_client and AWS_S3_BUCKET_NAME:
+            for doc in documents:
+                try:
+                    delete_from_s3(user_id, doc.get("document_id", ""))
+                except Exception as e:
+                    logger.warning(f"[Account Delete] S3 delete failed for doc {doc.get('document_id')}: {e}")
+            
+            # Also try to delete user folder entirely
+            try:
+                response = s3_client.list_objects_v2(
+                    Bucket=AWS_S3_BUCKET_NAME,
+                    Prefix=f"{user_id}/"
+                )
+                if 'Contents' in response:
+                    objects = [{'Key': obj['Key']} for obj in response['Contents']]
+                    if objects:
+                        s3_client.delete_objects(
+                            Bucket=AWS_S3_BUCKET_NAME,
+                            Delete={'Objects': objects}
+                        )
+                        logger.info(f"[Account Delete] Deleted {len(objects)} S3 objects for user {user_id}")
+            except Exception as e:
+                logger.warning(f"[Account Delete] S3 folder cleanup failed: {e}")
+        
+        # 3. Delete all documents from database
+        docs_result = await db.documents.delete_many({"user_id": user_id})
+        logger.info(f"[Account Delete] Deleted {docs_result.deleted_count} documents")
+        
+        # 4. Delete all folders
+        folders_result = await db.folders.delete_many({"user_id": user_id})
+        logger.info(f"[Account Delete] Deleted {folders_result.deleted_count} folders")
+        
+        # 5. Delete all signatures
+        sigs_result = await db.signatures.delete_many({"user_id": user_id})
+        logger.info(f"[Account Delete] Deleted {sigs_result.deleted_count} signatures")
+        
+        # 6. Delete web access sessions
+        sessions_result = await db.web_access_sessions.delete_many({"user_id": user_id})
+        logger.info(f"[Account Delete] Deleted {sessions_result.deleted_count} web sessions")
+        
+        # 7. Finally, delete the user account
+        user_result = await db.users.delete_one({"user_id": user_id})
+        
+        if user_result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"[Account Delete] ✅ Successfully deleted user account: {user_id}")
+        
+        return {
+            "message": "Account deleted successfully",
+            "deleted": {
+                "documents": docs_result.deleted_count,
+                "folders": folders_result.deleted_count,
+                "signatures": sigs_result.deleted_count,
+                "sessions": sessions_result.deleted_count
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Account Delete] Error deleting account {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete account")
+
 @api_router.post("/users/start-trial", response_model=UserResponse)
 async def start_trial(
     current_user: User = Depends(get_current_user)
