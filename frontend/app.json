@@ -3,7 +3,7 @@
     "name": "ScanUp",
     "slug": "scanup",
     "version": "1.0.6",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "scanup",
     "userInterfaceStyle": "automatic",
