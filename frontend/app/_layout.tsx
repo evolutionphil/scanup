@@ -168,6 +168,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="document/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="delete-account" options={{ presentation: 'modal' }} />
         <Stack.Screen name="folder/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-page" options={{ presentation: 'modal' }} />
         <Stack.Screen name="premium" options={{ presentation: 'modal' }} />
