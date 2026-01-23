@@ -1453,6 +1453,73 @@
                 font-size: 0.95rem;
             }
             
+            /* Dashboard Features - Horizontal Swipe Carousel */
+            .dashboard-features {
+                display: flex;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                gap: 1rem;
+                padding: 1rem 0 1.5rem;
+                margin: 2rem -1rem 0;
+                padding-left: 1rem;
+                padding-right: 1rem;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            
+            .dashboard-features::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .dashboard-feature {
+                flex: 0 0 85%;
+                scroll-snap-align: center;
+                flex-direction: column;
+                text-align: center;
+                padding: 1.5rem;
+            }
+            
+            .dashboard-feature-icon {
+                margin: 0 auto 1rem;
+            }
+            
+            .dashboard-feature-text h4 {
+                font-size: 1rem;
+            }
+            
+            .dashboard-feature-text p {
+                font-size: 0.85rem;
+            }
+            
+            /* Swipe indicator dots */
+            .swipe-indicator {
+                display: flex;
+                justify-content: center;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+            
+            .swipe-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--gray-300);
+                transition: background 0.3s, transform 0.3s;
+            }
+            
+            .swipe-dot.active {
+                background: var(--primary);
+                transform: scale(1.2);
+            }
+            
+            .swipe-hint {
+                text-align: center;
+                color: var(--gray-500);
+                font-size: 0.8rem;
+                margin-top: 0.5rem;
+            }
+            
             .steps {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
