@@ -998,3 +998,7 @@ model.patch
 # Environment files
 *.env
 *.env.*
+-e 
+# Environment files
+*.env
+*.env.*
