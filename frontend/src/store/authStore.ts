@@ -440,4 +440,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     return false;
   },
+
+  deleteAccount: async () => {
+    const token = get().token;
+    if (!token || get().isGuest) {
+      throw new Error('Not authenticated');
+    }
+
+    console.log('[Auth] Deleting account...');
+
+    const response = await fetch(`${BACKEND_URL}/api/users/account`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to delete account');
+    }
+
+    console.log('[Auth] Account deleted successfully');
+
+    // Clear all local data
+    await removeStorage(TOKEN_KEY);
+    await removeStorage(USER_KEY);
+    await removeStorage(GUEST_KEY);
+    
+    // Clear document store
+    try {
+      useDocumentStore.getState().clearAllData();
+    } catch (e) {
+      console.log('[Auth] Error clearing document store:', e);
+    }
+
+    // Reset auth state
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isGuest: false,
+      isLoading: false,
+    });
+  },
 }));
