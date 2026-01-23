@@ -47,6 +47,7 @@ interface AuthState {
   startTrial: () => Promise<void>;
   markDocumentsMigrated: () => Promise<void>;
   hasDocumentsMigrated: () => Promise<boolean>;
+  deleteAccount: () => Promise<void>;
 }
 
 const getStorage = async (key: string): Promise<string | null> => {
