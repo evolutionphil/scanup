@@ -403,6 +403,33 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+  subscriptionWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 12,
+  },
+  subscriptionTextContainer: {
+    flex: 1,
+  },
+  subscriptionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  subscriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  subscriptionHint: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
   userInfoBox: {
     borderRadius: 12,
     padding: 16,
