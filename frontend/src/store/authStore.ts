@@ -222,6 +222,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } catch (err) {
           console.log('[Auth] Push token registration failed:', err);
         }
+        
+        // ⭐ CRITICAL: Restore purchases after login to check subscription status
+        try {
+          const { restore, verifySubscriptionStatus } = usePurchaseStore.getState();
+          console.log('[Auth] Restoring purchases after Google login...');
+          await restore();
+          await verifySubscriptionStatus();
+          console.log('[Auth] Purchase restoration complete');
+        } catch (err) {
+          console.log('[Auth] Purchase restoration failed:', err);
+        }
       }, 1000);
     }
   },
@@ -263,6 +274,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
         } catch (err) {
           console.log('[Auth] Push token registration failed:', err);
+        }
+        
+        // ⭐ CRITICAL: Restore purchases after login to check subscription status
+        try {
+          const { restore, verifySubscriptionStatus } = usePurchaseStore.getState();
+          console.log('[Auth] Restoring purchases after Google native login...');
+          await restore();
+          await verifySubscriptionStatus();
+          console.log('[Auth] Purchase restoration complete');
+        } catch (err) {
+          console.log('[Auth] Purchase restoration failed:', err);
         }
       }, 1000);
     }
