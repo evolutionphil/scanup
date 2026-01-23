@@ -337,6 +337,65 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleDeleteAccount = () => {
+    if (isGuest) {
+      Alert.alert(
+        t('not_available', 'Not Available'),
+        t('guest_delete_message', 'Guest accounts cannot be deleted. Please create an account first.')
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('delete_account', 'Delete Account'),
+      t('delete_account_warning', 'Are you sure you want to permanently delete your account? This will delete all your documents, folders, signatures, and personal data. This action cannot be undone.'),
+      [
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('delete', 'Delete'),
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              t('final_confirmation', 'Final Confirmation'),
+              t('delete_account_final', 'Type DELETE to confirm account deletion. All your data will be permanently erased.'),
+              [
+                { text: t('cancel', 'Cancel'), style: 'cancel' },
+                {
+                  text: t('delete_permanently', 'Delete Permanently'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsDeletingAccount(true);
+                    try {
+                      await deleteAccount();
+                      Alert.alert(
+                        t('account_deleted', 'Account Deleted'),
+                        t('account_deleted_message', 'Your account and all associated data have been permanently deleted.'),
+                        [
+                          {
+                            text: 'OK',
+                            onPress: () => router.replace('/(auth)/login'),
+                          },
+                        ]
+                      );
+                    } catch (e: any) {
+                      Alert.alert(
+                        t('error', 'Error'),
+                        e.message || t('delete_account_failed', 'Failed to delete account. Please try again.')
+                      );
+                    } finally {
+                      setIsDeletingAccount(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const SettingRow = ({ 
     icon, 
     label, 
