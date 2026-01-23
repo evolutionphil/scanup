@@ -167,6 +167,24 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     
     if (!mountedRef.current) return;
 
+    // ⚠️ CRITICAL: Wait for ATT prompt to complete on iOS before initializing ads
+    if (Platform.OS === 'ios' && !attChecked) {
+      console.log('[AdManager] Waiting for ATT prompt to complete...');
+      const attReady = await checkATTStatus();
+      attChecked = true;
+      if (!attReady) {
+        console.log('[AdManager] ATT prompt not completed yet, will retry...');
+        // Retry after a delay
+        setTimeout(() => {
+          if (mountedRef.current) {
+            initializeSDK(retryCount);
+          }
+        }, 2000);
+        return;
+      }
+      console.log('[AdManager] ATT check completed, proceeding with SDK init');
+    }
+
     isInitializing = true;
     console.log(`[AdManager] Initializing AdMob SDK... (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
 
