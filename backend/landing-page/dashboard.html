@@ -1612,6 +1612,23 @@
     
     <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
+        <!-- Mobile Header -->
+        <div class="mobile-header" id="mobileHeader">
+            <button class="mobile-header-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="logo">
+                <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
+                ScanUp
+            </div>
+            <button class="mobile-header-btn" onclick="showPage('profile')">
+                <i class="fas fa-user-circle"></i>
+            </button>
+        </div>
+        
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+        
         <div class="app-container">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
