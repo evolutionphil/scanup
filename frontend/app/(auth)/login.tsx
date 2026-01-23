@@ -310,12 +310,23 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
+            {/* Error Message */}
+            {errorMessage && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={20} color="#EF4444" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
+
             <Input
               label={t('email', 'Email')}
               placeholder={t('enter_your_email', 'Enter your email')}
               leftIcon="mail"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                setErrorMessage(null);
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -325,7 +336,10 @@ export default function LoginScreen() {
               placeholder={t('enter_your_password', 'Enter your password')}
               leftIcon="lock-closed"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                setErrorMessage(null);
+              }}
               isPassword
             />
 
