@@ -667,6 +667,38 @@ export default function SettingsScreen() {
           onPress={() => router.push('/legal?type=support')}
         />
 
+        {/* Danger Zone - Account Deletion */}
+        {!isGuest && (
+          <>
+            <SectionHeader title={t('danger_zone', 'DANGER ZONE').toUpperCase()} />
+            
+            <TouchableOpacity 
+              style={[styles.deleteAccountButton, { backgroundColor: '#FEE2E2', borderColor: '#EF4444' }]}
+              onPress={handleDeleteAccount}
+              disabled={isDeletingAccount}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
+                  {isDeletingAccount ? (
+                    <ActivityIndicator size="small" color="#EF4444" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  )}
+                </View>
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: '#EF4444' }]}>
+                    {t('delete_account', 'Delete Account')}
+                  </Text>
+                  <Text style={[styles.settingSubtitle, { color: '#B91C1C' }]}>
+                    {t('delete_account_desc', 'Permanently delete your account and all data')}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#EF4444" />
+            </TouchableOpacity>
+          </>
+        )}
+
         <View style={[styles.footer, { marginBottom: 160 }]}>
           <Text style={[styles.footerText, { color: theme.textMuted }]}>
             ScanUp v1.0.0
