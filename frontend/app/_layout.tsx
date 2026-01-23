@@ -13,8 +13,8 @@ import { useOfflineSync } from '../src/hooks/useOfflineSync';
 import * as Notifications from 'expo-notifications';
 
 // iOS App Tracking Transparency - must be called early
-const requestTrackingPermission = async () => {
-  if (Platform.OS !== 'ios') return;
+const requestTrackingPermission = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') return true;
   
   try {
     const { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
@@ -29,9 +29,13 @@ const requestTrackingPermission = async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       const { status } = await requestTrackingPermissionsAsync();
       console.log('[ATT] Permission requested, new status:', status);
+      return status === 'granted';
     }
+    
+    return currentStatus === 'granted';
   } catch (error) {
     console.log('[ATT] Error requesting tracking permission:', error);
+    return false;
   }
 };
 
