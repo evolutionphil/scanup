@@ -674,16 +674,11 @@ export default function SettingsScreen() {
             
             <TouchableOpacity 
               style={[styles.deleteAccountButton, { backgroundColor: '#FEE2E2', borderColor: '#EF4444' }]}
-              onPress={handleDeleteAccount}
-              disabled={isDeletingAccount}
+              onPress={() => router.push('/delete-account')}
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
-                  {isDeletingAccount ? (
-                    <ActivityIndicator size="small" color="#EF4444" />
-                  ) : (
-                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                  )}
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
                 </View>
                 <View style={styles.settingTextContainer}>
                   <Text style={[styles.settingLabel, { color: '#EF4444' }]}>
