@@ -820,6 +820,16 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 13,
   },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
   modalOverlay: {
     position: 'absolute',
     top: 0,
