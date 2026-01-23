@@ -5,8 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,54 +21,39 @@ export default function DeleteAccountScreen() {
   const { t } = useI18n();
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [showFinalConfirm, setShowFinalConfirm] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleDeleteAccount = async () => {
+  const handleDeletePress = () => {
     if (!confirmed) {
-      Alert.alert(
-        t('confirmation_required', 'Confirmation Required'),
-        t('please_confirm_checkbox', 'Please check the confirmation box to proceed.')
-      );
+      setErrorMsg(t('please_confirm_checkbox', 'Please check the confirmation box to proceed.'));
       return;
     }
+    setErrorMsg(null);
+    setShowFinalConfirm(true);
+  };
 
-    Alert.alert(
-      t('final_warning', '⚠️ Final Warning'),
-      t('final_warning_message', 'This is your last chance to cancel. Once deleted, your account and ALL data will be permanently erased and CANNOT be recovered.\n\nAre you absolutely sure?'),
-      [
-        { 
-          text: t('cancel', 'Cancel'), 
-          style: 'cancel' 
-        },
-        {
-          text: t('yes_delete_everything', 'Yes, Delete Everything'),
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await deleteAccount();
-              Alert.alert(
-                t('account_deleted', 'Account Deleted'),
-                t('account_deleted_success', 'Your account and all associated data have been permanently deleted. We are sorry to see you go.'),
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.replace('/(auth)/login'),
-                  },
-                ]
-              );
-            } catch (error: any) {
-              console.error('Delete account error:', error);
-              Alert.alert(
-                t('error', 'Error'),
-                error.message || t('delete_failed', 'Failed to delete account. Please try again or contact support.')
-              );
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleFinalDelete = async () => {
+    console.log('[DeleteAccount] Starting deletion...');
+    setIsDeleting(true);
+    setShowFinalConfirm(false);
+    setErrorMsg(null);
+    
+    try {
+      console.log('[DeleteAccount] Calling deleteAccount...');
+      await deleteAccount();
+      console.log('[DeleteAccount] Account deleted successfully');
+      setDeleteSuccess(true);
+    } catch (error: any) {
+      console.error('[DeleteAccount] Error:', error);
+      setErrorMsg(error.message || t('delete_failed', 'Failed to delete account. Please try again.'));
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSuccessOk = () => {
+    router.replace('/(auth)/login');
   };
 
   return (
@@ -98,59 +83,59 @@ export default function DeleteAccountScreen() {
 
         {/* Warning Title */}
         <Text style={[styles.warningTitle, { color: '#EF4444' }]}>
-          {t('permanent_action', 'This Action is Permanent')}
+          {t('permanent_action', 'Bu İşlem Kalıcıdır!')}
         </Text>
 
         {/* Warning Description */}
         <Text style={[styles.warningDescription, { color: theme.textMuted }]}>
-          {t('delete_account_description', 'Deleting your account will permanently remove all your data from our servers. This action cannot be undone.')}
+          {t('delete_account_description', 'Hesabınızı sildiğinizde tüm verileriniz sunucularımızdan kalıcı olarak kaldırılacaktır. Bu işlem geri alınamaz.')}
         </Text>
 
         {/* What will be deleted */}
         <View style={[styles.infoCard, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
           <Text style={[styles.infoTitle, { color: '#991B1B' }]}>
-            {t('what_will_be_deleted', 'What will be deleted:')}
+            {t('what_will_be_deleted', 'Silinecek Veriler:')}
           </Text>
           
           <View style={styles.infoItem}>
             <Ionicons name="document-text" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('all_documents', 'All your scanned documents and pages')}
+              {t('all_documents', 'Tüm taranmış dokümanlarınız ve sayfalar')}
             </Text>
           </View>
           
           <View style={styles.infoItem}>
             <Ionicons name="folder" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('all_folders', 'All your folders and organization')}
+              {t('all_folders', 'Tüm klasörleriniz ve organizasyon')}
             </Text>
           </View>
           
           <View style={styles.infoItem}>
             <Ionicons name="create" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('all_signatures', 'All your saved signatures')}
+              {t('all_signatures', 'Tüm kayıtlı imzalarınız')}
             </Text>
           </View>
           
           <View style={styles.infoItem}>
             <Ionicons name="cloud" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('all_cloud_data', 'All cloud-stored images and backups')}
+              {t('all_cloud_data', 'Tüm bulut depolama verileri ve yedekler')}
             </Text>
           </View>
           
           <View style={styles.infoItem}>
             <Ionicons name="person" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('account_info', 'Your account information and settings')}
+              {t('account_info', 'Hesap bilgileriniz ve ayarlarınız')}
             </Text>
           </View>
 
           <View style={styles.infoItem}>
             <Ionicons name="star" size={20} color="#DC2626" />
             <Text style={[styles.infoText, { color: '#991B1B' }]}>
-              {t('subscription_info', 'Subscription status (if any)')}
+              {t('subscription_info', 'Abonelik durumunuz (varsa)')}
             </Text>
           </View>
         </View>
@@ -159,24 +144,35 @@ export default function DeleteAccountScreen() {
         <View style={[styles.cannotRecoverBox, { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }]}>
           <Ionicons name="alert-circle" size={24} color="#D97706" />
           <Text style={[styles.cannotRecoverText, { color: '#92400E' }]}>
-            {t('cannot_recover_warning', 'Once deleted, your data CANNOT be recovered. Please make sure you have exported any important documents before proceeding.')}
+            {t('cannot_recover_warning', 'Silindikten sonra verileriniz GERİ GETİRİLEMEZ. Lütfen devam etmeden önce önemli dokümanlarınızı dışa aktardığınızdan emin olun.')}
           </Text>
         </View>
 
         {/* User Email Display */}
         <View style={[styles.userInfoBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.userInfoLabel, { color: theme.textMuted }]}>
-            {t('account_to_delete', 'Account to be deleted:')}
+            {t('account_to_delete', 'Silinecek hesap:')}
           </Text>
           <Text style={[styles.userEmail, { color: theme.text }]}>
             {user?.email || 'Unknown'}
           </Text>
         </View>
 
+        {/* Error Message */}
+        {errorMsg && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={20} color="#DC2626" />
+            <Text style={styles.errorText}>{errorMsg}</Text>
+          </View>
+        )}
+
         {/* Confirmation Checkbox */}
         <TouchableOpacity 
           style={styles.confirmationRow}
-          onPress={() => setConfirmed(!confirmed)}
+          onPress={() => {
+            setConfirmed(!confirmed);
+            setErrorMsg(null);
+          }}
           disabled={isDeleting}
         >
           <View style={[
@@ -187,7 +183,7 @@ export default function DeleteAccountScreen() {
             {confirmed && <Ionicons name="checkmark" size={16} color="#fff" />}
           </View>
           <Text style={[styles.confirmationText, { color: theme.text }]}>
-            {t('confirm_delete_checkbox', 'I understand that this action is permanent and all my data will be permanently deleted.')}
+            {t('confirm_delete_checkbox', 'Bu işlemin kalıcı olduğunu ve tüm verilerimin silineceğini anlıyorum.')}
           </Text>
         </TouchableOpacity>
 
@@ -198,16 +194,21 @@ export default function DeleteAccountScreen() {
             { backgroundColor: confirmed ? '#EF4444' : '#FCA5A5' },
             isDeleting && { opacity: 0.7 }
           ]}
-          onPress={handleDeleteAccount}
-          disabled={isDeleting || !confirmed}
+          onPress={handleDeletePress}
+          disabled={isDeleting}
         >
           {isDeleting ? (
-            <ActivityIndicator color="#fff" />
+            <>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.deleteButtonText}>
+                {t('deleting', 'Siliniyor...')}
+              </Text>
+            </>
           ) : (
             <>
               <Ionicons name="trash" size={20} color="#fff" />
               <Text style={styles.deleteButtonText}>
-                {t('delete_my_account', 'Delete My Account')}
+                {t('delete_my_account', 'Hesabımı Sil')}
               </Text>
             </>
           )}
@@ -220,12 +221,83 @@ export default function DeleteAccountScreen() {
           disabled={isDeleting}
         >
           <Text style={[styles.cancelButtonText, { color: theme.text }]}>
-            {t('cancel_keep_account', 'Cancel & Keep My Account')}
+            {t('cancel_keep_account', 'İptal Et & Hesabımı Koru')}
           </Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Final Confirmation Modal */}
+      <Modal
+        visible={showFinalConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFinalConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="warning" size={40} color="#EF4444" />
+            </View>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {t('final_warning_title', '⚠️ Son Uyarı!')}
+            </Text>
+            <Text style={[styles.modalMessage, { color: theme.textMuted }]}>
+              {t('final_warning_message', 'Bu son şansınız. Silindikten sonra hesabınız ve TÜM verileriniz kalıcı olarak silinecek ve GERİ ALINAMAZ.\n\nKesinlikle emin misiniz?')}
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: theme.border }]}
+                onPress={() => setShowFinalConfirm(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: theme.text }]}>
+                  {t('cancel', 'İptal')}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.modalDeleteBtn}
+                onPress={handleFinalDelete}
+              >
+                <Ionicons name="trash" size={18} color="#fff" />
+                <Text style={styles.modalDeleteText}>
+                  {t('yes_delete_everything', 'Evet, Her Şeyi Sil')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        visible={deleteSuccess}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            <View style={[styles.modalIconContainer, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name="checkmark-circle" size={40} color="#059669" />
+            </View>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {t('account_deleted', 'Hesap Silindi')}
+            </Text>
+            <Text style={[styles.modalMessage, { color: theme.textMuted }]}>
+              {t('account_deleted_success', 'Hesabınız ve tüm ilişkili veriler kalıcı olarak silindi. Sizi aramızda görmekten mutluluk duymuştuk.')}
+            </Text>
+            
+            <TouchableOpacity
+              style={[styles.modalDeleteBtn, { backgroundColor: '#059669' }]}
+              onPress={handleSuccessOk}
+            >
+              <Text style={styles.modalDeleteText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -319,7 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 16,
     alignItems: 'center',
   },
   userInfoLabel: {
@@ -329,6 +401,20 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    flex: 1,
   },
   confirmationRow: {
     flexDirection: 'row',
@@ -374,5 +460,72 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalDeleteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modalDeleteText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
