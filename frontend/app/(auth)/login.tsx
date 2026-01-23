@@ -109,8 +109,10 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     console.log('Login button pressed', { email, password: !!password });
+    setErrorMessage(null); // Clear previous error
+    
     if (!email || !password) {
-      Alert.alert(t('error', 'Error'), t('please_fill_all_fields', 'Please fill in all fields'));
+      setErrorMessage(t('please_fill_all_fields', 'Please fill in all fields'));
       return;
     }
 
@@ -122,7 +124,15 @@ export default function LoginScreen() {
       navigateAfterLogin();
     } catch (error: any) {
       console.error('Login error:', error);
-      Alert.alert(t('login_failed', 'Login Failed'), error.message || t('check_credentials', 'Please check your credentials'));
+      // Show inline error message instead of Alert
+      const message = error.message || t('check_credentials', 'Please check your credentials');
+      if (message.toLowerCase().includes('password') || message.toLowerCase().includes('invalid') || message.toLowerCase().includes('incorrect')) {
+        setErrorMessage(t('wrong_password', 'Incorrect email or password. Please try again.'));
+      } else if (message.toLowerCase().includes('not found') || message.toLowerCase().includes('user')) {
+        setErrorMessage(t('user_not_found', 'No account found with this email. Please register first.'));
+      } else {
+        setErrorMessage(message);
+      }
     } finally {
       setLoading(false);
     }
