@@ -148,6 +148,22 @@ export default function DeleteAccountScreen() {
           </Text>
         </View>
 
+        {/* Subscription Warning */}
+        <View style={[styles.subscriptionWarning, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+          <Ionicons name="card" size={24} color="#2563EB" />
+          <View style={styles.subscriptionTextContainer}>
+            <Text style={[styles.subscriptionTitle, { color: '#1E40AF' }]}>
+              {t('subscription_warning_title', 'Abonelik Uyarısı')}
+            </Text>
+            <Text style={[styles.subscriptionText, { color: '#1E40AF' }]}>
+              {t('subscription_warning_text', 'Aktif bir aboneliğiniz varsa, hesabınızı silmeden ÖNCE aboneliğinizi Apple/Google ayarlarından manuel olarak iptal etmeniz gerekmektedir. Aksi takdirde ücretlendirilmeye devam edebilirsiniz.')}
+            </Text>
+            <Text style={[styles.subscriptionHint, { color: '#3B82F6' }]}>
+              {t('subscription_cancel_hint', 'iOS: Ayarlar → Apple ID → Abonelikler\nAndroid: Play Store → Abonelikler')}
+            </Text>
+          </View>
+        </View>
+
         {/* User Email Display */}
         <View style={[styles.userInfoBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.userInfoLabel, { color: theme.textMuted }]}>
