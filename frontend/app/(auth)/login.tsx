@@ -80,6 +80,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { login, googleLogin, googleLoginNative, appleLogin } = useAuthStore();
   
   // Helper function to navigate after successful login
