@@ -2408,6 +2408,22 @@
             }
         });
 
+        // Dashboard features swipe indicator
+        const dashboardFeaturesContainer = document.querySelector('.dashboard-features');
+        const swipeDots = document.querySelectorAll('.swipe-dot');
+        
+        if (dashboardFeaturesContainer && swipeDots.length > 0) {
+            dashboardFeaturesContainer.addEventListener('scroll', function() {
+                const scrollLeft = this.scrollLeft;
+                const cardWidth = this.querySelector('.dashboard-feature').offsetWidth + 16; // card width + gap
+                const activeIndex = Math.round(scrollLeft / cardWidth);
+                
+                swipeDots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === activeIndex);
+                });
+            });
+        }
+
         // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
