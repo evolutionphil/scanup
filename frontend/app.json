@@ -39,7 +39,7 @@
         "backgroundColor": "#3B82F6"
       },
       "googleServicesFile": "./google-services.json",
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
