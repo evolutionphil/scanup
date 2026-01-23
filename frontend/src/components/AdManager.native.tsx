@@ -33,6 +33,23 @@ let globalInterstitial: any = null;
 let isSDKInitialized = false;
 let isInitializing = false;
 let mobileAdsModule: any = null;
+let attChecked = false;
+
+// Check ATT status before initializing ads
+const checkATTStatus = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') return true;
+  
+  try {
+    const { getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
+    const { status } = await getTrackingPermissionsAsync();
+    console.log('[AdManager] ATT status:', status);
+    // We can show ads regardless of ATT status, but we need to wait for the prompt to complete
+    return status !== 'undetermined';
+  } catch (e) {
+    console.log('[AdManager] ATT check error:', e);
+    return true; // Proceed anyway if ATT check fails
+  }
+};
 
 // Lazy load the ads module only on native
 const getAdsModule = () => {
