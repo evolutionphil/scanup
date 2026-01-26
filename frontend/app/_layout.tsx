@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Platform } from 'react-native';
@@ -11,10 +11,10 @@ import { usePurchaseStore } from '../src/store/purchaseStore';
 import { useMonetizationStore } from '../src/store/monetizationStore';
 import { useOfflineSync } from '../src/hooks/useOfflineSync';
 import * as Notifications from 'expo-notifications';
+import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from 'expo-tracking-transparency';
 
-// Note: ATT (App Tracking Transparency) is NOT required
-// App Store Connect privacy settings: "Does this app track users?" = NO
-// Ads work with non-personalized mode (requestNonPersonalizedAdsOnly: true)
+// ATT (App Tracking Transparency) is REQUIRED for iOS
+// This prompt must be shown before loading personalized ads
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
