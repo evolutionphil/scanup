@@ -39,6 +39,28 @@ let attTrackingStatus: string = 'not-determined';
 // ATT (App Tracking Transparency) is REQUIRED for iOS
 // Ads will use personalized mode if ATT is granted, non-personalized otherwise
 
+// Note: ATT status is checked and used to determine ad personalization
+// If ATT is granted, personalized ads are shown. Otherwise, non-personalized ads.
+
+// Function to check ATT status and return whether to use personalized ads
+const checkATTStatus = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') {
+    // Android doesn't have ATT, use non-personalized by default
+    return false;
+  }
+  
+  try {
+    const { status } = await getTrackingPermissionsAsync();
+    attTrackingStatus = status;
+    console.log('[AdManager] ATT status for ads:', status);
+    // Only use personalized ads if explicitly granted
+    return status === 'granted';
+  } catch (error) {
+    console.log('[AdManager] ATT check error:', error);
+    return false;
+  }
+};
+
 // Lazy load the ads module only on native
 const getAdsModule = () => {
   if (!isNativeEnvironment) return null;
