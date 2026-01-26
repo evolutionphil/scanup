@@ -33,45 +33,9 @@ let globalInterstitial: any = null;
 let isSDKInitialized = false;
 let isInitializing = false;
 let mobileAdsModule: any = null;
-let attChecked = false;
-let attGranted = false; // Track if user granted ATT permission
 
-// Check ATT status before initializing ads
-const checkATTStatus = async (): Promise<{ ready: boolean; granted: boolean }> => {
-  if (Platform.OS !== 'ios') return { ready: true, granted: true };
-  
-  try {
-    const { getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
-    const { status } = await getTrackingPermissionsAsync();
-    console.log('[AdManager] ATT status:', status);
-    
-    // Status can be: 'undetermined', 'denied', 'authorized', 'restricted'
-    const isReady = status !== 'undetermined';
-    const isGranted = status === 'granted' || status === 'authorized';
-    
-    return { ready: isReady, granted: isGranted };
-  } catch (e) {
-    console.log('[AdManager] ATT check error:', e);
-    return { ready: true, granted: false }; // Default to non-personalized ads on error
-  }
-};
-
-// Wait for ATT with timeout
-const waitForATTWithTimeout = async (timeoutMs: number = 5000): Promise<{ ready: boolean; granted: boolean }> => {
-  const startTime = Date.now();
-  
-  while (Date.now() - startTime < timeoutMs) {
-    const result = await checkATTStatus();
-    if (result.ready) {
-      return result;
-    }
-    // Wait 500ms before checking again
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  
-  console.log('[AdManager] ATT timeout reached, proceeding with non-personalized ads');
-  return { ready: true, granted: false };
-};
+// Note: ATT is NOT required - App Store Connect privacy = "No tracking"
+// All ads use non-personalized mode (requestNonPersonalizedAdsOnly: true)
 
 // Lazy load the ads module only on native
 const getAdsModule = () => {
