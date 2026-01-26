@@ -177,8 +177,11 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     
     if (!mountedRef.current) return;
 
-    // Note: ATT is NOT required - App Store Connect privacy = "No tracking"
-    // All ads use non-personalized mode automatically
+    // Check ATT status on iOS before initializing ads
+    if (Platform.OS === 'ios') {
+      const canShowPersonalizedAds = await checkATTStatus();
+      console.log('[AdManager] iOS ATT - Can show personalized ads:', canShowPersonalizedAds);
+    }
 
     isInitializing = true;
     console.log(`[AdManager] Initializing AdMob SDK... (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
