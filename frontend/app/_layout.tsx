@@ -25,39 +25,74 @@ export default function RootLayout() {
   const hasInitialized = useRef(false);
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
-  const [attStatus, setAttStatus] = useState<string>('not-determined');
+  const attRequested = useRef(false);
   
   // ⭐ OFFLINE SYNC - Automatically syncs when network is restored
   useOfflineSync();
 
-  // 🔐 ATT (App Tracking Transparency) - Required for iOS ads
+  // 🔐 ATT (App Tracking Transparency) - REQUIRED for iOS/iPadOS
+  // Apple Guideline 5.1.2 & 2.1 compliance
+  // This MUST be called BEFORE any tracking/ad data collection
   useEffect(() => {
     const requestATT = async () => {
-      if (Platform.OS === 'ios') {
-        try {
-          // First check current status
-          const { status: currentStatus } = await getTrackingPermissionsAsync();
-          console.log('[RootLayout] Current ATT status:', currentStatus);
+      // Only for iOS/iPadOS, not web or Android
+      if (Platform.OS !== 'ios') {
+        console.log('[RootLayout] ATT not needed for platform:', Platform.OS);
+        return;
+      }
+      
+      // Prevent multiple requests
+      if (attRequested.current) {
+        console.log('[RootLayout] ATT already requested');
+        return;
+      }
+      
+      try {
+        // Dynamically import to avoid web/Android issues
+        const { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } = require('expo-tracking-transparency');
+        
+        // Check current status first
+        const { status: currentStatus } = await getTrackingPermissionsAsync();
+        console.log('[RootLayout] Current ATT status:', currentStatus);
+        
+        if (currentStatus === 'undetermined') {
+          attRequested.current = true;
           
-          if (currentStatus === 'not-determined') {
-            // Small delay to ensure app is fully loaded before showing ATT prompt
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Request ATT permission
-            const { status } = await requestTrackingPermissionsAsync();
-            console.log('[RootLayout] ATT request result:', status);
-            setAttStatus(status);
-          } else {
-            setAttStatus(currentStatus);
+          // CRITICAL: Wait for app to be fully interactive before showing ATT
+          // Apple requires this for proper user experience
+          // Longer delay for iPad which has different timing
+          const delay = 2000; // 2 seconds to ensure app is fully loaded
+          console.log('[RootLayout] Waiting', delay, 'ms before ATT prompt...');
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Double-check app is in active state
+          if (AppState.currentState !== 'active') {
+            console.log('[RootLayout] App not active, waiting for active state...');
+            await new Promise<void>(resolve => {
+              const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+                if (state === 'active') {
+                  subscription.remove();
+                  resolve();
+                }
+              });
+            });
           }
-        } catch (error) {
-          console.log('[RootLayout] ATT request error:', error);
-          setAttStatus('denied');
+          
+          console.log('[RootLayout] Requesting ATT permission NOW...');
+          const { status } = await requestTrackingPermissionsAsync();
+          console.log('[RootLayout] ATT request result:', status);
+        } else {
+          console.log('[RootLayout] ATT already determined:', currentStatus);
         }
+      } catch (error) {
+        console.log('[RootLayout] ATT error:', error);
       }
     };
     
-    requestATT();
+    // Call ATT request after a short initial delay
+    const timer = setTimeout(requestATT, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
