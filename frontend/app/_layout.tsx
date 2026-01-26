@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, AppState, AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '../src/store/themeStore';
 import { useI18n } from '../src/store/i18nStore';
@@ -11,10 +11,10 @@ import { usePurchaseStore } from '../src/store/purchaseStore';
 import { useMonetizationStore } from '../src/store/monetizationStore';
 import { useOfflineSync } from '../src/hooks/useOfflineSync';
 import * as Notifications from 'expo-notifications';
-import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from 'expo-tracking-transparency';
 
-// ATT (App Tracking Transparency) is REQUIRED for iOS
-// This prompt must be shown before loading personalized ads
+// ATT (App Tracking Transparency) is REQUIRED for iOS/iPadOS
+// This prompt MUST be shown BEFORE any tracking data is collected
+// Apple Guideline 5.1.2 compliance
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
