@@ -1,198 +1,208 @@
 <analysis>
+
 **original_problem_statement**:
-The user's primary goal was to finalize the ScanUp mobile app for App Store submission. This involved fixing critical bugs, implementing a complete user authentication flow with email verification, and addressing multiple rejections from the Apple review team.
+The user is trying to finalize the ScanUp mobile app for both App Store and Google Play submission. This involves fixing critical bugs, implementing features required by store guidelines, and resolving repeated rejections from both Apple and Google review teams.
 
 PRODUCT REQUIREMENTS:
-1.  **Push Notifications (P0)**: The core issue was non-functional iOS push notifications. This required debugging the entire flow from token registration on the mobile app to token storage on the backend and delivery via Expo's push service. A sub-requirement was to ensure tapping a notification navigates the user to the correct in-app screen.
-2.  **Document Synchronization (P1)**: A newly implemented manifest-based sync system was broken, preventing documents from loading, especially on first app launch. This needed to be fixed to ensure a fast and reliable sync.
-3.  **Authentication Flow**:
-    *   Implement a full email verification flow. When a user registers, they should be sent a 4-digit code to their email and must enter it to activate their account.
-    *   Implement a Forgot Password flow.
-    *   Fix an issue where web login approval was not user-specific, allowing one user's approval to grant access to another user on the same browser.
-    *   Fix an issue where the push notification token was not being correctly re-assigned when a different user logged in on the same mobile device.
-4.  **App Store Rejection Issues**: Address specific feedback from Apple's review team:
-    *   Add missing Terms of Use (EULA) and Privacy Policy links to the App Store metadata and within the app's subscription screen.
-    *   Provide new Promotional Images for in-app purchases that are not the same as the app icon.
-    *   Address inaccurate iPad screenshots.
-    *   Add required legal disclaimers about auto-renewing subscriptions to the paywall screen.
-5.  **Admin Dashboard**: Fix non-functional Danger Zone buttons (Clear all documents, Reset database) and add a feature to change the admin password.
-6.  **Branding & Legal Finalization**:
-    *   Update all backend, frontend, and email configurations to use the final production domain ( and ).
-    *   Update legal pages (, ) with official company information and more comprehensive content.
+1.  **Resolve Store Rejections (P0)**:
+    *   **Google Play**: Repeatedly rejected for using  /  permissions for a non-core use case. The app needs to be updated to use the Android Photo Picker, which doesn't require these broad permissions. Also received warnings about deprecated edge-to-edge APIs and orientation locks.
+    *   **Apple App Store**: Rejected for requiring user registration before purchasing subscriptions (Guideline 5.1.1), and for issues with the App Tracking Transparency (ATT) implementation (Guideline 5.1.2 & 2.1).
+2.  **Fix Android Build Failures (P0)**: The An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username process for Android is continuously failing due to a cascade of issues including Kotlin version incompatibility, dependency conflicts ( errors), and  mismatches with EAS's  requirement.
+3.  **Fix Core Functionality Bugs (P1)**:
+    *   PDF export from the mobile app generates a multi-page document from a single image.
+    *   Android push notifications for the Web Access Request feature are not working.
+    *   Premium status is not correctly restored after a user logs out and logs back in.
+4.  **Improve Web Presence (P2)**: The marketing website () and web dashboard () were not mobile responsive and needed significant UI/UX improvements for smaller screens.
 
 **User's preferred language**: Turkish. The next agent MUST respond in Turkish.
 
 **what currently exists?**
 *   A full-stack application with a FastAPI backend and a React Native (Expo) mobile app.
-*   A working push notification system for iOS, including token registration, server-side storage, and delivery via Expo's API. Tapping a notification now navigates the user to the Web Access screen.
-*   A resilient manifest-based synchronization system. It uses a batch-fetch endpoint for efficiency and has a fallback to single-document fetching if the batch call fails.
-*   A complete user authentication flow, including registration with email verification (using Resend), login, and a Forgot Password mechanism.
-*   A user-specific web login approval system that correctly handles multiple user accounts on the same browser.
-*   A backend that correctly re-associates a device's push token with the currently logged-in user.
-*   An admin dashboard with newly added (but untested) backend endpoints for clearing data and updating the admin password, accessible via a new  page.
-*   Updated legal pages (, ) with comprehensive information and correct company details.
-*   The entire application is configured to use the production domains (, ).
+*   Numerous code changes have been made to address store rejections and bug fixes, but most are unverified due to persistent Android build failures.
+*   An Account Deletion feature has been fully implemented (backend endpoint and frontend UI).
+*   The IAP flow has been modified to allow guest users to purchase subscriptions without registration.
+*   The ATT (App Tracking Transparency) logic has been completely removed in favor of a No Tracking declaration in App Store Connect.
+*   The marketing website and web dashboard have been updated with CSS media queries and JavaScript to be mobile responsive.
+*   The  plugin has been added to  to fix Android push notifications.
+*   The logic to restore premium status after login has been added to .
+*   A fix for the PDF export bug has been attempted by modifying the HTML-to-PDF generation logic.
 
 **Last working item**:
-- Last item agent was working: The agent was addressing the user's request to create more detailed and professional Terms of Use and Privacy Policy pages for the  website. The agent overwrote  and  with new, comprehensive content including the company's legal information.
-- Status: **USER VERIFICATION PENDING**
+- Last item agent was working: The agent was attempting to fix a bug where exporting a scan to PDF resulted in a multi-page document instead of a single page. The agent identified that using  units and margins in the HTML-to-PDF conversion was causing incorrect scaling. The fix involved removing these styles and setting the image to fit the page dimensions directly.
+- Status: **TESTING PENDING**
 - Agent Testing Done: N
-- Which testing method agent to use? Manual testing by user. The user needs to visit  and  after the changes are deployed to production to verify the content.
+- Which testing method agent to use? The user needs to create a new build and test the Export as PDF feature on the mobile app.
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Sync on first launch may be slow or incomplete (P0)**
--   **Issue 2: iPad UI is not fully optimized (P1)**
--   **Issue 3: PDF export from mobile generates a two-page document (P2)**
--   **Issue 4: Premium status logic is incomplete (P3)**
+-   **Issue 1: Android Build Failures (P0)**
+-   **Issue 2: Google Play Permission Rejection (P1)**
+-   **Issue 3: PDF Export Generates Multiple Pages (P1)**
+-   **Issue 4: Apple App Store Rejections (P2)**
+-   **Issue 5: Android Push Notifications Not Working (P2)**
+-   **Issue 6: Premium Status Not Restored After Login (P2)**
+-   **Issue 7: Website Responsiveness Verification (P3)**
 
 **Issues Detail**:
--   **Issue 1: Sync on first launch may be slow or incomplete**
-    -   **Attempted fixes**: The user reported that documents were not loading on the first app launch. The agent identified a logical flaw in  where  was set to  *before* the sync was actually complete, preventing subsequent syncs. The agent moved this state update to occur only *after* all documents are successfully fetched and saved.
-    -   **Next debug checklist**:
-        1.  Instruct the user to create a new An Expo user account is required to proceed.
+-   **Issue 1: Android Build Failures**
+    -   **Attempted fixes**: The session involved a long and difficult process of debugging An Expo user account is required to proceed.
 
 Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username with the latest changes.
-        2.  Ask the user to test on a fresh install (or after clearing app data) to confirm that all documents load correctly on the very first launch after logging in.
-        3.  If the issue persists, review the logic in  around the  and  flags.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical user experience issue. A new user's first impression will be an empty app if this isn't working correctly.
+Input is required, but stdin is not readable. Failed to display prompt: Email or username failures. The agent tried:
+        1.  Adjusting the Kotlin version up and down ( ->  -> ).
+        2.  Fixing  errors by running env: load .env
+env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_TOKEN
+Dependencies are up to date and yarn install v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+success Saved lockfile.
+$ patch-package
+patch-package 8.0.1
+Applying patches...
+react-native-google-mobile-ads@16.0.1 ✔
+Done in 40.79s..
+        3.  Adding  to  to force consistent dependency versions.
+        4.  Repeatedly regenerating  after  changes.
+        5.  Attempting to bypass EAS's  check by modifying  (which failed) and adding a  file (which was later removed).
+        The core problem is that changes made in the development environment (like the updated ) are not being used by EAS, because EAS pulls from the Git repository. The user was repeatedly told to  and  but the  error persisted, indicating the  on Git is out of sync.
+    -   **Next debug checklist**:
+        1.  Confirm with the user that they have **pushed all recent changes** (, , , ) to their GitHub repository.
+        2.  If the error persists, re-run yarn install v1.22.22
+info No lockfile found.
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+success Saved lockfile.
+$ patch-package
+patch-package 8.0.1
+Applying patches...
+react-native-google-mobile-ads@16.0.1 ✔
+Done in 37.04s. to generate a fresh, clean .
+        3.  Instruct the user to commit and push this new  and then immediately run An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the HIGHEST priority. No fixes for Android can be verified until a successful build is created.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a successful build).
+    -   **Blocked on other issue**: None. This issue blocks others.
+
+-   **Issue 2: Google Play Permission Rejection**
+    -   **Attempted fixes**: Google repeatedly rejected the app for using  / . The agent's final and correct approach was to add  to the  section of  to explicitly prevent  and other libraries from adding these permissions to the manifest. This forces the use of the Android Photo Picker, which does not require these permissions.
+    -   **Next debug checklist**: A new Android build must be created and submitted to Google Play to verify the fix.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will resolve the main blocker for publishing on Google Play.
+    -   **Status**: TESTING PENDING
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
+    -   **Blocked on other issue**: Issue 1: Android Build Failures.
+
+-   **Issue 3: PDF Export Generates Multiple Pages**
+    -   **Attempted fixes**: The agent modified  and  to remove CSS styles (, ) from the HTML string being converted to a PDF. The new approach sets the image width and height to 100% of the containing body.
+    -   **Next debug checklist**: Once a new build is available, the user must test the Export as PDF feature.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a core functionality bug that degrades user experience.
     -   **Status**: TESTING PENDING
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
     -   **Blocked on other issue**: None.
 
--   **Issue 2: iPad UI is not fully optimized**
-    -   **Attempted fixes**: None. The agent confirmed that  has , but the UI layouts do not adapt for larger screens, resulting in a stretched iPhone interface. This was a cause for an App Store rejection.
+-   **Issue 4: Apple App Store Rejections**
+    -   **Attempted fixes**:
+        -   **Guest Purchase (5.1.1)**: The agent removed the login check in  and updated the button text to allow guest users to subscribe.
+        -   **ATT (5.1.2 & 2.1)**: After multiple attempts to fix the ATT prompt, the agent and user agreed to declare No Tracking in App Store Connect. The agent then removed all ATT-related code from  and .
     -   **Next debug checklist**:
-        1.  Confirm with the user if they want to support iPad with an optimized UI or disable tablet support.
-        2.  If disabling, set  in  and ask the user to remove iPad screenshots from App Store Connect.
-        3.  If optimizing, identify key screens (e.g., the document list) and create tablet-specific layouts, possibly using a two-column or master-detail interface.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolves an App Store rejection and provides a better user experience on iPads.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
+        1.  User needs to create a new iOS build.
+        2.  User MUST update App Privacy settings in App Store Connect to declare No Tracking.
+        3.  User needs to submit the new build for review.
+    -   **Why fix this issue and what will be achieved with the fix?**: Resolves the main blockers for publishing on the App Store.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
     -   **Blocked on other issue**: None.
 
--   **Issue 3: PDF export from mobile generates a two-page document**
-    -   **Attempted fixes**: A fix was applied in a previous fork but has never been tested.
-    -   **Next debug checklist**: Ask the user to test the Export as PDF feature for a single-page document on the mobile app and report if it still creates a two-page file.
-    -   **Why fix this issue and what will be achieved with the fix?**: Fixes a core functionality bug.
-    -   **Status**: TESTING PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
-    -   **Blocked on other issue**: None.
-
--   **Issue 4: Premium status logic is incomplete**
-    -   **Attempted fixes**: None. This is a carry-over issue. The app needs to check for a backend-provided premium flag in addition to the local IAP status.
-    -   **Next debug checklist**: Modify  to incorporate a check against the user object (e.g., ) fetched from the backend.
-    -   **Why fix this issue and what will be achieved with the fix?**: Allows admins to grant premium status manually, a key business requirement.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
+-   **Issue 5, 6, 7**: These are all code fixes that have been implemented but are blocked by the need for a new build and user testing. The fixes are plausible and address the reported issues. Their status is **TESTING PENDING** and they are all blocked by **Issue 1**.
 
 **In progress Task List**:
--   There are no in-progress tasks. All work from this session has been completed, pending user verification.
+- There are no other tasks in progress besides the issues listed above.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
   - Implement Apple Sign In for the web dashboard (P1).
+  - Fully optimize the UI for iPad to resolve stretched layouts. Currently  is true, but no specific layouts exist. (P2)
+  - Implement the incomplete premium status logic (checking a backend-provided flag in addition to IAP status) (P3).
 
 **Completed work in this session**
-- **Push Notifications**: Fixed the entire flow. This included fixing token registration ( errors due to type mismatches and incorrect storage keys), guiding the user to configure APNs credentials, and implementing in-app navigation when a notification is tapped.
-- **Document Synchronization**: Fixed a critical bug that broke sync. Implemented a resilient batch-fetch mechanism with a fallback and corrected the logic for the initial app launch to ensure documents load correctly.
-- **Multi-User/Device Auth**: Fixed logic to ensure web login approval and push notification tokens are correctly tied to the specific user account, not just the device/browser.
-- **Email Auth Flow**: Implemented a full user verification and password reset flow using the existing (but unused) Resend integration. Created the necessary frontend screens (, ) and updated the registration logic.
-- **Crash Fixes**: Resolved a native crash on the email verification screen by fixing an incorrect API payload and a timezone-related backend error.
-- **App Store Rejection Fixes**:
-    - Added required legal disclaimers for auto-renewing subscriptions to the  screen.
-    - Created two new promotional images for the user to upload for their in-app purchases.
-    - Provided detailed, step-by-step instructions for the user to update their App Store Connect metadata (Privacy/EULA links, screenshots).
-- **Admin Dashboard**: Added backend endpoints for Danger Zone functions and admin password changes. Created a simple  page to expose this functionality.
-- **Branding & Legal**: Updated all application URLs to use  and . Rewrote  and  with detailed, professional content including the user's company information.
-
-**Earlier issues found/mentioned but not fixed**
--   All known unfixed issues are captured in the **All Pending/In progress Issue list**.
-
-**Known issue recurrence from previous fork**
--   PDF export generates a two-page document. (Status: TESTING PENDING)
--   Premium status logic is incomplete. (Status: NOT STARTED)
+- **Build/Dependency Fixes**: Made numerous attempts to stabilize the Android build by managing Kotlin/Node versions, updating dependencies, and using  in .
+- **Google Play Compliance**: Added  to  to remove broad media permissions and rely on the modern Photo Picker. Also addressed warnings by setting  and .
+- **App Store Compliance**:
+    - **Guest Purchase**: Enabled users to buy subscriptions without creating an account.
+    - **Account Deletion**: Implemented a full account deletion flow (backend endpoint + frontend modal).
+    - **ATT / Tracking**: Removed all ATT-related code after the user decided to declare No Tracking in App Store Connect.
+- **Bug Fixes**:
+    - **Premium Sync**: Fixed a bug where premium status was not restored on login by calling  from the purchase store.
+    - **Android Push Notifications**: Added the missing  plugin to .
+    - **PDF Export**: Attempted a fix for the multi-page PDF export bug.
+- **Web Development**: Made the marketing website () and user dashboard () fully mobile responsive, including adding a hamburger menu and swipeable cards.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Push Notification Lifecycle**: The session involved debugging the full lifecycle: obtaining the token from Expo/APNs, registering it with the backend against a user, handling token re-assignment on logout/login, and triggering the push from the backend.
--   **Resilient API Calls**: The document sync logic was improved to be more resilient by wrapping the new, efficient batch API call in a  and falling back to a slower, one-by-one fetch method if it fails.
--   **State Management for Initial Sync**: A critical bug was fixed by correctly managing  and  state in the  (Zustand) to ensure the first data load is always completed.
--   **User-Specific Browser Storage**: Fixed a security/UX flaw by changing from a generic  key to a user-specific one () to manage web dashboard access.
--   **Resend Integration**: Leveraged the existing but dormant Resend integration to quickly implement email verification and password reset flows.
-
-**key DB schema**
--   **users**: , , , , , , .
--   **settings**: A key-value collection used to store the .
-
-**changes in tech stack**
--   No new technologies were added, but the  library was activated and used.
-
-**All files of reference**
--   : Contains the critical, rewritten logic for document synchronization.
--   : Contains numerous fixes for push notifications, authentication, and new admin endpoints.
--   : Contains the fix for the  error on token registration.
--   : Contains the new legal text required by Apple.
--   : The directory containing the new user authentication flow screens.
--    & : The new, comprehensive legal pages.
-
-**Critical Info for New Agent**
--   **A new build is required.** Numerous critical frontend fixes (crash on verification, sync logic, subscription terms on paywall) have been made. The user must be instructed to create a new An Expo user account is required to proceed.
+-   **EAS Build System**: Deep dive into debugging An Expo user account is required to proceed.
 
 Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username to publish these changes.
--   **Test the initial sync.** The highest priority post-build is to verify that on a fresh install, all documents load correctly after the user logs in for the first time.
--   **User needs to act on App Store Connect.** The agent has provided guidance, but the user must manually update their app's metadata (Privacy/EULA links) in App Store Connect to resolve the rejection.
--   **User needs to configure DNS and Resend.** For the final production environment to work, the user must:
-    1.  Point the  DNS record to their Railway service URL.
-    2.  Verify their  domain with Resend to enable sending emails to all users.
--   The long-standing PDF export bug and premium status logic are still pending and should be addressed if the user has time.
+Input is required, but stdin is not readable. Failed to display prompt: Email or username for Android, including  configuration, dependency management with , and the importance of pushing changes to Git.
+-   **Android Permissions**: Using  in  as a modern way to control manifest permissions and force the use of the Android Photo Picker.
+-   **App Store Guidelines**: Implementing solutions for key rejection reasons: Guest IAP Purchases (Guideline 5.1.1) and App Tracking Transparency (Guideline 5.1.2).
+-   **Responsive Web Design**: Using CSS Media Queries, Flexbox, and JavaScript to make static HTML pages mobile-friendly.
+-   **State Management (Zustand)**: Integrating IAP logic () with authentication flows () to ensure state is synchronized.
 
-**documents created in this job**
--   
--   
+**Critical Info for New Agent**
+-   **THE #1 PRIORITY IS TO ACHIEVE A STABLE AND REPEATABLE ANDROID BUILD.** The user is stuck. You must guide them to ensure their Git repository is perfectly in sync with the local changes ( is critical). Do not attempt other fixes until the user confirms they can successfully build the app.
+-   **User actions are required.** The user must update settings in App Store Connect (No Tracking) and submit the new builds to both stores. You need to provide clear, step-by-step instructions for this.
+-   **Many fixes are unverified.** A large amount of work has been done (push notifications, premium sync, permissions), but none of it is confirmed working due to the build issues. After a successful build, a full regression test is needed.
+-   The user is non-technical and gets frustrated with the build/submission process. Be patient and provide very clear, simple instructions.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Request**: Make  and  pages more detailed with company info. (Completed)
-9.  **Question**: Updated App Store images, what else? (Answered with checklist)
-8.  **Question**: Is the app fully responsive for iPad? (Answered: No, not optimized)
-7.  **Question**: How does  work? (Explained)
-6.  **Question**: Are the subscription terms on the onboarding paywall? (Checked, confirmed it redirects to main premium screen)
-5.  **Request**: Add Apple's required subscription legal text to the paywall. (Completed)
-4.  **Request**: Create promotional images to fix App Store rejection. (Completed)
-3.  **Question**: What is an EULA? (Explained)
-2.  **User Info**: Pasted full App Store rejection notice. (Analyzed and action plan provided)
-1.  **User Info**: Pasted another App Store rejection notice (Guideline 3.1.2 - Subscriptions). (Analyzed and action plan provided)
+10. **Complaint**: PDF export creates multiple pages. Provided a sample PDF. (Agent attempted a fix).
+9.  **Question**: Asked if all Apple rejections were fixed. (Agent clarified a new build is needed and user action in App Store Connect is required).
+8.  **Complaint**: Still receiving the same Apple rejections. (Agent identified this is due to not submitting a new build and/or incorrect App Store Connect settings).
+7.  **Request**: Change subscribe button text because it still says Login to subscribe. (Completed).
+6.  **Confirmation**: User confirmed they set Data Collection: No in App Store Connect. (Agent proceeded to remove ATT code).
+5.  **Question**: Asks if ads will still work if Data Collection: No is selected. (Agent confirmed yes, as non-personalized ads).
+4.  **Question**: Asks why emails from Apple Sign In users look like . (Agent explained Apple's Hide My Email feature).
+3.  **Complaint**: Still receiving rejections from Apple. Asks agent to check everything again and call another agent if needed. (Agent used troubleshoot_agent to analyze the issues).
+2.  **Complaint**: Login works, but after purchasing a trial, logging out and in again, the premium status is lost. (Agent implemented a fix).
+1.  **Complaint**: Android push notifications for web access requests are not working, while they work on iOS. (Agent found and fixed a missing plugin in ).
 
 **Project Health Check:**
--   **Broken**: No confirmed broken features.
--   **Mocked**: None.
+-   **Broken**: The Android An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username process is broken and unreliable. This is the main point of failure for the entire project right now.
 
 **3rd Party Integrations**
--   **Backend**: , , ,  (for Expo Push API), .
--   **Web Dashboard**: Google Identity Services (GIS) library.
--   **Mobile App**: , , , .
+-   **Expo**: Core framework for the mobile app.
+-   **FastAPI**: Backend framework.
+-   **MongoDB**: Database.
+-   **Google Mobile Ads (AdMob)**: For in-app advertising.
+-   **Resend**: For sending transactional emails.
+-   **RevenueCat (via )**: For managing in-app purchases and subscriptions.
 
 **Testing status**
--   Testing agent used after significant changes: NO.
--   Troubleshoot agent used after agent stuck in loop: YES, multiple times for push notification and sync issues.
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: YES, used multiple times to analyze build logs and store rejections.
 -   Test files created: None.
--   Known regressions: The manifest sync implementation initially caused a regression (broke sync entirely), which was then fixed.
-
-**Credentials to test flow:**
--   User is testing with their own production accounts (, , ).
--   Resend is in test mode and can only send emails to  until the domain is verified.
+-   Known regressions: None confirmed, but the build process is highly unstable.
 
 **What agent forgot to execute**
--   The agent did not address the long-standing bug where exporting a single page from the mobile app results in a two-page PDF.
--   The agent did not implement the incomplete premium status logic (checking a backend flag).
--   The agent noted the iPad responsiveness issue but did not implement a fix, leaving the decision to the user.
+-   The agent did not address the known issue of optimizing the UI for iPads, even though it has been a cause for App Store rejection/warnings. The app has  but the UI is a stretched phone layout.
+-   The agent did not fully implement the premium status logic to check a backend flag, only the part that restores IAP status from the store.
+
 </analysis>
