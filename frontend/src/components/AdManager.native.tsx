@@ -153,26 +153,8 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
     
     if (!mountedRef.current) return;
 
-    // ⚠️ CRITICAL: Wait for ATT prompt to complete on iOS before initializing ads
-    // Apple Guideline 5.1.2 & 2.1: ATT must be requested BEFORE any tracking
-    if (Platform.OS === 'ios' && !attChecked) {
-      console.log('[AdManager] Waiting for ATT prompt to complete (max 5s)...');
-      const attResult = await waitForATTWithTimeout(5000);
-      attChecked = true;
-      attGranted = attResult.granted;
-      
-      if (!attResult.ready) {
-        console.log('[AdManager] ATT not ready, will retry in 2s...');
-        setTimeout(() => {
-          if (mountedRef.current) {
-            attChecked = false; // Reset to check again
-            initializeSDK(retryCount);
-          }
-        }, 2000);
-        return;
-      }
-      console.log('[AdManager] ATT completed - granted:', attGranted);
-    }
+    // Note: ATT is NOT required - App Store Connect privacy = "No tracking"
+    // All ads use non-personalized mode automatically
 
     isInitializing = true;
     console.log(`[AdManager] Initializing AdMob SDK... (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
