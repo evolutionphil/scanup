@@ -437,11 +437,9 @@ export default function PremiumScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.primaryButtonText}>
-              {isGuest || !isAuthenticated 
-                ? 'Login to Subscribe'
-                : selectedPlan === 'monthly'
-                  ? 'Start Free Trial'
-                  : 'Subscribe Now'
+              {selectedPlan === 'monthly'
+                ? t('start_free_trial', 'Start Free Trial')
+                : t('subscribe_now', 'Subscribe Now')
               }
             </Text>
           )}
