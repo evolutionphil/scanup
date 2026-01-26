@@ -3,7 +3,6 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useAdStore } from '../store/adStore';
 import { useAuthStore } from '../store/authStore';
 import { usePurchaseStore } from '../store/purchaseStore';
-import { getTrackingPermissionsAsync } from 'expo-tracking-transparency';
 
 interface AdManagerProps {
   children: React.ReactNode;
@@ -34,29 +33,36 @@ let globalInterstitial: any = null;
 let isSDKInitialized = false;
 let isInitializing = false;
 let mobileAdsModule: any = null;
-let attTrackingStatus: string = 'not-determined';
+let attTrackingStatus: string = 'undetermined';
 
-// ATT (App Tracking Transparency) is REQUIRED for iOS
-// Ads will use personalized mode if ATT is granted, non-personalized otherwise
-
-// Note: ATT status is checked and used to determine ad personalization
-// If ATT is granted, personalized ads are shown. Otherwise, non-personalized ads.
+// ATT (App Tracking Transparency) is REQUIRED for iOS/iPadOS
+// Apple Guideline 5.1.2 compliance
+// Ads will use personalized mode ONLY if ATT is explicitly granted
 
 // Function to check ATT status and return whether to use personalized ads
+// CRITICAL: This must be called BEFORE loading any ads on iOS
 const checkATTStatus = async (): Promise<boolean> => {
   if (Platform.OS !== 'ios') {
     // Android doesn't have ATT, use non-personalized by default
+    console.log('[AdManager] Android platform - using non-personalized ads');
     return false;
   }
   
   try {
+    // Dynamically import to avoid issues
+    const { getTrackingPermissionsAsync } = require('expo-tracking-transparency');
     const { status } = await getTrackingPermissionsAsync();
     attTrackingStatus = status;
-    console.log('[AdManager] ATT status for ads:', status);
-    // Only use personalized ads if explicitly granted
-    return status === 'granted';
+    console.log('[AdManager] iOS ATT status:', status);
+    
+    // IMPORTANT: Only use personalized ads if EXPLICITLY granted
+    // Any other status = non-personalized ads
+    const canTrack = status === 'granted';
+    console.log('[AdManager] Can show personalized ads:', canTrack);
+    return canTrack;
   } catch (error) {
     console.log('[AdManager] ATT check error:', error);
+    attTrackingStatus = 'denied';
     return false;
   }
 };
