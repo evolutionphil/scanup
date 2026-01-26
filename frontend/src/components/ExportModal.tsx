@@ -169,11 +169,27 @@ export default function ExportModal({
         }
         
         // Build HTML with images for local PDF generation
+        // Each image fills its own page without extra margins
         const imageHtml = imagesBase64.map((img, index) => {
           const base64WithPrefix = `data:image/jpeg;base64,${img}`;
           return `
-            <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; text-align: center; padding: 0; margin: 0;">
-              <img src="${base64WithPrefix}" style="max-width: 100%; max-height: 100vh; object-fit: contain;" />
+            <div style="page-break-after: ${index < imagesBase64.length - 1 ? 'always' : 'auto'}; 
+                        page-break-inside: avoid;
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center;
+                        width: 100%; 
+                        height: 100%;
+                        padding: 0; 
+                        margin: 0;
+                        overflow: hidden;">
+              <img src="${base64WithPrefix}" 
+                   style="width: 100%; 
+                          height: auto; 
+                          max-width: 100%; 
+                          max-height: 100%;
+                          object-fit: contain;
+                          display: block;" />
             </div>
           `;
         }).join('');
@@ -185,9 +201,26 @@ export default function ExportModal({
               <meta charset="UTF-8">
               <title>${documentName}</title>
               <style>
-                @page { margin: 10mm; padding: 0; }
-                body { margin: 0; padding: 0; }
-                img { display: block; margin: 0 auto; }
+                @page { 
+                  margin: 0; 
+                  padding: 0; 
+                  size: auto;
+                }
+                * {
+                  margin: 0;
+                  padding: 0;
+                  box-sizing: border-box;
+                }
+                html, body { 
+                  margin: 0; 
+                  padding: 0; 
+                  width: 100%;
+                  height: 100%;
+                }
+                img { 
+                  display: block; 
+                  margin: 0 auto; 
+                }
               </style>
             </head>
             <body>
@@ -197,7 +230,10 @@ export default function ExportModal({
         `;
 
         // Generate PDF locally using expo-print
-        const { uri } = await Print.printToFileAsync({ html });
+        const { uri } = await Print.printToFileAsync({ 
+          html,
+          margins: { left: 0, right: 0, top: 0, bottom: 0 }
+        });
         
         // Read the PDF file as base64
         fileBase64 = await readAsStringAsync(uri, {
