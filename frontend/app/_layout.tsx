@@ -25,9 +25,40 @@ export default function RootLayout() {
   const hasInitialized = useRef(false);
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
+  const [attStatus, setAttStatus] = useState<string>('not-determined');
   
   // ⭐ OFFLINE SYNC - Automatically syncs when network is restored
   useOfflineSync();
+
+  // 🔐 ATT (App Tracking Transparency) - Required for iOS ads
+  useEffect(() => {
+    const requestATT = async () => {
+      if (Platform.OS === 'ios') {
+        try {
+          // First check current status
+          const { status: currentStatus } = await getTrackingPermissionsAsync();
+          console.log('[RootLayout] Current ATT status:', currentStatus);
+          
+          if (currentStatus === 'not-determined') {
+            // Small delay to ensure app is fully loaded before showing ATT prompt
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Request ATT permission
+            const { status } = await requestTrackingPermissionsAsync();
+            console.log('[RootLayout] ATT request result:', status);
+            setAttStatus(status);
+          } else {
+            setAttStatus(currentStatus);
+          }
+        } catch (error) {
+          console.log('[RootLayout] ATT request error:', error);
+          setAttStatus('denied');
+        }
+      }
+    };
+    
+    requestATT();
+  }, []);
 
   useEffect(() => {
     if (!hasInitialized.current) {
@@ -43,8 +74,8 @@ export default function RootLayout() {
         // ⚠️ NO ADS INIT HERE - Ads will be initialized lazily after user action
         // This prevents iOS crash with New Architecture
         
-        // Note: ATT is NOT required - App Store Connect privacy = "No tracking"
-        // Ads use non-personalized mode (requestNonPersonalizedAdsOnly: true)
+        // ATT status is handled separately above
+        // Ads will use personalized or non-personalized mode based on ATT status
         
         // 1️⃣ Initialize IAP - DELAYED for stability
         setTimeout(() => {
