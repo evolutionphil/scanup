@@ -97,8 +97,27 @@ export default function RootLayout() {
         // This prevents iOS crash with New Architecture
         
         // 0️⃣ Request ATT permission FIRST (iOS requirement - must be before any tracking)
+        // ⚠️ CRITICAL: This MUST complete before ANY ads are shown
         if (Platform.OS === 'ios') {
-          requestTrackingPermission();
+          (async () => {
+            try {
+              console.log('[RootLayout] Starting ATT request...');
+              const result = await requestTrackingPermission();
+              attResult = result;
+              attCompleted = true;
+              if (attPromiseResolve) {
+                attPromiseResolve(result);
+              }
+              console.log('[RootLayout] ATT completed with result:', result);
+            } catch (err) {
+              console.log('[RootLayout] ATT error:', err);
+              attCompleted = true;
+              attResult = false;
+              if (attPromiseResolve) {
+                attPromiseResolve(false);
+              }
+            }
+          })();
         }
         
         // 1️⃣ Initialize IAP - DELAYED for stability
