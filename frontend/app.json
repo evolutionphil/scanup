@@ -18,7 +18,7 @@
         "NSPhotoLibraryUsageDescription": "ScanUp needs photo library access to import and save scanned documents",
         "NSPhotoLibraryAddUsageDescription": "ScanUp needs permission to save scanned documents to your photo library",
         "NSMicrophoneUsageDescription": "ScanUp may use the microphone for video capture",
-        "NSUserTrackingUsageDescription": "This helps us show you relevant ads and keep ScanUp free.",
+        "NSUserTrackingUsageDescription": "ScanUp would like to show you personalized ads. Your data will be used to deliver relevant ads.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
