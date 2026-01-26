@@ -120,11 +120,8 @@ export default function PremiumScreen() {
   const watermarkPrice = getPrice(CANONICAL_PRODUCTS.REMOVE_WATERMARK) || '€2.99';
 
   const handlePurchaseSubscription = async () => {
-    if (isGuest || !isAuthenticated) {
-      router.push('/(auth)/login?returnTo=/premium');
-      return;
-    }
-    
+    // ⚠️ Apple Guideline 5.1.1: Users MUST be able to purchase WITHOUT registering first
+    // We allow guests to purchase, then optionally prompt for account creation after
     setError(null);
     
     const productId = selectedPlan === 'monthly' 
@@ -132,20 +129,55 @@ export default function PremiumScreen() {
       : CANONICAL_PRODUCTS.PREMIUM_YEARLY;
     
     logPurchaseEvent('started', productId);
-    await purchaseSubscription(productId);
+    
+    try {
+      await purchaseSubscription(productId);
+      
+      // After successful purchase, suggest account creation for backup/sync (optional)
+      if (isGuest || !isAuthenticated) {
+        Alert.alert(
+          t('purchase_success', 'Purchase Successful!'),
+          t('create_account_suggestion', 'Would you like to create an account to sync your premium subscription across all your devices?'),
+          [
+            { text: t('later', 'Later'), style: 'cancel' },
+            { 
+              text: t('create_account', 'Create Account'), 
+              onPress: () => router.push('/(auth)/register')
+            }
+          ]
+        );
+      }
+    } catch (err) {
+      console.log('[Premium] Subscription purchase error:', err);
+    }
   };
 
   // One-time purchase: Remove watermark forever (€2.99)
   const handlePurchaseWatermarkRemoval = async () => {
-    if (isGuest || !isAuthenticated) {
-      router.push('/(auth)/login?returnTo=/premium');
-      return;
-    }
-    
+    // ⚠️ Apple Guideline 5.1.1: Users MUST be able to purchase WITHOUT registering first
     setError(null);
     logPurchaseEvent('started', CANONICAL_PRODUCTS.REMOVE_WATERMARK);
     
-    await purchaseProduct(CANONICAL_PRODUCTS.REMOVE_WATERMARK);
+    try {
+      await purchaseProduct(CANONICAL_PRODUCTS.REMOVE_WATERMARK);
+      
+      // After successful purchase, suggest account creation (optional)
+      if (isGuest || !isAuthenticated) {
+        Alert.alert(
+          t('purchase_success', 'Purchase Successful!'),
+          t('create_account_suggestion', 'Would you like to create an account to sync your purchase across all your devices?'),
+          [
+            { text: t('later', 'Later'), style: 'cancel' },
+            { 
+              text: t('create_account', 'Create Account'), 
+              onPress: () => router.push('/(auth)/register')
+            }
+          ]
+        );
+      }
+    } catch (err) {
+      console.log('[Premium] Product purchase error:', err);
+    }
   };
 
   const handleContinueFree = () => {
