@@ -3,6 +3,7 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useAdStore } from '../store/adStore';
 import { useAuthStore } from '../store/authStore';
 import { usePurchaseStore } from '../store/purchaseStore';
+import { getTrackingPermissionsAsync } from 'expo-tracking-transparency';
 
 interface AdManagerProps {
   children: React.ReactNode;
@@ -33,9 +34,10 @@ let globalInterstitial: any = null;
 let isSDKInitialized = false;
 let isInitializing = false;
 let mobileAdsModule: any = null;
+let attTrackingStatus: string = 'not-determined';
 
-// Note: ATT is NOT required - App Store Connect privacy = "No tracking"
-// All ads use non-personalized mode (requestNonPersonalizedAdsOnly: true)
+// ATT (App Tracking Transparency) is REQUIRED for iOS
+// Ads will use personalized mode if ATT is granted, non-personalized otherwise
 
 // Lazy load the ads module only on native
 const getAdsModule = () => {
