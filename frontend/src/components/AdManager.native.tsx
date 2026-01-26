@@ -232,7 +232,7 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
   }, []);
 
   // Load interstitial with better logging
-  const loadInterstitial = useCallback(() => {
+  const loadInterstitial = useCallback(async () => {
     console.log('[AdManager] loadInterstitial called - isNative:', isNativeEnvironment, 'sdkInit:', isSDKInitialized);
     
     if (!isNativeEnvironment) {
@@ -264,10 +264,13 @@ export const AdManager: React.FC<AdManagerProps> = ({ children }) => {
         ? (Platform.OS === 'ios' ? AD_UNITS.test.interstitial.ios : AD_UNITS.test.interstitial.android)
         : (Platform.OS === 'ios' ? AD_UNITS.interstitial.ios : AD_UNITS.interstitial.android);
       
-      console.log('[AdManager] 📢 Loading interstitial ad:', adUnitId, '(__DEV__:', __DEV__, ')');
+      // Check ATT status to determine ad personalization
+      const useNonPersonalized = Platform.OS === 'ios' ? attTrackingStatus !== 'granted' : true;
+      
+      console.log('[AdManager] 📢 Loading interstitial ad:', adUnitId, '(__DEV__:', __DEV__, ', nonPersonalized:', useNonPersonalized, ')');
       
       globalInterstitial = InterstitialAd.createForAdRequest(adUnitId, {
-        requestNonPersonalizedAdsOnly: true,
+        requestNonPersonalizedAdsOnly: useNonPersonalized,
       });
 
       const unsubscribeLoaded = globalInterstitial.addAdEventListener(
