@@ -201,7 +201,7 @@ export default function ShareModal({
       
       // Only add page-break-after for pages that are NOT the last one
       // Using 'avoid' for last page to prevent extra blank page
-      return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'}">
+      return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'} page-break-inside: avoid;">
           <img src="${base64WithPrefix}" />
           ${watermarkHtml}
         </div>`;
@@ -215,8 +215,9 @@ export default function ShareModal({
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { 
-    margin: 5mm; 
-    size: A4;
+    margin: 0; 
+    padding: 0;
+    size: auto;
   }
   html, body { 
     margin: 0; 
@@ -234,12 +235,12 @@ export default function ShareModal({
     align-items: center;
     padding: 0;
     margin: 0;
+    overflow: hidden;
   }
   .page-container img {
-    max-width: 100%;
-    max-height: 95vh;
-    width: auto;
+    width: 100%;
     height: auto;
+    max-width: 100%;
     object-fit: contain;
     display: block;
     margin: 0 auto;
@@ -253,13 +254,7 @@ export default function ShareModal({
     
     const { uri } = await Print.printToFileAsync({ 
       html,
-      // Explicitly set to avoid extra pages
-      margins: {
-        left: 10,
-        right: 10,
-        top: 10,
-        bottom: 10,
-      },
+      margins: { left: 0, right: 0, top: 0, bottom: 0 },
     });
     return uri;
   };
