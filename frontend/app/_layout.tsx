@@ -12,62 +12,9 @@ import { useMonetizationStore } from '../src/store/monetizationStore';
 import { useOfflineSync } from '../src/hooks/useOfflineSync';
 import * as Notifications from 'expo-notifications';
 
-// iOS App Tracking Transparency - MUST be called before any tracking/ads
-// Apple requires this prompt to appear on ALL iOS devices including iPad
-const requestTrackingPermission = async (): Promise<boolean> => {
-  if (Platform.OS !== 'ios') return true;
-  
-  try {
-    const { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } = await import('expo-tracking-transparency');
-    
-    // Check current status first
-    const { status: currentStatus } = await getTrackingPermissionsAsync();
-    console.log('[ATT] Current tracking status:', currentStatus);
-    
-    // ⚠️ CRITICAL: Always try to request permission
-    // Apple requires the prompt to appear before ANY tracking data is collected
-    if (currentStatus === 'undetermined') {
-      // Wait for app to be fully rendered before showing prompt
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('[ATT] Requesting permission now...');
-      const { status } = await requestTrackingPermissionsAsync();
-      console.log('[ATT] Permission result:', status);
-      
-      // Store the result
-      return status === 'granted';
-    }
-    
-    console.log('[ATT] Permission already determined:', currentStatus);
-    return currentStatus === 'granted';
-  } catch (error) {
-    console.log('[ATT] Error requesting tracking permission:', error);
-    // Don't block app on ATT error
-    return false;
-  }
-};
-
-// Global ATT state
-let attPromiseResolve: ((value: boolean) => void) | null = null;
-let attCompleted = false;
-let attResult = false;
-
-// Wait for ATT to complete (used by AdManager)
-export const waitForATT = async (): Promise<boolean> => {
-  if (attCompleted) return attResult;
-  
-  return new Promise((resolve) => {
-    attPromiseResolve = resolve;
-    // Timeout after 10 seconds
-    setTimeout(() => {
-      if (!attCompleted) {
-        console.log('[ATT] Timeout waiting for ATT');
-        attCompleted = true;
-        resolve(false);
-      }
-    }, 10000);
-  });
-};
+// Note: ATT (App Tracking Transparency) is NOT required
+// App Store Connect privacy settings: "Does this app track users?" = NO
+// Ads work with non-personalized mode (requestNonPersonalizedAdsOnly: true)
 
 export default function RootLayout() {
   const { theme, mode, loadTheme } = useThemeStore();
