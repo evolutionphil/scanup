@@ -35,9 +35,8 @@ APP_URL = "https://scanup.app"
 # Check if domain is verified by attempting to get domain status
 def get_from_email():
     """Return the appropriate from email based on domain verification status"""
-    # For now, use fallback since scanup.app is not verified
-    # Change to FROM_EMAIL once domain is verified in Resend
-    return FROM_EMAIL_FALLBACK
+    # Domain scanup.app is now verified - use production email
+    return FROM_EMAIL
 
 # Email Templates
 def get_welcome_email_html(user_name: str) -> str:
