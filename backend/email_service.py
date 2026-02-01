@@ -24,9 +24,20 @@ else:
     logger.warning("⚠️ RESEND_API_KEY not found in environment")
 
 # Email configuration
-FROM_EMAIL = "ScanUp <noreply@scanup.app>"  # Verified domain
+# IMPORTANT: Domain scanup.app must be verified in Resend dashboard
+# Until verified, emails will NOT be sent!
+# To verify: https://resend.com/domains -> Add Domain -> scanup.app -> Add DNS records
+FROM_EMAIL = "ScanUp <noreply@scanup.app>"  # Production (requires verified domain)
+FROM_EMAIL_FALLBACK = "ScanUp <onboarding@resend.dev>"  # Fallback for testing
 APP_NAME = "ScanUp"
 APP_URL = "https://scanup.app"
+
+# Check if domain is verified by attempting to get domain status
+def get_from_email():
+    """Return the appropriate from email based on domain verification status"""
+    # For now, use fallback since scanup.app is not verified
+    # Change to FROM_EMAIL once domain is verified in Resend
+    return FROM_EMAIL_FALLBACK
 
 # Email Templates
 def get_welcome_email_html(user_name: str) -> str:
