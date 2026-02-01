@@ -366,7 +366,7 @@ async def send_welcome_email(to_email: str, user_name: str) -> bool:
             return False
             
         params = {
-            "from": FROM_EMAIL,
+            "from": get_from_email(),
             "to": [to_email],
             "subject": f"Welcome to {APP_NAME}! 🎉",
             "html": get_welcome_email_html(user_name),
@@ -388,7 +388,7 @@ async def send_verification_email(to_email: str, user_name: str, verification_co
             return False
             
         params = {
-            "from": FROM_EMAIL,
+            "from": get_from_email(),
             "to": [to_email],
             "subject": f"Verify your {APP_NAME} account",
             "html": get_verification_email_html(user_name, verification_code),
@@ -410,7 +410,7 @@ async def send_password_reset_email(to_email: str, user_name: str, reset_code: s
             return False
             
         params = {
-            "from": FROM_EMAIL,
+            "from": get_from_email(),
             "to": [to_email],
             "subject": f"Reset your {APP_NAME} password",
             "html": get_password_reset_email_html(user_name, reset_code),
@@ -432,7 +432,7 @@ async def send_purchase_confirmation_email(to_email: str, user_name: str, produc
             return False
             
         params = {
-            "from": FROM_EMAIL,
+            "from": get_from_email(),
             "to": [to_email],
             "subject": f"Thank you for your {APP_NAME} purchase! 🎉",
             "html": get_purchase_confirmation_email_html(user_name, product_name, price),
@@ -454,7 +454,7 @@ async def send_premium_welcome_email(to_email: str, user_name: str, plan_name: s
             return False
             
         params = {
-            "from": FROM_EMAIL,
+            "from": get_from_email(),
             "to": [to_email],
             "subject": f"Welcome to {APP_NAME} Premium! ⭐",
             "html": get_premium_welcome_email_html(user_name, plan_name),
