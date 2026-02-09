@@ -496,6 +496,9 @@ export default function ShareModal({
             paddingBottom: Math.max(insets.bottom, 24) + 16 
           }
         ]}>
+          {/* Sheet Handle */}
+          <View style={styles.sheetHandle} />
+          
           {/* Header */}
           <View style={styles.header}>
             <View>
