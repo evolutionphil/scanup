@@ -640,11 +640,20 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+    // No background color - completely transparent
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#94A3B8',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   content: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 24,
+    paddingTop: 12,
     paddingHorizontal: 24,
   },
   header: {
