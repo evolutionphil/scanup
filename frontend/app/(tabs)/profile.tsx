@@ -270,6 +270,25 @@ export default function ProfileScreen() {
               <Text style={styles.signInPromptText}>{t('sign_in_to_sync', 'Sign In to Sync')}</Text>
             </TouchableOpacity>
           )}
+          
+          {/* Cloud Dashboard Link */}
+          <TouchableOpacity 
+            style={[styles.cloudDashboardLink, { borderColor: theme.border }]}
+            onPress={() => Linking.openURL('https://scanup.app')}
+          >
+            <View style={styles.cloudDashboardContent}>
+              <Ionicons name="cloud-outline" size={20} color={theme.primary} />
+              <View style={styles.cloudDashboardText}>
+                <Text style={[styles.cloudDashboardTitle, { color: theme.text }]}>
+                  {t('cloud_dashboard', 'Cloud Dashboard')}
+                </Text>
+                <Text style={[styles.cloudDashboardUrl, { color: theme.primary }]}>
+                  scanup.app
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="open-outline" size={18} color={theme.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* Premium/Trial Card */}
