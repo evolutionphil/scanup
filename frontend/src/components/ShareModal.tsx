@@ -25,14 +25,9 @@ import { usePurchaseStore, canExportWithoutWatermark } from '../store/purchaseSt
 import { useMonetizationStore } from '../store/monetizationStore';
 import { showGlobalInterstitial } from './AdManager';
 import SoftPaywall from './SoftPaywall';
+import { PDFDocument } from 'pdf-lib-with-encrypt';
 
 import Constants from 'expo-constants';
-
-// Backend URL for PDF password protection
-const BACKEND_URL = 
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
-  process.env.EXPO_PUBLIC_BACKEND_URL ||
-  'https://scanup-production.up.railway.app';
 
 const BRAND_BLUE = '#3E51FB';
 
