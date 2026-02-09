@@ -6692,7 +6692,7 @@ async def get_legal_page(page_type: str, language_code: str = "en"):
 # ==================== ADMIN DASHBOARD API ====================
 
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@scanup.com")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Bita**2016#")
 
 class AdminLoginRequest(BaseModel):
     email: str
