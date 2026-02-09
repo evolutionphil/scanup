@@ -452,23 +452,6 @@ export default function PremiumScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* One-time purchase: Remove watermark (€2.99) */}
-        {!hasRemovedWatermark && (
-          <TouchableOpacity
-            style={[styles.oneTimeButton, isLoading && styles.buttonDisabled]}
-            onPress={handlePurchaseWatermarkRemoval}
-            disabled={isLoading}
-          >
-            <View style={styles.oneTimeContent}>
-              <View>
-                <Text style={styles.oneTimeTitle}>Remove watermark forever</Text>
-                <Text style={styles.oneTimeSubtitle}>One-time purchase</Text>
-              </View>
-              <Text style={styles.oneTimePrice}>{watermarkPrice}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
         {/* Continue as Free */}
         {(isGuest || !isAuthenticated) && (
           <TouchableOpacity style={styles.continueFreeButton} onPress={handleContinueFree}>
