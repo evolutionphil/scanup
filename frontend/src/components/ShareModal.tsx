@@ -487,7 +487,7 @@ export default function ShareModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={[styles.backdrop, { backgroundColor: theme.overlay }]} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
         
         <View style={[
           styles.content,
