@@ -4838,10 +4838,49 @@ async def protect_pdf_with_password(request: PDFPasswordRequest):
         if ',' in pdf_data:
             pdf_data = pdf_data.split(',')[1]
         
-        pdf_bytes = base64.b64decode(pdf_data)
+        # Validate base64 data
+        if not pdf_data or len(pdf_data) < 100:
+            logger.error("PDF base64 data is too short or empty")
+            return {
+                "success": False,
+                "message": "Invalid PDF data: too short or empty"
+            }
         
-        # Read the PDF
-        reader = PdfReader(io.BytesIO(pdf_bytes))
+        try:
+            pdf_bytes = base64.b64decode(pdf_data)
+        except Exception as decode_err:
+            logger.error(f"Base64 decode error: {decode_err}")
+            return {
+                "success": False,
+                "message": f"Invalid base64 encoding: {str(decode_err)}"
+            }
+        
+        # Validate PDF header
+        if not pdf_bytes.startswith(b'%PDF'):
+            logger.error("Invalid PDF: missing PDF header")
+            return {
+                "success": False,
+                "message": "Invalid PDF file: not a valid PDF format"
+            }
+        
+        logger.info(f"Processing PDF: {len(pdf_bytes)} bytes")
+        
+        # Read the PDF with strict mode disabled
+        try:
+            reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
+        except Exception as read_err:
+            logger.error(f"PDF read error: {read_err}")
+            return {
+                "success": False,
+                "message": f"Could not read PDF: {str(read_err)}"
+            }
+        
+        if len(reader.pages) == 0:
+            return {
+                "success": False,
+                "message": "PDF has no pages"
+            }
+        
         writer = PdfWriter()
         
         # Copy all pages to writer
@@ -4862,7 +4901,7 @@ async def protect_pdf_with_password(request: PDFPasswordRequest):
         # Convert to base64
         result_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
         
-        logger.info("PDF encrypted with password successfully")
+        logger.info(f"PDF encrypted successfully: {len(result_base64)} bytes output")
         
         return {
             "success": True,
