@@ -156,9 +156,10 @@ export default function ShareModal({
   };
 
   const generatePdf = async (): Promise<string> => {
-    const showWatermark = getWatermarkStatus();
+    // Watermark completely disabled
+    const showWatermark = false;
     
-    console.log('[ShareModal] generatePdf - showWatermark:', showWatermark, 'exportCount:', exportCount, 'pageCount:', pages.length);
+    console.log('[ShareModal] generatePdf - pageCount:', pages.length);
     
     // Load images from any source
     const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
@@ -167,81 +168,35 @@ export default function ShareModal({
     const validImages = imagesBase64.filter(img => img && img.length > 100);
     console.log('[ShareModal] Valid images count:', validImages.length);
 
-    // Watermark HTML - diagonal text overlay
-    const watermarkHtml = showWatermark ? `
-      <div style="
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-45deg);
-        font-size: 72px;
-        font-weight: bold;
-        color: rgba(62, 81, 251, 0.15);
-        white-space: nowrap;
-        pointer-events: none;
-        z-index: 1000;
-        font-family: Arial, sans-serif;
-        letter-spacing: 8px;
-      ">ScanUp</div>
-    ` : '';
-
-    // Build HTML for each page - FIXED: removed min-height that causes extra pages
+    // Build HTML for each page - FIXED: Simplified CSS to prevent extra pages
     const imageHtml = validImages.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
       const isLastPage = index === validImages.length - 1;
       
-      // Only add page-break-after for pages that are NOT the last one
-      // Using 'avoid' for last page to prevent extra blank page
-      return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'} page-break-inside: avoid;">
-          <img src="${base64WithPrefix}" />
-          ${watermarkHtml}
+      // Simple page break logic - only break between pages, not after last
+      const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
+      
+      return `<div style="${pageBreak}">
+          <img src="${base64WithPrefix}" style="width: 100%; height: auto; display: block;" />
         </div>`;
     }).join('');
 
+    // Minimal HTML - removed all unnecessary CSS that could cause extra pages
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${documentName}</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { 
-    margin: 0; 
-    padding: 0;
-    size: auto;
-  }
-  html, body { 
-    margin: 0; 
-    padding: 0; 
-    width: 100%;
-    height: 100%;
-  }
-  .page-container {
-    position: relative;
-    width: 100%;
-    height: auto;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
-  }
-  .page-container img {
-    width: 100%;
-    height: auto;
-    max-width: 100%;
-    object-fit: contain;
-    display: block;
-    margin: 0 auto;
-  }
+  * { margin: 0; padding: 0; }
+  @page { margin: 0; }
+  body { margin: 0; padding: 0; }
+  img { width: 100%; height: auto; display: block; }
 </style>
 </head>
 <body>${imageHtml}</body>
 </html>`;
 
-    console.log('[ShareModal] Generated HTML for', validImages.length, 'pages');
+    console.log('[ShareModal] Generated minimal HTML for', validImages.length, 'pages');
     
     const { uri } = await Print.printToFileAsync({ 
       html,
