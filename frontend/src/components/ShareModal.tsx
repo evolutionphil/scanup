@@ -297,51 +297,67 @@ export default function ShareModal({
             const apiUrl = `${BACKEND_URL}/api/pdf/protect`;
             console.log('[ShareModal] Applying password protection via backend:', apiUrl);
             
-            // Read the PDF file
+            // Read the PDF file as base64
             const pdfBase64 = await readAsStringAsync(newUri, {
               encoding: EncodingType.Base64,
             });
             
             console.log('[ShareModal] PDF base64 length:', pdfBase64.length);
             
-            // Call backend to encrypt PDF
-            const response = await fetch(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                pdf_base64: pdfBase64,
-                password: password,
-              }),
-            });
-            
-            console.log('[ShareModal] Backend response status:', response.status);
-            
-            if (response.ok) {
-              const result = await response.json();
-              console.log('[ShareModal] Backend response:', result.success, result.message);
-              
-              if (result.success && result.pdf_base64) {
-                // Save encrypted PDF
-                const protectedUri = `${cacheDirectory}${safeFileName}_protected.pdf`;
-                await writeAsStringAsync(protectedUri, result.pdf_base64, {
-                  encoding: EncodingType.Base64,
-                });
-                newUri = protectedUri;
-                console.log('[ShareModal] PDF encrypted successfully with password');
-              } else {
-                console.warn('[ShareModal] Backend encryption failed:', result.message);
-                Alert.alert('Warning', 'Could not apply password protection. Sharing unprotected PDF.');
-              }
+            // Validate base64 data
+            if (!pdfBase64 || pdfBase64.length < 100) {
+              console.warn('[ShareModal] PDF base64 data is too short or empty');
+              Alert.alert('Warning', 'Could not read PDF file. Sharing unprotected PDF.');
             } else {
-              const errorText = await response.text();
-              console.warn('[ShareModal] Backend request failed:', response.status, errorText);
-              Alert.alert('Warning', 'Could not apply password protection. Sharing unprotected PDF.');
+              // Call backend to encrypt PDF
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+              
+              const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  pdf_base64: pdfBase64,
+                  password: password,
+                }),
+                signal: controller.signal,
+              });
+              
+              clearTimeout(timeoutId);
+              console.log('[ShareModal] Backend response status:', response.status);
+              
+              if (response.ok) {
+                const result = await response.json();
+                console.log('[ShareModal] Backend response success:', result.success, 'message:', result.message);
+                
+                if (result.success && result.pdf_base64) {
+                  // Save encrypted PDF
+                  const protectedUri = `${cacheDirectory}${safeFileName}_protected.pdf`;
+                  await writeAsStringAsync(protectedUri, result.pdf_base64, {
+                    encoding: EncodingType.Base64,
+                  });
+                  newUri = protectedUri;
+                  console.log('[ShareModal] PDF encrypted successfully with password');
+                } else {
+                  console.warn('[ShareModal] Backend encryption failed:', result.message);
+                  Alert.alert('Warning', `Could not apply password protection: ${result.message || 'Unknown error'}. Sharing unprotected PDF.`);
+                }
+              } else {
+                const errorText = await response.text();
+                console.warn('[ShareModal] Backend request failed:', response.status, errorText);
+                Alert.alert('Warning', `Server error (${response.status}). Sharing unprotected PDF.`);
+              }
             }
           } catch (encryptError: any) {
-            console.error('[ShareModal] Password protection error:', encryptError.message || encryptError);
-            Alert.alert('Warning', 'Could not apply password protection. Sharing unprotected PDF.');
+            if (encryptError.name === 'AbortError') {
+              console.error('[ShareModal] Password protection timeout');
+              Alert.alert('Warning', 'Request timed out. Sharing unprotected PDF.');
+            } else {
+              console.error('[ShareModal] Password protection error:', encryptError.message || encryptError);
+              Alert.alert('Warning', `Error: ${encryptError.message || 'Unknown error'}. Sharing unprotected PDF.`);
+            }
           }
         }
         
