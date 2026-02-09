@@ -623,8 +623,8 @@ const styles = StyleSheet.create({
   // Modal styles
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+    // No dark overlay - transparent background
   },
   bottomSheet: {
     borderTopLeftRadius: 24,
