@@ -562,6 +562,14 @@ export default function SettingsScreen() {
           onPress={() => router.push('/web-access')}
         />
         
+        <SettingRow
+          icon="cloud-outline"
+          label={t('cloud_dashboard', 'Cloud Dashboard')}
+          subtitle={t('cloud_dashboard_desc', 'Access your documents on the web')}
+          value="scanup.app"
+          onPress={() => Linking.openURL('https://scanup.app')}
+        />
+        
         {/* Push Notification Debug - Only show on mobile */}
         {Platform.OS !== 'web' && (
           <SettingRow
