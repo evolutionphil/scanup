@@ -121,16 +121,12 @@ export default function ShareModal({
   const { isPremium } = usePurchaseStore();
 
   // ==========================================
-  // WATERMARK LOGIC - Using monetization store
+  // WATERMARK LOGIC - DISABLED (No watermarks anymore)
   // ==========================================
-  // RULES:
-  // 1. Premium users → NO WATERMARK
-  // 2. Users who bought "Remove Watermark" (€2.99) → NO WATERMARK
-  // 3. First export → NO WATERMARK (free trial)
-  // 4. Subsequent exports for free users → WATERMARK
+  // Watermark completely removed as per user request
   const getWatermarkStatus = (): boolean => {
-    // Use centralized monetization logic
-    return shouldShowWatermark(isPremium);
+    // Always return false - no watermarks
+    return false;
   };
 
   // ==========================================
