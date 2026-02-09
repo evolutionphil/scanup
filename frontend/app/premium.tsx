@@ -345,12 +345,6 @@ export default function PremiumScreen() {
             <View style={styles.checkIcon}>
               <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
             </View>
-            <Text style={styles.featureText}>Export without watermark</Text>
-          </View>
-          <View style={styles.featureRow}>
-            <View style={styles.checkIcon}>
-              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
-            </View>
             <Text style={styles.featureText}>Unlimited PDF exports</Text>
           </View>
           <View style={styles.featureRow}>
@@ -358,6 +352,12 @@ export default function PremiumScreen() {
               <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
             </View>
             <Text style={styles.featureText}>Sign your documents</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.checkIcon}>
+              <Ionicons name="checkmark" size={18} color={BRAND_BLUE} />
+            </View>
+            <Text style={styles.featureText}>Cloud sync across devices</Text>
           </View>
           <View style={styles.featureRow}>
             <View style={styles.checkIcon}>
