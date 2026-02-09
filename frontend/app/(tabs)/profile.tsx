@@ -602,6 +602,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  cloudDashboardLink: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  cloudDashboardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cloudDashboardText: {
+    marginLeft: 12,
+  },
+  cloudDashboardTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cloudDashboardUrl: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '600',
+  },
   card: {
     marginHorizontal: 20,
     marginBottom: 16,
