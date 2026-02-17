@@ -2770,7 +2770,7 @@ async def create_document(
         "pages": processed_pages,
         "ocr_full_text": None,
         "is_password_protected": False,
-        "has_watermark": not skip_watermark,
+        "has_watermark": False,  # WATERMARK COMPLETELY DISABLED
         "storage_type": "s3" if s3_client else "mongodb",  # Track storage type
         "created_at": now,
         "updated_at": now
