@@ -400,8 +400,8 @@ export default function ShareModal({
 
     setIsExporting(true);
     try {
-      // Use same watermark logic as PDF
-      const showWatermark = getWatermarkStatus();
+      // WATERMARK COMPLETELY DISABLED - No watermarks for any user
+      const showWatermark = false;
       console.log('[ShareModal] handlePrint - showWatermark:', showWatermark, 'pageCount:', pages.length);
       
       // Load images from any source
@@ -410,30 +410,14 @@ export default function ShareModal({
       // Filter out any empty images
       const validImages = imagesBase64.filter(img => img && img.length > 100);
 
-      // Watermark HTML for print
-      const watermarkHtml = showWatermark ? `
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(-45deg);
-          font-size: 72px;
-          font-weight: bold;
-          color: rgba(62, 81, 251, 0.15);
-          white-space: nowrap;
-          pointer-events: none;
-          z-index: 1000;
-          font-family: Arial, sans-serif;
-          letter-spacing: 8px;
-        ">ScanUp</div>
-      ` : '';
+      // WATERMARK COMPLETELY DISABLED - Empty string always
+      const watermarkHtml = '';
 
       // Build HTML for each page - FIXED: same as generatePdf
       const imageHtml = validImages.map((img, index) => {
         const isLastPage = index === validImages.length - 1;
         return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'}">
           <img src="data:image/jpeg;base64,${img}" />
-          ${watermarkHtml}
         </div>`;
       }).join('');
 
