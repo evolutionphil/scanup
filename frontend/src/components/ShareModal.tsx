@@ -427,9 +427,7 @@ export default function ShareModal({
 
     setIsExporting(true);
     try {
-      // WATERMARK COMPLETELY DISABLED - No watermarks for any user
-      const showWatermark = false;
-      console.log('[ShareModal] handlePrint - showWatermark:', showWatermark, 'pageCount:', pages.length);
+      console.log('[ShareModal] handlePrint - pageCount:', pages.length);
       
       // Load images from any source
       const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
@@ -437,17 +435,16 @@ export default function ShareModal({
       // Filter out any empty images
       const validImages = imagesBase64.filter(img => img && img.length > 100);
 
-      // WATERMARK COMPLETELY DISABLED - Empty string always
-      const watermarkHtml = '';
-
-      // Build HTML for each page - FIXED: same as generatePdf
+      // Build HTML for each page - CRITICAL FIX: Contain image within single page
       const imageHtml = validImages.map((img, index) => {
         const isLastPage = index === validImages.length - 1;
-        return `<div class="page-container" style="${!isLastPage ? 'page-break-after: always;' : 'page-break-after: avoid;'}">
+        const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
+        return `<div class="page" style="${pageBreak}">
           <img src="data:image/jpeg;base64,${img}" />
         </div>`;
       }).join('');
 
+      // CRITICAL FIX: Same CSS as generatePdf to ensure single page per image
       const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -455,26 +452,29 @@ export default function ShareModal({
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { margin: 5mm; size: A4; }
-  html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
-  .page-container {
-    position: relative;
-    width: 100%;
-    height: auto;
-    text-align: center;
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    width: 100%; 
+    height: 100%;
+    overflow: hidden;
+  }
+  .page {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0;
-    margin: 0;
+    overflow: hidden;
+    page-break-inside: avoid;
   }
-  .page-container img {
-    max-width: 100%;
-    max-height: 95vh;
+  .page img { 
+    max-width: 100%; 
+    max-height: 100%; 
     width: auto;
     height: auto;
     object-fit: contain;
     display: block;
-    margin: 0 auto;
   }
 </style>
 </head>
