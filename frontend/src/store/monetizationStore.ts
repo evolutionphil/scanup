@@ -125,16 +125,10 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
     return get().exportCount >= FREE_EXPORT_LIMIT;
   },
 
-  // Watermark logic:
-  // - Premium users: NO watermark
-  // - Users who bought "Remove Watermark" (€2.99): NO watermark
-  // - Free users after first export: YES watermark
+  // WATERMARK COMPLETELY DISABLED - Always return false
+  // No watermarks for any user, regardless of premium status
   shouldShowWatermark: (isPremium: boolean) => {
-    if (isPremium) return false;
-    if (get().hasRemovedWatermark) return false;
-    // First export is watermark-free!
-    if (get().exportCount === 0) return false;
-    return true;
+    return false; // WATERMARK COMPLETELY DISABLED
   },
 
   // Ads logic:
