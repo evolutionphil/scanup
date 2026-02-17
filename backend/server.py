@@ -2279,19 +2279,28 @@ async def update_subscription(
     subscription: SubscriptionUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update user subscription (mock implementation)"""
+    """Update user subscription (from in-app purchase)"""
     expires_at = None
+    is_premium = False
+    
     if subscription.subscription_type == "premium":
         expires_at = datetime.now(timezone.utc) + timedelta(days=subscription.duration_days or 30)
+        is_premium = True
+    elif subscription.subscription_type == "trial":
+        is_premium = True
     
+    # Update user with subscription info AND is_premium flag
     await db.users.update_one(
         {"user_id": current_user.user_id},
         {"$set": {
             "subscription_type": subscription.subscription_type,
             "subscription_expires_at": expires_at,
+            "is_premium": is_premium,
             "updated_at": datetime.now(timezone.utc)
         }}
     )
+    
+    logger.info(f"✅ User {current_user.user_id} subscription updated: {subscription.subscription_type}, is_premium={is_premium}")
     
     user_doc = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
     user = User(**{k: v for k, v in user_doc.items() if k != "password_hash"})
