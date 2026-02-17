@@ -2709,14 +2709,15 @@ async def create_document(
         page_dict["page_id"] = page_id
         page_dict["order"] = i
         
-        # Store original image and add watermark for free users (unless they removed ads)
+        # Store original image - NO WATERMARK (completely disabled)
         original_image_base64 = page.image_base64
         image_base64 = page.image_base64
         has_watermark = False
         
-        if not skip_watermark:
-            image_base64 = add_watermark(image_base64, "ScanUp")
-            has_watermark = True
+        # WATERMARK COMPLETELY DISABLED - No watermarks for any user
+        # if not skip_watermark:
+        #     image_base64 = add_watermark(image_base64, "ScanUp")
+        #     has_watermark = True
         
         # Create thumbnail (from watermarked image if applicable)
         thumbnail_base64 = create_thumbnail(image_base64)
