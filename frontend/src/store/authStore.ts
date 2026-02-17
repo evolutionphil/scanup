@@ -278,6 +278,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
     
+    // ⭐ CRITICAL: Sync premium status from backend for ALL platforms (including web)
+    const userIsPremium = data.user?.is_premium || data.user?.subscription_type === 'premium' || data.user?.subscription_type === 'trial';
+    console.log('[Auth] User premium status from backend (Google native login):', userIsPremium);
+    usePurchaseStore.getState().syncWithUser(userIsPremium);
+    
     // Register push token for this user
     if (Platform.OS !== 'web') {
       setTimeout(async () => {
@@ -312,6 +317,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await setStorage(USER_KEY, JSON.stringify(data.user));
     
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
+    
+    // ⭐ CRITICAL: Sync premium status from backend for ALL platforms (including web)
+    const userIsPremium = data.user?.is_premium || data.user?.subscription_type === 'premium' || data.user?.subscription_type === 'trial';
+    console.log('[Auth] User premium status from backend (Apple login):', userIsPremium);
+    usePurchaseStore.getState().syncWithUser(userIsPremium);
   },
 
   logout: async () => {
