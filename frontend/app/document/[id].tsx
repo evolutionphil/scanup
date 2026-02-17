@@ -1305,12 +1305,7 @@ export default function DocumentScreen() {
           resizeMode="contain"
         />
         
-        {/* Watermark overlay for free users */}
-        {!isGuest && user && user.subscription_type !== 'premium' && user.subscription_type !== 'trial' && (
-          <View style={styles.watermarkOverlay} pointerEvents="none">
-            <Text style={styles.watermarkText}>ScanUp</Text>
-          </View>
-        )}
+        {/* WATERMARK COMPLETELY DISABLED - No watermarks for any user */}
         
         {/* Render signature overlays - Using absolute positioning based on image container */}
         {(currentPage as any).signatures?.map((sig: any, index: number) => {
