@@ -125,6 +125,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     set({ user: data.user, token: data.token, isAuthenticated: true, isGuest: false, isLoading: false });
     
+    // ⭐ CRITICAL: Sync premium status from backend for ALL platforms (including web)
+    const userIsPremium = data.user?.is_premium || data.user?.subscription_type === 'premium' || data.user?.subscription_type === 'trial';
+    console.log('[Auth] User premium status from backend:', userIsPremium, 'subscription_type:', data.user?.subscription_type);
+    usePurchaseStore.getState().syncWithUser(userIsPremium);
+    
     // Register push token for this user (after login so token is saved)
     if (Platform.OS !== 'web') {
       setTimeout(async () => {
