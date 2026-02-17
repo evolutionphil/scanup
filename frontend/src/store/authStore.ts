@@ -454,6 +454,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const user = await response.json();
         set({ user });
         await setStorage(USER_KEY, JSON.stringify(user));
+        
+        // ⭐ CRITICAL: Sync premium status from refreshed user data for ALL platforms (including web)
+        const userIsPremium = user?.is_premium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial';
+        console.log('[Auth] Syncing premium status from refreshed user:', userIsPremium);
+        usePurchaseStore.getState().syncWithUser(userIsPremium);
       } else if (response.status === 401) {
         // Token expired, logout
         await get().logout();
@@ -485,6 +490,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = await response.json();
     set({ user });
     await setStorage(USER_KEY, JSON.stringify(user));
+    
+    // ⭐ CRITICAL: Sync premium status after starting trial
+    const userIsPremium = user?.is_premium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial';
+    console.log('[Auth] Syncing premium status after trial start:', userIsPremium);
+    usePurchaseStore.getState().syncWithUser(userIsPremium);
   },
 
   // Track if documents have been migrated for this user
