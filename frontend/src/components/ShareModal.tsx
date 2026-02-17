@@ -168,35 +168,62 @@ export default function ShareModal({
     const validImages = imagesBase64.filter(img => img && img.length > 100);
     console.log('[ShareModal] Valid images count:', validImages.length);
 
-    // Build HTML for each page - FIXED: Simplified CSS to prevent extra pages
+    // Build HTML for each page - CRITICAL FIX: Contain image within single page
     const imageHtml = validImages.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
       const isLastPage = index === validImages.length - 1;
       
-      // Simple page break logic - only break between pages, not after last
+      // Only add page break between pages, not after last page
       const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
       
-      return `<div style="${pageBreak}">
-          <img src="${base64WithPrefix}" style="width: 100%; height: auto; display: block;" />
+      // CRITICAL: Each image contained in a page-sized container
+      // Using max-width and max-height to ensure image fits within single page
+      return `<div class="page" style="${pageBreak}">
+          <img src="${base64WithPrefix}" />
         </div>`;
     }).join('');
 
-    // Minimal HTML - removed all unnecessary CSS that could cause extra pages
+    // CRITICAL FIX: CSS ensures each image fits exactly within one page
+    // - Using vh/vw units to constrain to viewport (page) size
+    // - object-fit: contain ensures image scales proportionally
+    // - No overflow allowed
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-  * { margin: 0; padding: 0; }
-  @page { margin: 0; }
-  body { margin: 0; padding: 0; }
-  img { width: 100%; height: auto; display: block; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { margin: 0; size: A4; }
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    width: 100%; 
+    height: 100%;
+    overflow: hidden;
+  }
+  .page {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .page img { 
+    max-width: 100%; 
+    max-height: 100%; 
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
 </style>
 </head>
 <body>${imageHtml}</body>
 </html>`;
 
-    console.log('[ShareModal] Generated minimal HTML for', validImages.length, 'pages');
+    console.log('[ShareModal] Generated PDF HTML for', validImages.length, 'pages');
     
     const { uri } = await Print.printToFileAsync({ 
       html,
