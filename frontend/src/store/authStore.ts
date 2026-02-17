@@ -398,6 +398,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const user = JSON.parse(userStr);
           set({ user, token, isAuthenticated: true, isGuest: false, isLoading: false });
           
+          // ⭐ CRITICAL: Sync premium status from stored user data for ALL platforms (including web)
+          const userIsPremium = user?.is_premium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial';
+          console.log('[Auth] Syncing premium status from stored user:', userIsPremium);
+          usePurchaseStore.getState().syncWithUser(userIsPremium);
+          
           // Refresh user data in background
           get().refreshUser();
           
