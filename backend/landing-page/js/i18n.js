@@ -304,6 +304,79 @@ const ScanUpI18n = {
             web_access_waiting: "Waiting for authorization...",
             web_access_expires: "Request expires in",
             web_access_cancel: "Cancel",
+            
+            // Contact Page
+            contact_title: "Contact Us",
+            contact_subtitle: "We're here to help. Reach out to our support team.",
+            contact_get_in_touch: "Get in Touch",
+            contact_email_support: "Email Support",
+            contact_live_chat: "Live Chat",
+            contact_live_chat_hours: "Available Mon-Fri, 9am-6pm EST",
+            contact_help_center: "Help Center",
+            contact_browse_faq: "Browse FAQ & Guides",
+            contact_twitter: "Twitter",
+            contact_send_message: "Send us a Message",
+            contact_your_name: "Your Name",
+            contact_email_address: "Email Address",
+            contact_subject: "Subject",
+            contact_select_subject: "Select a subject",
+            contact_general: "General Inquiry",
+            contact_technical: "Technical Support",
+            contact_billing: "Billing Question",
+            contact_feedback: "Feedback",
+            contact_message: "Message",
+            contact_message_placeholder: "How can we help you?",
+            contact_send: "Send Message",
+            back_to_home: "Back to Home",
+            
+            // FAQ Page
+            faq_page_title: "Frequently Asked Questions",
+            faq_page_subtitle: "Find answers to common questions about ScanUp",
+            faq_search_placeholder: "Search questions...",
+            faq_category_all: "All Questions",
+            faq_category_general: "General",
+            faq_category_features: "Features",
+            faq_category_pricing: "Pricing",
+            faq_category_security: "Security",
+            faq_category_technical: "Technical",
+            faq_still_questions: "Still have questions?",
+            faq_contact_team: "Contact our support team",
+            
+            // Privacy Page
+            privacy_title: "Privacy Policy",
+            privacy_last_updated: "Last Updated",
+            privacy_intro: "Your privacy is important to us. This policy explains how we collect, use, and protect your information.",
+            
+            // Terms Page
+            terms_title: "Terms of Service",
+            terms_last_updated: "Last Updated",
+            terms_intro: "Please read these terms carefully before using ScanUp.",
+            
+            // Support Page
+            support_title: "Help & Support",
+            support_subtitle: "Get help with ScanUp",
+            support_search_placeholder: "Search for help...",
+            support_popular_topics: "Popular Topics",
+            support_contact_us: "Contact Us",
+            
+            // 404 Page
+            page_not_found: "Page Not Found",
+            page_not_found_desc: "The page you're looking for doesn't exist or has been moved.",
+            go_home: "Go to Homepage",
+            
+            // Common
+            loading: "Loading...",
+            error: "Error",
+            success: "Success",
+            submit: "Submit",
+            cancel: "Cancel",
+            save: "Save",
+            delete: "Delete",
+            edit: "Edit",
+            close: "Close",
+            yes: "Yes",
+            no: "No",
+            copyright: "© 2024 ScanUp. All rights reserved.",
         },
         tr: {
             // Navigation
