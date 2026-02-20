@@ -18,7 +18,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeStore } from '../src/store/themeStore';
 import { useAuthStore } from '../src/store/authStore';
 import { useI18n } from '../src/store/i18nStore';
-import { getPushToken, checkNotificationPermission, savePushTokenToBackend, getStoredPushToken } from '../src/services/messaging';
 
 // Settings keys
 const SETTINGS_KEYS = {
