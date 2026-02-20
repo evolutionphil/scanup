@@ -1258,3 +1258,52 @@ agent_communication:
     - /app/backend/server.py (bcrypt import, CORS config, rate limiting, security headers)
     - /app/backend/requirements.txt (added slowapi, limits)"
 
+
+  - agent: "main"
+    message: "PDF SAYFA ÇOĞALMA SORUNU - DETAYLI FIX ✅
+
+    ## Sorun Analizi:
+    - 4 sayfalık belge PDF olarak paylaşıldığında 8 sayfa oluyordu
+    - Her içerik sayfasından sonra boş bir sayfa ekleniyordu
+    - Kullanıcı defalarca build aldı ama sorun devam etti
+
+    ## Kök Neden:
+    1. ❌ `useMarkupFormatter: true` kullanılmıyordu
+    2. ❌ iOS'ta CSS page-break kuralları bu seçenek olmadan çalışmıyor
+    3. ❌ Expo-print 11.1.0+ sürümünde bu düzeltildi ama seçenek ZORUNLU
+
+    ## Uygulanan Düzeltmeler:
+
+    ### 1. useMarkupFormatter: true Eklendi
+    ```javascript
+    const { uri } = await Print.printToFileAsync({ 
+      html,
+      useMarkupFormatter: true,  // iOS için ZORUNLU
+    });
+    ```
+
+    ### 2. CSS Yapısı Optimize Edildi
+    - `@page { margin: 10mm; }` - Sayfa kenar boşluğu
+    - `.page { min-height: 250mm; }` - A4 minimum yükseklik
+    - `page-break-after: always` - Sadece son sayfa HARİÇ
+
+    ### 3. HTML Yapısı Düzeltildi
+    - Her sayfa için ayrı div: `<div class='page' style='page-break-after: always;'>`
+    - Son sayfa için page-break YOK
+
+    ## Test Sonuçları:
+    - ✅ 4 sayfa için 4 div elementi oluşturuluyor
+    - ✅ 3 page-break-after (son sayfa hariç)
+    - ✅ Son sayfada page-break yok
+    - ✅ expo-print v15.0.8 - useMarkupFormatter destekli
+
+    ## Önemli Notlar:
+    - Bu düzeltme iOS'a özgü bir sorunu çözüyor
+    - Android'de zaten düzgün çalışıyordu
+    - useMarkupFormatter olmadan iOS UIKit page-break'leri yok sayıyor
+
+    ## Kaynak:
+    - https://docs.expo.dev/versions/latest/sdk/print/
+    - https://github.com/expo/expo/issues/8843
+    - expo-print CHANGELOG (11.1.0+)"
+
