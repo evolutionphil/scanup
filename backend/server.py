@@ -5254,13 +5254,15 @@ async def health_check():
 # Note: app.include_router is called at the end of the file after all routes are defined
 
 # Security: CORS configuration
-# In production, restrict to specific domains
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "").split(",") if os.environ.get("ALLOWED_ORIGINS") else [
+# Allow all origins for mobile app compatibility
+ALLOWED_ORIGINS = [
     "https://scanup.app",
     "https://www.scanup.app",
+    "https://scanup-production.up.railway.app",
     "http://localhost:3000",
     "http://localhost:8081",
     "exp://localhost:8081",
+    "*",  # Allow all for mobile apps
 ]
 
 # ==================== SECURITY MIDDLEWARE ====================
