@@ -54,8 +54,8 @@ import time
 import re
 
 # Configuration
-BASE_URL = "https://scanup-fixes-1.preview.emergentagent.com"
-BACKEND_URL = "https://scanup-fixes-1.preview.emergentagent.com/api"
+BACKEND_BASE_URL = "http://localhost:8001"  # Use localhost for backend static files
+BACKEND_URL = "https://scanup-fixes-1.preview.emergentagent.com/api"  # Keep API URL as is
 TEST_EMAIL = "testuser@scanup.com"
 TEST_PASSWORD = "testpass123"
 TEST_NAME = "Test User"
