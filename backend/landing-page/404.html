@@ -381,5 +381,21 @@
             Or try <a href="/faq">FAQ</a> • <a href="https://apps.apple.com/at/app/scan-up-secure-scanner/id6757320007">Download App</a>
         </p>
     </div>
+    
+    <!-- i18n - Multi-language support -->
+    <script>
+        (function() {
+            const isApiRoute = window.location.pathname.startsWith('/api/');
+            const basePath = isApiRoute ? '/api' : '';
+            const script = document.createElement('script');
+            script.src = basePath + '/js/i18n.js';
+            script.onerror = function() {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = '/js/i18n.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 </body>
 </html>
