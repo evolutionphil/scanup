@@ -8243,6 +8243,49 @@ if os_module.path.exists(landing_page_path):
             return FileResponse(faq_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="FAQ page not found")
     
+    # SEO files routes
+    @app.get("/favicon.png")
+    async def serve_favicon():
+        favicon_path = os_module.path.join(landing_page_path, "favicon.png")
+        if os_module.path.exists(favicon_path):
+            return FileResponse(favicon_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    
+    @app.get("/icon-512x512.png")
+    async def serve_icon():
+        icon_path = os_module.path.join(landing_page_path, "icon-512x512.png")
+        if os_module.path.exists(icon_path):
+            return FileResponse(icon_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Icon not found")
+    
+    @app.get("/logo.png")
+    async def serve_logo():
+        logo_path = os_module.path.join(landing_page_path, "logo.png")
+        if os_module.path.exists(logo_path):
+            return FileResponse(logo_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Logo not found")
+    
+    @app.get("/manifest.json")
+    async def serve_manifest():
+        manifest_path = os_module.path.join(landing_page_path, "manifest.json")
+        if os_module.path.exists(manifest_path):
+            return FileResponse(manifest_path, media_type="application/json")
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    
+    @app.get("/sitemap.xml")
+    async def serve_sitemap():
+        sitemap_path = os_module.path.join(landing_page_path, "sitemap.xml")
+        if os_module.path.exists(sitemap_path):
+            return FileResponse(sitemap_path, media_type="application/xml")
+        raise HTTPException(status_code=404, detail="Sitemap not found")
+    
+    @app.get("/robots.txt")
+    async def serve_robots():
+        robots_path = os_module.path.join(landing_page_path, "robots.txt")
+        if os_module.path.exists(robots_path):
+            return FileResponse(robots_path, media_type="text/plain")
+        raise HTTPException(status_code=404, detail="Robots.txt not found")
+    
     @app.get("/dashboard")
     async def serve_dashboard_page():
         dashboard_path = os_module.path.join(landing_page_path, "dashboard.html")
