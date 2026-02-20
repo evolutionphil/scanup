@@ -1263,18 +1263,143 @@ const ScanUpI18n = {
     
     applyTranslations() {
         const t = this.t.bind(this);
-        const isDashboard = window.location.pathname.includes('dashboard');
+        const path = window.location.pathname;
         
         // Update HTML lang and dir
         document.documentElement.lang = this.currentLang;
         const isRTL = this.languages.find(l => l.code === this.currentLang)?.rtl;
         document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
         
-        if (isDashboard) {
+        // Detect page type
+        if (path.includes('dashboard')) {
             this.applyDashboardTranslations();
+        } else if (path.includes('contact')) {
+            this.applyContactPageTranslations();
+        } else if (path.includes('faq')) {
+            this.applyFaqPageTranslations();
+        } else if (path.includes('privacy')) {
+            this.applyPrivacyPageTranslations();
+        } else if (path.includes('terms')) {
+            this.applyTermsPageTranslations();
+        } else if (path.includes('support')) {
+            this.applySupportPageTranslations();
+        } else if (path.includes('404')) {
+            this.apply404PageTranslations();
         } else {
             this.applyLandingPageTranslations();
         }
+        
+        // Apply common translations (back link, footer, etc.)
+        this.applyCommonTranslations();
+    },
+    
+    applyCommonTranslations() {
+        const t = this.t.bind(this);
+        
+        // Back to home link
+        const backLink = document.querySelector('.back-link');
+        if (backLink) {
+            const icon = backLink.querySelector('i');
+            if (icon) {
+                backLink.innerHTML = '';
+                backLink.appendChild(icon);
+                backLink.appendChild(document.createTextNode(' ' + t('back_to_home')));
+            }
+        }
+        
+        // Footer copyright
+        const footerCopyright = document.querySelector('.footer p, .footer-bottom p');
+        if (footerCopyright) footerCopyright.textContent = t('copyright');
+    },
+    
+    applyContactPageTranslations() {
+        const t = this.t.bind(this);
+        
+        // Hero
+        const heroTitle = document.querySelector('.hero h1');
+        if (heroTitle) heroTitle.textContent = t('contact_title');
+        const heroSubtitle = document.querySelector('.hero p');
+        if (heroSubtitle) heroSubtitle.textContent = t('contact_subtitle');
+        
+        // Get in touch section
+        const getInTouchTitle = document.querySelector('.contact-info h3');
+        if (getInTouchTitle) getInTouchTitle.textContent = t('contact_get_in_touch');
+        
+        // Contact methods
+        const methods = document.querySelectorAll('.contact-method h4');
+        const methodKeys = ['contact_email_support', 'contact_live_chat', 'contact_help_center', 'contact_twitter'];
+        methods.forEach((m, i) => {
+            if (methodKeys[i]) m.textContent = t(methodKeys[i]);
+        });
+        
+        // Form
+        const formTitle = document.querySelector('.contact-form h3');
+        if (formTitle) formTitle.textContent = t('contact_send_message');
+        
+        const labels = document.querySelectorAll('.form-group label');
+        const labelKeys = ['contact_your_name', 'contact_email_address', 'contact_subject', 'contact_message'];
+        labels.forEach((l, i) => {
+            if (labelKeys[i]) l.textContent = t(labelKeys[i]);
+        });
+        
+        const submitBtn = document.querySelector('.btn[type="submit"], .contact-form .btn');
+        if (submitBtn) submitBtn.textContent = t('contact_send');
+    },
+    
+    applyFaqPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, .header h1');
+        if (heroTitle) heroTitle.textContent = t('faq_page_title');
+        const heroSubtitle = document.querySelector('.hero p, .header p');
+        if (heroSubtitle) heroSubtitle.textContent = t('faq_page_subtitle');
+        
+        // Search
+        const searchInput = document.querySelector('.search-input, input[type="search"]');
+        if (searchInput) searchInput.placeholder = t('faq_search_placeholder');
+        
+        // Still have questions
+        const stillQuestions = document.querySelector('.faq-cta h3, .still-questions');
+        if (stillQuestions) stillQuestions.textContent = t('faq_still_questions');
+    },
+    
+    applyPrivacyPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.header h1, .hero h1');
+        if (heroTitle) heroTitle.textContent = t('privacy_title');
+    },
+    
+    applyTermsPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.header h1, .hero h1');
+        if (heroTitle) heroTitle.textContent = t('terms_title');
+    },
+    
+    applySupportPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, .header h1');
+        if (heroTitle) heroTitle.textContent = t('support_title');
+        const heroSubtitle = document.querySelector('.hero p, .header p');
+        if (heroSubtitle) heroSubtitle.textContent = t('support_subtitle');
+        
+        const searchInput = document.querySelector('.search-input, input[type="search"]');
+        if (searchInput) searchInput.placeholder = t('support_search_placeholder');
+    },
+    
+    apply404PageTranslations() {
+        const t = this.t.bind(this);
+        
+        const title = document.querySelector('.error-title, h1');
+        if (title) title.textContent = t('page_not_found');
+        
+        const desc = document.querySelector('.error-desc, .error-message');
+        if (desc) desc.textContent = t('page_not_found_desc');
+        
+        const homeBtn = document.querySelector('.btn-home, .go-home-btn');
+        if (homeBtn) homeBtn.textContent = t('go_home');
     },
     
     applyLandingPageTranslations() {
