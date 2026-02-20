@@ -6788,6 +6788,134 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(sec
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid admin token")
 
+# ==================== ADMIN SETTINGS API ====================
+
+@api_router.get("/admin/settings")
+async def get_admin_settings(admin: dict = Depends(get_admin_user)):
+    """Get current admin settings"""
+    admin_email = admin.get("email")
+    admin_user = await db.admin_users.find_one({"email": admin_email}, {"_id": 0, "password_hash": 0})
+    
+    if not admin_user:
+        # Return default admin info
+        admin_user = {
+            "admin_id": "default_admin",
+            "email": DEFAULT_ADMIN_EMAIL,
+            "name": "Super Admin",
+            "role": "super_admin",
+            "is_default": True
+        }
+    
+    return {"admin": admin_user}
+
+@api_router.put("/admin/settings")
+async def update_admin_settings(settings: AdminSettingsUpdate, admin: dict = Depends(get_admin_user)):
+    """Update admin email or password"""
+    admin_email = admin.get("email")
+    
+    # Verify current password
+    admin_user = await get_admin_by_email(admin_email)
+    if not admin_user or not await verify_admin_password(admin_user, settings.current_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc)}
+    
+    if settings.new_email:
+        # Check if email already exists
+        existing = await db.admin_users.find_one({"email": settings.new_email})
+        if existing and existing.get("email") != admin_email:
+            raise HTTPException(status_code=400, detail="Email already exists")
+        update_data["email"] = settings.new_email
+    
+    if settings.new_password:
+        update_data["password_hash"] = bcrypt.hashpw(settings.new_password.encode(), bcrypt.gensalt()).decode()
+    
+    # If default admin, create new admin document
+    if admin_user.get("is_default"):
+        new_admin = {
+            "admin_id": str(uuid.uuid4()),
+            "email": settings.new_email or DEFAULT_ADMIN_EMAIL,
+            "password_hash": update_data.get("password_hash") or bcrypt.hashpw(DEFAULT_ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode(),
+            "name": "Super Admin",
+            "role": "super_admin",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        await db.admin_users.insert_one(new_admin)
+        logger.info(f"✅ Default admin migrated to database: {new_admin['email']}")
+    else:
+        await db.admin_users.update_one(
+            {"email": admin_email},
+            {"$set": update_data}
+        )
+        logger.info(f"✅ Admin settings updated: {admin_email}")
+    
+    return {"message": "Settings updated successfully"}
+
+@api_router.get("/admin/admins")
+async def get_all_admins(admin: dict = Depends(get_admin_user)):
+    """Get all admin users (super_admin only)"""
+    if admin.get("role") != "super_admin" and admin.get("email") != DEFAULT_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    
+    admins = []
+    async for admin_doc in db.admin_users.find({}, {"_id": 0, "password_hash": 0}):
+        admins.append(admin_doc)
+    
+    # Add default admin if not in database
+    if not any(a.get("email") == DEFAULT_ADMIN_EMAIL for a in admins):
+        admins.insert(0, {
+            "admin_id": "default_admin",
+            "email": DEFAULT_ADMIN_EMAIL,
+            "name": "Super Admin",
+            "role": "super_admin",
+            "is_default": True
+        })
+    
+    return {"admins": admins}
+
+@api_router.post("/admin/admins")
+async def create_admin(admin_data: AdminUserCreate, admin: dict = Depends(get_admin_user)):
+    """Create new admin user (super_admin only)"""
+    if admin.get("role") != "super_admin" and admin.get("email") != DEFAULT_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    
+    # Check if email already exists
+    existing = await db.admin_users.find_one({"email": admin_data.email})
+    if existing or admin_data.email == DEFAULT_ADMIN_EMAIL:
+        raise HTTPException(status_code=400, detail="Admin with this email already exists")
+    
+    new_admin = {
+        "admin_id": str(uuid.uuid4()),
+        "email": admin_data.email,
+        "password_hash": bcrypt.hashpw(admin_data.password.encode(), bcrypt.gensalt()).decode(),
+        "name": admin_data.name,
+        "role": admin_data.role,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    await db.admin_users.insert_one(new_admin)
+    logger.info(f"✅ New admin created: {admin_data.email}")
+    
+    return {"message": "Admin created successfully", "admin_id": new_admin["admin_id"]}
+
+@api_router.delete("/admin/admins/{admin_id}")
+async def delete_admin(admin_id: str, admin: dict = Depends(get_admin_user)):
+    """Delete admin user (super_admin only)"""
+    if admin.get("role") != "super_admin" and admin.get("email") != DEFAULT_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    
+    if admin_id == "default_admin":
+        raise HTTPException(status_code=400, detail="Cannot delete default admin")
+    
+    result = await db.admin_users.delete_one({"admin_id": admin_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    logger.info(f"✅ Admin deleted: {admin_id}")
+    return {"message": "Admin deleted successfully"}
+
 # ==================== PUSH NOTIFICATIONS API ====================
 
 class PushTokenRequest(BaseModel):
