@@ -2945,6 +2945,21 @@
     </script>
     
     <!-- i18n - Multi-language support -->
-    <script src="/js/i18n.js"></script>
+    <script>
+        // Dynamically load i18n.js based on current URL structure
+        (function() {
+            const isApiRoute = window.location.pathname.startsWith('/api/');
+            const basePath = isApiRoute ? '/api' : '';
+            const script = document.createElement('script');
+            script.src = basePath + '/js/i18n.js';
+            script.onerror = function() {
+                // Fallback: try without /api prefix
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = '/js/i18n.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 </body>
 </html>
