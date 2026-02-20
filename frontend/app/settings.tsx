@@ -562,16 +562,6 @@ export default function SettingsScreen() {
           onPress={() => router.push('/web-access')}
         />
         
-        {/* Push Notification Debug - Only show on mobile */}
-        {Platform.OS !== 'web' && (
-          <SettingRow
-            icon="notifications-outline"
-            label="Push Notifications"
-            subtitle={pushStatus}
-            onPress={reRegisterPush}
-          />
-        )}
-
         {/* Appearance */}
         <SectionHeader title={t('appearance', 'APPEARANCE').toUpperCase()} />
         
