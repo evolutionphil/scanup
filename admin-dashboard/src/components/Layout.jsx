@@ -13,7 +13,8 @@ import {
   X,
   ScanLine,
   Shield,
-  Bell
+  Bell,
+  UserCog
 } from 'lucide-react';
 
 const menuItems = [
@@ -24,7 +25,8 @@ const menuItems = [
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/localization', icon: Globe, label: 'Localization' },
   { path: '/legal-pages', icon: Shield, label: 'Legal Pages' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/settings', icon: Settings, label: 'App Settings' },
+  { path: '/admin-settings', icon: UserCog, label: 'Admin Settings' },
 ];
 
 export default function Layout({ children }) {
