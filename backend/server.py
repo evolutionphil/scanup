@@ -6816,7 +6816,7 @@ async def admin_login(request: Request, login_data: AdminLoginRequest):
         token = jwt.encode(token_data, JWT_SECRET, algorithm="HS256")
         return {
             "token": token,
-            "user": {"email": request.email, "is_admin": True}
+            "user": {"email": login_data.email, "is_admin": True}
         }
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
