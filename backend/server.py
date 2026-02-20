@@ -8176,33 +8176,33 @@ async def get_system_status(admin: dict = Depends(get_admin_user)):
 app.include_router(api_router)
 
 # ============== ADMIN DASHBOARD STATIC FILES ==============
-# Serve the admin dashboard from /admin path
+# Serve the admin dashboard from /mumiixadmin path (hidden admin URL)
 import os as os_module
 
 admin_static_path = os_module.path.join(os_module.path.dirname(__file__), "admin-static")
 if os_module.path.exists(admin_static_path):
     # Mount static assets (JS, CSS)
-    app.mount("/admin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
+    app.mount("/mumiixadmin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
     
     # Serve admin settings page
-    @app.get("/admin/admin-settings")
+    @app.get("/mumiixadmin/admin-settings")
     async def serve_admin_settings():
         settings_path = os_module.path.join(admin_static_path, "admin-settings.html")
         if os_module.path.exists(settings_path):
             return FileResponse(settings_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="Admin settings page not found")
     
-    # Serve admin dashboard index.html for all /admin routes (SPA support)
-    @app.get("/admin")
-    @app.get("/admin/")
-    @app.get("/admin/{full_path:path}")
+    # Serve admin dashboard index.html for all /mumiixadmin routes (SPA support)
+    @app.get("/mumiixadmin")
+    @app.get("/mumiixadmin/")
+    @app.get("/mumiixadmin/{full_path:path}")
     async def serve_admin_dashboard(full_path: str = ""):
         index_path = os_module.path.join(admin_static_path, "index.html")
         if os_module.path.exists(index_path):
             return FileResponse(index_path)
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
     
-    logger.info("✅ Admin dashboard mounted at /admin")
+    logger.info("✅ Admin dashboard mounted at /mumiixadmin")
 
 # Serve the landing page from root path (/)
 landing_page_path = os_module.path.join(os_module.path.dirname(__file__), "landing-page")
