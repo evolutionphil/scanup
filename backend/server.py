@@ -7168,6 +7168,33 @@ async def get_admin_documents(
         logger.error(f"Admin documents error: {e}")
         return {"documents": []}
 
+@api_router.get("/admin/documents/{document_id}")
+async def get_admin_document_detail(document_id: str, admin: dict = Depends(get_admin_user)):
+    """Get document details with pages for admin preview"""
+    try:
+        doc = await db.documents.find_one({"document_id": document_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get user email
+        user = await db.users.find_one({"user_id": doc.get("user_id")}, {"email": 1})
+        doc["user_email"] = user.get("email") if user else "Unknown"
+        
+        # Process pages to include image URLs
+        pages = doc.get("pages", [])
+        for page in pages:
+            # Ensure image_url is available for preview
+            if not page.get("image_url") and page.get("image_base64"):
+                # Convert base64 to data URL for preview
+                page["image_data_url"] = f"data:image/jpeg;base64,{page['image_base64']}"
+        
+        return {"document": doc}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get document detail error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/admin/documents/{document_id}")
 async def delete_admin_document(document_id: str, admin: dict = Depends(get_admin_user)):
     """Delete a document"""
