@@ -1,12 +1,46 @@
 #!/usr/bin/env python3
 """
 Backend API Testing for ScanUp Document Scanner App
-Tests the specific APIs mentioned in the review request:
-1. Rename Document API
-2. Rename Folder API  
-3. Set Folder Password API
-4. Signature/Annotation API
-5. PDF Password Protection API
+Testing the i18n (multi-language) functionality on the landing page:
+
+## Test Scenarios:
+
+### 1. Fetch German Landing Page and Check for German Translations
+- GET /de
+- Verify the HTML is returned (200)
+- Check that the i18n.js script is included
+
+### 2. Fetch Turkish Landing Page
+- GET /tr
+- Verify 200 response
+
+### 3. Check that i18n.js contains all language translations
+- GET /js/i18n.js
+- Verify it contains:
+  - websiteTranslations object
+  - German translations (de)
+  - Turkish translations (tr)
+  - French translations (fr)
+  - All 15 language codes
+
+### 4. Verify the JS contains proper translation keys:
+- nav_features
+- hero_badge
+- hero_title
+- download_free
+- see_how_it_works
+- stat_downloads
+- stat_rating
+- stat_scanned
+- phone_documents
+- phone_folders
+
+### 5. Test that German translations are correct in i18n.js:
+- Check "Anmelden" appears for login_signup in German
+- Check "Funktionen" appears for nav_features in German
+- Check "Kostenlos herunterladen" appears for download_free in German
+
+Base URL: https://scanup-fixes-1.preview.emergentagent.com
 """
 
 import requests
