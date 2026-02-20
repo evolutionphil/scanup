@@ -108,70 +108,9 @@ export default function SettingsScreen() {
   const [showFilterPicker, setShowFilterPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
-  // Check push notification status
-  const checkPushStatus = async () => {
-    if (Platform.OS === 'web') {
-      setPushStatus('Web - N/A');
-      return;
-    }
-    
-    try {
-      const hasPermission = await checkNotificationPermission();
-      if (!hasPermission) {
-        setPushStatus('❌ Permission denied');
-        return;
-      }
-      
-      // Try to get push token
-      const pushToken = await getPushToken();
-      if (pushToken) {
-        setPushStatus(`✅ Registered: ${pushToken.substring(0, 25)}...`);
-      } else {
-        setPushStatus('❌ Token failed');
-      }
-    } catch (e: any) {
-      setPushStatus(`❌ Error: ${e.message}`);
-    }
-  };
-
-  // Re-register push token manually
-  const reRegisterPush = async () => {
-    setPushStatus('🔄 Registering...');
-    try {
-      // Step 1: Get push token from Expo
-      const pushToken = await getPushToken();
-      if (!pushToken) {
-        Alert.alert('Failed', 'Could not get push token from Expo. Check notification permissions.');
-        setPushStatus('❌ Token failed (Expo)');
-        return;
-      }
-      
-      // Step 2: Save to backend
-      const savedToBackend = await savePushTokenToBackend(pushToken);
-      
-      if (savedToBackend) {
-        Alert.alert(
-          '✅ Success', 
-          `Push token registered!\n\nToken: ${pushToken.substring(0, 40)}...\n\nBackend: Saved ✓`
-        );
-        setPushStatus(`✅ ${pushToken.substring(0, 20)}... (Saved)`);
-      } else {
-        Alert.alert(
-          '⚠️ Partial Success', 
-          `Token obtained but NOT saved to backend!\n\nToken: ${pushToken.substring(0, 40)}...\n\nCheck logs for details.`
-        );
-        setPushStatus(`⚠️ ${pushToken.substring(0, 20)}... (NOT saved)`);
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-      setPushStatus(`❌ Error: ${e.message}`);
-    }
-  };
-
   // Load settings on mount
   useEffect(() => {
     loadSettings();
-    checkPushStatus();
   }, []);
 
   // Sync language setting with i18n store
