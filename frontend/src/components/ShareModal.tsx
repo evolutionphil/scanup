@@ -166,47 +166,54 @@ export default function ShareModal({
     console.log('[ShareModal] Valid images count:', validImages.length);
 
     // Build HTML for each page
-    // CRITICAL: Each image = exactly one PDF page
-    // No page-break-after needed when using height: 100vh
-    const imageHtml = validImages.map((img) => {
+    // CRITICAL: Use page-break-after for all pages except the last one
+    // This is the official recommended approach for expo-print with useMarkupFormatter
+    const imageHtml = validImages.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
-      return `<div class="page"><img src="${base64WithPrefix}" /></div>`;
+      const isLastPage = index === validImages.length - 1;
+      // Only add page-break-after to non-last pages
+      const pageBreakStyle = isLastPage ? '' : 'page-break-after: always;';
+      
+      return `<div class="page" style="${pageBreakStyle}"><img src="${base64WithPrefix}" /></div>`;
     }).join('');
 
-    // FIXED CSS: Simple and reliable for iOS/Android PDF generation
-    // KEY FIX: Each page should be exactly one PDF page, no overflow
-    // Using height: 100vh ensures content fits in exactly one page
+    // OPTIMIZED CSS for expo-print with useMarkupFormatter
+    // Key points:
+    // 1. DOCTYPE is required for useMarkupFormatter
+    // 2. @page margin controls PDF page margins
+    // 3. .page uses page-break-after for explicit page control
+    // 4. Image sizing uses max-width/max-height with object-fit: contain
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { 
+  * { 
     margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+  }
+  @page { 
+    margin: 10mm;
     size: A4 portrait;
   }
   html, body { 
     margin: 0; 
     padding: 0;
     background: white;
-    width: 100%;
-    height: 100%;
   }
   .page {
     width: 100%;
-    height: 100vh;
-    padding: 10mm;
+    min-height: 250mm;
     display: flex;
     justify-content: center;
     align-items: center;
     background: white;
-    box-sizing: border-box;
   }
   .page img { 
-    max-width: calc(100% - 10mm);
-    max-height: calc(100vh - 20mm);
+    max-width: 190mm;
+    max-height: 267mm;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -219,8 +226,9 @@ export default function ShareModal({
 
     console.log('[ShareModal] Generated PDF HTML for', validImages.length, 'pages');
     
-    // CRITICAL FIX: useMarkupFormatter: true is required for iOS to handle page breaks correctly
-    // Without this, iOS creates double pages (blank pages after each content page)
+    // CRITICAL FIX: useMarkupFormatter: true is REQUIRED for iOS
+    // Without this, iOS ignores CSS page-break rules and creates double pages
+    // This was fixed in expo-print 11.1.0+ 
     const { uri } = await Print.printToFileAsync({ 
       html,
       useMarkupFormatter: true,  // Required for iOS page break support
