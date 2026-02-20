@@ -310,13 +310,15 @@ export default function ScannerScreen() {
   
   const openDocumentScanner = async () => {
     if (isScanning) return;
+    if (!isMountedRef.current) return; // Prevent starting scan if unmounted
+    
     setIsScanning(true);
     setStatusMessage('Opening scanner...');
     setScannerError(null);
     
     try {
       // Play sound
-      if (soundRef.current) {
+      if (soundRef.current && isMountedRef.current) {
         try {
           await soundRef.current.replayAsync();
         } catch (e) {}
@@ -328,18 +330,38 @@ export default function ScannerScreen() {
         DocumentScanner = require('react-native-document-scanner-plugin').default;
       } catch (e) {
         console.error('[Scanner] Failed to load document scanner plugin:', e);
-        setScannerError('Scanner plugin not available. Using camera instead.');
+        if (isMountedRef.current) {
+          setScannerError('Scanner plugin not available. Using camera instead.');
+        }
         // Fall back to camera
         await openCameraFallback();
         return;
       }
       
       // Open the scanner with real-time edge detection
-      const result = await DocumentScanner.scanDocument({
-        maxNumDocuments: 20,
-        croppedImageQuality: 100,
-        responseType: 'base64',
-      });
+      // Wrap in try-catch to handle iOS VisionKit crashes gracefully
+      let result;
+      try {
+        result = await DocumentScanner.scanDocument({
+          maxNumDocuments: 20,
+          croppedImageQuality: 100,
+          responseType: 'base64',
+        });
+      } catch (scanError: any) {
+        // Handle iOS VisionKit specific errors
+        if (Platform.OS === 'ios' && scanError.message?.includes('deleteAllImages')) {
+          console.log('[Scanner] iOS VisionKit cleanup issue - ignoring');
+          // This is the crash we're fixing - ignore and continue
+          return;
+        }
+        throw scanError;
+      }
+      
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) {
+        console.log('[Scanner] Component unmounted during scan, skipping state update');
+        return;
+      }
       
       if (result?.scannedImages && result.scannedImages.length > 0) {
         // Process and save directly
@@ -355,10 +377,14 @@ export default function ScannerScreen() {
         });
         
         // Save directly - no review screen
-        await saveScannedDocument(images);
+        if (isMountedRef.current) {
+          await saveScannedDocument(images);
+        }
       } else {
         // User cancelled or no images
-        handleGoBack();
+        if (isMountedRef.current) {
+          handleGoBack();
+        }
       }
     } catch (error: any) {
       if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
