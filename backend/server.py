@@ -5345,7 +5345,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,  # Use explicit origins (not "*" with credentials!)
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
