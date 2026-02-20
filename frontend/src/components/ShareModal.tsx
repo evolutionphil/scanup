@@ -166,18 +166,11 @@ export default function ShareModal({
     console.log('[ShareModal] Valid images count:', validImages.length);
 
     // Build HTML for each page
-    // CRITICAL: Use simple CSS that works reliably on iOS/Android
-    // Each image should fill the page while maintaining aspect ratio
-    const imageHtml = validImages.map((img, index) => {
+    // CRITICAL: Each image = exactly one PDF page
+    // No page-break-after needed when using height: 100vh
+    const imageHtml = validImages.map((img) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
-      const isLastPage = index === validImages.length - 1;
-      
-      // Page break only between pages
-      const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
-      
-      return `<div class="page" style="${pageBreak}">
-          <img src="${base64WithPrefix}" />
-        </div>`;
+      return `<div class="page"><img src="${base64WithPrefix}" /></div>`;
     }).join('');
 
     // FIXED CSS: Simple and reliable for iOS/Android PDF generation
