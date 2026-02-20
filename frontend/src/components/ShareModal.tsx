@@ -442,7 +442,7 @@ export default function ShareModal({
         </div>`;
       }).join('');
 
-      // FIXED CSS: Same as generatePdf - use mm units for reliable printing
+      // FIXED CSS: Same as generatePdf - with padding on all sides
       const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -450,15 +450,16 @@ export default function ShareModal({
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { margin: 5mm; size: A4; }
+  @page { margin: 10mm; size: A4; }
   html, body { 
     margin: 0; 
     padding: 0;
     background: white;
   }
   .page {
-    width: 200mm;
-    height: 287mm;
+    width: 190mm;
+    height: 277mm;
+    padding: 5mm;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -467,8 +468,8 @@ export default function ShareModal({
     background: white;
   }
   .page img { 
-    max-width: 200mm;
-    max-height: 287mm;
+    max-width: 180mm;
+    max-height: 267mm;
     width: auto;
     height: auto;
     object-fit: contain;
