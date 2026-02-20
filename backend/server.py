@@ -6701,22 +6701,74 @@ async def get_legal_page(page_type: str, language_code: str = "en"):
 
 # ==================== ADMIN DASHBOARD API ====================
 
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@scanup.com")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Bita**2025#")
+# Default admin credentials (will be overridden by database values)
+DEFAULT_ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@scanup.com")
+DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Bita**2025#")
 
 class AdminLoginRequest(BaseModel):
     email: str
     password: str
 
+class AdminUser(BaseModel):
+    admin_id: str
+    email: str
+    password_hash: str
+    name: str
+    role: str = "admin"  # admin, super_admin
+    created_at: datetime
+    updated_at: datetime
+
+class AdminUserCreate(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "admin"
+
+class AdminUserUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+    name: Optional[str] = None
+
+class AdminSettingsUpdate(BaseModel):
+    current_password: str
+    new_email: Optional[str] = None
+    new_password: Optional[str] = None
+
+async def get_admin_by_email(email: str):
+    """Get admin user from database or return default"""
+    admin = await db.admin_users.find_one({"email": email})
+    if admin:
+        return admin
+    # Check default credentials
+    if email == DEFAULT_ADMIN_EMAIL:
+        return {
+            "admin_id": "default_admin",
+            "email": DEFAULT_ADMIN_EMAIL,
+            "password_hash": bcrypt.hashpw(DEFAULT_ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode(),
+            "name": "Super Admin",
+            "role": "super_admin",
+            "is_default": True
+        }
+    return None
+
+async def verify_admin_password(admin: dict, password: str) -> bool:
+    """Verify admin password"""
+    if admin.get("is_default"):
+        return password == DEFAULT_ADMIN_PASSWORD
+    return bcrypt.checkpw(password.encode(), admin["password_hash"].encode())
+
 @api_router.post("/admin/login")
 async def admin_login(request: AdminLoginRequest):
     """Admin login endpoint"""
-    if request.email == ADMIN_EMAIL and request.password == ADMIN_PASSWORD:
+    admin = await get_admin_by_email(request.email)
+    
+    if admin and await verify_admin_password(admin, request.password):
         # Create admin token
         token_data = {
-            "sub": "admin",
+            "sub": admin.get("admin_id", "admin"),
             "email": request.email,
             "is_admin": True,
+            "role": admin.get("role", "admin"),
             "exp": datetime.now(timezone.utc) + timedelta(days=7)
         }
         token = jwt.encode(token_data, JWT_SECRET, algorithm="HS256")
