@@ -1,208 +1,258 @@
 <analysis>
 
-**original_problem_statement**:
-The user is trying to finalize the ScanUp mobile app for both App Store and Google Play submission. This involves fixing critical bugs, implementing features required by store guidelines, and resolving repeated rejections from both Apple and Google review teams.
+**original_problem_statement:**
+The user's initial request was to completely remove watermarks from the application, as they were still appearing even for premium users. This led to a series of subsequent requests and bug reports throughout the session:
 
-PRODUCT REQUIREMENTS:
-1.  **Resolve Store Rejections (P0)**:
-    *   **Google Play**: Repeatedly rejected for using  /  permissions for a non-core use case. The app needs to be updated to use the Android Photo Picker, which doesn't require these broad permissions. Also received warnings about deprecated edge-to-edge APIs and orientation locks.
-    *   **Apple App Store**: Rejected for requiring user registration before purchasing subscriptions (Guideline 5.1.1), and for issues with the App Tracking Transparency (ATT) implementation (Guideline 5.1.2 & 2.1).
-2.  **Fix Android Build Failures (P0)**: The An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username process for Android is continuously failing due to a cascade of issues including Kotlin version incompatibility, dependency conflicts ( errors), and  mismatches with EAS's  requirement.
-3.  **Fix Core Functionality Bugs (P1)**:
-    *   PDF export from the mobile app generates a multi-page document from a single image.
-    *   Android push notifications for the Web Access Request feature are not working.
-    *   Premium status is not correctly restored after a user logs out and logs back in.
-4.  **Improve Web Presence (P2)**: The marketing website () and web dashboard () were not mobile responsive and needed significant UI/UX improvements for smaller screens.
+**PRODUCT REQUIREMENTS:**
+1.  **Watermark Removal (P0):** Completely remove watermarks from all parts of the application (new scans, exported PDFs, UI overlays). This should apply to all users, regardless of premium status.
+2.  **Premium Status Sync (P1):** A user who buys premium on mobile should have their premium status reflected when they log in on the web.
+3.  **PDF Export/Share Fixes (P1):**
+    *   A single-page scan should not be split into two pages when exported as a PDF.
+    *   The exported/shared PDF content must look exactly like the in-app preview (no weird zooming or cropping).
+    *   The sharing pop-up is sometimes slow to appear; investigate and optimize.
+    *   Add a small padding/margin on all four sides of the A4 page in the PDF to prevent content from touching the edges.
+4.  **Admin & Backend Issues (P1):**
+    *   **Manual Premium:** When an admin sets a user as premium in the backend, the app should not override this and revert them to free. The backend setting must be the source of truth.
+    *   **Admin Dashboard URL:** Change the admin URL to .
+    *   **Admin Dashboard Refresh Bug:** Fix the issue where refreshing a sub-page in the admin dashboard (e.g., ) results in a Not Found error because the URL path gets rewritten.
+    *   **Admin User Management:** Create a new settings page in the admin dashboard to allow admins to change their own passwords and to add/remove other admin users. The default password should be changed to .
+    *   **Admin Document Preview:** Fix the bug where clicking a document in the admin dashboard shows a blank preview screen.
+5.  **SEO & Website (P2):**
+    *   Perform a comprehensive SEO overhaul for the  landing page.
+    *   Add the app logo as a favicon.
+    *   Implement  for the website, app, and an FAQ section.
+    *   Add an FAQ section to the bottom of the landing page.
+    *   Ensure all static pages (privacy, terms) also have  metadata.
+    *   Update the download links on the website to the correct App Store/Play Store URLs.
+    *   Create a custom, animated 404 page for the website.
+    *   Ensure admin/backend paths are disallowed in .
+6.  **App Features & Cleanup (P2):**
+    *   The application should be able to work offline.
+    *   Remove the ExpoPushToken debug section from the app's settings page.
+7.  **Security & Stability (P0):**
+    *   Perform a detailed security audit and update of the backend to prevent data leaks.
+    *   **[CRITICAL]** Fix the iOS app crash reported via TestFlight logs.
+    *   **[CRITICAL]** Fix the CORS error that prevents logging into the admin panel on the production environment.
 
 **User's preferred language**: Turkish. The next agent MUST respond in Turkish.
 
 **what currently exists?**
-*   A full-stack application with a FastAPI backend and a React Native (Expo) mobile app.
-*   Numerous code changes have been made to address store rejections and bug fixes, but most are unverified due to persistent Android build failures.
-*   An Account Deletion feature has been fully implemented (backend endpoint and frontend UI).
-*   The IAP flow has been modified to allow guest users to purchase subscriptions without registration.
-*   The ATT (App Tracking Transparency) logic has been completely removed in favor of a No Tracking declaration in App Store Connect.
-*   The marketing website and web dashboard have been updated with CSS media queries and JavaScript to be mobile responsive.
-*   The  plugin has been added to  to fix Android push notifications.
-*   The logic to restore premium status after login has been added to .
-*   A fix for the PDF export bug has been attempted by modifying the HTML-to-PDF generation logic.
+The project is a full-stack document scanner application consisting of an Expo-based mobile frontend, a FastAPI backend, and a React-based admin dashboard. The agent has successfully implemented several fixes:
+- Watermarks have been removed from the backend processing and frontend overlays.
+- Premium status is now synced between the backend and frontend, respecting manual admin overrides.
+- PDF generation CSS has been improved to prevent page splitting and add padding.
+- A comprehensive SEO overhaul was performed on the static landing page, including schema.org, a new FAQ section, and a 404 page.
+- The admin dashboard has a new URL (), a new settings page for admin management, and a fix for the document preview bug.
+- Security middleware was added but then completely removed due to a severe, persistent CORS issue that blocked admin login. The backend is currently in a less secure state with a wide-open CORS policy.
 
 **Last working item**:
-- Last item agent was working: The agent was attempting to fix a bug where exporting a scan to PDF resulted in a multi-page document instead of a single page. The agent identified that using  units and margins in the HTML-to-PDF conversion was causing incorrect scaling. The fix involved removing these styles and setting the image to fit the page dimensions directly.
-- Status: **TESTING PENDING**
-- Agent Testing Done: N
-- Which testing method agent to use? The user needs to create a new build and test the Export as PDF feature on the mobile app.
-- User Testing Done: N
+    - Last item agent was working: Investigating a critical iOS app crash. The agent successfully extracted and analyzed a crash log from a user-provided zip file. The analysis pointed to a crash in the native  (VisionKit) module, specifically during a call to , which likely occurs when the component unmounts or the app closes.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? manual testing by curl. The fix will be in the Expo frontend code, but the crash is native. After implementing a potential fix, a new TestFlight build will need to be generated and tested by the user on a real iOS device to confirm the fix.
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Android Build Failures (P0)**
--   **Issue 2: Google Play Permission Rejection (P1)**
--   **Issue 3: PDF Export Generates Multiple Pages (P1)**
--   **Issue 4: Apple App Store Rejections (P2)**
--   **Issue 5: Android Push Notifications Not Working (P2)**
--   **Issue 6: Premium Status Not Restored After Login (P2)**
--   **Issue 7: Website Responsiveness Verification (P3)**
+  - Issue 1: iOS App Crash (P0)
+  - Issue 2: Severe CORS issue on production preventing admin login (P0)
+  - Issue 3: Admin dashboard routing still causes 404 on refresh (P1)
+  - Issue 4: Admin password might not have been updated correctly (P2)
+  - Issue 5: App is slow to show share pop-up (P2)
+  
+  **Issues Detail:**
+  - **Issue 1: iOS App Crash**
+     - Attempted fixes: None yet. The issue was just diagnosed from crash logs.
+     - Next debug checklist:
+        1.  Examine the code in  or any component that uses the .
+        2.  Locate where  (or a similar cleanup function) is being called. It's likely in a  cleanup function or  hook.
+        3.  The crash on exit suggests a race condition or an issue with de-allocating native resources. The fix might involve making the cleanup call conditional, adding a delay, or ensuring the camera session is fully closed before attempting to delete files.
+        4.  Wrap the cleanup logic in a  block to log any potential errors without crashing the app.
+     - Why fix this issue and what will be achieved with the fix?: This is a critical stability issue causing the app to crash for iOS users, leading to a very poor user experience. Fixing it is essential for app reliability.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend (requires a new iOS build and testing on a device).
+     - Blocked on other issue: None
 
-**Issues Detail**:
--   **Issue 1: Android Build Failures**
-    -   **Attempted fixes**: The session involved a long and difficult process of debugging An Expo user account is required to proceed.
+  - **Issue 2: Severe CORS issue on production**
+     - Attempted fixes: The agent tried multiple approaches: adding specific origins, allowing all origins with credentials (which is invalid), and adding various security middleware (). All these attempts failed and blocked admin login. The agent's final action was to remove ALL security middleware and revert to a simple, overly permissive CORS configuration: . Despite this, the user reported the issue persists on production after deployment.
+     - Next debug checklist:
+        1.  The combination of  and  is invalid and blocked by browsers. The agent's last fix is fundamentally broken.
+        2.  The correct approach is to specify the exact origin domains in , e.g., .
+        3.  Examine . Re-introduce the .
+        4.  Set  to a list containing the production frontend URL () and the Railway app URL if needed.
+        5.  Ensure  is set.
+        6.  The  should be one of the first middleware added to the FastAPI app to ensure it runs before other logic.
+        7.  Check Railway deployment logs for any warnings related to environment variables or proxy configurations that might be stripping headers.
+     - Why fix this issue and what will be achieved with the fix?: The admin dashboard is currently unusable on production, which is a critical business blocker. It also represents a security risk that was introduced and then poorly fixed.
+     - Status: IN PROGRESS
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Backend. Test by attempting to log in to the production admin dashboard from a browser.
+     - Blocked on other issue: None
 
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username failures. The agent tried:
-        1.  Adjusting the Kotlin version up and down ( ->  -> ).
-        2.  Fixing  errors by running env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_TOKEN
-Dependencies are up to date and yarn install v1.22.22
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-[3/4] Linking dependencies...
-[4/4] Building fresh packages...
-success Saved lockfile.
-$ patch-package
-patch-package 8.0.1
-Applying patches...
-react-native-google-mobile-ads@16.0.1 ✔
-Done in 40.79s..
-        3.  Adding  to  to force consistent dependency versions.
-        4.  Repeatedly regenerating  after  changes.
-        5.  Attempting to bypass EAS's  check by modifying  (which failed) and adding a  file (which was later removed).
-        The core problem is that changes made in the development environment (like the updated ) are not being used by EAS, because EAS pulls from the Git repository. The user was repeatedly told to  and  but the  error persisted, indicating the  on Git is out of sync.
-    -   **Next debug checklist**:
-        1.  Confirm with the user that they have **pushed all recent changes** (, , , ) to their GitHub repository.
-        2.  If the error persists, re-run yarn install v1.22.22
-info No lockfile found.
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-[3/4] Linking dependencies...
-[4/4] Building fresh packages...
-success Saved lockfile.
-$ patch-package
-patch-package 8.0.1
-Applying patches...
-react-native-google-mobile-ads@16.0.1 ✔
-Done in 37.04s. to generate a fresh, clean .
-        3.  Instruct the user to commit and push this new  and then immediately run An Expo user account is required to proceed.
+  - **Issue 3: Admin dashboard routing still causes 404 on refresh**
+     - Attempted fixes: Agent added  to the  in . It also added a catch-all route in  to serve the admin . However, the user reported the issue persists.
+     - Next debug checklist:
+        1.  Verify the  was correctly rebuilt after changing .
+        2.  In , confirm the catch-all route for  is correctly defined *before* other specific API routes that might conflict. It must serve .
+        3.  Check the  for the admin dashboard. The  property must be set to . This seems to have been missed.
+     - Why fix this issue and what will be achieved with the fix?: Fixes a major usability issue in the admin panel.
+     - Status: IN PROGRESS
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Backend/Admin-Dashboard.
+     - Blocked on other issue: None
 
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the HIGHEST priority. No fixes for Android can be verified until a successful build is created.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a successful build).
-    -   **Blocked on other issue**: None. This issue blocks others.
+  - **Issue 4: Admin password not updated**
+     - Attempted fixes: The agent added a new  collection in MongoDB and API endpoints to manage admins. It claimed to have set the password.
+     - Next debug checklist:
+        1.  The initial admin user might still be hardcoded. Review the logic in  that handles admin creation on startup.
+        2.  The  function should be checked to see if it correctly hashes and stores the new password .
+        3.  Manually inspect the  collection in the database to see what password hash is stored for the default admin.
+     - Why fix this issue and what will be achieved with the fix?: Security improvement to remove default/weak credentials.
+     - Status: NOT STARTED (by this agent, needs verification)
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Backend.
+     - Blocked on other issue: None
 
--   **Issue 2: Google Play Permission Rejection**
-    -   **Attempted fixes**: Google repeatedly rejected the app for using  / . The agent's final and correct approach was to add  to the  section of  to explicitly prevent  and other libraries from adding these permissions to the manifest. This forces the use of the Android Photo Picker, which does not require these permissions.
-    -   **Next debug checklist**: A new Android build must be created and submitted to Google Play to verify the fix.
-    -   **Why fix this issue and what will be achieved with the fix?**: This will resolve the main blocker for publishing on Google Play.
-    -   **Status**: TESTING PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
-    -   **Blocked on other issue**: Issue 1: Android Build Failures.
-
--   **Issue 3: PDF Export Generates Multiple Pages**
-    -   **Attempted fixes**: The agent modified  and  to remove CSS styles (, ) from the HTML string being converted to a PDF. The new approach sets the image width and height to 100% of the containing body.
-    -   **Next debug checklist**: Once a new build is available, the user must test the Export as PDF feature.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core functionality bug that degrades user experience.
-    -   **Status**: TESTING PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
-    -   **Blocked on other issue**: None.
-
--   **Issue 4: Apple App Store Rejections**
-    -   **Attempted fixes**:
-        -   **Guest Purchase (5.1.1)**: The agent removed the login check in  and updated the button text to allow guest users to subscribe.
-        -   **ATT (5.1.2 & 2.1)**: After multiple attempts to fix the ATT prompt, the agent and user agreed to declare No Tracking in App Store Connect. The agent then removed all ATT-related code from  and .
-    -   **Next debug checklist**:
-        1.  User needs to create a new iOS build.
-        2.  User MUST update App Privacy settings in App Store Connect to declare No Tracking.
-        3.  User needs to submit the new build for review.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolves the main blockers for publishing on the App Store.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend (requires a new build).
-    -   **Blocked on other issue**: None.
-
--   **Issue 5, 6, 7**: These are all code fixes that have been implemented but are blocked by the need for a new build and user testing. The fixes are plausible and address the reported issues. Their status is **TESTING PENDING** and they are all blocked by **Issue 1**.
+  - **Issue 5: Slow share pop-up**
+     - Attempted fixes: None. The agent focused on the PDF cropping issue but did not address the performance aspect of the share functionality.
+     - Next debug checklist:
+        1.  Review .
+        2.  The slowness is likely caused by the PDF generation process, which runs on the device's CPU.
+        3.  Investigate if the  or HTML-to-PDF conversion can be optimized.
+        4.  Check the size of the images being embedded in the PDF. High-resolution images will slow down the process significantly. Consider downscaling the image for the PDF before generation.
+        5.  Implement a loading indicator that appears immediately when the user taps Share, so they know the app is working on it.
+     - Why fix this issue and what will be achieved with the fix?: Improves user experience by providing faster feedback and a more responsive feel.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend.
+     - Blocked on other issue: None
 
 **In progress Task List**:
-- There are no other tasks in progress besides the issues listed above.
+  - Task 1: Complete the implementation of the Admin Management page
+     - Where to resume: The UI was created and API endpoints were added, but the user reported the Add Admin feature was not visible. The agent re-built the admin panel. This needs verification.
+     - What will be achieved with this?: Admins will be able to manage other admin accounts and change their own credentials securely.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix?: Both (Admin Dashboard UI and Backend API).
+     - Blocked on something: Blocked by the CORS issue (Issue 2).
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks**:
-  - Implement Apple Sign In for the web dashboard (P1).
-  - Fully optimize the UI for iPad to resolve stretched layouts. Currently  is true, but no specific layouts exist. (P2)
-  - Implement the incomplete premium status logic (checking a backend-provided flag in addition to IAP status) (P3).
+  - **Upcoming Tasks:**
+    - **P1: Re-implement Backend Security:** Once the CORS issue is properly resolved, re-introduce security best practices like rate limiting, security headers (using a library compatible with FastAPI's CORS middleware), and input sanitization.
+  - **Future Tasks:**
+    - **P1: Implement Offline Mode:** The user requested that the app should work offline. This is a major feature that has not been started. It will require significant changes to the app's architecture, including:
+        - Storing scanned documents and user data locally on the device (e.g., using WatermelonDB or MMKV).
+        - Creating a queue for API requests made while offline.
+        - Implementing a synchronization process to sync local data with the backend when the device comes back online.
 
 **Completed work in this session**
-- **Build/Dependency Fixes**: Made numerous attempts to stabilize the Android build by managing Kotlin/Node versions, updating dependencies, and using  in .
-- **Google Play Compliance**: Added  to  to remove broad media permissions and rely on the modern Photo Picker. Also addressed warnings by setting  and .
-- **App Store Compliance**:
-    - **Guest Purchase**: Enabled users to buy subscriptions without creating an account.
-    - **Account Deletion**: Implemented a full account deletion flow (backend endpoint + frontend modal).
-    - **ATT / Tracking**: Removed all ATT-related code after the user decided to declare No Tracking in App Store Connect.
-- **Bug Fixes**:
-    - **Premium Sync**: Fixed a bug where premium status was not restored on login by calling  from the purchase store.
-    - **Android Push Notifications**: Added the missing  plugin to .
-    - **PDF Export**: Attempted a fix for the multi-page PDF export bug.
-- **Web Development**: Made the marketing website () and user dashboard () fully mobile responsive, including adding a hamburger menu and swipeable cards.
+- **Watermark Removal:** Code for adding watermarks was removed from  and UI overlays were removed from  and .
+- **Premium Status Logic:**  was updated to trust the backend's  flag, fixing the issue where manual premium status was being overridden.
+- **PDF Generation:** CSS in  was fixed to use  and add padding, resolving the page splitting and cropping issues.
+- **SEO for Landing Page:** The static website () was heavily optimized with new metadata,  implementation for the site, app, and FAQs, a new , , and the FAQ section was added to .
+- **Admin Dashboard Enhancements:**
+    - URL changed to .
+    - Routing fix was attempted by adding a  to the React Router.
+    - Document preview bug was fixed by fetching full document details on modal open.
+    - An Admin Settings page was created () with corresponding backend APIs for managing admin users.
+- **UI Cleanup:** The Expo Push Token debug section was removed from .
+- **404 Page:** A new  was created and a handler was added in .
+
+**Earlier issues found/mentioned but not fixed**
+   - **Issue 1: Offline Mode**
+     - Debug checklist: This is a feature request, not a bug. Requires architectural planning for local storage (e.g., WatermelonDB), state management for connection status, and a data synchronization strategy.
+     - Why to solve this issue and what will be achieved with this?: This is a key user requirement that would significantly improve the app's utility, allowing users to scan and manage documents without a constant internet connection.
+     - Should Test frontend/backend/both after fix: Both.
+     - Is recurring issue? N
+
+**Known issue recurrence from previous fork**
+  - **Issue recurrence:** Backend CORS Configuration. The agent repeatedly struggled with FastAPI's .
+  - **Recurrence count:** The issue was addressed at least 4-5 times in the latter half of the chat history, leading to user frustration. The agent's final fix is incorrect and will not work as intended, guaranteeing the issue will persist.
+  - **Status:** BLOCKED. The current implementation is wrong. The next agent must ignore the previous agent's final attempt and implement the correct configuration (specific origins, not  with credentials).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **EAS Build System**: Deep dive into debugging An Expo user account is required to proceed.
+- **Frontend:** Expo (React Native), Zustand (for state management in , ), Expo Router,  (for PDF generation from HTML).
+- **Backend:** FastAPI, MongoDB (via Pymongo), Pydantic (for models), JWT (for auth),  (for file uploads).
+- **Admin Panel:** React, Vite (for building), served statically by the FastAPI backend.
+- **Deployment:** The backend is deployed to Railway. The frontend is built via EAS Build for iOS.
 
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username for Android, including  configuration, dependency management with , and the importance of pushing changes to Git.
--   **Android Permissions**: Using  in  as a modern way to control manifest permissions and force the use of the Android Photo Picker.
--   **App Store Guidelines**: Implementing solutions for key rejection reasons: Guest IAP Purchases (Guideline 5.1.1) and App Tracking Transparency (Guideline 5.1.2).
--   **Responsive Web Design**: Using CSS Media Queries, Flexbox, and JavaScript to make static HTML pages mobile-friendly.
--   **State Management (Zustand)**: Integrating IAP logic () with authentication flows () to ensure state is synchronized.
+**key DB schema**
+  - **users**: 
+  - **documents**: 
+  - **admins**:  (New collection added in this session)
+
+**changes in tech stack**
+  - A new MongoDB collection  was introduced to separate admin users from regular users.
+
+**All files of reference**
+- : Core of the backend logic, including API endpoints, security middleware (currently broken), and static file serving.
+- : Manages premium status, IAP verification, and the logic for manual premium override.
+- : Contains the logic for generating and sharing PDFs from scanned images.
+- : Displays the scanned document; previously contained a UI watermark.
+- : Main React component for the admin panel, where routing is configured.
+- : Vite build configuration for the admin panel; needs  property updated.
+- : Main landing page, heavily modified for SEO.
+
+**Areas that need refactoring**:
+- The CORS and security implementation in  is in a broken and reverted state. It needs to be refactored from scratch with a correct understanding of CORS policies.
+
+**key api endpoints**
+- : Admin login.
+- : Serves the admin dashboard.
+- : Updates user subscription status (e.g., after a mobile purchase).
+- : Endpoints for creating, updating, and retrieving documents.
+- : New endpoint for updating admin credentials.
+- : New endpoint for adding/listing/deleting admin users.
 
 **Critical Info for New Agent**
--   **THE #1 PRIORITY IS TO ACHIEVE A STABLE AND REPEATABLE ANDROID BUILD.** The user is stuck. You must guide them to ensure their Git repository is perfectly in sync with the local changes ( is critical). Do not attempt other fixes until the user confirms they can successfully build the app.
--   **User actions are required.** The user must update settings in App Store Connect (No Tracking) and submit the new builds to both stores. You need to provide clear, step-by-step instructions for this.
--   **Many fixes are unverified.** A large amount of work has been done (push notifications, premium sync, permissions), but none of it is confirmed working due to the build issues. After a successful build, a full regression test is needed.
--   The user is non-technical and gets frustrated with the build/submission process. Be patient and provide very clear, simple instructions.
+- **CORS IS CRITICAL:** The previous agent failed repeatedly to configure CORS correctly, leading to major user frustration and a critical bug (admin login failure). The root of the problem was trying to use  with , which is a security violation disallowed by browsers. The solution is to specify the *exact* frontend origin(s) in the  list (e.g., ). Do not trust the previous agent's final reverted code; it is incorrect.
+- **Admin Panel is a Separate React App:** The admin dashboard is not part of the Expo app. It's a separate React project located at . Any changes require rebuilding it ( inside that directory) and restarting the backend server. The routing issues likely stem from a misconfiguration in  ( property) and  ().
+- **Dev vs. Prod:** The user is testing on a production build from the App Store, which connects to the Railway backend. Changes made in this environment are not live until they are saved to GitHub and deployed on Railway. You must remind the user of this process for backend changes.
+- **User Language:** The user is Turkish and communicates exclusively in Turkish. All responses must be in Turkish.
+- **Current Priority:** The absolute top priorities are fixing the iOS app crash (P0) and fixing the production CORS issue blocking admin login (P0).
+
+**documents created in this job**
+- 
+- 
+- 
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Complaint**: PDF export creates multiple pages. Provided a sample PDF. (Agent attempted a fix).
-9.  **Question**: Asked if all Apple rejections were fixed. (Agent clarified a new build is needed and user action in App Store Connect is required).
-8.  **Complaint**: Still receiving the same Apple rejections. (Agent identified this is due to not submitting a new build and/or incorrect App Store Connect settings).
-7.  **Request**: Change subscribe button text because it still says Login to subscribe. (Completed).
-6.  **Confirmation**: User confirmed they set Data Collection: No in App Store Connect. (Agent proceeded to remove ATT code).
-5.  **Question**: Asks if ads will still work if Data Collection: No is selected. (Agent confirmed yes, as non-personalized ads).
-4.  **Question**: Asks why emails from Apple Sign In users look like . (Agent explained Apple's Hide My Email feature).
-3.  **Complaint**: Still receiving rejections from Apple. Asks agent to check everything again and call another agent if needed. (Agent used troubleshoot_agent to analyze the issues).
-2.  **Complaint**: Login works, but after purchasing a trial, logging out and in again, the premium status is lost. (Agent implemented a fix).
-1.  **Complaint**: Android push notifications for web access requests are not working, while they work on iOS. (Agent found and fixed a missing plugin in ).
+1.  **User (Crash):** Reports the iOS app is crashing, provides TestFlight logs. (PENDING)
+2.  **Agent (Revert CORS):** States they have reverted the CORS configuration to the old, simple version and tells the user to deploy.
+3.  **User (Frustrated):** Demands the f***ing CORS be reverted to its old state. (Agent is acting on this).
+4.  **Agent (Admin Routing):** Explains they are fixing the admin panel's base path to solve the refresh issue.
+5.  **User (Admin Routing):** Reports that when navigating in the admin panel, the  part of the URL disappears, causing 404s on refresh. (IN PROGRESS)
+6.  **Agent (CORS Fix #4):** Proposes another fix for the CORS issue.
+7.  **User (CORS Still Broken):** Reports that even after the last deployment, the CORS error persists. Asks the agent to check what was broken during the security update. (IN PROGRESS)
+8.  **Agent (CORS Fix #3):** Explains the middleware order is wrong and provides another fix. Tells user to deploy again.
+9.  **User (CORS Still Broken):** Reports deploying the changes but still facing the same CORS error and being unable to log in to the admin panel. (IN PROGRESS)
+10. **Agent (CORS Fix #2):** Tells the user the CORS issue is fixed in the preview environment and needs to be deployed via Save to GitHub to work on production.
 
 **Project Health Check:**
--   **Broken**: The Android An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username process is broken and unreliable. This is the main point of failure for the entire project right now.
+- **Broken:** Admin login on production (due to CORS), iOS app stability (crashing), admin panel routing on refresh.
+- **Mocked:** None.
 
 **3rd Party Integrations**
--   **Expo**: Core framework for the mobile app.
--   **FastAPI**: Backend framework.
--   **MongoDB**: Database.
--   **Google Mobile Ads (AdMob)**: For in-app advertising.
--   **Resend**: For sending transactional emails.
--   **RevenueCat (via )**: For managing in-app purchases and subscriptions.
+- **Apple App Store (IAP):** Used for in-app purchases on iOS.
+- **Google Play Store (IAP):** Used for in-app purchases on Android.
+- **Railway:** Cloud platform used for deploying the backend.
 
 **Testing status**
--   Testing agent used after significant changes: NO
--   Troubleshoot agent used after agent stuck in loop: YES, used multiple times to analyze build logs and store rejections.
--   Test files created: None.
--   Known regressions: None confirmed, but the build process is highly unstable.
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: NO (The agent *should have* used this for the CORS issue).
+  - Test files created: []
+  - Known regressions: [Admin login is broken on production due to a faulty security/CORS update.]
+
+**Credentials to test flow:**
+- **Admin Panel:** URL: , Default User (as per request): , Password (as per request): . (Note: The password update may not have been successful).
 
 **What agent forgot to execute**
--   The agent did not address the known issue of optimizing the UI for iPads, even though it has been a cause for App Store rejection/warnings. The app has  but the UI is a stretched phone layout.
--   The agent did not fully implement the premium status logic to check a backend flag, only the part that restores IAP status from the store.
+- The agent completely ignored the user's request to make the application work offline. This is a major feature request that was never acknowledged or planned.
+- The agent did not fully resolve the admin routing/refresh issue.
+- The agent did not address the performance of the Share pop-up.
 
 </analysis>
