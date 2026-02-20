@@ -6799,15 +6799,16 @@ async def verify_admin_password(admin: dict, password: str) -> bool:
     return bcrypt.checkpw(password.encode(), admin["password_hash"].encode())
 
 @api_router.post("/admin/login")
-async def admin_login(request: AdminLoginRequest):
-    """Admin login endpoint"""
-    admin = await get_admin_by_email(request.email)
+@limiter.limit("5/minute")  # Rate limit: max 5 login attempts per minute
+async def admin_login(request: Request, login_data: AdminLoginRequest):
+    """Admin login endpoint with rate limiting"""
+    admin = await get_admin_by_email(login_data.email)
     
-    if admin and await verify_admin_password(admin, request.password):
+    if admin and await verify_admin_password(admin, login_data.password):
         # Create admin token
         token_data = {
             "sub": admin.get("admin_id", "admin"),
-            "email": request.email,
+            "email": login_data.email,
             "is_admin": True,
             "role": admin.get("role", "admin"),
             "exp": datetime.now(timezone.utc) + timedelta(days=7)
