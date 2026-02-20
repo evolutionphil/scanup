@@ -5251,13 +5251,33 @@ async def health_check():
 
 # Note: app.include_router is called at the end of the file after all routes are defined
 
-# Simple CORS - allow all (original working version)
+# CORS Configuration - Proper setup with specific origins
+ALLOWED_ORIGINS = [
+    "https://scanup.app",
+    "https://www.scanup.app",
+    "https://scanup-production.up.railway.app",
+    "http://localhost:3000",
+    "http://localhost:8001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8001",
+]
+
+# Add dynamic preview URLs for development environments
+EXPO_BACKEND_URL = os.environ.get("EXPO_BACKEND_URL", "")
+if EXPO_BACKEND_URL:
+    ALLOWED_ORIGINS.append(EXPO_BACKEND_URL)
+    # Also add without /api suffix
+    if EXPO_BACKEND_URL.endswith("/api"):
+        ALLOWED_ORIGINS.append(EXPO_BACKEND_URL[:-4])
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["Content-Range", "X-Content-Range"],
+    max_age=600,  # Cache preflight for 10 minutes
 )
 
 @app.on_event("startup")
