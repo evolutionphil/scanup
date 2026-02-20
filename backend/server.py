@@ -6601,18 +6601,16 @@ class TranslationKeyUpdate(BaseModel):
 async def init_content_collections():
     """Initialize languages, translations, and legal pages with defaults"""
     try:
-        # Initialize languages
-        languages_count = await db.languages.count_documents({})
-        if languages_count == 0:
-            for lang in DEFAULT_LANGUAGES:
-                await db.languages.update_one(
-                    {"code": lang["code"]},
-                    {"$set": lang},
-                    upsert=True
-                )
-            logger.info("✅ Default languages initialized")
+        # Initialize/Update all languages
+        for lang in DEFAULT_LANGUAGES:
+            await db.languages.update_one(
+                {"code": lang["code"]},
+                {"$set": lang},
+                upsert=True
+            )
+        logger.info(f"✅ {len(DEFAULT_LANGUAGES)} languages initialized/updated")
         
-        # Initialize English translations
+        # Initialize English translations (base)
         en_trans = await db.translations.find_one({"language_code": "en"})
         if not en_trans:
             await db.translations.insert_one({
@@ -6641,6 +6639,19 @@ async def init_content_collections():
                 "updated_at": datetime.now(timezone.utc)
             })
             logger.info("✅ Turkish translations initialized")
+        
+        # Initialize ALL other translations from translations.py
+        for lang_code, translations in ALL_TRANSLATIONS.items():
+            existing = await db.translations.find_one({"language_code": lang_code})
+            if not existing:
+                # Merge with English defaults for any missing keys
+                merged_translations = {**DEFAULT_TRANSLATIONS, **translations}
+                await db.translations.insert_one({
+                    "language_code": lang_code,
+                    "translations": merged_translations,
+                    "updated_at": datetime.now(timezone.utc)
+                })
+                logger.info(f"✅ {lang_code.upper()} translations initialized")
         
         # Initialize legal pages
         for page_type, content in DEFAULT_LEGAL_PAGES.items():
