@@ -6790,6 +6790,50 @@ async def get_legal_page(page_type: str, language_code: str = "en"):
         }
 
 
+# ==================== STATIC PAGE SERVING (Preview Compatible) ====================
+# These routes serve static HTML pages through /api/ prefix for preview environment
+import os as os_module_pages
+
+_landing_page_path = os_module_pages.path.join(os_module_pages.path.dirname(__file__), "landing-page")
+_SUPPORTED_LANGS = ['en', 'de', 'fr', 'es', 'tr', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi']
+
+@api_router.get("/pages/")
+@api_router.get("/pages")
+async def serve_landing_page_api():
+    """Serve landing page via API route (for preview environment)"""
+    index_path = os_module_pages.path.join(_landing_page_path, "index.html")
+    if os_module_pages.path.exists(index_path):
+        return FileResponse(index_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Landing page not found")
+
+@api_router.get("/pages/{lang}")
+async def serve_landing_page_with_lang_api(lang: str):
+    """Serve language-specific landing page via API route"""
+    if lang in _SUPPORTED_LANGS:
+        index_path = os_module_pages.path.join(_landing_page_path, "index.html")
+        if os_module_pages.path.exists(index_path):
+            return FileResponse(index_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/dashboard")
+@api_router.get("/pages/dashboard/")
+async def serve_dashboard_api():
+    """Serve dashboard via API route (for preview environment)"""
+    dashboard_path = os_module_pages.path.join(_landing_page_path, "dashboard.html")
+    if os_module_pages.path.exists(dashboard_path):
+        return FileResponse(dashboard_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Dashboard not found")
+
+@api_router.get("/pages/{lang}/dashboard")
+async def serve_dashboard_with_lang_api(lang: str):
+    """Serve language-specific dashboard via API route"""
+    if lang in _SUPPORTED_LANGS:
+        dashboard_path = os_module_pages.path.join(_landing_page_path, "dashboard.html")
+        if os_module_pages.path.exists(dashboard_path):
+            return FileResponse(dashboard_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Dashboard not found")
+
+
 # ==================== ADMIN DASHBOARD API ====================
 
 # Default admin credentials (will be overridden by database values)
