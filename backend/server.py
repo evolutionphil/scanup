@@ -5263,6 +5263,84 @@ ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "").split(",") if os.environ
     "exp://localhost:8081",
 ]
 
+# ==================== SECURITY MIDDLEWARE ====================
+
+# Rate limiting storage (in production use Redis)
+rate_limit_storage = defaultdict(list)
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX_REQUESTS = {
+    "default": 100,  # 100 requests per minute
+    "auth": 10,  # 10 login attempts per minute
+    "upload": 20,  # 20 uploads per minute
+}
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        
+        # Don't expose server info
+        if "server" in response.headers:
+            del response.headers["server"]
+        
+        # Cache control for sensitive endpoints
+        if "/api/auth" in str(request.url) or "/api/admin" in str(request.url):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        
+        return response
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Rate limiting middleware to prevent abuse"""
+    async def dispatch(self, request: Request, call_next):
+        # Get client IP
+        client_ip = request.client.host if request.client else "unknown"
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        
+        # Determine rate limit type
+        path = str(request.url.path)
+        if "/auth/login" in path or "/auth/register" in path or "/admin/login" in path:
+            limit_type = "auth"
+        elif "/documents" in path and request.method == "POST":
+            limit_type = "upload"
+        else:
+            limit_type = "default"
+        
+        # Clean old requests
+        current_time = time.time()
+        rate_limit_storage[client_ip] = [
+            t for t in rate_limit_storage[client_ip] 
+            if current_time - t < RATE_LIMIT_WINDOW
+        ]
+        
+        # Check rate limit
+        max_requests = RATE_LIMIT_MAX_REQUESTS.get(limit_type, 100)
+        if len(rate_limit_storage[client_ip]) >= max_requests:
+            logger.warning(f"⚠️ Rate limit exceeded for {client_ip} on {path}")
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please try again later."}
+            )
+        
+        # Record request
+        rate_limit_storage[client_ip].append(current_time)
+        
+        response = await call_next(request)
+        return response
+
+# Add security middlewares
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
