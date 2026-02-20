@@ -4,7 +4,6 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -23,8 +22,6 @@ import re
 import cv2
 import numpy as np
 import hashlib
-import time
-from collections import defaultdict
 # Email service
 from email_service import (
     send_welcome_email,
