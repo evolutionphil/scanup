@@ -6833,6 +6833,35 @@ async def serve_dashboard_with_lang_api(lang: str):
             return FileResponse(dashboard_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="Dashboard not found")
 
+# Serve static assets (JS, CSS, images) via API routes for preview environment
+@api_router.get("/js/{file_path:path}")
+async def serve_js_file(file_path: str):
+    """Serve JS files via API route"""
+    js_path = os_module_pages.path.join(_landing_page_path, "js", file_path)
+    if os_module_pages.path.exists(js_path):
+        return FileResponse(js_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="JS file not found")
+
+@api_router.get("/css/{file_path:path}")
+async def serve_css_file(file_path: str):
+    """Serve CSS files via API route"""
+    css_path = os_module_pages.path.join(_landing_page_path, "css", file_path)
+    if os_module_pages.path.exists(css_path):
+        return FileResponse(css_path, media_type="text/css")
+    raise HTTPException(status_code=404, detail="CSS file not found")
+
+@api_router.get("/images/{file_path:path}")
+async def serve_image_file(file_path: str):
+    """Serve image files via API route"""
+    images_path = os_module_pages.path.join(_landing_page_path, "images", file_path)
+    if os_module_pages.path.exists(images_path):
+        # Determine content type
+        ext = file_path.lower().split('.')[-1]
+        content_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'svg': 'image/svg+xml', 'gif': 'image/gif', 'webp': 'image/webp'}
+        content_type = content_types.get(ext, 'application/octet-stream')
+        return FileResponse(images_path, media_type=content_type)
+    raise HTTPException(status_code=404, detail="Image file not found")
+
 
 # ==================== ADMIN DASHBOARD API ====================
 
