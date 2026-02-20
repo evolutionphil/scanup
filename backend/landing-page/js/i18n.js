@@ -656,6 +656,79 @@ const ScanUpI18n = {
             web_access_waiting: "Yetkilendirme bekleniyor...",
             web_access_expires: "İstek şu sürede sona eriyor:",
             web_access_cancel: "İptal",
+            
+            // Contact Page
+            contact_title: "Bize Ulaşın",
+            contact_subtitle: "Size yardımcı olmak için buradayız. Destek ekibimize ulaşın.",
+            contact_get_in_touch: "İletişime Geçin",
+            contact_email_support: "E-posta Desteği",
+            contact_live_chat: "Canlı Sohbet",
+            contact_live_chat_hours: "Pzt-Cuma, 09:00-18:00 arası",
+            contact_help_center: "Yardım Merkezi",
+            contact_browse_faq: "SSS ve Kılavuzlara Göz Atın",
+            contact_twitter: "Twitter",
+            contact_send_message: "Bize Mesaj Gönderin",
+            contact_your_name: "Adınız",
+            contact_email_address: "E-posta Adresi",
+            contact_subject: "Konu",
+            contact_select_subject: "Bir konu seçin",
+            contact_general: "Genel Soru",
+            contact_technical: "Teknik Destek",
+            contact_billing: "Fatura Sorusu",
+            contact_feedback: "Geri Bildirim",
+            contact_message: "Mesaj",
+            contact_message_placeholder: "Size nasıl yardımcı olabiliriz?",
+            contact_send: "Mesaj Gönder",
+            back_to_home: "Ana Sayfaya Dön",
+            
+            // FAQ Page
+            faq_page_title: "Sıkça Sorulan Sorular",
+            faq_page_subtitle: "ScanUp hakkında yaygın soruların cevaplarını bulun",
+            faq_search_placeholder: "Soru ara...",
+            faq_category_all: "Tüm Sorular",
+            faq_category_general: "Genel",
+            faq_category_features: "Özellikler",
+            faq_category_pricing: "Fiyatlandırma",
+            faq_category_security: "Güvenlik",
+            faq_category_technical: "Teknik",
+            faq_still_questions: "Hala sorularınız mı var?",
+            faq_contact_team: "Destek ekibimizle iletişime geçin",
+            
+            // Privacy Page
+            privacy_title: "Gizlilik Politikası",
+            privacy_last_updated: "Son Güncelleme",
+            privacy_intro: "Gizliliğiniz bizim için önemlidir. Bu politika, bilgilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.",
+            
+            // Terms Page
+            terms_title: "Kullanım Şartları",
+            terms_last_updated: "Son Güncelleme",
+            terms_intro: "ScanUp'ı kullanmadan önce lütfen bu şartları dikkatlice okuyun.",
+            
+            // Support Page
+            support_title: "Yardım ve Destek",
+            support_subtitle: "ScanUp ile ilgili yardım alın",
+            support_search_placeholder: "Yardım ara...",
+            support_popular_topics: "Popüler Konular",
+            support_contact_us: "Bize Ulaşın",
+            
+            // 404 Page
+            page_not_found: "Sayfa Bulunamadı",
+            page_not_found_desc: "Aradığınız sayfa mevcut değil veya taşınmış.",
+            go_home: "Ana Sayfaya Git",
+            
+            // Common
+            loading: "Yükleniyor...",
+            error: "Hata",
+            success: "Başarılı",
+            submit: "Gönder",
+            cancel: "İptal",
+            save: "Kaydet",
+            delete: "Sil",
+            edit: "Düzenle",
+            close: "Kapat",
+            yes: "Evet",
+            no: "Hayır",
+            copyright: "© 2024 ScanUp. Tüm hakları saklıdır.",
         },
         de: {
             // Navigation
