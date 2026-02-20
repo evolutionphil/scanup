@@ -6862,6 +6862,60 @@ async def serve_image_file(file_path: str):
         return FileResponse(images_path, media_type=content_type)
     raise HTTPException(status_code=404, detail="Image file not found")
 
+# Static pages via API routes
+@api_router.get("/pages/contact")
+@api_router.get("/pages/{lang}/contact")
+async def serve_contact_page_api(lang: str = "en"):
+    """Serve contact page via API route"""
+    contact_path = os_module_pages.path.join(_landing_page_path, "contact.html")
+    if os_module_pages.path.exists(contact_path):
+        return FileResponse(contact_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Contact page not found")
+
+@api_router.get("/pages/faq")
+@api_router.get("/pages/{lang}/faq")
+async def serve_faq_page_api(lang: str = "en"):
+    """Serve FAQ page via API route"""
+    faq_path = os_module_pages.path.join(_landing_page_path, "faq.html")
+    if os_module_pages.path.exists(faq_path):
+        return FileResponse(faq_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="FAQ page not found")
+
+@api_router.get("/pages/privacy")
+@api_router.get("/pages/{lang}/privacy")
+async def serve_privacy_page_api(lang: str = "en"):
+    """Serve privacy page via API route"""
+    privacy_path = os_module_pages.path.join(_landing_page_path, "privacy.html")
+    if os_module_pages.path.exists(privacy_path):
+        return FileResponse(privacy_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Privacy page not found")
+
+@api_router.get("/pages/terms")
+@api_router.get("/pages/{lang}/terms")
+async def serve_terms_page_api(lang: str = "en"):
+    """Serve terms page via API route"""
+    terms_path = os_module_pages.path.join(_landing_page_path, "terms.html")
+    if os_module_pages.path.exists(terms_path):
+        return FileResponse(terms_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Terms page not found")
+
+@api_router.get("/pages/support")
+@api_router.get("/pages/{lang}/support")
+async def serve_support_page_api(lang: str = "en"):
+    """Serve support page via API route"""
+    support_path = os_module_pages.path.join(_landing_page_path, "support.html")
+    if os_module_pages.path.exists(support_path):
+        return FileResponse(support_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Support page not found")
+
+@api_router.get("/pages/404")
+async def serve_404_page_api():
+    """Serve 404 page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "404.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="404 page not found")
+
 
 # ==================== ADMIN DASHBOARD API ====================
 
