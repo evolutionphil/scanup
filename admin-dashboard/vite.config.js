@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/admin/',
+  base: '/mumiixadmin/',
   build: {
     // Output directly to backend/admin-static for Railway deployment
     outDir: path.resolve(__dirname, '../backend/admin-static'),
