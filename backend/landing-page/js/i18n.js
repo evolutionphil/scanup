@@ -1085,7 +1085,8 @@ const ScanUpI18n = {
     detectLanguage() {
         // 1. Check URL path first (highest priority)
         const path = window.location.pathname;
-        const match = path.match(/^\/([a-z]{2})(\/|$)/);
+        // Match both /tr/... and /api/pages/tr/... formats
+        const match = path.match(/\/([a-z]{2})(\/|$)/) || path.match(/\/pages\/([a-z]{2})(\/|$)/);
         if (match && this.languages.find(l => l.code === match[1])) {
             localStorage.setItem('scanup_language', match[1]);
             return match[1];
