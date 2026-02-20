@@ -3304,5 +3304,149 @@
             await loadFolders();
         };
     </script>
+    
+    <!-- i18n Integration for Dashboard -->
+    <script src="/js/i18n.js"></script>
+    <script>
+        // Initialize i18n for dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            await ScanUpI18n.init('');
+            applyDashboardTranslations();
+            addDashboardLanguageSelector();
+        });
+        
+        function applyDashboardTranslations() {
+            const t = (key) => ScanUpI18n.t(key);
+            
+            // Page title
+            const pageTitle = document.querySelector('.page-title h1');
+            if (pageTitle && t('dashboard_title') !== 'dashboard_title') {
+                pageTitle.textContent = t('dashboard_title');
+            }
+            
+            // Welcome message
+            const welcomeMsg = document.querySelector('.welcome-text');
+            if (welcomeMsg && t('dashboard_welcome') !== 'dashboard_welcome') {
+                const userName = welcomeMsg.textContent.split(',')[1]?.trim() || '';
+                welcomeMsg.textContent = `${t('dashboard_welcome')}, ${userName}`;
+            }
+            
+            // Tabs
+            const tabs = document.querySelectorAll('.tab-btn');
+            const tabKeys = ['dashboard_recent', 'dashboard_all', 'dashboard_folders'];
+            tabs.forEach((tab, i) => {
+                if (tabKeys[i] && t(tabKeys[i]) !== tabKeys[i]) {
+                    // Preserve icon
+                    const icon = tab.querySelector('i');
+                    if (icon) {
+                        tab.innerHTML = '';
+                        tab.appendChild(icon);
+                        tab.appendChild(document.createTextNode(' ' + t(tabKeys[i])));
+                    }
+                }
+            });
+            
+            // Search placeholder
+            const searchInput = document.querySelector('.search-input');
+            if (searchInput && t('dashboard_search') !== 'dashboard_search') {
+                searchInput.placeholder = t('dashboard_search');
+            }
+            
+            // Empty state
+            const emptyTitle = document.querySelector('.empty-state h3');
+            const emptyDesc = document.querySelector('.empty-state p');
+            if (emptyTitle && t('dashboard_no_docs') !== 'dashboard_no_docs') {
+                emptyTitle.textContent = t('dashboard_no_docs');
+            }
+            if (emptyDesc && t('dashboard_no_docs_desc') !== 'dashboard_no_docs_desc') {
+                emptyDesc.textContent = t('dashboard_no_docs_desc');
+            }
+            
+            // Logout button
+            const logoutBtn = document.querySelector('.logout-btn');
+            if (logoutBtn && t('dashboard_logout') !== 'dashboard_logout') {
+                const icon = logoutBtn.querySelector('i');
+                if (icon) {
+                    logoutBtn.innerHTML = '';
+                    logoutBtn.appendChild(icon);
+                    logoutBtn.appendChild(document.createTextNode(' ' + t('dashboard_logout')));
+                }
+            }
+            
+            // Upload button
+            const uploadBtns = document.querySelectorAll('.btn-primary');
+            uploadBtns.forEach(btn => {
+                if (btn.textContent.includes('Upload') && t('dashboard_upload') !== 'dashboard_upload') {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        btn.innerHTML = '';
+                        btn.appendChild(icon);
+                        btn.appendChild(document.createTextNode(' ' + t('dashboard_upload')));
+                    }
+                }
+            });
+            
+            // Context menu items
+            const menuItems = {
+                'Download': 'dashboard_download',
+                'Share': 'dashboard_share',
+                'Rename': 'dashboard_rename',
+                'Delete': 'dashboard_delete'
+            };
+            document.querySelectorAll('.menu-item').forEach(item => {
+                Object.entries(menuItems).forEach(([text, key]) => {
+                    if (item.textContent.includes(text) && t(key) !== key) {
+                        const icon = item.querySelector('i');
+                        if (icon) {
+                            item.innerHTML = '';
+                            item.appendChild(icon);
+                            item.appendChild(document.createTextNode(' ' + t(key)));
+                        }
+                    }
+                });
+            });
+            
+            // Update HTML lang
+            document.documentElement.lang = ScanUpI18n.currentLang;
+            
+            // RTL support
+            if (ScanUpI18n.currentLang === 'ar') {
+                document.documentElement.dir = 'rtl';
+            }
+        }
+        
+        function addDashboardLanguageSelector() {
+            const userActions = document.querySelector('.user-actions');
+            if (!userActions) return;
+            
+            const langSelector = document.createElement('select');
+            langSelector.id = 'language-selector';
+            langSelector.className = 'language-selector';
+            langSelector.style.cssText = `
+                padding: 0.5rem 0.75rem;
+                border: 1px solid var(--gray-300);
+                border-radius: 8px;
+                background: white;
+                font-size: 0.85rem;
+                cursor: pointer;
+                margin-right: 0.5rem;
+            `;
+            
+            // Insert before logout button
+            const logoutBtn = userActions.querySelector('.logout-btn');
+            if (logoutBtn) {
+                userActions.insertBefore(langSelector, logoutBtn);
+            }
+            
+            // Setup selector
+            ScanUpI18n.setupLanguageSelector();
+            
+            // Add change listener
+            langSelector.addEventListener('change', async (e) => {
+                await ScanUpI18n.setLanguage(e.target.value);
+                applyDashboardTranslations();
+            });
+        }
+    </script>
 </body>
 </html>
