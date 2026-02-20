@@ -5398,11 +5398,21 @@ async def shutdown_db_client():
 
 # Default supported languages
 DEFAULT_LANGUAGES = [
-    {"code": "en", "name": "English", "native_name": "English", "is_default": True},
-    {"code": "de", "name": "German", "native_name": "Deutsch", "is_default": False},
-    {"code": "fr", "name": "French", "native_name": "Français", "is_default": False},
-    {"code": "es", "name": "Spanish", "native_name": "Español", "is_default": False},
-    {"code": "tr", "name": "Turkish", "native_name": "Türkçe", "is_default": False},
+    {"code": "en", "name": "English", "native_name": "English", "is_default": True, "flag": "🇺🇸"},
+    {"code": "de", "name": "German", "native_name": "Deutsch", "is_default": False, "flag": "🇩🇪"},
+    {"code": "fr", "name": "French", "native_name": "Français", "is_default": False, "flag": "🇫🇷"},
+    {"code": "es", "name": "Spanish", "native_name": "Español", "is_default": False, "flag": "🇪🇸"},
+    {"code": "tr", "name": "Turkish", "native_name": "Türkçe", "is_default": False, "flag": "🇹🇷"},
+    {"code": "ru", "name": "Russian", "native_name": "Русский", "is_default": False, "flag": "🇷🇺"},
+    {"code": "it", "name": "Italian", "native_name": "Italiano", "is_default": False, "flag": "🇮🇹"},
+    {"code": "pt", "name": "Portuguese", "native_name": "Português", "is_default": False, "flag": "🇵🇹"},
+    {"code": "ar", "name": "Arabic", "native_name": "العربية", "is_default": False, "flag": "🇸🇦", "rtl": True},
+    {"code": "zh", "name": "Chinese", "native_name": "中文", "is_default": False, "flag": "🇨🇳"},
+    {"code": "ja", "name": "Japanese", "native_name": "日本語", "is_default": False, "flag": "🇯🇵"},
+    {"code": "ko", "name": "Korean", "native_name": "한국어", "is_default": False, "flag": "🇰🇷"},
+    {"code": "nl", "name": "Dutch", "native_name": "Nederlands", "is_default": False, "flag": "🇳🇱"},
+    {"code": "pl", "name": "Polish", "native_name": "Polski", "is_default": False, "flag": "🇵🇱"},
+    {"code": "hi", "name": "Hindi", "native_name": "हिन्दी", "is_default": False, "flag": "🇮🇳"},
 ]
 
 # Default English translations (base language)
