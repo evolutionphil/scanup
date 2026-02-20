@@ -6827,12 +6827,16 @@ class AdminSettingsUpdate(BaseModel):
 
 async def get_admin_by_email(email: str):
     """Get admin user from database or return default"""
+    logger.info(f"Looking for admin with email: {email}")
     admin = await db.admin_users.find_one({"email": email})
+    logger.info(f"Database query result: {admin}")
     if admin:
+        logger.info(f"Admin found in DB: {admin.get('email')}, is_default: {admin.get('is_default')}")
         return admin
     # Check default credentials
+    logger.info(f"Checking default admin - DEFAULT_ADMIN_EMAIL: {DEFAULT_ADMIN_EMAIL}")
     if email == DEFAULT_ADMIN_EMAIL:
-        return {
+        default_admin = {
             "admin_id": "default_admin",
             "email": DEFAULT_ADMIN_EMAIL,
             "password_hash": None,  # Will use plain text comparison for default admin
@@ -6840,6 +6844,9 @@ async def get_admin_by_email(email: str):
             "role": "super_admin",
             "is_default": True
         }
+        logger.info(f"Returning default admin: {default_admin}")
+        return default_admin
+    logger.info("No admin found")
     return None
 
 async def verify_admin_password(admin: dict, password: str) -> bool:
