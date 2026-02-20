@@ -22,6 +22,10 @@ import re
 import cv2
 import numpy as np
 import hashlib
+
+# Import translations for all languages
+from translations import ALL_TRANSLATIONS
+
 # Email service
 from email_service import (
     send_welcome_email,
