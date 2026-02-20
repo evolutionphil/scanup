@@ -1380,13 +1380,20 @@ const ScanUpI18n = {
     applySupportPageTranslations() {
         const t = this.t.bind(this);
         
-        const heroTitle = document.querySelector('.hero h1, .header h1');
+        // Header
+        const heroTitle = document.querySelector('.support-header h1, .hero h1, .header h1');
         if (heroTitle) heroTitle.textContent = t('support_title');
-        const heroSubtitle = document.querySelector('.hero p, .header p');
+        const heroSubtitle = document.querySelector('.support-header p, .hero p, .header p');
         if (heroSubtitle) heroSubtitle.textContent = t('support_subtitle');
         
         const searchInput = document.querySelector('.search-input, input[type="search"]');
         if (searchInput) searchInput.placeholder = t('support_search_placeholder');
+        
+        // Back to home link
+        const backLink = document.querySelector('.back-link, a[href="/"]');
+        if (backLink && backLink.textContent.includes('Back')) {
+            backLink.innerHTML = '<i class="fas fa-arrow-left"></i> ' + t('back_to_home');
+        }
     },
     
     apply404PageTranslations() {
