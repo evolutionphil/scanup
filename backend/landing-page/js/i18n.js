@@ -1646,5 +1646,10 @@ const ScanUpI18n = {
     }
 };
 
-// Auto-initialize
-document.addEventListener('DOMContentLoaded', () => ScanUpI18n.init());
+// Auto-initialize - handle both cases (DOMContentLoaded already fired or not)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ScanUpI18n.init());
+} else {
+    // DOM already loaded
+    ScanUpI18n.init();
+}
