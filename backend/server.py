@@ -6835,7 +6835,7 @@ async def get_admin_by_email(email: str):
         return {
             "admin_id": "default_admin",
             "email": DEFAULT_ADMIN_EMAIL,
-            "password_hash": bcrypt.hashpw(DEFAULT_ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode(),
+            "password_hash": None,  # Will use plain text comparison for default admin
             "name": "Super Admin",
             "role": "super_admin",
             "is_default": True
@@ -6845,8 +6845,12 @@ async def get_admin_by_email(email: str):
 async def verify_admin_password(admin: dict, password: str) -> bool:
     """Verify admin password"""
     if admin.get("is_default"):
+        # For default admin, compare plain text password
         return password == DEFAULT_ADMIN_PASSWORD
-    return bcrypt.checkpw(password.encode(), admin["password_hash"].encode())
+    # For database admins, use bcrypt
+    if admin.get("password_hash"):
+        return bcrypt.checkpw(password.encode(), admin["password_hash"].encode())
+    return False
 
 @api_router.post("/admin/login")
 @limiter.limit("5/minute")  # Rate limit: max 5 login attempts per minute
