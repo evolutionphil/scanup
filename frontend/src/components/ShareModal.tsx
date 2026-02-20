@@ -156,9 +156,6 @@ export default function ShareModal({
   };
 
   const generatePdf = async (): Promise<string> => {
-    // Watermark completely disabled
-    const showWatermark = false;
-    
     console.log('[ShareModal] generatePdf - pageCount:', pages.length);
     
     // Load images from any source
@@ -168,51 +165,51 @@ export default function ShareModal({
     const validImages = imagesBase64.filter(img => img && img.length > 100);
     console.log('[ShareModal] Valid images count:', validImages.length);
 
-    // Build HTML for each page - CRITICAL FIX: Contain image within single page
+    // Build HTML for each page
+    // CRITICAL: Use simple CSS that works reliably on iOS/Android
+    // Each image should fill the page while maintaining aspect ratio
     const imageHtml = validImages.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
       const isLastPage = index === validImages.length - 1;
       
-      // Only add page break between pages, not after last page
+      // Page break only between pages
       const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
       
-      // CRITICAL: Each image contained in a page-sized container
-      // Using max-width and max-height to ensure image fits within single page
       return `<div class="page" style="${pageBreak}">
           <img src="${base64WithPrefix}" />
         </div>`;
     }).join('');
 
-    // CRITICAL FIX: CSS ensures each image fits exactly within one page
-    // - Using vh/vw units to constrain to viewport (page) size
-    // - object-fit: contain ensures image scales proportionally
-    // - No overflow allowed
+    // FIXED CSS: Simple and reliable for iOS/Android PDF generation
+    // - No vh/vw units (can cause issues on mobile)
+    // - Use percentage-based sizing
+    // - object-fit: contain preserves aspect ratio without cropping
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { margin: 0; size: A4; }
   html, body { 
     margin: 0; 
-    padding: 0; 
-    width: 100%; 
-    height: 100%;
-    overflow: hidden;
+    padding: 0;
+    background: white;
   }
   .page {
-    width: 100vw;
-    height: 100vh;
+    width: 210mm;
+    height: 297mm;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     page-break-inside: avoid;
+    background: white;
   }
   .page img { 
-    max-width: 100%; 
-    max-height: 100%; 
+    max-width: 210mm;
+    max-height: 297mm;
     width: auto;
     height: auto;
     object-fit: contain;
