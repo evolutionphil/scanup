@@ -22,9 +22,12 @@ Crawl-delay: 2
 User-agent: Applebot
 Allow: /
 
-# Disallow admin and API routes
+# Disallow admin, backend API, and sensitive routes
 User-agent: *
 Disallow: /admin/
+Disallow: /admin
+Disallow: /mumiixadmin/
+Disallow: /mumiixadmin
 Disallow: /api/
 Disallow: /dashboard/
 Disallow: /.well-known/
