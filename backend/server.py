@@ -8665,6 +8665,23 @@ if os_module.path.exists(landing_page_path):
         raise HTTPException(status_code=404, detail="LLMs.txt not found")
     
     logger.info("✅ Landing page mounted at root (/)")
+    
+    # Mount static files for landing page (CSS, JS, images)
+    css_path = os_module.path.join(landing_page_path, "css")
+    js_path = os_module.path.join(landing_page_path, "js")
+    images_path = os_module.path.join(landing_page_path, "images")
+    
+    if os_module.path.exists(css_path):
+        app.mount("/css", StaticFiles(directory=css_path), name="landing-css")
+        logger.info("✅ Landing CSS mounted at /css")
+    
+    if os_module.path.exists(js_path):
+        app.mount("/js", StaticFiles(directory=js_path), name="landing-js")
+        logger.info("✅ Landing JS mounted at /js")
+    
+    if os_module.path.exists(images_path):
+        app.mount("/images", StaticFiles(directory=images_path), name="landing-images")
+        logger.info("✅ Landing images mounted at /images")
 
 # Custom 404 handler - serve beautiful 404 page
 @app.exception_handler(404)
