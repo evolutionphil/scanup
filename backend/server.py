@@ -5346,9 +5346,9 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=ALLOWED_ORIGINS if os.environ.get("PRODUCTION") else ["*"],
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"],
+    allow_origins=["*"],  # Allow all origins for mobile app compatibility
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.on_event("startup")
