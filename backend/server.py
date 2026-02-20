@@ -5288,6 +5288,28 @@ if EXPO_BACKEND_URL:
     if EXPO_BACKEND_URL.endswith("/api"):
         ALLOWED_ORIGINS.append(EXPO_BACKEND_URL[:-4])
 
+# Security Headers Middleware (must be after CORS in code, runs before CORS)
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Prevent caching of sensitive data
+        if "/api/admin" in str(request.url):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        
+        return response
+
+# Add CORS middleware first (will run last due to middleware order)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -5297,6 +5319,9 @@ app.add_middleware(
     expose_headers=["Content-Range", "X-Content-Range"],
     max_age=600,  # Cache preflight for 10 minutes
 )
+
+# Add security headers middleware (runs after CORS)
+app.add_middleware(SecurityHeadersMiddleware)
 
 @app.on_event("startup")
 async def startup_db_client():
