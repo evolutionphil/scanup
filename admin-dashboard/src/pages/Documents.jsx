@@ -21,6 +21,7 @@ export default function Documents() {
   const [search, setSearch] = useState('');
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -44,6 +45,26 @@ export default function Documents() {
       console.error('Failed to fetch documents:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch document details with pages for preview
+  const fetchDocumentDetail = async (docId) => {
+    setLoadingPreview(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/documents/${docId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedDoc(data.document);
+        setShowPreview(true);
+      }
+    } catch (e) {
+      console.error('Failed to fetch document details:', e);
+    } finally {
+      setLoadingPreview(false);
     }
   };
 
@@ -119,7 +140,7 @@ export default function Documents() {
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                   <button
-                    onClick={() => { setSelectedDoc(doc); setShowPreview(true); }}
+                    onClick={() => fetchDocumentDetail(doc.document_id)}
                     className="p-2 bg-white rounded-lg hover:bg-gray-100 transition"
                   >
                     <Eye size={18} />
@@ -173,14 +194,24 @@ export default function Documents() {
               </button>
             </div>
             <div className="p-4 overflow-auto max-h-[70vh]">
-              {selectedDoc.pages?.map((page, idx) => (
-                <img
-                  key={idx}
-                  src={page.image_url || `data:image/jpeg;base64,${page.image_base64}`}
-                  alt={`Page ${idx + 1}`}
-                  className="w-full mb-4 rounded-lg"
-                />
-              ))}
+              {loadingPreview ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                </div>
+              ) : selectedDoc.pages && selectedDoc.pages.length > 0 ? (
+                selectedDoc.pages.map((page, idx) => (
+                  <img
+                    key={idx}
+                    src={page.image_url || page.image_data_url || `data:image/jpeg;base64,${page.image_base64}`}
+                    alt={`Page ${idx + 1}`}
+                    className="w-full mb-4 rounded-lg"
+                  />
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-12">
+                  No pages available
+                </div>
+              )}
             </div>
           </div>
         </div>
