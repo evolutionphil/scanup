@@ -67,8 +67,26 @@ AWS_REGION = os.environ.get("AWS_REGION", os.environ.get("AWS_S3_REGION", "us-ea
 # S3 client will be initialized after logger
 s3_client = None
 
+# Rate limiting imports
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Create rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="ScanUp API",
+    description="Document scanning and management API",
+    version="1.0.0",
+    docs_url=None,  # Disable docs for security
+    redoc_url=None  # Disable redoc for security
+)
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add validation error handler to log 422 errors
 from fastapi.exceptions import RequestValidationError
