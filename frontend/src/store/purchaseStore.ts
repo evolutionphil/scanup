@@ -181,6 +181,18 @@ export const usePurchaseStore = create<State>((set, get) => ({
     console.log('[PurchaseStore] 🔍 Verifying subscription status with Apple/Google...');
     
     try {
+      // ⭐ CRITICAL: First check if user is premium via backend (admin-set premium)
+      // This prevents overriding admin-assigned premium status
+      const authStore = require('./authStore').useAuthStore;
+      const { user } = authStore.getState();
+      
+      if (user?.is_premium || user?.subscription_type === 'premium' || user?.subscription_type === 'trial') {
+        console.log('[PurchaseStore] ✅ User is premium via backend (admin or backend-set)');
+        await AsyncStorage.setItem(STORAGE.IS_PREMIUM, 'true');
+        set({ isPremium: true });
+        return; // Don't override backend premium with IAP check
+      }
+      
       // Get all active purchases from Apple/Google
       const purchases = await IAP.getAvailablePurchases();
       console.log('[PurchaseStore] Available purchases:', purchases?.length || 0);
