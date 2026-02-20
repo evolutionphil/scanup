@@ -1213,3 +1213,48 @@ agent_communication:
     - `/app/frontend/app/(auth)/login.tsx` - Changed to WebBrowser auth
     
     All critical frontend operations should now work for both guest and logged-in users."
+
+  - agent: "main"
+    message: "CORS & ADMIN LOGIN FIX (CRITICAL) COMPLETED ✅
+
+    ## Issues Fixed:
+
+    ### 1. ✅ Admin Login 500 Internal Server Error
+    **Root Cause**: `bcrypt` module was used but NOT imported in server.py
+    **Fix**: Added `import bcrypt` to server.py imports
+    **Verification**: Admin login now returns valid JWT token
+
+    ### 2. ✅ CORS Configuration Fixed
+    **Root Cause**: Invalid CORS config - `allow_origins=['*']` with `allow_credentials=True` is blocked by browsers
+    **Fix**: Changed to specific allowed origins:
+    - https://scanup.app
+    - https://www.scanup.app
+    - https://scanup-production.up.railway.app
+    - localhost/127.0.0.1 for development
+    - Dynamic EXPO_BACKEND_URL for preview environments
+
+    ### 3. ✅ Rate Limiting Added
+    - Installed `slowapi` and `limits` packages
+    - Admin login endpoint: 5 attempts per minute per IP
+    - Prevents brute force attacks
+
+    ### 4. ✅ Security Headers Added
+    - X-Content-Type-Options: nosniff
+    - X-Frame-Options: DENY
+    - X-XSS-Protection: 1; mode=block
+    - Referrer-Policy: strict-origin-when-cross-origin
+    - Cache-Control: no-store for admin endpoints
+
+    ## Testing Results:
+    - ✅ curl localhost:8001/api/admin/login → Returns valid JWT token
+    - ✅ CORS preflight returns proper headers for https://scanup.app origin
+    - ✅ Security headers present in all responses
+
+    ## Next Steps:
+    - User should deploy to Railway via 'Save to GitHub'
+    - Test production admin login at https://scanup-production.up.railway.app/mumiixadmin
+
+    ## Files Modified:
+    - /app/backend/server.py (bcrypt import, CORS config, rate limiting, security headers)
+    - /app/backend/requirements.txt (added slowapi, limits)"
+
