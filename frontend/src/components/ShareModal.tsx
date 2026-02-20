@@ -429,16 +429,12 @@ export default function ShareModal({
       // Filter out any empty images
       const validImages = imagesBase64.filter(img => img && img.length > 100);
 
-      // Build HTML for each page
-      const imageHtml = validImages.map((img, index) => {
-        const isLastPage = index === validImages.length - 1;
-        const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
-        return `<div class="page" style="${pageBreak}">
-          <img src="data:image/jpeg;base64,${img}" />
-        </div>`;
+      // Build HTML for each page - same as generatePdf
+      const imageHtml = validImages.map((img) => {
+        return `<div class="page"><img src="data:image/jpeg;base64,${img}" /></div>`;
       }).join('');
 
-      // FIXED CSS: Same as generatePdf - with padding on all sides
+      // FIXED CSS: Same as generatePdf - using 100vh for exact page sizing
       const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -446,26 +442,30 @@ export default function ShareModal({
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { margin: 10mm; size: A4; }
+  @page { 
+    margin: 0; 
+    size: A4 portrait;
+  }
   html, body { 
     margin: 0; 
     padding: 0;
     background: white;
+    width: 100%;
+    height: 100%;
   }
   .page {
-    width: 190mm;
-    height: 277mm;
-    padding: 5mm;
+    width: 100%;
+    height: 100vh;
+    padding: 10mm;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
-    page-break-inside: avoid;
     background: white;
+    box-sizing: border-box;
   }
   .page img { 
-    max-width: 180mm;
-    max-height: 267mm;
+    max-width: calc(100% - 10mm);
+    max-height: calc(100vh - 20mm);
     width: auto;
     height: auto;
     object-fit: contain;
