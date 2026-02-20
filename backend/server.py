@@ -8478,7 +8478,27 @@ if os_module.path.exists(admin_static_path):
 
 # Serve the landing page from root path (/)
 landing_page_path = os_module.path.join(os_module.path.dirname(__file__), "landing-page")
+SUPPORTED_LANGUAGES = ['en', 'de', 'fr', 'es', 'tr', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi']
+
 if os_module.path.exists(landing_page_path):
+    # Language-prefixed routes for landing page
+    @app.get("/{lang}", response_class=FileResponse)
+    async def serve_landing_page_with_lang(lang: str):
+        if lang in SUPPORTED_LANGUAGES:
+            index_path = os_module.path.join(landing_page_path, "index.html")
+            if os_module.path.exists(index_path):
+                return FileResponse(index_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    # Language-prefixed dashboard routes
+    @app.get("/{lang}/dashboard")
+    async def serve_dashboard_with_lang(lang: str):
+        if lang in SUPPORTED_LANGUAGES:
+            dashboard_path = os_module.path.join(landing_page_path, "dashboard.html")
+            if os_module.path.exists(dashboard_path):
+                return FileResponse(dashboard_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Dashboard page not found")
+    
     # Main landing page at root
     @app.get("/", response_class=FileResponse)
     async def serve_landing_page():
