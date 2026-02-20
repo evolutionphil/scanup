@@ -5249,12 +5249,22 @@ async def health_check():
 
 # Note: app.include_router is called at the end of the file after all routes are defined
 
+# Security: CORS configuration
+# In production, restrict to specific domains
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "").split(",") if os.environ.get("ALLOWED_ORIGINS") else [
+    "https://scanup.app",
+    "https://www.scanup.app",
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "exp://localhost:8081",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS if os.environ.get("PRODUCTION") else ["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"],
 )
 
 @app.on_event("startup")
