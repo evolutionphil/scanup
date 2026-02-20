@@ -432,7 +432,7 @@ export default function ShareModal({
       // Filter out any empty images
       const validImages = imagesBase64.filter(img => img && img.length > 100);
 
-      // Build HTML for each page - CRITICAL FIX: Contain image within single page
+      // Build HTML for each page
       const imageHtml = validImages.map((img, index) => {
         const isLastPage = index === validImages.length - 1;
         const pageBreak = !isLastPage ? 'page-break-after: always;' : '';
@@ -441,33 +441,33 @@ export default function ShareModal({
         </div>`;
       }).join('');
 
-      // CRITICAL FIX: Same CSS as generatePdf to ensure single page per image
+      // FIXED CSS: Same as generatePdf - use mm units for reliable printing
       const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { margin: 5mm; size: A4; }
   html, body { 
     margin: 0; 
-    padding: 0; 
-    width: 100%; 
-    height: 100%;
-    overflow: hidden;
+    padding: 0;
+    background: white;
   }
   .page {
-    width: 100vw;
-    height: 100vh;
+    width: 200mm;
+    height: 287mm;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     page-break-inside: avoid;
+    background: white;
   }
   .page img { 
-    max-width: 100%; 
-    max-height: 100%; 
+    max-width: 200mm;
+    max-height: 287mm;
     width: auto;
     height: auto;
     object-fit: contain;
