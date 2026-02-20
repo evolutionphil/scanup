@@ -8553,3 +8553,24 @@ if os_module.path.exists(landing_page_path):
         raise HTTPException(status_code=404, detail="LLMs.txt not found")
     
     logger.info("✅ Landing page mounted at root (/)")
+
+# Custom 404 handler - serve beautiful 404 page
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
+    """Serve custom 404 page for not found routes"""
+    # Don't serve 404 page for API routes
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Not Found"}
+        )
+    
+    # Serve 404 HTML page for other routes
+    page_404_path = os_module.path.join(landing_page_path, "404.html")
+    if os_module.path.exists(page_404_path):
+        return FileResponse(page_404_path, status_code=404, media_type="text/html")
+    
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Page not found"}
+    )
