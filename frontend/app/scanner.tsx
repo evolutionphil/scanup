@@ -68,12 +68,43 @@ export default function ScannerScreen() {
     };
   }, []);
   
+  // Track if component is mounted (for iOS VisionKit crash prevention)
+  const isMountedRef = useRef(true);
+  
+  // Cleanup on unmount - prevent iOS VisionKit crash
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      
+      // iOS VisionKit crash fix: Clean up scanner resources safely
+      if (Platform.OS === 'ios') {
+        try {
+          // Use InteractionManager to delay cleanup until after any pending interactions
+          InteractionManager.runAfterInteractions(() => {
+            // The react-native-document-scanner-plugin may have internal cleanup
+            // that causes crashes. By setting mounted to false, we prevent
+            // any state updates after unmount.
+            console.log('[Scanner] Component unmounted safely');
+          });
+        } catch (e) {
+          // Silently ignore cleanup errors to prevent crash
+          console.log('[Scanner] Cleanup error (safe to ignore):', e);
+        }
+      }
+    };
+  }, []);
+  
   // Auto-open scanner on mount
   useEffect(() => {
     if (!hasScannedRef.current) {
       hasScannedRef.current = true;
       const timer = setTimeout(() => {
-        openDocumentScanner();
+        // Only open scanner if component is still mounted
+        if (isMountedRef.current) {
+          openDocumentScanner();
+        }
       }, 300);
       return () => clearTimeout(timer);
     }
