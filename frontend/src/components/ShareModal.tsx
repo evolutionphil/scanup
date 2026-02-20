@@ -219,9 +219,11 @@ export default function ShareModal({
 
     console.log('[ShareModal] Generated PDF HTML for', validImages.length, 'pages');
     
+    // CRITICAL FIX: useMarkupFormatter: true is required for iOS to handle page breaks correctly
+    // Without this, iOS creates double pages (blank pages after each content page)
     const { uri } = await Print.printToFileAsync({ 
       html,
-      margins: { left: 0, right: 0, top: 0, bottom: 0 },
+      useMarkupFormatter: true,  // Required for iOS page break support
     });
     return uri;
   };
