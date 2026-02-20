@@ -84,7 +84,7 @@ class ScanUpI18nTester:
         print("\n🇩🇪 Testing German Landing Page...")
         
         try:
-            response = self.session.get(f"{BASE_URL}/de")
+            response = self.session.get(f"{BACKEND_BASE_URL}/de")
             
             if response.status_code == 200:
                 html_content = response.text
@@ -119,7 +119,7 @@ class ScanUpI18nTester:
         print("\n🇹🇷 Testing Turkish Landing Page...")
         
         try:
-            response = self.session.get(f"{BASE_URL}/tr")
+            response = self.session.get(f"{BACKEND_BASE_URL}/tr")
             
             if response.status_code == 200:
                 html_content = response.text
@@ -146,7 +146,7 @@ class ScanUpI18nTester:
         print("\n📜 Testing i18n.js Translation File...")
         
         try:
-            response = self.session.get(f"{BASE_URL}/js/i18n.js")
+            response = self.session.get(f"{BACKEND_BASE_URL}/js/i18n.js")
             
             if response.status_code == 200:
                 js_content = response.text
@@ -213,7 +213,7 @@ class ScanUpI18nTester:
         print("\n🔑 Testing Translation Keys...")
         
         try:
-            response = self.session.get(f"{BASE_URL}/js/i18n.js")
+            response = self.session.get(f"{BACKEND_BASE_URL}/js/i18n.js")
             
             if response.status_code != 200:
                 self.log_result("Translation Keys", False, 
@@ -262,7 +262,7 @@ class ScanUpI18nTester:
         print("\n🔍 Testing German Translation Content...")
         
         try:
-            response = self.session.get(f"{BASE_URL}/js/i18n.js")
+            response = self.session.get(f"{BACKEND_BASE_URL}/js/i18n.js")
             
             if response.status_code != 200:
                 self.log_result("German Translation Content", False, 
