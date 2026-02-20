@@ -10,6 +10,7 @@ import Localization from './pages/Localization';
 import LegalPages from './pages/LegalPages';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
+import AdminSettings from './pages/AdminSettings';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }) {
@@ -49,6 +50,7 @@ function App() {
                   <Route path="/localization" element={<Localization />} />
                   <Route path="/legal-pages" element={<LegalPages />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin-settings" element={<AdminSettings />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
