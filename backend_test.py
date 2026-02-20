@@ -340,7 +340,7 @@ class ScanUpI18nTester:
         return passed_tests, failed_tests
 
 if __name__ == "__main__":
-    tester = ScanUpAPITester()
+    tester = ScanUpI18nTester()
     passed, failed = tester.run_all_tests()
     
     # Exit with error code if any tests failed
