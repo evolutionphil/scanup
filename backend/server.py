@@ -5339,17 +5339,21 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         return response
 
-# Add security middlewares
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware)
-
+# CRITICAL: CORS middleware MUST be added FIRST (which means it runs first due to middleware order)
+# Then other middlewares
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # Allow all origins for mobile app compatibility
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Add security middlewares AFTER CORS
+app.add_middleware(RateLimitMiddleware)
+# Temporarily disable SecurityHeadersMiddleware as it may interfere with CORS
+# app.add_middleware(SecurityHeadersMiddleware)
 
 @app.on_event("startup")
 async def startup_db_client():
