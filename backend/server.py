@@ -6856,22 +6856,27 @@ async def verify_admin_password(admin: dict, password: str) -> bool:
 @limiter.limit("5/minute")  # Rate limit: max 5 login attempts per minute
 async def admin_login(request: Request, login_data: AdminLoginRequest):
     """Admin login endpoint with rate limiting"""
+    logger.info(f"Admin login attempt for: {login_data.email}")
     admin = await get_admin_by_email(login_data.email)
+    logger.info(f"Admin found: {admin is not None}, is_default: {admin.get('is_default') if admin else 'N/A'}")
     
-    if admin and await verify_admin_password(admin, login_data.password):
-        # Create admin token
-        token_data = {
-            "sub": admin.get("admin_id", "admin"),
-            "email": login_data.email,
-            "is_admin": True,
-            "role": admin.get("role", "admin"),
-            "exp": datetime.now(timezone.utc) + timedelta(days=7)
-        }
-        token = jwt.encode(token_data, JWT_SECRET, algorithm="HS256")
-        return {
-            "token": token,
-            "user": {"email": login_data.email, "is_admin": True}
-        }
+    if admin:
+        password_valid = await verify_admin_password(admin, login_data.password)
+        logger.info(f"Password valid: {password_valid}")
+        if password_valid:
+            # Create admin token
+            token_data = {
+                "sub": admin.get("admin_id", "admin"),
+                "email": login_data.email,
+                "is_admin": True,
+                "role": admin.get("role", "admin"),
+                "exp": datetime.now(timezone.utc) + timedelta(days=7)
+            }
+            token = jwt.encode(token_data, JWT_SECRET, algorithm="HS256")
+            return {
+                "token": token,
+                "user": {"email": login_data.email, "is_admin": True}
+            }
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
