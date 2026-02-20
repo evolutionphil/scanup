@@ -51,14 +51,16 @@ import os
 from io import BytesIO
 from PIL import Image
 import time
+import re
 
 # Configuration
+BASE_URL = "https://scanup-fixes-1.preview.emergentagent.com"
 BACKEND_URL = "https://scanup-fixes-1.preview.emergentagent.com/api"
 TEST_EMAIL = "testuser@scanup.com"
 TEST_PASSWORD = "testpass123"
 TEST_NAME = "Test User"
 
-class ScanUpAPITester:
+class ScanUpI18nTester:
     def __init__(self):
         self.session = requests.Session()
         self.token = None
