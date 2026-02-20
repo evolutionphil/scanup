@@ -387,14 +387,34 @@ export default function ScannerScreen() {
         }
       }
     } catch (error: any) {
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) {
+        console.log('[Scanner] Component unmounted during error handling');
+        return;
+      }
+      
+      // Handle iOS VisionKit cleanup errors gracefully
+      if (Platform.OS === 'ios' && 
+          (error.message?.includes('deleteAllImages') || 
+           error.message?.includes('VNDocumentCameraScan') ||
+           error.code === 'E_SCANNER_CLEANUP')) {
+        console.log('[Scanner] iOS VisionKit cleanup error - safe to ignore');
+        handleGoBack();
+        return;
+      }
+      
       if (error.message !== 'User cancelled' && error.message !== 'Canceled') {
         console.error('[Scanner] Error:', error);
-        setScannerError(error.message || 'Scanner failed');
+        if (isMountedRef.current) {
+          setScannerError(error.message || 'Scanner failed');
+        }
       } else {
         handleGoBack();
       }
     } finally {
-      setIsScanning(false);
+      if (isMountedRef.current) {
+        setIsScanning(false);
+      }
     }
   };
   
