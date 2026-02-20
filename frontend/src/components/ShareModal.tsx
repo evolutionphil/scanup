@@ -181,9 +181,8 @@ export default function ShareModal({
     }).join('');
 
     // FIXED CSS: Simple and reliable for iOS/Android PDF generation
-    // - Added 10mm padding on all sides to prevent edge clipping
-    // - Use percentage-based sizing
-    // - object-fit: contain preserves aspect ratio without cropping
+    // KEY FIX: Each page should be exactly one PDF page, no overflow
+    // Using height: 100vh ensures content fits in exactly one page
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -191,26 +190,30 @@ export default function ShareModal({
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { margin: 10mm; size: A4; }
+  @page { 
+    margin: 0; 
+    size: A4 portrait;
+  }
   html, body { 
     margin: 0; 
     padding: 0;
     background: white;
+    width: 100%;
+    height: 100%;
   }
   .page {
-    width: 190mm;
-    height: 277mm;
-    padding: 5mm;
+    width: 100%;
+    height: 100vh;
+    padding: 10mm;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
-    page-break-inside: avoid;
     background: white;
+    box-sizing: border-box;
   }
   .page img { 
-    max-width: 180mm;
-    max-height: 267mm;
+    max-width: calc(100% - 10mm);
+    max-height: calc(100vh - 20mm);
     width: auto;
     height: auto;
     object-fit: contain;
