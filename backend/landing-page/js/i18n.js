@@ -688,16 +688,20 @@ const ScanUpI18n = {
         if (appTabs[0]) appTabs[0].textContent = t('phone_documents');
         if (appTabs[1]) appTabs[1].textContent = t('phone_folders');
         
-        const scanComplete = document.querySelector('.scan-notification span');
-        if (scanComplete) scanComplete.textContent = t('phone_scan_complete');
+        // Floating cards
+        const floatingCards = document.querySelectorAll('.floating-card span');
+        if (floatingCards[0]) floatingCards[0].textContent = t('phone_scan_complete');
+        if (floatingCards[1]) floatingCards[1].textContent = t('phone_encrypted');
         
-        const encrypted = document.querySelector('.security-badge span');
-        if (encrypted) encrypted.textContent = t('phone_encrypted');
-        
-        const bottomNav = document.querySelectorAll('.nav-item span');
-        const navKeys = ['phone_home', 'phone_folders', null, 'phone_search', 'phone_settings'];
-        bottomNav.forEach((span, i) => {
-            if (navKeys[i]) span.textContent = t(navKeys[i]);
+        // Bottom nav
+        const bottomNav = document.querySelectorAll('.tabbar-item span');
+        const navKeys = ['phone_home', 'phone_folders', 'phone_search', 'phone_settings'];
+        let navIndex = 0;
+        bottomNav.forEach((span) => {
+            if (navKeys[navIndex]) {
+                span.textContent = t(navKeys[navIndex]);
+            }
+            navIndex++;
         });
         
         // Section titles
