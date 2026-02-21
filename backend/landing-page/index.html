@@ -3095,19 +3095,41 @@
         (function() {
             const isApiRoute = window.location.pathname.startsWith('/api/');
             const basePath = isApiRoute ? '/api' : '';
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            const supportedLangs = ['en', 'tr', 'de', 'fr', 'es', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi'];
             
-            // Fix all dashboard links for preview environment
+            // Detect current language
+            let currentLang = 'en';
+            if (isApiRoute && pathParts.length >= 3 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
+                const langCandidate = pathParts[2];
+                if (supportedLangs.includes(langCandidate) && langCandidate !== 'dashboard') {
+                    currentLang = langCandidate;
+                }
+            } else if (!isApiRoute && pathParts.length >= 1) {
+                const langCandidate = pathParts[0];
+                if (supportedLangs.includes(langCandidate)) {
+                    currentLang = langCandidate;
+                }
+            }
+            
+            // Fix all dashboard links based on current language
             function fixDashboardLinks() {
-                if (!isApiRoute) return; // Only fix in preview environment
+                let dashboardUrl, settingsUrl;
                 
-                const dashboardUrl = '/api/pages/dashboard';
+                if (isApiRoute) {
+                    dashboardUrl = currentLang === 'en' ? '/api/pages/dashboard' : `/api/pages/${currentLang}/dashboard`;
+                    settingsUrl = dashboardUrl + '#settings';
+                } else {
+                    dashboardUrl = currentLang === 'en' ? '/dashboard' : `/${currentLang}/dashboard`;
+                    settingsUrl = dashboardUrl + '#settings';
+                }
                 
                 // Fix all /dashboard links
-                document.querySelectorAll('a[href="/dashboard"]').forEach(link => {
+                document.querySelectorAll('a[href="/dashboard"], a[href="/api/pages/dashboard"]').forEach(link => {
                     link.href = dashboardUrl;
                 });
-                document.querySelectorAll('a[href="/dashboard#settings"]').forEach(link => {
-                    link.href = dashboardUrl + '#settings';
+                document.querySelectorAll('a[href="/dashboard#settings"], a[href="/api/pages/dashboard#settings"]').forEach(link => {
+                    link.href = settingsUrl;
                 });
             }
             
@@ -3119,9 +3141,7 @@
             }
             
             // Also run periodically to catch dynamically created links
-            if (isApiRoute) {
-                setInterval(fixDashboardLinks, 1000);
-            }
+            setInterval(fixDashboardLinks, 1000);
             
             const script = document.createElement('script');
             script.src = basePath + '/js/i18n-v2.js';
