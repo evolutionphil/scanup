@@ -10,7 +10,29 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
-## What's Been Implemented - Feb 21, 2026 (Session 2)
+## What's Been Implemented - Feb 21, 2026 (Session 2 - Part 2)
+
+### ADDITIONAL FIXES ✅
+
+1. **Cache Temizlendi**
+   - Frontend: `node_modules/.cache`, `.expo`, `.metro-cache` silindi
+   - Backend: `__pycache__` klasörleri silindi
+
+2. **Admin Dashboard 404 Fix**
+   - Yeni path: `/api/admin-ui/` (browser refresh'te çalışıyor)
+   - Eski path `/api/admin/` hala mevcut ama API endpoint'leri ile çakışıyor
+   - `/api/admin-ui/assets/` için ayrı mount eklendi
+   - `index-api-ui.html` dosyası oluşturuldu
+
+3. **Mobil Dil Seçici Eklendi**
+   - Hamburger menüde dil seçici görünüyor
+   - `data-i18n-selector-mobile` attribute'u eklendi
+   - CSS stilleri eklendi
+   - i18n-v2.js hem masaüstü hem mobil seçiciyi destekliyor
+
+---
+
+## What's Been Implemented - Feb 21, 2026 (Session 2 - Part 1)
 
 ### ALL i18n ISSUES FIXED ✅
 
