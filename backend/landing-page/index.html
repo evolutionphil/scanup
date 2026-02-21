@@ -2144,16 +2144,16 @@
                 ScanUp
             </a>
             <ul class="nav-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#web-dashboard">Web Dashboard</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#testimonials">Reviews</a></li>
-                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#features" data-i18n="nav.features">Features</a></li>
+                <li><a href="#web-dashboard" data-i18n="nav.web_dashboard">Web Dashboard</a></li>
+                <li><a href="#how-it-works" data-i18n="nav.how_it_works">How It Works</a></li>
+                <li><a href="#testimonials" data-i18n="nav.reviews">Reviews</a></li>
+                <li><a href="#pricing" data-i18n="nav.pricing">Pricing</a></li>
             </ul>
             
             <!-- Auth buttons container - will be updated by JS -->
             <div id="authButtons">
-                <a href="/dashboard" class="nav-cta">Login / Sign Up</a>
+                <a href="/dashboard" class="nav-cta" data-i18n="nav.login_signup">Login / Sign Up</a>
             </div>
             
             <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">
@@ -2167,12 +2167,12 @@
         <button class="mobile-menu-close" onclick="toggleMobileMenu()">
             <i class="fas fa-times"></i>
         </button>
-        <a href="#features" onclick="toggleMobileMenu()">Features</a>
-        <a href="#web-dashboard" onclick="toggleMobileMenu()">Web Dashboard</a>
-        <a href="#how-it-works" onclick="toggleMobileMenu()">How It Works</a>
-        <a href="#testimonials" onclick="toggleMobileMenu()">Reviews</a>
-        <a href="#pricing" onclick="toggleMobileMenu()">Pricing</a>
-        <a href="/dashboard" class="mobile-cta" onclick="toggleMobileMenu()">Login / Sign Up</a>
+        <a href="#features" onclick="toggleMobileMenu()" data-i18n="nav.features">Features</a>
+        <a href="#web-dashboard" onclick="toggleMobileMenu()" data-i18n="nav.web_dashboard">Web Dashboard</a>
+        <a href="#how-it-works" onclick="toggleMobileMenu()" data-i18n="nav.how_it_works">How It Works</a>
+        <a href="#testimonials" onclick="toggleMobileMenu()" data-i18n="nav.reviews">Reviews</a>
+        <a href="#pricing" onclick="toggleMobileMenu()" data-i18n="nav.pricing">Pricing</a>
+        <a href="/dashboard" class="mobile-cta" onclick="toggleMobileMenu()" data-i18n="nav.login_signup">Login / Sign Up</a>
     </div>
 
     <!-- Hero Section -->
@@ -2181,18 +2181,18 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="fas fa-star"></i>
-                    #1 Document Scanner App
+                    <span data-i18n="index.hero_badge">#1 Document Scanner App</span>
                 </div>
-                <h1>Scan Documents <span>Instantly</span> with Your Phone</h1>
-                <p>Transform your smartphone into a powerful document scanner. Scan, edit, sign, and share documents in seconds with professional quality.</p>
+                <h1 data-i18n="index.hero_title">Scan Documents <span>Instantly</span> with Your Phone</h1>
+                <p data-i18n="index.hero_description">Transform your smartphone into a powerful document scanner. Scan, edit, sign, and share documents in seconds with professional quality.</p>
                 <div class="hero-buttons">
                     <a href="#download" class="btn btn-primary">
                         <i class="fas fa-download"></i>
-                        Download Free
+                        <span data-i18n="common.download_free">Download Free</span>
                     </a>
                     <a href="#features" class="btn btn-secondary">
                         <i class="fas fa-play-circle"></i>
-                        See How It Works
+                        <span data-i18n="index.see_how_it_works">See How It Works</span>
                     </a>
                 </div>
                 <div class="hero-stats">
