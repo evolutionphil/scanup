@@ -76,6 +76,29 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
+## What's Been Implemented - Feb 21, 2026 (Session 3 - Part 3) ✅
+
+### Schema.org JSON-LD Çevirileri
+
+**1. MobileApplication Schema Çevirileri** ✅
+- `name`: Her dilde çevriliyor (DE: "ScanUp - Dokumentenscanner", TR: "ScanUp - Belge Tarayıcı")
+- `alternateName`: Her dilde çevriliyor (DE: "ScanUp PDF Scanner", TR: "ScanUp PDF Tarayıcı")
+- `description`: Her dilde çevriliyor
+- `featureList`: Regex ile multi-line JSON match edilerek çevriliyor
+
+**2. FAQ Schema Çevirileri** ✅
+- İlk 3 FAQ sorusu ve cevabı her dilde çevriliyor
+- TR: "ScanUp ücretsiz mi?", "Belgelerimi PDF olarak dışa aktarabilir miyim?", "ScanUp hangi platformlarda mevcut?"
+- DE: "Ist ScanUp kostenlos?", "Kann ich meine Dokumente als PDF exportieren?", "Auf welchen Plattformen ist ScanUp verfügbar?"
+
+**3. Server-Side Rendering** ✅
+- Schema.org çevirileri server.py'de SSR olarak uygulanıyor
+- Tüm 15 dil dosyasına `schema` bölümü eklendi
+
+**Test Sonuçları:** Schema.org çevirileri curl ile doğrulandı
+
+---
+
 ### DASHBOARD LINK FIX ✅
 
 **Sorun:** Login butonuna tıklandığında 404 hatası alınıyordu (preview ortamında)
