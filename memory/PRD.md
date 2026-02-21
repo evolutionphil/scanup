@@ -79,6 +79,14 @@ Features of new system:
 ### P1 - COMPLETED ✅
 1. **i18n Refactor DONE** - All pages now use i18n-v2.js with JSON files
 2. **Features, Pricing, Reviews, Download pages** - Fully translated with data-i18n
+3. **All JSON translations complete** - ar, es, fr, ja, ru, zh fully populated
+
+### P2 - COMPLETED ✅
+1. **Share popup performance** - Progress indicator added during PDF export
+2. **Offline Mode** - Already implemented via useOfflineSync hook
+
+### REMAINING ISSUES
+1. **Admin panel 404 on refresh** - BLOCKED (requires React rebuild with base path)
 
 ### P2 - Medium Priority
 1. Share popup performance
