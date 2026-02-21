@@ -636,6 +636,7 @@
      * Switch to a different language
      */
     async function switchLanguage(lang) {
+        console.log('switchLanguage called with:', lang);
         if (!SUPPORTED_LANGUAGES.includes(lang)) {
             lang = DEFAULT_LANGUAGE;
         }
@@ -645,9 +646,12 @@
         const currentPath = window.location.pathname;
         let newUrl;
         
+        console.log('isApiRoute:', isApiRoute, 'currentPath:', currentPath);
+        
         if (isApiRoute) {
             // Preview environment: /api/pages/tr/features -> /api/pages/de/features
             const pathParts = currentPath.split('/').filter(Boolean);
+            console.log('pathParts:', pathParts);
             // pathParts = ['api', 'pages', 'tr', 'features'] or ['api', 'pages', 'tr']
             
             if (pathParts.length >= 3 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
@@ -692,6 +696,7 @@
             newUrl = '/' + pathParts.join('/') || '/';
         }
         
+        console.log('newUrl:', newUrl);
         // Navigate to new URL
         window.location.href = newUrl + window.location.hash;
     }
