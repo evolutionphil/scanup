@@ -1487,6 +1487,9 @@ const ScanUpI18n = {
         this.applyTranslations();
         this.createLanguageSelector();
         this.updatePageTitle();
+        this.updateSEOMetaTags();
+        this.updateCanonicalAndHreflang();
+        this.updateSchemaOrgData();
         return this;
     },
     
