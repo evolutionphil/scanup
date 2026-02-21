@@ -8749,6 +8749,11 @@ if os_module.path.exists(admin_static_path):
     @app.get("/api/admin/")
     @app.get("/api/admin/{full_path:path}")
     async def serve_admin_dashboard_api(full_path: str = ""):
+        # Use the API-specific index.html with correct asset paths
+        index_path = os_module.path.join(admin_static_path, "index-api.html")
+        if os_module.path.exists(index_path):
+            return FileResponse(index_path)
+        # Fallback to regular index.html
         index_path = os_module.path.join(admin_static_path, "index.html")
         if os_module.path.exists(index_path):
             return FileResponse(index_path)
