@@ -8728,6 +8728,46 @@ async def get_system_status(admin: dict = Depends(get_admin_user)):
     return status
 
 
+# ============== API ROUTES FOR STATIC FILES ==============
+# These routes serve static files through the /api prefix for preview environment
+
+@api_router.get("/favicon.png")
+async def api_serve_favicon():
+    """Serve favicon through API route"""
+    landing_page_path = os.path.join(os.path.dirname(__file__), "landing-page")
+    favicon_path = os.path.join(landing_page_path, "favicon.png")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+@api_router.get("/manifest.json")
+async def api_serve_manifest():
+    """Serve manifest through API route"""
+    landing_page_path = os.path.join(os.path.dirname(__file__), "landing-page")
+    manifest_path = os.path.join(landing_page_path, "manifest.json")
+    if os.path.exists(manifest_path):
+        return FileResponse(manifest_path, media_type="application/json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+@api_router.get("/icon-512x512.png")
+async def api_serve_icon():
+    """Serve app icon through API route"""
+    landing_page_path = os.path.join(os.path.dirname(__file__), "landing-page")
+    icon_path = os.path.join(landing_page_path, "icon-512x512.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Icon not found")
+
+@api_router.get("/logo.png")
+async def api_serve_logo():
+    """Serve logo through API route"""
+    landing_page_path = os.path.join(os.path.dirname(__file__), "landing-page")
+    logo_path = os.path.join(landing_page_path, "logo.png")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Logo not found")
+
+
 # Include the router in the main app (must be after all routes are defined)
 app.include_router(api_router)
 
