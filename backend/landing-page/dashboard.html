@@ -1561,55 +1561,55 @@
                     <div class="logo-icon"><i class="fas fa-file-alt"></i></div>
                     <span class="logo-text">ScanUp</span>
                 </div>
-                <h2>Access your documents anywhere</h2>
+                <h2 data-i18n="auth_access_docs">Access your documents anywhere</h2>
             </div>
             <div class="auth-body">
                 <div class="auth-tabs">
-                    <div class="auth-tab active" data-tab="login">Login</div>
-                    <div class="auth-tab" data-tab="register">Register</div>
+                    <div class="auth-tab active" data-tab="login" data-i18n="auth_tab_login">Login</div>
+                    <div class="auth-tab" data-tab="register" data-i18n="auth_tab_register">Register</div>
                 </div>
                 
                 <div class="error-message" id="authError"></div>
                 
                 <form id="loginForm">
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                        <label data-i18n="auth_email">Email</label>
+                        <input type="email" id="loginEmail" data-i18n-placeholder="auth_email_placeholder" placeholder="you@example.com" required>
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <label data-i18n="auth_password">Password</label>
+                        <input type="password" id="loginPassword" data-i18n-placeholder="auth_password_placeholder" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="btn btn-primary" id="loginBtn">
-                        <span>Login</span>
+                        <span data-i18n="auth_login_btn">Login</span>
                     </button>
                 </form>
                 
                 <form id="registerForm" style="display: none;">
                     <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="registerName" placeholder="John Doe" required>
+                        <label data-i18n="auth_full_name">Full Name</label>
+                        <input type="text" id="registerName" data-i18n-placeholder="auth_name_placeholder" placeholder="John Doe" required>
                     </div>
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="registerEmail" placeholder="you@example.com" required>
+                        <label data-i18n="auth_email">Email</label>
+                        <input type="email" id="registerEmail" data-i18n-placeholder="auth_email_placeholder" placeholder="you@example.com" required>
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="registerPassword" placeholder="Min 6 characters" required minlength="6">
+                        <label data-i18n="auth_password">Password</label>
+                        <input type="password" id="registerPassword" data-i18n-placeholder="auth_password_min" placeholder="Min 6 characters" required minlength="6">
                     </div>
                     <button type="submit" class="btn btn-primary" id="registerBtn">
-                        <span>Create Account</span>
+                        <span data-i18n="auth_register_btn">Create Account</span>
                     </button>
                 </form>
                 
-                <div class="divider">or continue with</div>
+                <div class="divider" data-i18n="auth_or_continue">or continue with</div>
                 
                 <div class="social-buttons">
                     <div id="googleSignInBtn"></div>
                     <button class="btn btn-social btn-apple" onclick="loginWithApple()">
                         <i class="fab fa-apple"></i>
-                        <span>Continue with Apple</span>
+                        <span data-i18n="auth_continue_apple">Continue with Apple</span>
                     </button>
                 </div>
             </div>
