@@ -8800,20 +8800,34 @@ if os_module.path.exists(admin_static_path):
             return FileResponse(index_path)
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
     
+    # Admin SPA routes that should serve index.html (not API endpoints)
+    ADMIN_SPA_ROUTES = ['users', 'documents', 'analytics', 'notifications', 'localization', 
+                        'legal-pages', 'settings', 'admin-settings', 'login', '']
+    
     # Also serve admin dashboard via /api/admin for preview environment
     @app.get("/api/admin")
     @app.get("/api/admin/")
-    @app.get("/api/admin/{full_path:path}")
-    async def serve_admin_dashboard_api(full_path: str = ""):
+    async def serve_admin_dashboard_api_root():
         # Use the API-specific index.html with correct asset paths
         index_path = os_module.path.join(admin_static_path, "index-api.html")
         if os_module.path.exists(index_path):
-            return FileResponse(index_path)
-        # Fallback to regular index.html
-        index_path = os_module.path.join(admin_static_path, "index.html")
-        if os_module.path.exists(index_path):
-            return FileResponse(index_path)
+            return FileResponse(index_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
+    
+    @app.get("/api/admin/{full_path:path}")
+    async def serve_admin_dashboard_api(full_path: str = ""):
+        # Check if this is an SPA route (not an API endpoint)
+        # SPA routes are paths like: users, documents, localization, etc.
+        first_segment = full_path.split('/')[0] if full_path else ''
+        
+        # If it's a known SPA route, serve the index.html
+        if first_segment in ADMIN_SPA_ROUTES:
+            index_path = os_module.path.join(admin_static_path, "index-api.html")
+            if os_module.path.exists(index_path):
+                return FileResponse(index_path, media_type="text/html")
+        
+        # Otherwise, let FastAPI handle it (might be an API endpoint or 404)
+        raise HTTPException(status_code=404, detail="Admin route not found")
     
     logger.info("✅ Admin dashboard mounted at /mumiixadmin and /api/admin")
 
