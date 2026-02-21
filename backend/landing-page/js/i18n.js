@@ -1808,6 +1808,9 @@ const ScanUpI18n = {
         const isRTL = this.languages.find(l => l.code === this.currentLang)?.rtl;
         document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
         
+        // Apply data-i18n translations to all elements
+        this.applyDataI18nTranslations();
+        
         // Detect page type and apply specific translations
         if (path.includes('dashboard')) {
             this.applyDashboardTranslations();
@@ -1843,6 +1846,47 @@ const ScanUpI18n = {
         
         // Apply common translations (back link, footer, etc.)
         this.applyCommonTranslations();
+    },
+    
+    // Universal data-i18n translation method
+    applyDataI18nTranslations() {
+        const t = this.t.bind(this);
+        
+        // Translate elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            const translation = t(key);
+            if (translation && translation !== key) {
+                el.textContent = translation;
+            }
+        });
+        
+        // Translate placeholders with data-i18n-placeholder attribute
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            const translation = t(key);
+            if (translation && translation !== key) {
+                el.setAttribute('placeholder', translation);
+            }
+        });
+        
+        // Translate titles with data-i18n-title attribute
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.getAttribute('data-i18n-title');
+            const translation = t(key);
+            if (translation && translation !== key) {
+                el.setAttribute('title', translation);
+            }
+        });
+        
+        // Translate aria-labels with data-i18n-aria attribute
+        document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+            const key = el.getAttribute('data-i18n-aria');
+            const translation = t(key);
+            if (translation && translation !== key) {
+                el.setAttribute('aria-label', translation);
+            }
+        });
     },
     
     applyCommonTranslations() {
