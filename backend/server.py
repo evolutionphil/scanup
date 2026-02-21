@@ -7075,21 +7075,21 @@ async def serve_landing_page_with_lang_api(lang: str):
             html = re.sub(r'"name": "Is ScanUp free to use\?"', f'"name": "{faq_q1}"', html)
         if faq_a1:
             faq_a1_escaped = faq_a1.replace('"', '\\"')
-            html = re.sub(r'"text": "Yes! ScanUp is completely free[^"]*"', f'"text": "{faq_a1_escaped}"', html)
+            html = re.sub(r'"text": "Yes! ScanUp offers a free version[^"]*"', f'"text": "{faq_a1_escaped}"', html)
         
         # Second FAQ: "What file formats does ScanUp support?"
         if faq_q2:
             html = re.sub(r'"name": "What file formats does ScanUp support\?"', f'"name": "{faq_q2}"', html)
         if faq_a2:
             faq_a2_escaped = faq_a2.replace('"', '\\"')
-            html = re.sub(r'"text": "ScanUp supports exporting[^"]*"', f'"text": "{faq_a2_escaped}"', html)
+            html = re.sub(r'"text": "ScanUp supports PDF and JPEG[^"]*"', f'"text": "{faq_a2_escaped}"', html)
         
         # Third FAQ: "Can I scan multiple pages into one document?"
         if faq_q3:
             html = re.sub(r'"name": "Can I scan multiple pages into one document\?"', f'"name": "{faq_q3}"', html)
         if faq_a3:
             faq_a3_escaped = faq_a3.replace('"', '\\"')
-            html = re.sub(r'"text": "Absolutely! ScanUp allows[^"]*"', f'"text": "{faq_a3_escaped}"', html)
+            html = re.sub(r'"text": "Yes! ScanUp allows you to scan[^"]*"', f'"text": "{faq_a3_escaped}"', html)
     
     return Response(content=html, media_type="text/html")
 
