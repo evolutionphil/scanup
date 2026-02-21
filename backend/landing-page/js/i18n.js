@@ -1505,6 +1505,48 @@ const ScanUpI18n = {
             sidebar_logout: "Déconnexion",
             docs_title: "Mes documents",
             docs_search_placeholder: "Rechercher...",
+            
+            // Privacy Page
+            privacy_title: "Politique de confidentialité",
+            privacy_subtitle: "ScanUp - Scanner de documents sécurisé",
+            privacy_intro: "Chez Vision Go GmbH ('Société', 'nous', 'notre'), nous nous engageons à protéger votre vie privée et vos données personnelles. Cette politique de confidentialité explique comment nous collectons, utilisons, divulguons et protégeons vos informations lorsque vous utilisez l'application mobile ScanUp et les services associés.",
+            gdpr_compliant: "Conforme RGPD",
+            last_updated: "Dernière mise à jour : 21 janvier 2026",
+            privacy_matters_title: "Votre vie privée compte :",
+            privacy_matters_text: "Nous croyons en la transparence et vous donnons le contrôle de vos données. ScanUp est conçu avec des principes de confidentialité d'abord, et nous ne collectons que les données nécessaires pour fournir nos services.",
+            data_controller: "Responsable du traitement",
+            privacy_section_1: "1. Informations que nous collectons",
+            privacy_section_2: "2. Comment nous utilisons vos informations",
+            privacy_section_3: "3. Stockage et sécurité des données",
+            
+            // Terms Page
+            terms_title: "Conditions d'utilisation",
+            terms_subtitle: "ScanUp - Scanner de documents sécurisé",
+            terms_intro: "Bienvenue sur ScanUp ! Ces conditions d'utilisation ('Conditions') régissent votre accès et utilisation de l'application mobile ScanUp ('Application'), du site web et des services connexes (collectivement, le 'Service') fournis par Vision Go GmbH ('Société', 'nous', 'notre').",
+            terms_important: "Important :",
+            terms_important_text: "En téléchargeant, installant ou utilisant ScanUp, vous acceptez d'être lié par ces Conditions. Si vous n'acceptez pas ces Conditions, veuillez ne pas utiliser notre Service.",
+            service_provider: "Fournisseur de service",
+            terms_section_1: "1. Acceptation des conditions",
+            terms_section_2: "2. Description du service",
+            terms_section_3: "3. Comptes utilisateurs",
+            
+            // Cookies Page
+            cookies_title: "Politique des cookies",
+            cookies_what: "Que sont les cookies ?",
+            cookies_what_text: "Les cookies sont de petits fichiers texte placés sur votre appareil lorsque vous visitez notre site web. Ils nous aident à vous offrir une meilleure expérience en mémorisant vos préférences et en comprenant comment vous utilisez nos services.",
+            cookies_types: "Types de cookies que nous utilisons",
+            
+            // GDPR Page
+            gdpr_title: "Conformité RGPD",
+            gdpr_subtitle: "Vos droits de protection des données selon le Règlement général sur la protection des données",
+            gdpr_commitment: "Notre engagement envers le RGPD",
+            gdpr_rights: "Vos droits selon le RGPD",
+            right_access: "Droit d'accès",
+            right_rectification: "Droit de rectification",
+            right_erasure: "Droit à l'effacement",
+            right_restrict: "Droit à la limitation",
+            right_portability: "Droit à la portabilité",
+            right_object: "Droit d'opposition",
         },
         es: {
             nav_features: "Características",
