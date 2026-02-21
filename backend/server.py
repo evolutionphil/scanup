@@ -6952,8 +6952,9 @@ async def serve_landing_page_with_lang_api(lang: str):
     translations = {}
     if os_module_pages.path.exists(locale_path):
         try:
+            import json as json_module
             with open(locale_path, 'r', encoding='utf-8') as f:
-                translations = json.loads(f.read())
+                translations = json_module.loads(f.read())
         except Exception as e:
             import logging
             logging.error(f"Error loading translations for {lang}: {e}")
