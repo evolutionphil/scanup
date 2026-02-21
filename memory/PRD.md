@@ -47,6 +47,35 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
+## What's Been Implemented - Feb 21, 2026 (Session 3 - Part 2) ✅
+
+### Dashboard i18n Düzeltmeleri
+
+**1. Dashboard Sidebar Menü Çevirileri** ✅
+- Sidebar key'leri `sidebar.documents`, `sidebar.profile`, `sidebar.settings` formatına güncellendi
+- Tüm 15 dil dosyasına sidebar çevirileri eklendi
+- Türkçe: Belgelerim, Profil, Ayarlar
+- Almanca: Meine Dokumente, Profil, Einstellungen
+
+**2. Settings & Profile Sayfa Çevirileri** ✅
+- Settings sayfası tüm elementleri çevriliyor (Ayarlar, Bildirimler, Tehlikeli Alan vb.)
+- Profile sayfası tüm elementleri çevriliyor (Profilim, Hesap Bilgileri, Kullanım İstatistikleri vb.)
+- Tüm 15 dil dosyasına `settings`, `profile`, `docs`, `auth` çevirileri eklendi
+
+**3. Header Menü 2 Satır Sorunu** ✅
+- CSS'e `white-space: nowrap` eklendi
+- Nav gap azaltıldı (2rem -> 1.25rem)
+- Font-size küçültüldü (0.9rem)
+- User menu (login sonrası) için de CSS düzeltmeleri yapıldı
+
+**4. Login Butonu Çevirileri** ✅
+- `checkAuthState()` fonksiyonu i18n sistemiyle entegre edildi
+- Tüm dillerde login/signup butonu çevriliyor
+
+**Test Sonuçları (iteration_4.json):** 100% Frontend Pass Rate
+
+---
+
 ### DASHBOARD LINK FIX ✅
 
 **Sorun:** Login butonuna tıklandığında 404 hatası alınıyordu (preview ortamında)
