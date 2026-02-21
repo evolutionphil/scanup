@@ -2890,10 +2890,41 @@
         // Auth state management
         let currentUser = null;
         
-        // Helper function to get correct dashboard URL for current environment
+        // Helper function to get correct dashboard URL based on current language
         function getDashboardUrl(hash = '') {
             const isApiRoute = window.location.pathname.startsWith('/api/');
-            const baseUrl = isApiRoute ? '/api/pages/dashboard' : '/dashboard';
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            
+            // Detect current language from URL
+            let currentLang = 'en';
+            const supportedLangs = ['en', 'tr', 'de', 'fr', 'es', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi'];
+            
+            if (isApiRoute) {
+                // Preview: /api/pages/tr or /api/pages/tr/features
+                if (pathParts.length >= 3 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
+                    const langCandidate = pathParts[2];
+                    if (supportedLangs.includes(langCandidate) && langCandidate !== 'dashboard') {
+                        currentLang = langCandidate;
+                    }
+                }
+            } else {
+                // Production: /tr or /tr/features
+                if (pathParts.length >= 1) {
+                    const langCandidate = pathParts[0];
+                    if (supportedLangs.includes(langCandidate)) {
+                        currentLang = langCandidate;
+                    }
+                }
+            }
+            
+            // Build dashboard URL with language prefix
+            let baseUrl;
+            if (isApiRoute) {
+                baseUrl = currentLang === 'en' ? '/api/pages/dashboard' : `/api/pages/${currentLang}/dashboard`;
+            } else {
+                baseUrl = currentLang === 'en' ? '/dashboard' : `/${currentLang}/dashboard`;
+            }
+            
             return hash ? baseUrl + hash : baseUrl;
         }
         
