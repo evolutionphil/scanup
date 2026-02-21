@@ -6969,14 +6969,16 @@ async def serve_landing_page_with_lang_api(lang: str):
     index_trans = translations.get('index', {})
     meta_trans = translations.get('meta', {})
     
-    # Replace meta tags for SEO (server-side)
-    meta_desc = index_trans.get('meta_description', meta_trans.get('description', ''))
-    meta_title = index_trans.get('meta_title', f"ScanUp - {meta_trans.get('lang_name', 'Document Scanner')}")
-    og_title = index_trans.get('og_title', meta_title)
-    og_desc = index_trans.get('og_description', meta_desc)
-    
-    # Debug log
+    # Debug log all keys
     import logging
+    logging.info(f"SSR SEO for {lang}: index_trans keys: {list(index_trans.keys())[:5]}")
+    
+    # Replace meta tags for SEO (server-side)
+    meta_desc = index_trans.get('meta_description', '') or meta_trans.get('description', '')
+    meta_title = index_trans.get('meta_title', '') or f"ScanUp - {meta_trans.get('lang_name', 'Document Scanner')}"
+    og_title = index_trans.get('og_title', '') or meta_title
+    og_desc = index_trans.get('og_description', '') or meta_desc
+    
     logging.info(f"SSR SEO for {lang}: title={meta_title[:30] if meta_title else 'None'}..., desc={meta_desc[:30] if meta_desc else 'None'}...")
     
     if meta_desc:
