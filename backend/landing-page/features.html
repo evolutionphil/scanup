@@ -136,5 +136,20 @@
     <footer class="footer">
         <p>&copy; 2025 ScanUp Inc. | <a href="/terms">Terms</a> | <a href="/privacy">Privacy</a></p>
     </footer>
+    <!-- i18n - Multi-language support -->
+    <script>
+        (function() {
+            const isApiRoute = window.location.pathname.startsWith('/api/');
+            const basePath = isApiRoute ? '/api' : '';
+            const script = document.createElement('script');
+            script.src = basePath + '/js/i18n.js';
+            script.onerror = function() {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = '/js/i18n.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 </body>
 </html>

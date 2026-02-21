@@ -112,5 +112,20 @@
     <script>
         document.getElementById('updateTime').textContent = new Date().toLocaleString();
     </script>
+    <!-- i18n - Multi-language support -->
+    <script>
+        (function() {
+            const isApiRoute = window.location.pathname.startsWith('/api/');
+            const basePath = isApiRoute ? '/api' : '';
+            const script = document.createElement('script');
+            script.src = basePath + '/js/i18n.js';
+            script.onerror = function() {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = '/js/i18n.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 </body>
 </html>
