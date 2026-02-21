@@ -629,6 +629,7 @@
             margin-top: 1.5rem;
             padding-top: 1.5rem;
             border-top: 1px solid var(--gray-200);
+            position: relative;
         }
         
         .mobile-language-selector .lang-selector-btn {
@@ -659,8 +660,8 @@
         
         .mobile-language-selector .lang-dropdown {
             position: absolute;
-            left: 2rem;
-            right: 2rem;
+            left: 0;
+            right: 0;
             bottom: calc(100% + 0.5rem);
             background: white;
             border-radius: 12px;
@@ -679,6 +680,8 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
+            text-decoration: none;
+            color: var(--dark);
         }
         
         .mobile-language-selector .lang-option:hover {
