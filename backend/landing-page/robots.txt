@@ -1,39 +1,11 @@
 # robots.txt for ScanUp - https://scanup.app
-# Last updated: 2025-02-20
+# Last updated: 2026-02-21
 
-# Allow all crawlers
+# ============================================
+# ALLOW SEARCH ENGINES TO INDEX PUBLIC PAGES
+# ============================================
 User-agent: *
 Allow: /
-
-# Sitemap location
-Sitemap: https://scanup.app/sitemap.xml
-
-# Allow Googlebot specifically
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 1
-
-# Allow Bingbot
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 2
-
-# Allow Applebot (for Apple Search)
-User-agent: Applebot
-Allow: /
-
-# Disallow admin, backend API, and sensitive routes
-User-agent: *
-Disallow: /admin/
-Disallow: /admin
-Disallow: /mumiixadmin/
-Disallow: /mumiixadmin
-Disallow: /api/
-Disallow: /dashboard/
-Disallow: /.well-known/
-
-# Allow important pages for all bots
-User-agent: *
 Allow: /features
 Allow: /pricing
 Allow: /faq
@@ -47,5 +19,82 @@ Allow: /gdpr
 Allow: /cookies
 Allow: /status
 
-# Host directive
+# Allow language-specific pages
+Allow: /tr/
+Allow: /de/
+Allow: /fr/
+Allow: /es/
+Allow: /ru/
+Allow: /it/
+Allow: /pt/
+Allow: /ar/
+Allow: /zh/
+Allow: /ja/
+Allow: /ko/
+Allow: /nl/
+Allow: /pl/
+Allow: /hi/
+
+# ============================================
+# BLOCK BACKEND API COMPLETELY - DO NOT INDEX
+# ============================================
+User-agent: *
+Disallow: /api/
+Disallow: /api/*
+
+# Block admin areas
+Disallow: /admin/
+Disallow: /admin
+Disallow: /mumiixadmin/
+Disallow: /mumiixadmin
+
+# Block user dashboard (requires login)
+Disallow: /dashboard
+Disallow: /*/dashboard
+
+# Block sensitive routes
+Disallow: /.well-known/
+Disallow: /.git/
+Disallow: /.env
+Disallow: /node_modules/
+
+# ============================================
+# SPECIFIC BOT RULES
+# ============================================
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /mumiixadmin/
+Crawl-delay: 1
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /mumiixadmin/
+Crawl-delay: 2
+
+# Applebot (for Apple Search)
+User-agent: Applebot
+Allow: /
+Disallow: /api/
+Disallow: /mumiixadmin/
+
+# GPTBot (OpenAI)
+User-agent: GPTBot
+Disallow: /
+
+# CCBot (Common Crawl)
+User-agent: CCBot
+Disallow: /
+
+# ============================================
+# SITEMAP LOCATION
+# ============================================
+Sitemap: https://scanup.app/sitemap.xml
+
+# ============================================
+# HOST DIRECTIVE
+# ============================================
 Host: https://scanup.app
