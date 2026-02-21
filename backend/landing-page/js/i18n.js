@@ -1310,16 +1310,19 @@ const ScanUpI18n = {
     applyCommonTranslations() {
         const t = this.t.bind(this);
         
-        // Back to home link
-        const backLink = document.querySelector('.back-link');
-        if (backLink) {
-            const icon = backLink.querySelector('i');
-            if (icon) {
-                backLink.innerHTML = '';
-                backLink.appendChild(icon);
-                backLink.appendChild(document.createTextNode(' ' + t('back_to_home')));
+        // Back to home links (various formats)
+        document.querySelectorAll('.back-link, .back-btn, a[href="/"]').forEach(link => {
+            const text = link.textContent.trim();
+            if (text.includes('Back') || text.includes('Home') || text.includes('Ana Sayfa')) {
+                const icon = link.querySelector('i');
+                link.innerHTML = '';
+                if (icon) {
+                    link.appendChild(icon);
+                    link.appendChild(document.createTextNode(' '));
+                }
+                link.appendChild(document.createTextNode(t('back_to_home')));
             }
-        }
+        });
         
         // Footer copyright
         const footerCopyright = document.querySelector('.footer p, .footer-bottom p');
