@@ -84,7 +84,9 @@
     "docs_created": "Oluşturulan Belgeler",
     "pages_scanned": "Taranan Toplam Sayfa",
     "storage_used": "Kullanılan Depolama",
-    "security": "Güvenlik"
+    "security": "Güvenlik",
+    "login_method": "Giriş Yöntemi",
+    "last_login": "Son Giriş"
   },
   "docs": {
     "title": "Belgelerim",
