@@ -2087,8 +2087,10 @@
         /* Language Selector */
         .language-selector {
             position: relative;
+            margin-right: 1rem;
         }
         
+        .language-selector .lang-selector-btn,
         .language-btn {
             background: none;
             border: 1px solid var(--gray-300);
@@ -2100,36 +2102,63 @@
             gap: 0.5rem;
             font-size: 0.875rem;
             color: var(--gray-700);
+            transition: all 0.2s;
         }
         
+        .language-selector .lang-selector-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .language-selector .lang-flag {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        
+        .language-selector .lang-name {
+            font-weight: 500;
+        }
+        
+        .language-selector .lang-dropdown,
         .language-dropdown {
             position: absolute;
-            top: 100%;
+            top: calc(100% + 0.5rem);
             right: 0;
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.15);
             padding: 0.5rem;
-            min-width: 150px;
-            display: none;
-            z-index: 100;
+            min-width: 180px;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
         }
         
-        .language-dropdown.show {
-            display: block;
-        }
-        
+        .language-selector .lang-dropdown .lang-option,
         .language-dropdown a {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             padding: 0.75rem 1rem;
             color: var(--gray-700);
             text-decoration: none;
             border-radius: 8px;
             transition: background 0.2s;
+            cursor: pointer;
         }
         
+        .language-selector .lang-dropdown .lang-option:hover,
         .language-dropdown a:hover {
             background: var(--gray-100);
+        }
+        
+        .language-selector .lang-dropdown .lang-option.active {
+            background: rgba(62, 81, 251, 0.1);
+            color: var(--primary);
+        }
+        
+        .language-dropdown.show {
+            display: block;
         }
     </style>
 </head>
