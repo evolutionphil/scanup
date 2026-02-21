@@ -8983,6 +8983,13 @@ if os_module.path.exists(landing_page_path):
     if os_module.path.exists(images_path):
         app.mount("/images", StaticFiles(directory=images_path), name="landing-images")
         logger.info("✅ Landing images mounted at /images")
+    
+    # Mount locales directory for i18n JSON files
+    locales_path = os_module.path.join(landing_page_path, "locales")
+    if os_module.path.exists(locales_path):
+        app.mount("/locales", StaticFiles(directory=locales_path), name="landing-locales")
+        app.mount("/api/locales", StaticFiles(directory=locales_path), name="landing-locales-api")
+        logger.info("✅ Landing locales mounted at /locales and /api/locales")
 
 # Custom 404 handler - serve beautiful 404 page
 @app.exception_handler(404)
