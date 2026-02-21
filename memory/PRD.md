@@ -18,10 +18,10 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 | Landing (index) | ✅ | Full |
 | Dashboard | ✅ | Full (Login, sidebar, stats) |
 | Contact | ✅ | Full |
-| Privacy | ✅ | **FULL CONTENT** |
-| Terms | ✅ | **FULL CONTENT** |
-| Cookies | ✅ | **FULL CONTENT** |
-| GDPR | ✅ | **FULL CONTENT** |
+| Privacy | ✅ | **FULL CONTENT - ALL 15 LANGUAGES** |
+| Terms | ✅ | **FULL CONTENT - ALL 15 LANGUAGES** |
+| Cookies | ✅ | **FULL CONTENT - ALL 15 LANGUAGES** |
+| GDPR | ✅ | **FULL CONTENT - ALL 15 LANGUAGES** |
 | FAQ | ✅ | UI only |
 | Features | ✅ | UI only |
 | Pricing | ✅ | UI only |
@@ -30,6 +30,9 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 | Download | ✅ | UI only |
 | 404 | ✅ | Full |
 | Status | ✅ | Footer only |
+
+### Supported Languages (15)
+EN, TR, DE, FR, ES, RU, IT, PT, AR, ZH, JA, KO, NL, PL, HI
 
 ### SEO Implementation
 | Feature | Status |
@@ -58,11 +61,14 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 2. **PDF Export Fix** - User must test
 
 ### P1 - High Priority
-1. FAQ, Features, Pricing, Reviews full content translation
+1. FAQ, Features, Pricing, Reviews full content translation (UI done, main content needs translation)
 
 ### P2 - Medium Priority
 1. Share popup performance
 2. Offline mode
+
+### P3 - Blocked
+1. Admin dashboard routing on refresh (requires React rebuild with different base path)
 
 ---
 
@@ -71,11 +77,11 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 /app/backend/landing-page/
 ├── sitemap.xml        # Multi-lang sitemap
 ├── robots.txt         # SEO rules
-├── privacy.html       # Full i18n ✅
-├── terms.html         # Full i18n ✅
-├── cookies.html       # Full i18n ✅
-├── gdpr.html          # Full i18n ✅
-└── js/i18n.js         # All translations
+├── privacy.html       # Full i18n ✅ ALL 15 LANGUAGES
+├── terms.html         # Full i18n ✅ ALL 15 LANGUAGES
+├── cookies.html       # Full i18n ✅ ALL 15 LANGUAGES
+├── gdpr.html          # Full i18n ✅ ALL 15 LANGUAGES
+└── js/i18n.js         # All translations (monolithic file)
 ```
 
 ## Key API Endpoints
@@ -95,11 +101,37 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 ---
 
 ## Testing Notes
-- i18n tested via screenshots for TR, DE, EN
-- All 15 pages verified to have i18n script
-- Backend routes tested via curl
+- Legal pages (Privacy, Terms, Cookies, GDPR) tested in ES, JA, AR, HI
+- All 15 languages verified to have complete translations
+- Backend routes tested via screenshots
 
 ## Known Limitations
 - Google Sign-in button text cannot be translated (Google widget)
-- Legal page content (privacy, terms) is static - full translation requires manual effort
+- Admin panel routing on refresh causes 404 (requires React rebuild)
 - Preview environment requires `/api/pages/` prefix for routing
+- `i18n.js` is monolithic - refactoring to JSON files recommended for performance
+
+---
+
+## Completed This Session (Feb 21, 2026)
+- Added complete legal page translations (Privacy, Terms, Cookies, GDPR) for 11 remaining languages:
+  - Spanish (ES) ✅
+  - Russian (RU) ✅
+  - Italian (IT) ✅
+  - Portuguese (PT) ✅
+  - Arabic (AR) ✅
+  - Chinese (ZH) ✅
+  - Japanese (JA) ✅
+  - Korean (KO) ✅
+  - Dutch (NL) ✅
+  - Polish (PL) ✅
+  - Hindi (HI) ✅
+
+## 3rd Party Integrations
+- Apple App Store (IAP)
+- Google Play Store (IAP)
+- Railway (Deployment)
+
+## Credentials for Testing
+- **Admin Panel:** URL: `/mumiixadmin`, User: `admin@scanup.com`, Password: `Bita**2025#`
+  (Note: Only works in production-like environment, not preview due to refresh bug)
