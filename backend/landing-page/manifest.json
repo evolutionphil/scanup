@@ -2,19 +2,19 @@
   "name": "ScanUp - Document Scanner",
   "short_name": "ScanUp",
   "description": "The best free document scanner app. Scan documents to PDF, sign digitally, OCR text recognition.",
-  "start_url": "/",
+  "start_url": "https://scanup.app/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3E51FB",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "https://scanup.app/favicon.png",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "https://scanup.app/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
