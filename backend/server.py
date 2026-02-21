@@ -8721,11 +8721,13 @@ import os as os_module
 
 admin_static_path = os_module.path.join(os_module.path.dirname(__file__), "admin-static")
 if os_module.path.exists(admin_static_path):
-    # Mount static assets (JS, CSS)
+    # Mount static assets (JS, CSS) - for both paths
     app.mount("/mumiixadmin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
+    app.mount("/api/admin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets-api")
     
     # Serve admin settings page
     @app.get("/mumiixadmin/admin-settings")
+    @app.get("/api/admin/admin-settings")
     async def serve_admin_settings():
         settings_path = os_module.path.join(admin_static_path, "admin-settings.html")
         if os_module.path.exists(settings_path):
@@ -8742,7 +8744,17 @@ if os_module.path.exists(admin_static_path):
             return FileResponse(index_path)
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
     
-    logger.info("✅ Admin dashboard mounted at /mumiixadmin")
+    # Also serve admin dashboard via /api/admin for preview environment
+    @app.get("/api/admin")
+    @app.get("/api/admin/")
+    @app.get("/api/admin/{full_path:path}")
+    async def serve_admin_dashboard_api(full_path: str = ""):
+        index_path = os_module.path.join(admin_static_path, "index.html")
+        if os_module.path.exists(index_path):
+            return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="Admin dashboard not found")
+    
+    logger.info("✅ Admin dashboard mounted at /mumiixadmin and /api/admin")
 
 # Serve the landing page from root path (/)
 landing_page_path = os_module.path.join(os_module.path.dirname(__file__), "landing-page")
