@@ -31,7 +31,10 @@
     "login": "Login",
     "signup": "Sign Up",
     "dashboard": "Dashboard",
-    "logout": "Logout"
+    "logout": "Logout",
+    "web_dashboard": "Web Dashboard",
+    "how_it_works": "How It Works",
+    "login_signup": "Login / Sign Up"
   },
   "footer": {
     "copyright": "2025 ScanUp Inc. All rights reserved.",
