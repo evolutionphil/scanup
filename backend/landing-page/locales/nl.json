@@ -633,5 +633,28 @@
     "register_btn": "Account Maken",
     "or_continue": "of doorgaan met",
     "continue_apple": "Doorgaan met Apple"
+  },
+  "schema": {
+    "app_name": "ScanUp - Documentscanner",
+    "app_alternate_name": "ScanUp PDF Scanner",
+    "app_description": "ScanUp is de ultieme gratis documentscanner-app. Scan documenten naar PDF, voeg digitale handtekeningen toe, OCR-tekstherkenning en deel direct. Beschikbaar op iOS en Android zonder watermerken en onbeperkt scannen.",
+    "feature_list": [
+      "Documenten Scannen",
+      "PDF Export",
+      "Digitale Handtekeningen",
+      "OCR Tekstherkenning",
+      "Cloud Sync",
+      "Meerdere Pagina's",
+      "Beeldverbetering",
+      "Automatische Randdetectie",
+      "Delen via Email",
+      "Geen Watermerken"
+    ],
+    "faq_question_1": "Is ScanUp gratis?",
+    "faq_answer_1": "Ja, ScanUp is volledig gratis. Geen watermerken, geen advertenties en onbeperkt scannen.",
+    "faq_question_2": "Kan ik mijn documenten als PDF exporteren?",
+    "faq_answer_2": "Ja, je kunt gescande documenten met één tik naar PDF-formaat exporteren.",
+    "faq_question_3": "Op welke platforms is ScanUp beschikbaar?",
+    "faq_answer_3": "ScanUp is beschikbaar voor iOS en Android. Download van de App Store of Google Play."
   }
 }

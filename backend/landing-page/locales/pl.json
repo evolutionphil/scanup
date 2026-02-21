@@ -633,5 +633,28 @@
     "register_btn": "Utwórz Konto",
     "or_continue": "lub kontynuuj z",
     "continue_apple": "Kontynuuj z Apple"
+  },
+  "schema": {
+    "app_name": "ScanUp - Skaner Dokumentów",
+    "app_alternate_name": "ScanUp Skaner PDF",
+    "app_description": "ScanUp to najlepsza darmowa aplikacja do skanowania dokumentów. Skanuj dokumenty do PDF, dodawaj podpisy cyfrowe, rozpoznawanie OCR i udostępniaj natychmiast. Dostępna na iOS i Android bez znaków wodnych i nieograniczone skanowanie.",
+    "feature_list": [
+      "Skanowanie Dokumentów",
+      "Eksport PDF",
+      "Podpisy Cyfrowe",
+      "Rozpoznawanie OCR",
+      "Synchronizacja Chmury",
+      "Dokumenty Wielostronicowe",
+      "Ulepszanie Obrazu",
+      "Automatyczne Wykrywanie Krawędzi",
+      "Udostępnianie przez Email",
+      "Bez Znaków Wodnych"
+    ],
+    "faq_question_1": "Czy ScanUp jest darmowy?",
+    "faq_answer_1": "Tak, ScanUp jest całkowicie darmowy. Bez znaków wodnych, bez reklam i nieograniczone skanowanie.",
+    "faq_question_2": "Czy mogę eksportować dokumenty jako PDF?",
+    "faq_answer_2": "Tak, możesz eksportować zeskanowane dokumenty do formatu PDF jednym dotknięciem.",
+    "faq_question_3": "Na jakich platformach jest dostępny ScanUp?",
+    "faq_answer_3": "ScanUp jest dostępny na iOS i Android. Pobierz z App Store lub Google Play."
   }
 }

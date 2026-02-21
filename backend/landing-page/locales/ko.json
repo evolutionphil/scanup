@@ -633,5 +633,28 @@
     "register_btn": "계정 만들기",
     "or_continue": "또는 계속하기",
     "continue_apple": "Apple로 계속"
+  },
+  "schema": {
+    "app_name": "ScanUp - 문서 스캐너",
+    "app_alternate_name": "ScanUp PDF 스캐너",
+    "app_description": "ScanUp은 최고의 무료 문서 스캐너 앱입니다. 문서를 PDF로 스캔하고, 디지털 서명을 추가하고, OCR 텍스트 인식하고, 즉시 공유하세요. iOS와 Android에서 워터마크 없이 무제한 스캔 가능.",
+    "feature_list": [
+      "문서 스캔",
+      "PDF 내보내기",
+      "디지털 서명",
+      "OCR 텍스트 인식",
+      "클라우드 동기화",
+      "다중 페이지 문서",
+      "이미지 향상",
+      "자동 가장자리 감지",
+      "이메일로 공유",
+      "워터마크 없음"
+    ],
+    "faq_question_1": "ScanUp은 무료인가요?",
+    "faq_answer_1": "네, ScanUp은 완전 무료입니다. 워터마크 없음, 광고 없음, 무제한 스캔.",
+    "faq_question_2": "문서를 PDF로 내보낼 수 있나요?",
+    "faq_answer_2": "네, 한 번의 탭으로 스캔한 문서를 PDF 형식으로 내보낼 수 있습니다.",
+    "faq_question_3": "ScanUp은 어떤 플랫폼에서 사용할 수 있나요?",
+    "faq_answer_3": "ScanUp은 iOS와 Android에서 사용 가능합니다. App Store 또는 Google Play에서 다운로드하세요."
   }
 }

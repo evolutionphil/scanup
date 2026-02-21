@@ -417,5 +417,28 @@
     "register_btn": "创建账户",
     "or_continue": "或继续使用",
     "continue_apple": "使用Apple继续"
+  },
+  "schema": {
+    "app_name": "ScanUp - 文档扫描仪",
+    "app_alternate_name": "ScanUp PDF扫描仪",
+    "app_description": "ScanUp是终极免费文档扫描应用。扫描文档为PDF，添加数字签名，OCR文字识别，即时分享。iOS和Android均可使用，无水印，无限扫描。",
+    "feature_list": [
+      "文档扫描",
+      "PDF导出",
+      "数字签名",
+      "OCR文字识别",
+      "云同步",
+      "多页文档",
+      "图像增强",
+      "自动边缘检测",
+      "邮件分享",
+      "无水印"
+    ],
+    "faq_question_1": "ScanUp免费吗？",
+    "faq_answer_1": "是的，ScanUp完全免费。无水印、无广告、无限扫描。",
+    "faq_question_2": "我可以将文档导出为PDF吗？",
+    "faq_answer_2": "是的，您可以一键将扫描的文档导出为PDF格式。",
+    "faq_question_3": "ScanUp支持哪些平台？",
+    "faq_answer_3": "ScanUp支持iOS和Android。从App Store或Google Play下载。"
   }
 }

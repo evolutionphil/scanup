@@ -417,5 +417,28 @@
     "register_btn": "アカウント作成",
     "or_continue": "または続ける",
     "continue_apple": "Appleで続ける"
+  },
+  "schema": {
+    "app_name": "ScanUp - ドキュメントスキャナー",
+    "app_alternate_name": "ScanUp PDFスキャナー",
+    "app_description": "ScanUpは究極の無料ドキュメントスキャナーアプリです。ドキュメントをPDFにスキャン、デジタル署名を追加、OCRテキスト認識、即座に共有。透かしなし、無制限スキャンでiOSとAndroidで利用可能。",
+    "feature_list": [
+      "ドキュメントスキャン",
+      "PDFエクスポート",
+      "デジタル署名",
+      "OCRテキスト認識",
+      "クラウド同期",
+      "複数ページドキュメント",
+      "画像補正",
+      "自動エッジ検出",
+      "メールで共有",
+      "透かしなし"
+    ],
+    "faq_question_1": "ScanUpは無料ですか？",
+    "faq_answer_1": "はい、ScanUpは完全無料です。透かしなし、広告なし、無制限スキャン。",
+    "faq_question_2": "ドキュメントをPDFとしてエクスポートできますか？",
+    "faq_answer_2": "はい、ワンタップでスキャンしたドキュメントをPDF形式でエクスポートできます。",
+    "faq_question_3": "ScanUpはどのプラットフォームで利用できますか？",
+    "faq_answer_3": "ScanUpはiOSとAndroidで利用可能です。App StoreまたはGoogle Playからダウンロードしてください。"
   }
 }
