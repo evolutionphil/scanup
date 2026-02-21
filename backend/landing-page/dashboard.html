@@ -1867,24 +1867,24 @@
                 <div id="settingsPage" style="display: none;">
                     <div class="page-header">
                         <div>
-                            <h1>Settings</h1>
-                            <p>Customize your experience</p>
+                            <h1 data-i18n="settings.title">Settings</h1>
+                            <p data-i18n="settings.subtitle">Customize your experience</p>
                         </div>
                     </div>
                     
                     <div class="section">
-                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-bell" style="color: var(--primary); margin-right: 0.5rem;"></i> Notifications</h3>
-                        <p style="color: var(--gray-500); margin-bottom: 1rem;">Notification settings are managed in the mobile app.</p>
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-bell" style="color: var(--primary); margin-right: 0.5rem;"></i> <span data-i18n="settings.notifications">Notifications</span></h3>
+                        <p style="color: var(--gray-500); margin-bottom: 1rem;" data-i18n="settings.notifications_desc">Notification settings are managed in the mobile app.</p>
                         <a href="/#download" class="btn btn-secondary" style="width: auto; display: inline-flex;">
-                            <i class="fas fa-mobile-alt"></i> Open Mobile App
+                            <i class="fas fa-mobile-alt"></i> <span data-i18n="settings.open_mobile_app">Open Mobile App</span>
                         </a>
                     </div>
                     
                     <div class="section">
-                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-trash-alt" style="color: var(--danger); margin-right: 0.5rem;"></i> Danger Zone</h3>
-                        <p style="color: var(--gray-500); margin-bottom: 1rem;">Delete all your documents. This action cannot be undone.</p>
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-trash-alt" style="color: var(--danger); margin-right: 0.5rem;"></i> <span data-i18n="settings.danger_zone">Danger Zone</span></h3>
+                        <p style="color: var(--gray-500); margin-bottom: 1rem;" data-i18n="settings.danger_zone_desc">Delete all your documents. This action cannot be undone.</p>
                         <button class="btn" style="background: var(--danger); width: auto; display: inline-flex;" onclick="deleteAllDocuments()">
-                            <i class="fas fa-trash"></i> Delete All Documents
+                            <i class="fas fa-trash"></i> <span data-i18n="settings.delete_all_documents">Delete All Documents</span>
                         </button>
                     </div>
                 </div>
