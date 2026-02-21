@@ -10,6 +10,22 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
+## What's Been Implemented - Feb 21, 2026 (Session 2 - Part 3)
+
+### DASHBOARD LINK FIX ✅
+
+**Sorun:** Login butonuna tıklandığında 404 hatası alınıyordu (preview ortamında)
+
+**Çözüm:**
+- `getDashboardUrl()` helper fonksiyonu eklendi
+- Preview ortamında (`/api/` routes) dashboard linkleri otomatik olarak `/api/pages/dashboard`'a yönlendiriliyor
+- Production ortamında linkler `/dashboard` olarak kalıyor
+- `setInterval` ile dinamik olarak eklenen linkler de düzeltiliyor
+
+**Test Sonucu:** ✅ Dashboard login sayfası başarıyla yükleniyor
+
+---
+
 ## What's Been Implemented - Feb 21, 2026 (Session 2 - Part 2)
 
 ### ADDITIONAL FIXES ✅
