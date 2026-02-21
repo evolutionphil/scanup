@@ -50,20 +50,20 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
-            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> <span data-i18n="common.back_to_home">Back to Home</span></a>
         </div>
     </nav>
 
     <main class="main">
         <div class="download-container">
-            <h1>Download ScanUp</h1>
-            <p>Available on iOS and Android. Start scanning documents in seconds.</p>
+            <h1 data-i18n="download.hero_title">Download ScanUp</h1>
+            <p data-i18n="download.hero_subtitle">Available on iOS and Android. Start scanning documents in seconds.</p>
             
             <div class="platforms">
                 <div class="platform-card ios">
                     <i class="fab fa-apple"></i>
-                    <h3>iOS</h3>
-                    <p>Requires iOS 14.0 or later. Compatible with iPhone, iPad, and iPod touch.</p>
+                    <h3 data-i18n="download.ios_title">iOS App</h3>
+                    <p data-i18n="download.ios_desc">Requires iOS 14.0 or later</p>
                     <a href="#" class="store-btn">
                         <i class="fab fa-apple"></i>
                         <div class="store-btn-text">
@@ -74,8 +74,8 @@
                 </div>
                 <div class="platform-card android">
                     <i class="fab fa-android"></i>
-                    <h3>Android</h3>
-                    <p>Requires Android 8.0 or later. Works on phones and tablets.</p>
+                    <h3 data-i18n="download.android_title">Android App</h3>
+                    <p data-i18n="download.android_desc">Requires Android 8.0 or later</p>
                     <a href="#" class="store-btn">
                         <i class="fab fa-google-play"></i>
                         <div class="store-btn-text">
@@ -87,15 +87,15 @@
             </div>
             
             <div class="qr-section">
-                <h3>Scan to Download</h3>
-                <p>Use your phone's camera to scan the QR code</p>
+                <h3 data-i18n="download.qr_title">Scan QR Code</h3>
+                <p data-i18n="download.qr_subtitle">Point your phone camera at the QR code to download</p>
                 <div class="qr-code"><i class="fas fa-qrcode" style="font-size: 3rem;"></i></div>
             </div>
         </div>
     </main>
 
     <footer class="footer">
-        <p>&copy; 2025 ScanUp Inc. | <a href="/terms">Terms</a> | <a href="/privacy">Privacy</a></p>
+        <p>&copy; <span data-i18n="footer.copyright">2025 ScanUp Inc. All rights reserved.</span> | <a href="/terms" data-i18n="footer.terms">Terms</a> | <a href="/privacy" data-i18n="footer.privacy">Privacy</a></p>
     </footer>
     <!-- i18n - Multi-language support -->
     <script>
