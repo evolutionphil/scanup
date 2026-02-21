@@ -1270,7 +1270,7 @@ const ScanUpI18n = {
         const isRTL = this.languages.find(l => l.code === this.currentLang)?.rtl;
         document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
         
-        // Detect page type
+        // Detect page type and apply specific translations
         if (path.includes('dashboard')) {
             this.applyDashboardTranslations();
         } else if (path.includes('contact')) {
@@ -1285,6 +1285,20 @@ const ScanUpI18n = {
             this.applySupportPageTranslations();
         } else if (path.includes('404')) {
             this.apply404PageTranslations();
+        } else if (path.includes('cookies')) {
+            this.applyCookiesPageTranslations();
+        } else if (path.includes('download')) {
+            this.applyDownloadPageTranslations();
+        } else if (path.includes('features')) {
+            this.applyFeaturesPageTranslations();
+        } else if (path.includes('gdpr')) {
+            this.applyGdprPageTranslations();
+        } else if (path.includes('pricing')) {
+            this.applyPricingPageTranslations();
+        } else if (path.includes('reviews')) {
+            this.applyReviewsPageTranslations();
+        } else if (path.includes('status')) {
+            this.applyStatusPageTranslations();
         } else {
             this.applyLandingPageTranslations();
         }
