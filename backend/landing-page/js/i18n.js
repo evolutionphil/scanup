@@ -1519,11 +1519,284 @@ const ScanUpI18n = {
         return this.translations[key] || this.websiteTranslations['en'][key] || key;
     },
     
-    updatePageTitle() {
-        const isDashboard = window.location.pathname.includes('dashboard');
-        if (isDashboard) {
-            document.title = `${this.t('docs_title')} - ScanUp`;
+    // Get SEO data for current language
+    getSeoData(key) {
+        const langData = this.seoData[this.currentLang] || this.seoData['en'];
+        return langData[key] || this.seoData['en'][key] || '';
+    },
+    
+    // Get current page name from URL
+    getCurrentPageName() {
+        const path = window.location.pathname;
+        // Extract page name from various URL formats
+        const pageMatch = path.match(/\/([a-z0-9-]+)\.html$/i) || 
+                         path.match(/\/pages\/[a-z]{2}\/([a-z0-9-]+)\.html$/i) ||
+                         path.match(/\/pages\/([a-z0-9-]+)\.html$/i) ||
+                         path.match(/\/[a-z]{2}\/([a-z0-9-]+)$/i);
+        
+        if (pageMatch) {
+            return pageMatch[1];
         }
+        
+        // Check for specific pages
+        if (path.includes('dashboard')) return 'dashboard';
+        if (path.includes('contact')) return 'contact';
+        if (path.includes('faq')) return 'faq';
+        if (path.includes('privacy')) return 'privacy';
+        if (path.includes('terms')) return 'terms';
+        if (path.includes('support')) return 'support';
+        if (path.includes('features')) return 'features';
+        if (path.includes('pricing')) return 'pricing';
+        if (path.includes('reviews')) return 'reviews';
+        if (path.includes('download')) return 'download';
+        if (path.includes('cookies')) return 'cookies';
+        if (path.includes('gdpr')) return 'gdpr';
+        if (path.includes('status')) return 'status';
+        if (path.includes('404')) return '404';
+        
+        return 'index';
+    },
+    
+    updatePageTitle() {
+        const pageName = this.getCurrentPageName();
+        const seoTitle = this.getSeoData('page_title');
+        
+        // Set page-specific titles
+        if (pageName === 'dashboard') {
+            document.title = `${this.t('docs_title')} - ScanUp`;
+        } else if (pageName === 'contact') {
+            document.title = `${this.t('contact_title')} - ScanUp`;
+        } else if (pageName === 'faq') {
+            document.title = `${this.t('faq_page_title')} - ScanUp`;
+        } else if (pageName === 'privacy') {
+            document.title = `${this.t('privacy_title')} - ScanUp`;
+        } else if (pageName === 'terms') {
+            document.title = `${this.t('terms_title')} - ScanUp`;
+        } else if (pageName === 'support') {
+            document.title = `${this.t('support_title')} - ScanUp`;
+        } else if (pageName === 'features') {
+            document.title = `${this.t('features_title')} - ScanUp`;
+        } else if (pageName === 'pricing') {
+            document.title = `${this.t('pricing_title')} - ScanUp`;
+        } else if (pageName === 'reviews') {
+            document.title = `${this.t('testimonials_title')} - ScanUp`;
+        } else if (pageName === '404') {
+            document.title = `${this.t('page_not_found')} - ScanUp`;
+        } else {
+            // Landing page - use full SEO title
+            document.title = seoTitle;
+        }
+    },
+    
+    updateSEOMetaTags() {
+        const seoDescription = this.getSeoData('meta_description');
+        const ogTitle = this.getSeoData('og_title');
+        const ogDescription = this.getSeoData('og_description');
+        const lang = this.currentLang;
+        
+        // Update meta description
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+            metaDesc.setAttribute('content', seoDescription);
+        } else {
+            metaDesc = document.createElement('meta');
+            metaDesc.setAttribute('name', 'description');
+            metaDesc.setAttribute('content', seoDescription);
+            document.head.appendChild(metaDesc);
+        }
+        
+        // Update language meta
+        let metaLang = document.querySelector('meta[name="language"]');
+        if (metaLang) {
+            metaLang.setAttribute('content', this.languages.find(l => l.code === lang)?.name || 'English');
+        }
+        
+        let httpLang = document.querySelector('meta[http-equiv="content-language"]');
+        if (httpLang) {
+            httpLang.setAttribute('content', lang);
+        }
+        
+        // Update Open Graph tags
+        let ogTitleMeta = document.querySelector('meta[property="og:title"]');
+        if (ogTitleMeta) {
+            ogTitleMeta.setAttribute('content', ogTitle);
+        }
+        
+        let ogDescMeta = document.querySelector('meta[property="og:description"]');
+        if (ogDescMeta) {
+            ogDescMeta.setAttribute('content', ogDescription);
+        }
+        
+        // Update og:locale
+        const localeMap = {
+            'en': 'en_US', 'de': 'de_DE', 'fr': 'fr_FR', 'es': 'es_ES',
+            'tr': 'tr_TR', 'ru': 'ru_RU', 'it': 'it_IT', 'pt': 'pt_BR',
+            'ar': 'ar_SA', 'zh': 'zh_CN', 'ja': 'ja_JP', 'ko': 'ko_KR',
+            'nl': 'nl_NL', 'pl': 'pl_PL', 'hi': 'hi_IN'
+        };
+        let ogLocale = document.querySelector('meta[property="og:locale"]');
+        if (ogLocale) {
+            ogLocale.setAttribute('content', localeMap[lang] || 'en_US');
+        }
+        
+        // Update og:url to include language
+        let ogUrl = document.querySelector('meta[property="og:url"]');
+        if (ogUrl) {
+            const pageUrl = this.getCanonicalUrl();
+            ogUrl.setAttribute('content', pageUrl);
+        }
+        
+        // Update Twitter card
+        let twitterTitle = document.querySelector('meta[name="twitter:title"]');
+        if (twitterTitle) {
+            twitterTitle.setAttribute('content', ogTitle);
+        }
+        
+        let twitterDesc = document.querySelector('meta[name="twitter:description"]');
+        if (twitterDesc) {
+            twitterDesc.setAttribute('content', ogDescription);
+        }
+        
+        let twitterUrl = document.querySelector('meta[name="twitter:url"]');
+        if (twitterUrl) {
+            twitterUrl.setAttribute('content', this.getCanonicalUrl());
+        }
+    },
+    
+    getCanonicalUrl() {
+        const pageName = this.getCurrentPageName();
+        const lang = this.currentLang;
+        const baseUrl = this.BASE_URL;
+        
+        // Build canonical URL
+        if (pageName === 'index') {
+            return lang === 'en' ? `${baseUrl}/` : `${baseUrl}/${lang}/`;
+        } else {
+            return lang === 'en' ? `${baseUrl}/${pageName}` : `${baseUrl}/${lang}/${pageName}`;
+        }
+    },
+    
+    updateCanonicalAndHreflang() {
+        const pageName = this.getCurrentPageName();
+        const lang = this.currentLang;
+        const baseUrl = this.BASE_URL;
+        const canonicalUrl = this.getCanonicalUrl();
+        
+        // Update or create canonical link
+        let canonicalLink = document.querySelector('link[rel="canonical"]');
+        if (canonicalLink) {
+            canonicalLink.setAttribute('href', canonicalUrl);
+        } else {
+            canonicalLink = document.createElement('link');
+            canonicalLink.setAttribute('rel', 'canonical');
+            canonicalLink.setAttribute('href', canonicalUrl);
+            document.head.appendChild(canonicalLink);
+        }
+        
+        // Remove existing hreflang links
+        document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(el => el.remove());
+        
+        // Add hreflang links for all supported languages
+        this.languages.forEach(langInfo => {
+            const hreflangLink = document.createElement('link');
+            hreflangLink.setAttribute('rel', 'alternate');
+            hreflangLink.setAttribute('hreflang', langInfo.code);
+            
+            // Build language-specific URL
+            let langUrl;
+            if (pageName === 'index') {
+                langUrl = langInfo.code === 'en' ? `${baseUrl}/` : `${baseUrl}/${langInfo.code}/`;
+            } else {
+                langUrl = langInfo.code === 'en' ? `${baseUrl}/${pageName}` : `${baseUrl}/${langInfo.code}/${pageName}`;
+            }
+            
+            hreflangLink.setAttribute('href', langUrl);
+            document.head.appendChild(hreflangLink);
+        });
+        
+        // Add x-default hreflang (points to English)
+        const xDefaultLink = document.createElement('link');
+        xDefaultLink.setAttribute('rel', 'alternate');
+        xDefaultLink.setAttribute('hreflang', 'x-default');
+        xDefaultLink.setAttribute('href', pageName === 'index' ? `${baseUrl}/` : `${baseUrl}/${pageName}`);
+        document.head.appendChild(xDefaultLink);
+    },
+    
+    updateSchemaOrgData() {
+        const lang = this.currentLang;
+        const seoData = this.seoData[lang] || this.seoData['en'];
+        const baseUrl = this.BASE_URL;
+        const canonicalUrl = this.getCanonicalUrl();
+        
+        // Update existing schema.org scripts
+        document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+            try {
+                const data = JSON.parse(script.textContent);
+                
+                // Update Organization schema
+                if (data['@type'] === 'Organization') {
+                    data.description = seoData.schema_org_description;
+                    data.url = baseUrl;
+                    script.textContent = JSON.stringify(data, null, 8);
+                }
+                
+                // Update MobileApplication schema
+                if (data['@type'] === 'MobileApplication') {
+                    data.name = seoData.schema_app_name;
+                    data.description = seoData.schema_app_description;
+                    script.textContent = JSON.stringify(data, null, 8);
+                }
+                
+                // Update WebSite schema
+                if (data['@type'] === 'WebSite') {
+                    data.description = seoData.schema_org_description;
+                    data.url = baseUrl;
+                    script.textContent = JSON.stringify(data, null, 8);
+                }
+                
+                // Update FAQPage schema
+                if (data['@type'] === 'FAQPage' && data.mainEntity) {
+                    // Update FAQ questions and answers if we have them
+                    if (seoData.faq_q1) {
+                        const faqItems = [
+                            { q: seoData.faq_q1, a: seoData.faq_a1 },
+                            { q: seoData.faq_q2, a: seoData.faq_a2 },
+                            { q: seoData.faq_q3, a: seoData.faq_a3 },
+                            { q: seoData.faq_q4, a: seoData.faq_a4 },
+                        ];
+                        
+                        // Update existing FAQ items (up to 4)
+                        for (let i = 0; i < Math.min(faqItems.length, data.mainEntity.length); i++) {
+                            if (faqItems[i].q && faqItems[i].a) {
+                                data.mainEntity[i].name = faqItems[i].q;
+                                data.mainEntity[i].acceptedAnswer.text = faqItems[i].a;
+                            }
+                        }
+                        script.textContent = JSON.stringify(data, null, 8);
+                    }
+                }
+                
+                // Update BreadcrumbList schema with language
+                if (data['@type'] === 'BreadcrumbList' && data.itemListElement) {
+                    data.itemListElement.forEach(item => {
+                        if (item.item && item.item.startsWith(baseUrl)) {
+                            // Keep the URL but it's already correct for English
+                            // For other languages, we'd need to adjust
+                        }
+                    });
+                }
+                
+                // Update SoftwareApplication schema
+                if (data['@type'] === 'SoftwareApplication') {
+                    data.name = 'ScanUp';
+                    data.description = seoData.schema_app_description;
+                    script.textContent = JSON.stringify(data, null, 8);
+                }
+                
+            } catch (e) {
+                console.warn('Error updating schema.org data:', e);
+            }
+        });
     },
     
     applyTranslations() {
