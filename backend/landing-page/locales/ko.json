@@ -44,8 +44,8 @@
     "gdpr": "GDPR"
   },
   "index": {
-    "meta_title": "ScanUp - #1 Document Scanner App | Scan Documents Instantly",
-    "meta_description": "Transform your phone into a powerful document scanner. Scan, sign, and share documents instantly with ScanUp.",
+    "meta_title": "ScanUp - #1 무료 문서 스캐너 | PDF로 스캔",
+    "meta_description": "ScanUp은 #1 무료 문서 스캐너 앱입니다. 문서를 PDF로 스캔, 디지털 서명, OCR 텍스트 인식, 즉시 공유. iOS & Android 다운로드. 워터마크 없음, 무제한 스캔.",
     "hero_badge": "#1 Scanner App",
     "hero_title": "Scan Documents <span>Instantly</span> With Your Phone",
     "hero_description": "Transform your smartphone into a powerful document scanner. Scan, sign, and share documents in seconds.",
@@ -117,7 +117,9 @@
     "get_it_on": "에서 받기",
     "footer_tagline": "문서를 스캔, 서명, 공유하는 가장 스마트한 방법. iOS 및 Android에서 사용 가능.",
     "footer_product": "제품",
-    "footer_legal": "법적 정보"
+    "footer_legal": "법적 정보",
+    "og_title": "ScanUp - 휴대폰으로 즉시 문서 스캔",
+    "og_description": "스마트폰을 강력한 문서 스캐너로 변환하세요. 몇 초 만에 문서를 스캔, 서명, 공유하세요. iOS & Android 무료."
   },
   "dashboard": {
     "meta_title": "Dashboard - ScanUp | Access Your Documents",

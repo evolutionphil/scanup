@@ -44,8 +44,8 @@
     "gdpr": "KVKK"
   },
   "index": {
-    "meta_title": "ScanUp - #1 Belge Tarayıcı Uygulaması | Belgeleri Anında Tarayın",
-    "meta_description": "Telefonunuzu güçlü bir belge tarayıcısına dönüştürün. ScanUp ile belgeleri anında tarayın, imzalayın ve paylaşın.",
+    "meta_title": "ScanUp - #1 Ücretsiz Belge Tarayıcı | PDF'e Tara",
+    "meta_description": "ScanUp, #1 ücretsiz belge tarayıcı uygulamasıdır. Belgeleri PDF'e tarayın, dijital imza atın, OCR metin tanıma ve anında paylaşın. iOS ve Android için indirin. Filigran yok, sınırsız tarama.",
     "hero_badge": "#1 Tarayıcı Uygulaması",
     "hero_title": "Telefonunuzla Belgeleri <span>Anında</span> Tarayın",
     "hero_description": "Akıllı telefonunuzu güçlü bir belge tarayıcısına dönüştürün. Belgeleri saniyeler içinde tarayın, imzalayın ve paylaşın.",
@@ -117,7 +117,9 @@
     "get_it_on": "Al:",
     "footer_tagline": "Belgeleri taramanın, imzalamanın ve paylaşmanın en akıllı yolu. iOS ve Android'de mevcut.",
     "footer_product": "Ürün",
-    "footer_legal": "Yasal"
+    "footer_legal": "Yasal",
+    "og_title": "ScanUp - Telefonunuzla Belgeleri Anında Tarayın",
+    "og_description": "Akıllı telefonunuzu güçlü bir belge tarayıcısına dönüştürün. Belgeleri saniyeler içinde tarayın, imzalayın ve paylaşın. iOS ve Android için ücretsiz."
   },
   "dashboard": {
     "meta_title": "Panel - ScanUp | Belgelerinize Erişin",

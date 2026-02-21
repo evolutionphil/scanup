@@ -44,8 +44,8 @@
     "gdpr": "GDPR"
   },
   "index": {
-    "meta_title": "ScanUp - #1 Document Scanner App | Scan Documents Instantly",
-    "meta_description": "Transform your phone into a powerful document scanner. Scan, sign, and share documents instantly with ScanUp.",
+    "meta_title": "ScanUp - #1 मुफ्त दस्तावेज़ स्कैनर | PDF में स्कैन करें",
+    "meta_description": "ScanUp #1 मुफ्त दस्तावेज़ स्कैनर ऐप है। दस्तावेज़ों को PDF में स्कैन करें, डिजिटल हस्ताक्षर करें, OCR टेक्स्ट पहचान और तुरंत साझा करें। iOS और Android के लिए डाउनलोड करें। कोई वॉटरमार्क नहीं, असीमित स्कैन।",
     "hero_badge": "#1 Scanner App",
     "hero_title": "Scan Documents <span>Instantly</span> With Your Phone",
     "hero_description": "Transform your smartphone into a powerful document scanner. Scan, sign, and share documents in seconds.",
@@ -117,7 +117,9 @@
     "get_it_on": "पर पाएं",
     "footer_tagline": "दस्तावेज़ों को स्कैन, साइन और शेयर करने का सबसे स्मार्ट तरीका। iOS और Android पर उपलब्ध।",
     "footer_product": "उत्पाद",
-    "footer_legal": "कानूनी"
+    "footer_legal": "कानूनी",
+    "og_title": "ScanUp - अपने फोन से तुरंत दस्तावेज़ स्कैन करें",
+    "og_description": "अपने स्मार्टफोन को एक शक्तिशाली दस्तावेज़ स्कैनर में बदलें। सेकंड में दस्तावेज़ स्कैन करें, साइन करें और साझा करें। iOS और Android के लिए मुफ्त।"
   },
   "dashboard": {
     "meta_title": "Dashboard - ScanUp | Access Your Documents",

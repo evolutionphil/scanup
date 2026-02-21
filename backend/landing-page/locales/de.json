@@ -44,8 +44,8 @@
     "gdpr": "DSGVO"
   },
   "index": {
-    "meta_title": "ScanUp - #1 Dokumentenscanner App | Dokumente sofort scannen",
-    "meta_description": "Verwandeln Sie Ihr Handy in einen leistungsstarken Dokumentenscanner. Mit ScanUp Dokumente sofort scannen, unterschreiben und teilen.",
+    "meta_title": "ScanUp - #1 Kostenloser Dokumentenscanner | Scannen zu PDF",
+    "meta_description": "ScanUp ist die #1 kostenlose Dokumentenscanner-App. Scannen Sie Dokumente zu PDF, unterschreiben Sie digital, OCR-Texterkennung und teilen Sie sofort. Download für iOS & Android. Keine Wasserzeichen, unbegrenzte Scans.",
     "hero_badge": "#1 Scanner App",
     "hero_title": "Scannen Sie Dokumente <span>Sofort</span> mit Ihrem Handy",
     "hero_description": "Verwandeln Sie Ihr Smartphone in einen leistungsstarken Dokumentenscanner. Scannen, unterschreiben und teilen Sie Dokumente in Sekunden.",
@@ -117,7 +117,9 @@
     "get_it_on": "Jetzt bei",
     "footer_tagline": "Der intelligenteste Weg, Dokumente zu scannen, zu signieren und zu teilen. Verfügbar für iOS und Android.",
     "footer_product": "Produkt",
-    "footer_legal": "Rechtliches"
+    "footer_legal": "Rechtliches",
+    "og_title": "ScanUp - Scannen Sie Dokumente Sofort mit Ihrem Handy",
+    "og_description": "Verwandeln Sie Ihr Smartphone in einen leistungsstarken Dokumentenscanner. Scannen, unterschreiben und teilen Sie Dokumente in Sekunden. Kostenlos für iOS & Android."
   },
   "dashboard": {
     "meta_title": "Dashboard - ScanUp | Zugriff auf Ihre Dokumente",

@@ -44,8 +44,8 @@
     "gdpr": "GDPR"
   },
   "index": {
-    "meta_title": "ScanUp - #1 文档扫描器应用 | 即时扫描文档",
-    "meta_description": "将您的手机变成强大的文档扫描器。使用ScanUp即时扫描、签名和分享文档。",
+    "meta_title": "ScanUp - #1 免费文档扫描仪 | 扫描到PDF",
+    "meta_description": "ScanUp是#1免费文档扫描应用。将文档扫描为PDF，数字签名，OCR文字识别，即时分享。下载iOS和Android版。无水印，无限扫描。",
     "hero_badge": "#1 扫描器应用",
     "hero_title": "用手机<span>即时</span>扫描文档",
     "hero_description": "将智能手机变成强大的文档扫描器。几秒钟内扫描、签名和分享文档。",
@@ -115,7 +115,9 @@
     "get_it_on": "获取于",
     "footer_tagline": "扫描、签名和分享文档的最智能方式。iOS和Android均可使用。",
     "footer_product": "产品",
-    "footer_legal": "法律"
+    "footer_legal": "法律",
+    "og_title": "ScanUp - 用手机即时扫描文档",
+    "og_description": "将您的智能手机变成强大的文档扫描仪。几秒钟内扫描、签名和分享文档。iOS和Android免费。"
   },
   "dashboard": {
     "meta_title": "仪表板 - ScanUp | 访问您的文档",

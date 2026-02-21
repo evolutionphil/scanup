@@ -44,8 +44,8 @@
     "gdpr": "GDPR"
   },
   "index": {
-    "meta_title": "ScanUp - #1 Document Scanner App | Scan Documents Instantly",
-    "meta_description": "Transform your phone into a powerful document scanner. Scan, sign, and share documents instantly with ScanUp.",
+    "meta_title": "ScanUp - #1 Free Document Scanner App | Scan to PDF",
+    "meta_description": "ScanUp is the #1 free document scanner app. Scan documents to PDF, sign digitally, OCR text recognition, and share instantly. Download for iOS & Android. No watermarks, unlimited scans.",
     "hero_badge": "#1 Scanner App",
     "hero_title": "Scan Documents <span>Instantly</span> With Your Phone",
     "hero_description": "Transform your smartphone into a powerful document scanner. Scan, sign, and share documents in seconds.",
@@ -117,7 +117,9 @@
     "get_it_on": "Get it on",
     "footer_tagline": "The smartest way to scan, sign, and share documents. Available on iOS and Android.",
     "footer_product": "Product",
-    "footer_legal": "Legal"
+    "footer_legal": "Legal",
+    "og_title": "ScanUp - Scan Documents Instantly With Your Phone",
+    "og_description": "Transform your phone into a powerful document scanner. Scan, sign, OCR, and share documents instantly. Free for iOS & Android."
   },
   "dashboard": {
     "meta_title": "Dashboard - ScanUp | Access Your Documents",

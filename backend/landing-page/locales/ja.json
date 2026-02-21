@@ -44,8 +44,8 @@
     "gdpr": "GDPR"
   },
   "index": {
-    "meta_title": "ScanUp - #1 ドキュメントスキャナーアプリ | 瞬時にスキャン",
-    "meta_description": "スマートフォンを強力なドキュメントスキャナーに。ScanUpで瞬時にスキャン、署名、共有。",
+    "meta_title": "ScanUp - #1 無料ドキュメントスキャナー | PDFにスキャン",
+    "meta_description": "ScanUpは#1の無料ドキュメントスキャナーアプリです。ドキュメントをPDFにスキャン、デジタル署名、OCRテキスト認識、即座に共有。iOS & Androidでダウンロード。透かしなし、無制限スキャン。",
     "hero_badge": "#1 スキャナーアプリ",
     "hero_title": "スマホで<span>瞬時に</span>ドキュメントをスキャン",
     "hero_description": "スマートフォンを強力なドキュメントスキャナーに変換。数秒でスキャン、署名、共有。",
@@ -115,7 +115,9 @@
     "get_it_on": "で入手",
     "footer_tagline": "文書をスキャン、署名、共有する最もスマートな方法。iOSとAndroidで利用可能。",
     "footer_product": "製品",
-    "footer_legal": "法的情報"
+    "footer_legal": "法的情報",
+    "og_title": "ScanUp - スマホで瞬時にドキュメントをスキャン",
+    "og_description": "スマートフォンを強力なドキュメントスキャナーに変換。数秒でドキュメントをスキャン、署名、共有。iOS & Android無料。"
   },
   "dashboard": {
     "meta_title": "ダッシュボード - ScanUp | ドキュメントにアクセス",

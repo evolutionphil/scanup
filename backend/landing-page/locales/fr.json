@@ -44,8 +44,8 @@
     "gdpr": "RGPD"
   },
   "index": {
-    "meta_title": "ScanUp - Application Scanner de Documents #1 | Numérisez Instantanément",
-    "meta_description": "Transformez votre téléphone en un puissant scanner de documents. Numérisez, signez et partagez des documents instantanément avec ScanUp.",
+    "meta_title": "ScanUp - #1 Scanner de Documents Gratuit | Numériser en PDF",
+    "meta_description": "ScanUp est l'application #1 de scanner de documents gratuite. Numérisez des documents en PDF, signez numériquement, reconnaissance OCR et partagez instantanément. Téléchargez pour iOS & Android. Sans filigrane, scans illimités.",
     "hero_badge": "Application Scanner #1",
     "hero_title": "Numérisez des Documents <span>Instantanément</span> Avec Votre Téléphone",
     "hero_description": "Transformez votre smartphone en un puissant scanner de documents. Numérisez, signez et partagez des documents en quelques secondes.",
@@ -117,7 +117,9 @@
     "get_it_on": "Disponible sur",
     "footer_tagline": "La façon la plus intelligente de numériser, signer et partager des documents. Disponible sur iOS et Android.",
     "footer_product": "Produit",
-    "footer_legal": "Juridique"
+    "footer_legal": "Juridique",
+    "og_title": "ScanUp - Numérisez des Documents Instantanément avec Votre Téléphone",
+    "og_description": "Transformez votre smartphone en un puissant scanner de documents. Numérisez, signez et partagez des documents en quelques secondes. Gratuit pour iOS & Android."
   },
   "dashboard": {
     "meta_title": "Tableau de Bord - ScanUp | Accédez à Vos Documents",

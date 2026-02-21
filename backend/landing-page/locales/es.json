@@ -44,8 +44,8 @@
     "gdpr": "RGPD"
   },
   "index": {
-    "meta_title": "ScanUp - App Escáner de Documentos #1 | Escanea Documentos al Instante",
-    "meta_description": "Transforma tu teléfono en un potente escáner de documentos. Escanea, firma y comparte documentos al instante con ScanUp.",
+    "meta_title": "ScanUp - #1 Escáner de Documentos Gratis | Escanear a PDF",
+    "meta_description": "ScanUp es la aplicación #1 gratuita de escáner de documentos. Escanee documentos a PDF, firme digitalmente, reconocimiento OCR y comparta al instante. Descargue para iOS y Android. Sin marcas de agua, escaneos ilimitados.",
     "hero_badge": "App Escáner #1",
     "hero_title": "Escanea Documentos <span>Al Instante</span> Con Tu Teléfono",
     "hero_description": "Transforma tu smartphone en un potente escáner de documentos. Escanea, firma y comparte documentos en segundos.",
@@ -117,7 +117,9 @@
     "get_it_on": "Disponible en",
     "footer_tagline": "La forma más inteligente de escanear, firmar y compartir documentos. Disponible en iOS y Android.",
     "footer_product": "Producto",
-    "footer_legal": "Legal"
+    "footer_legal": "Legal",
+    "og_title": "ScanUp - Escanea Documentos al Instante con tu Teléfono",
+    "og_description": "Transforma tu smartphone en un potente escáner de documentos. Escanea, firma y comparte documentos en segundos. Gratis para iOS y Android."
   },
   "dashboard": {
     "meta_title": "Panel - ScanUp | Accede a Tus Documentos",
