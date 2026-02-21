@@ -600,5 +600,38 @@
     "security": "Bezpieczeństwo",
     "login_method": "Metoda Logowania",
     "last_login": "Ostatnie Logowanie"
+  },
+  "docs": {
+    "title": "Moje Dokumenty",
+    "subtitle": "Przeglądaj i zarządzaj wszystkimi zeskanowanymi dokumentami",
+    "search_placeholder": "Szukaj dokumentów...",
+    "stat_documents": "Dokumenty",
+    "stat_pages": "Strony",
+    "stat_storage": "Pamięć",
+    "stat_this_month": "Ten Miesiąc",
+    "all_documents": "Wszystkie Dokumenty",
+    "folders": "Foldery",
+    "new_folder": "Nowy Folder",
+    "refresh": "Odśwież",
+    "sort_newest": "Najnowsze",
+    "sort_oldest": "Najstarsze",
+    "sort_name_asc": "Nazwa A-Z",
+    "sort_name_desc": "Nazwa Z-A"
+  },
+  "auth": {
+    "access_docs": "Dostęp do dokumentów z każdego miejsca",
+    "tab_login": "Zaloguj",
+    "tab_register": "Zarejestruj",
+    "email": "Email",
+    "email_placeholder": "ty@przykład.com",
+    "password": "Hasło",
+    "password_placeholder": "••••••••",
+    "password_min": "Min 6 znaków",
+    "full_name": "Pełne Imię",
+    "name_placeholder": "Jan Kowalski",
+    "login_btn": "Zaloguj",
+    "register_btn": "Utwórz Konto",
+    "or_continue": "lub kontynuuj z",
+    "continue_apple": "Kontynuuj z Apple"
   }
 }

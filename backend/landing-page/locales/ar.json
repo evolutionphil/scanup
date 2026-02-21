@@ -410,5 +410,38 @@
     "security": "الأمان",
     "login_method": "طريقة الدخول",
     "last_login": "آخر تسجيل دخول"
+  },
+  "docs": {
+    "title": "مستنداتي",
+    "subtitle": "عرض وإدارة جميع مستنداتك الممسوحة",
+    "search_placeholder": "البحث في المستندات...",
+    "stat_documents": "المستندات",
+    "stat_pages": "الصفحات",
+    "stat_storage": "التخزين",
+    "stat_this_month": "هذا الشهر",
+    "all_documents": "جميع المستندات",
+    "folders": "المجلدات",
+    "new_folder": "مجلد جديد",
+    "refresh": "تحديث",
+    "sort_newest": "الأحدث أولاً",
+    "sort_oldest": "الأقدم أولاً",
+    "sort_name_asc": "الاسم أ-ي",
+    "sort_name_desc": "الاسم ي-أ"
+  },
+  "auth": {
+    "access_docs": "الوصول إلى مستنداتك من أي مكان",
+    "tab_login": "تسجيل الدخول",
+    "tab_register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "email_placeholder": "انت@مثال.com",
+    "password": "كلمة المرور",
+    "password_placeholder": "••••••••",
+    "password_min": "6 أحرف كحد أدنى",
+    "full_name": "الاسم الكامل",
+    "name_placeholder": "محمد أحمد",
+    "login_btn": "دخول",
+    "register_btn": "إنشاء حساب",
+    "or_continue": "أو تابع مع",
+    "continue_apple": "المتابعة مع Apple"
   }
 }

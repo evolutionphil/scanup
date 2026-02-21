@@ -384,5 +384,38 @@
     "security": "セキュリティ",
     "login_method": "ログイン方法",
     "last_login": "最終ログイン"
+  },
+  "docs": {
+    "title": "マイドキュメント",
+    "subtitle": "スキャンしたすべてのドキュメントを表示・管理",
+    "search_placeholder": "ドキュメントを検索...",
+    "stat_documents": "ドキュメント",
+    "stat_pages": "ページ",
+    "stat_storage": "ストレージ",
+    "stat_this_month": "今月",
+    "all_documents": "すべてのドキュメント",
+    "folders": "フォルダ",
+    "new_folder": "新規フォルダ",
+    "refresh": "更新",
+    "sort_newest": "新しい順",
+    "sort_oldest": "古い順",
+    "sort_name_asc": "名前 A-Z",
+    "sort_name_desc": "名前 Z-A"
+  },
+  "auth": {
+    "access_docs": "どこからでもドキュメントにアクセス",
+    "tab_login": "ログイン",
+    "tab_register": "登録",
+    "email": "メール",
+    "email_placeholder": "あなた@例.com",
+    "password": "パスワード",
+    "password_placeholder": "••••••••",
+    "password_min": "6文字以上",
+    "full_name": "氏名",
+    "name_placeholder": "山田太郎",
+    "login_btn": "ログイン",
+    "register_btn": "アカウント作成",
+    "or_continue": "または続ける",
+    "continue_apple": "Appleで続ける"
   }
 }

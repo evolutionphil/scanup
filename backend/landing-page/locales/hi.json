@@ -600,5 +600,38 @@
     "security": "सुरक्षा",
     "login_method": "लॉगिन विधि",
     "last_login": "अंतिम लॉगिन"
+  },
+  "docs": {
+    "title": "मेरे दस्तावेज़",
+    "subtitle": "अपने सभी स्कैन किए गए दस्तावेज़ देखें और प्रबंधित करें",
+    "search_placeholder": "दस्तावेज़ खोजें...",
+    "stat_documents": "दस्तावेज़",
+    "stat_pages": "पृष्ठ",
+    "stat_storage": "संग्रहण",
+    "stat_this_month": "इस महीने",
+    "all_documents": "सभी दस्तावेज़",
+    "folders": "फ़ोल्डर",
+    "new_folder": "नया फ़ोल्डर",
+    "refresh": "रीफ्रेश",
+    "sort_newest": "नवीनतम पहले",
+    "sort_oldest": "सबसे पुराना पहले",
+    "sort_name_asc": "नाम अ-ज्ञ",
+    "sort_name_desc": "नाम ज्ञ-अ"
+  },
+  "auth": {
+    "access_docs": "कहीं से भी अपने दस्तावेज़ एक्सेस करें",
+    "tab_login": "लॉगिन",
+    "tab_register": "रजिस्टर",
+    "email": "ईमेल",
+    "email_placeholder": "आप@उदाहरण.com",
+    "password": "पासवर्ड",
+    "password_placeholder": "••••••••",
+    "password_min": "न्यूनतम 6 अक्षर",
+    "full_name": "पूरा नाम",
+    "name_placeholder": "राम कुमार",
+    "login_btn": "लॉगिन",
+    "register_btn": "खाता बनाएं",
+    "or_continue": "या जारी रखें",
+    "continue_apple": "Apple के साथ जारी रखें"
   }
 }

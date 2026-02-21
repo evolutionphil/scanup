@@ -384,5 +384,38 @@
     "security": "Безопасность",
     "login_method": "Метод Входа",
     "last_login": "Последний Вход"
+  },
+  "docs": {
+    "title": "Мои Документы",
+    "subtitle": "Просмотр и управление всеми отсканированными документами",
+    "search_placeholder": "Поиск документов...",
+    "stat_documents": "Документы",
+    "stat_pages": "Страницы",
+    "stat_storage": "Хранилище",
+    "stat_this_month": "Этот Месяц",
+    "all_documents": "Все Документы",
+    "folders": "Папки",
+    "new_folder": "Новая Папка",
+    "refresh": "Обновить",
+    "sort_newest": "Сначала новые",
+    "sort_oldest": "Сначала старые",
+    "sort_name_asc": "Имя А-Я",
+    "sort_name_desc": "Имя Я-А"
+  },
+  "auth": {
+    "access_docs": "Доступ к документам откуда угодно",
+    "tab_login": "Вход",
+    "tab_register": "Регистрация",
+    "email": "Email",
+    "email_placeholder": "вы@пример.com",
+    "password": "Пароль",
+    "password_placeholder": "••••••••",
+    "password_min": "Мин 6 символов",
+    "full_name": "Полное Имя",
+    "name_placeholder": "Иван Иванов",
+    "login_btn": "Войти",
+    "register_btn": "Создать Аккаунт",
+    "or_continue": "или продолжить с",
+    "continue_apple": "Продолжить с Apple"
   }
 }

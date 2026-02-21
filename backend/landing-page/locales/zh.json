@@ -384,5 +384,38 @@
     "security": "安全",
     "login_method": "登录方式",
     "last_login": "上次登录"
+  },
+  "docs": {
+    "title": "我的文档",
+    "subtitle": "查看和管理所有扫描的文档",
+    "search_placeholder": "搜索文档...",
+    "stat_documents": "文档",
+    "stat_pages": "页面",
+    "stat_storage": "存储",
+    "stat_this_month": "本月",
+    "all_documents": "所有文档",
+    "folders": "文件夹",
+    "new_folder": "新建文件夹",
+    "refresh": "刷新",
+    "sort_newest": "最新优先",
+    "sort_oldest": "最旧优先",
+    "sort_name_asc": "名称 A-Z",
+    "sort_name_desc": "名称 Z-A"
+  },
+  "auth": {
+    "access_docs": "随时随地访问您的文档",
+    "tab_login": "登录",
+    "tab_register": "注册",
+    "email": "邮箱",
+    "email_placeholder": "你@例子.com",
+    "password": "密码",
+    "password_placeholder": "••••••••",
+    "password_min": "至少6个字符",
+    "full_name": "全名",
+    "name_placeholder": "张三",
+    "login_btn": "登录",
+    "register_btn": "创建账户",
+    "or_continue": "或继续使用",
+    "continue_apple": "使用Apple继续"
   }
 }

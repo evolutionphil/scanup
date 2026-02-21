@@ -410,5 +410,38 @@
     "security": "Seguridad",
     "login_method": "Método de Inicio de Sesión",
     "last_login": "Último Inicio de Sesión"
+  },
+  "docs": {
+    "title": "Mis Documentos",
+    "subtitle": "Ver y gestionar todos tus documentos escaneados",
+    "search_placeholder": "Buscar documentos...",
+    "stat_documents": "Documentos",
+    "stat_pages": "Páginas",
+    "stat_storage": "Almacenamiento",
+    "stat_this_month": "Este Mes",
+    "all_documents": "Todos los Documentos",
+    "folders": "Carpetas",
+    "new_folder": "Nueva Carpeta",
+    "refresh": "Actualizar",
+    "sort_newest": "Más recientes",
+    "sort_oldest": "Más antiguos",
+    "sort_name_asc": "Nombre A-Z",
+    "sort_name_desc": "Nombre Z-A"
+  },
+  "auth": {
+    "access_docs": "Accede a tus documentos desde cualquier lugar",
+    "tab_login": "Iniciar Sesión",
+    "tab_register": "Registrarse",
+    "email": "Correo",
+    "email_placeholder": "tu@ejemplo.com",
+    "password": "Contraseña",
+    "password_placeholder": "••••••••",
+    "password_min": "Mín 6 caracteres",
+    "full_name": "Nombre Completo",
+    "name_placeholder": "Juan Pérez",
+    "login_btn": "Iniciar Sesión",
+    "register_btn": "Crear Cuenta",
+    "or_continue": "o continuar con",
+    "continue_apple": "Continuar con Apple"
   }
 }

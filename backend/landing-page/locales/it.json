@@ -600,5 +600,38 @@
     "security": "Sicurezza",
     "login_method": "Metodo di Accesso",
     "last_login": "Ultimo Accesso"
+  },
+  "docs": {
+    "title": "I Miei Documenti",
+    "subtitle": "Visualizza e gestisci tutti i tuoi documenti scansionati",
+    "search_placeholder": "Cerca documenti...",
+    "stat_documents": "Documenti",
+    "stat_pages": "Pagine",
+    "stat_storage": "Spazio",
+    "stat_this_month": "Questo Mese",
+    "all_documents": "Tutti i Documenti",
+    "folders": "Cartelle",
+    "new_folder": "Nuova Cartella",
+    "refresh": "Aggiorna",
+    "sort_newest": "Più recenti",
+    "sort_oldest": "Più vecchi",
+    "sort_name_asc": "Nome A-Z",
+    "sort_name_desc": "Nome Z-A"
+  },
+  "auth": {
+    "access_docs": "Accedi ai tuoi documenti ovunque",
+    "tab_login": "Accedi",
+    "tab_register": "Registrati",
+    "email": "Email",
+    "email_placeholder": "tu@esempio.com",
+    "password": "Password",
+    "password_placeholder": "••••••••",
+    "password_min": "Min 6 caratteri",
+    "full_name": "Nome Completo",
+    "name_placeholder": "Mario Rossi",
+    "login_btn": "Accedi",
+    "register_btn": "Crea Account",
+    "or_continue": "o continua con",
+    "continue_apple": "Continua con Apple"
   }
 }

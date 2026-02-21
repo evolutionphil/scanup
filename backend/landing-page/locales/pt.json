@@ -600,5 +600,38 @@
     "security": "Segurança",
     "login_method": "Método de Login",
     "last_login": "Último Login"
+  },
+  "docs": {
+    "title": "Meus Documentos",
+    "subtitle": "Veja e gerencie todos os seus documentos digitalizados",
+    "search_placeholder": "Pesquisar documentos...",
+    "stat_documents": "Documentos",
+    "stat_pages": "Páginas",
+    "stat_storage": "Armazenamento",
+    "stat_this_month": "Este Mês",
+    "all_documents": "Todos os Documentos",
+    "folders": "Pastas",
+    "new_folder": "Nova Pasta",
+    "refresh": "Atualizar",
+    "sort_newest": "Mais recentes",
+    "sort_oldest": "Mais antigos",
+    "sort_name_asc": "Nome A-Z",
+    "sort_name_desc": "Nome Z-A"
+  },
+  "auth": {
+    "access_docs": "Acesse seus documentos de qualquer lugar",
+    "tab_login": "Entrar",
+    "tab_register": "Cadastrar",
+    "email": "Email",
+    "email_placeholder": "voce@exemplo.com",
+    "password": "Senha",
+    "password_placeholder": "••••••••",
+    "password_min": "Mín 6 caracteres",
+    "full_name": "Nome Completo",
+    "name_placeholder": "João Silva",
+    "login_btn": "Entrar",
+    "register_btn": "Criar Conta",
+    "or_continue": "ou continue com",
+    "continue_apple": "Continuar com Apple"
   }
 }

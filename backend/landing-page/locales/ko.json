@@ -600,5 +600,38 @@
     "security": "보안",
     "login_method": "로그인 방법",
     "last_login": "마지막 로그인"
+  },
+  "docs": {
+    "title": "내 문서",
+    "subtitle": "스캔한 모든 문서 보기 및 관리",
+    "search_placeholder": "문서 검색...",
+    "stat_documents": "문서",
+    "stat_pages": "페이지",
+    "stat_storage": "저장공간",
+    "stat_this_month": "이번 달",
+    "all_documents": "모든 문서",
+    "folders": "폴더",
+    "new_folder": "새 폴더",
+    "refresh": "새로고침",
+    "sort_newest": "최신순",
+    "sort_oldest": "오래된순",
+    "sort_name_asc": "이름 가-하",
+    "sort_name_desc": "이름 하-가"
+  },
+  "auth": {
+    "access_docs": "어디서나 문서에 접근",
+    "tab_login": "로그인",
+    "tab_register": "회원가입",
+    "email": "이메일",
+    "email_placeholder": "you@example.com",
+    "password": "비밀번호",
+    "password_placeholder": "••••••••",
+    "password_min": "최소 6자",
+    "full_name": "이름",
+    "name_placeholder": "홍길동",
+    "login_btn": "로그인",
+    "register_btn": "계정 만들기",
+    "or_continue": "또는 계속하기",
+    "continue_apple": "Apple로 계속"
   }
 }

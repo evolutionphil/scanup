@@ -600,5 +600,38 @@
     "security": "Beveiliging",
     "login_method": "Inlogmethode",
     "last_login": "Laatste Login"
+  },
+  "docs": {
+    "title": "Mijn Documenten",
+    "subtitle": "Bekijk en beheer al je gescande documenten",
+    "search_placeholder": "Documenten zoeken...",
+    "stat_documents": "Documenten",
+    "stat_pages": "Pagina's",
+    "stat_storage": "Opslag",
+    "stat_this_month": "Deze Maand",
+    "all_documents": "Alle Documenten",
+    "folders": "Mappen",
+    "new_folder": "Nieuwe Map",
+    "refresh": "Vernieuwen",
+    "sort_newest": "Nieuwste eerst",
+    "sort_oldest": "Oudste eerst",
+    "sort_name_asc": "Naam A-Z",
+    "sort_name_desc": "Naam Z-A"
+  },
+  "auth": {
+    "access_docs": "Toegang tot je documenten overal",
+    "tab_login": "Inloggen",
+    "tab_register": "Registreren",
+    "email": "Email",
+    "email_placeholder": "jij@voorbeeld.com",
+    "password": "Wachtwoord",
+    "password_placeholder": "••••••••",
+    "password_min": "Min 6 tekens",
+    "full_name": "Volledige Naam",
+    "name_placeholder": "Jan Jansen",
+    "login_btn": "Inloggen",
+    "register_btn": "Account Maken",
+    "or_continue": "of doorgaan met",
+    "continue_apple": "Doorgaan met Apple"
   }
 }
