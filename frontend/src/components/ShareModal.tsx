@@ -176,9 +176,9 @@ export default function ShareModal({
     // Build HTML for each page
     // CRITICAL: Use page-break-after for all pages except the last one
     // This is the official recommended approach for expo-print with useMarkupFormatter
-    const imageHtml = validImages.map((img, index) => {
+    const imageHtml = imagesBase64.map((img, index) => {
       const base64WithPrefix = `data:image/jpeg;base64,${img}`;
-      const isLastPage = index === validImages.length - 1;
+      const isLastPage = index === imagesBase64.length - 1;
       // Only add page-break-after to non-last pages
       const pageBreakStyle = isLastPage ? '' : 'page-break-after: always;';
       
