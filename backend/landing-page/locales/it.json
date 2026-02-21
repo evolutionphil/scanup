@@ -33,8 +33,8 @@
     "dashboard": "Dashboard",
     "logout": "Logout",
     "web_dashboard": "Dashboard Web",
-    "how_it_works": "Come funziona",
-    "login_signup": "Accedi / Registrati"
+    "how_it_works": "Guida",
+    "login_signup": "Accedi"
   },
   "footer": {
     "copyright": "2025 ScanUp Inc. All rights reserved.",

@@ -33,8 +33,8 @@
     "dashboard": "Panel",
     "logout": "Cerrar Sesión",
     "web_dashboard": "Panel Web",
-    "how_it_works": "Cómo funciona",
-    "login_signup": "Iniciar sesión / Registrarse"
+    "how_it_works": "Guía",
+    "login_signup": "Iniciar sesión"
   },
   "footer": {
     "copyright": "2025 ScanUp Inc. Todos los derechos reservados.",

@@ -33,8 +33,8 @@
     "dashboard": "Dashboard",
     "logout": "Logout",
     "web_dashboard": "Web Dashboard",
-    "how_it_works": "Hoe het werkt",
-    "login_signup": "Inloggen / Registreren"
+    "how_it_works": "Gids",
+    "login_signup": "Inloggen"
   },
   "footer": {
     "copyright": "2025 ScanUp Inc. All rights reserved.",
