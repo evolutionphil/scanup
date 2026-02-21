@@ -7051,14 +7051,18 @@ async def serve_landing_page_with_lang_api(lang: str):
                 html
             )
         
-        # Replace feature list
+        # Replace feature list using regex to handle multi-line JSON
         if feature_list and isinstance(feature_list, list):
             import json as json_module
-            old_features = '["Document Scanning", "PDF Export", "Digital Signatures", "OCR Text Recognition", "Cloud Sync", "Multiple Page Documents", "Image Enhancement", "Auto Edge Detection", "Share via Email", "No Watermarks"]'
             new_features = json_module.dumps(feature_list, ensure_ascii=False)
-            html = html.replace(old_features, new_features)
+            html = re.sub(
+                r'"featureList":\s*\[[^\]]+\]',
+                f'"featureList": {new_features}',
+                html,
+                flags=re.DOTALL
+            )
         
-        # FAQ Schema translations
+        # FAQ Schema translations - match actual HTML questions
         faq_q1 = schema_trans.get('faq_question_1', '')
         faq_a1 = schema_trans.get('faq_answer_1', '')
         faq_q2 = schema_trans.get('faq_question_2', '')
@@ -7066,21 +7070,26 @@ async def serve_landing_page_with_lang_api(lang: str):
         faq_q3 = schema_trans.get('faq_question_3', '')
         faq_a3 = schema_trans.get('faq_answer_3', '')
         
+        # First FAQ: "Is ScanUp free to use?"
         if faq_q1:
-            html = re.sub(r'"name": "Is ScanUp free\?"', f'"name": "{faq_q1}"', html)
+            html = re.sub(r'"name": "Is ScanUp free to use\?"', f'"name": "{faq_q1}"', html)
         if faq_a1:
             faq_a1_escaped = faq_a1.replace('"', '\\"')
-            html = re.sub(r'"text": "Yes, ScanUp is completely free\.[^"]*"', f'"text": "{faq_a1_escaped}"', html)
+            html = re.sub(r'"text": "Yes! ScanUp is completely free[^"]*"', f'"text": "{faq_a1_escaped}"', html)
+        
+        # Second FAQ: "What file formats does ScanUp support?"
         if faq_q2:
-            html = re.sub(r'"name": "Can I export my documents as PDF\?"', f'"name": "{faq_q2}"', html)
+            html = re.sub(r'"name": "What file formats does ScanUp support\?"', f'"name": "{faq_q2}"', html)
         if faq_a2:
             faq_a2_escaped = faq_a2.replace('"', '\\"')
-            html = re.sub(r'"text": "Yes, you can export scanned documents[^"]*"', f'"text": "{faq_a2_escaped}"', html)
+            html = re.sub(r'"text": "ScanUp supports exporting[^"]*"', f'"text": "{faq_a2_escaped}"', html)
+        
+        # Third FAQ: "Can I scan multiple pages into one document?"
         if faq_q3:
-            html = re.sub(r'"name": "What platforms is ScanUp available on\?"', f'"name": "{faq_q3}"', html)
+            html = re.sub(r'"name": "Can I scan multiple pages into one document\?"', f'"name": "{faq_q3}"', html)
         if faq_a3:
             faq_a3_escaped = faq_a3.replace('"', '\\"')
-            html = re.sub(r'"text": "ScanUp is available for iOS and Android\.[^"]*"', f'"text": "{faq_a3_escaped}"', html)
+            html = re.sub(r'"text": "Absolutely! ScanUp allows[^"]*"', f'"text": "{faq_a3_escaped}"', html)
     
     return Response(content=html, media_type="text/html")
 
