@@ -1423,6 +1423,57 @@ const ScanUpI18n = {
         if (homeBtn) homeBtn.textContent = t('go_home');
     },
     
+    applyCookiesPageTranslations() {
+        const t = this.t.bind(this);
+        // Cookies page is mostly static content, translate header/footer
+    },
+    
+    applyDownloadPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, h1');
+        if (heroTitle) heroTitle.textContent = t('download_title');
+        const heroSubtitle = document.querySelector('.hero p, .subtitle');
+        if (heroSubtitle) heroSubtitle.textContent = t('download_subtitle');
+    },
+    
+    applyFeaturesPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, h1');
+        if (heroTitle) heroTitle.textContent = t('features_title');
+        const heroSubtitle = document.querySelector('.hero p, .subtitle');
+        if (heroSubtitle) heroSubtitle.textContent = t('features_subtitle');
+    },
+    
+    applyGdprPageTranslations() {
+        const t = this.t.bind(this);
+        // GDPR page is mostly static legal content
+    },
+    
+    applyPricingPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, h1');
+        if (heroTitle) heroTitle.textContent = t('pricing_title');
+        const heroSubtitle = document.querySelector('.hero p, .subtitle');
+        if (heroSubtitle) heroSubtitle.textContent = t('pricing_subtitle');
+    },
+    
+    applyReviewsPageTranslations() {
+        const t = this.t.bind(this);
+        
+        const heroTitle = document.querySelector('.hero h1, h1');
+        if (heroTitle) heroTitle.textContent = t('testimonials_title');
+        const heroSubtitle = document.querySelector('.hero p, .subtitle');
+        if (heroSubtitle) heroSubtitle.textContent = t('testimonials_subtitle');
+    },
+    
+    applyStatusPageTranslations() {
+        const t = this.t.bind(this);
+        // Status page is mostly dynamic content
+    },
+    
     applyLandingPageTranslations() {
         const t = this.t.bind(this);
         
