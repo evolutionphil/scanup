@@ -641,24 +641,31 @@
             lang = DEFAULT_LANGUAGE;
         }
 
+        // Save language preference
+        localStorage.setItem('scanup_language', lang);
+
         // Build new URL with language prefix
-        const isApiRoute = window.location.pathname.startsWith('/api/');
         const currentPath = window.location.pathname;
+        const isApiRoute = currentPath.startsWith('/api/');
         let newUrl;
         
         console.log('isApiRoute:', isApiRoute, 'currentPath:', currentPath);
         
         if (isApiRoute) {
             // Preview environment: /api/pages/tr/features -> /api/pages/de/features
-            const pathParts = currentPath.split('/').filter(Boolean);
+            // Normalize path - remove trailing slash for consistency
+            let normalizedPath = currentPath.replace(/\/$/, '') || '/api/pages';
+            const pathParts = normalizedPath.split('/').filter(Boolean);
             console.log('pathParts:', pathParts);
             
-            // Handle /api/pages/ or /api/pages
+            // Handle /api/pages/ or /api/pages (root landing page in preview)
             if (pathParts.length >= 2 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
                 if (pathParts.length === 2) {
-                    // /api/pages/ - add language prefix
+                    // /api/pages/ or /api/pages - this is root, add language
                     if (lang !== 'en') {
-                        pathParts.push(lang);
+                        newUrl = '/api/pages/' + lang;
+                    } else {
+                        newUrl = '/api/pages/';
                     }
                 } else {
                     const currentLangOrPage = pathParts[2];
@@ -678,32 +685,38 @@
                             pathParts.splice(2, 0, lang);
                         }
                     }
+                    newUrl = '/' + pathParts.join('/');
                 }
-                newUrl = '/' + pathParts.join('/');
             } else {
+                // Not a pages route, keep as is
                 newUrl = currentPath;
             }
         } else {
             // Production environment: /tr/features -> /de/features
-            const pathParts = currentPath.split('/').filter(Boolean);
+            // Normalize path - handle root and trailing slashes
+            let normalizedPath = currentPath.replace(/\/$/, '') || '/';
+            const pathParts = normalizedPath.split('/').filter(Boolean);
+            
+            console.log('Production pathParts:', pathParts);
             
             if (pathParts.length === 0) {
-                // Root path /
+                // Root path / - this is the main case we need to fix
                 if (lang !== 'en') {
                     newUrl = '/' + lang;
                 } else {
                     newUrl = '/';
                 }
             } else if (SUPPORTED_LANGUAGES.includes(pathParts[0])) {
-                // Replace language: /tr/features -> /de/features
+                // Current path already has language prefix: /tr/features -> /de/features
                 if (lang === 'en') {
                     pathParts.shift(); // Remove language prefix for English
+                    newUrl = pathParts.length > 0 ? '/' + pathParts.join('/') : '/';
                 } else {
                     pathParts[0] = lang;
+                    newUrl = '/' + pathParts.join('/');
                 }
-                newUrl = '/' + pathParts.join('/') || '/';
             } else {
-                // No language prefix, add one: /features -> /de/features
+                // No language prefix on current path: /features -> /de/features
                 if (lang !== 'en') {
                     pathParts.unshift(lang);
                 }
@@ -711,9 +724,11 @@
             }
         }
         
-        console.log('newUrl:', newUrl);
-        // Navigate to new URL
-        window.location.href = newUrl + window.location.hash;
+        console.log('Final newUrl:', newUrl);
+        
+        // Navigate to new URL (include hash if present)
+        const hash = window.location.hash || '';
+        window.location.href = newUrl + hash;
     }
 
     /**
