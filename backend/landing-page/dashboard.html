@@ -1647,31 +1647,31 @@
                 
                 <nav class="sidebar-nav">
                     <div class="nav-section">
-                        <div class="nav-section-title">Menu</div>
+                        <div class="nav-section-title" data-i18n="sidebar_menu">Menu</div>
                         <button class="nav-item active" onclick="showPage('documents')">
                             <i class="fas fa-folder"></i>
-                            <span>My Documents</span>
+                            <span data-i18n="sidebar_documents">My Documents</span>
                             <span class="badge" id="docCountBadge">0</span>
                         </button>
                         <button class="nav-item" onclick="showPage('profile')">
                             <i class="fas fa-user"></i>
-                            <span>Profile</span>
+                            <span data-i18n="sidebar_profile">Profile</span>
                         </button>
                         <button class="nav-item" onclick="showPage('settings')">
                             <i class="fas fa-cog"></i>
-                            <span>Settings</span>
+                            <span data-i18n="sidebar_settings">Settings</span>
                         </button>
                     </div>
                     
                     <div class="nav-section">
-                        <div class="nav-section-title">Quick Actions</div>
+                        <div class="nav-section-title" data-i18n="sidebar_quick_actions">Quick Actions</div>
                         <a href="/#download" class="nav-item">
                             <i class="fas fa-mobile-alt"></i>
-                            <span>Get Mobile App</span>
+                            <span data-i18n="sidebar_get_app">Get Mobile App</span>
                         </a>
                         <a href="/support" class="nav-item">
                             <i class="fas fa-question-circle"></i>
-                            <span>Help & Support</span>
+                            <span data-i18n="sidebar_help">Help & Support</span>
                         </a>
                     </div>
                 </nav>
@@ -1683,12 +1683,12 @@
                         </div>
                         <div class="user-info">
                             <h4 id="sidebarName">User</h4>
-                            <p id="sidebarPlan">Free Plan</p>
+                            <p id="sidebarPlan" data-i18n="free_plan">Free Plan</p>
                         </div>
                     </div>
                     <button class="nav-item" onclick="logout()" style="margin-top: 0.5rem; color: var(--danger);">
                         <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
+                        <span data-i18n="sidebar_logout">Logout</span>
                     </button>
                 </div>
             </aside>
@@ -1699,13 +1699,13 @@
                 <div id="documentsPage">
                     <div class="page-header">
                         <div>
-                            <h1>My Documents</h1>
-                            <p>View and manage all your scanned documents</p>
+                            <h1 data-i18n="docs_title">My Documents</h1>
+                            <p data-i18n="docs_subtitle">View and manage all your scanned documents</p>
                         </div>
                         <div class="header-actions">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search documents..." id="searchInput" oninput="filterDocuments()">
+                                <input type="text" data-i18n-placeholder="docs_search_placeholder" placeholder="Search documents..." id="searchInput" oninput="filterDocuments()">
                             </div>
                         </div>
                     </div>
@@ -1715,7 +1715,7 @@
                             <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalDocs">0</h3>
-                                <p>Documents</p>
+                                <p data-i18n="stats_documents">Documents</p>
                             </div>
                         </div>
                         <div class="stat-card">
