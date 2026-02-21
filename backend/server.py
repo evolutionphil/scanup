@@ -8780,6 +8780,7 @@ if os_module.path.exists(admin_static_path):
     # Mount static assets (JS, CSS) - for both paths
     app.mount("/mumiixadmin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets")
     app.mount("/api/admin/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets-api")
+    app.mount("/api/admin-ui/assets", StaticFiles(directory=os_module.path.join(admin_static_path, "assets")), name="admin-assets-ui")
     
     # Serve admin settings page
     @app.get("/mumiixadmin/admin-settings")
