@@ -2890,13 +2890,22 @@
         // Auth state management
         let currentUser = null;
         
+        // Helper function to get correct dashboard URL for current environment
+        function getDashboardUrl(hash = '') {
+            const isApiRoute = window.location.pathname.startsWith('/api/');
+            const baseUrl = isApiRoute ? '/api/pages/dashboard' : '/dashboard';
+            return hash ? baseUrl + hash : baseUrl;
+        }
+        
         async function checkAuthState() {
             const token = localStorage.getItem('scanup_token');
             const authButtons = document.getElementById('authButtons');
+            const dashboardUrl = getDashboardUrl();
+            const settingsUrl = getDashboardUrl('#settings');
             
             if (!token) {
                 // Not logged in - show login button
-                authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                authButtons.innerHTML = `<a href="${dashboardUrl}" class="nav-cta">Login / Sign Up</a>`;
                 return;
             }
             
@@ -2913,7 +2922,7 @@
                     // Show user menu
                     authButtons.innerHTML = `
                         <div class="user-menu">
-                            <a href="/dashboard" class="dashboard-btn">
+                            <a href="${dashboardUrl}" class="dashboard-btn">
                                 <i class="fas fa-folder-open"></i> My Documents
                             </a>
                             <div class="user-avatar" onclick="toggleUserDropdown(event)">
@@ -2923,8 +2932,8 @@
                                         <h4>${name}</h4>
                                         <p>${currentUser.email || ''}</p>
                                     </div>
-                                    <a href="/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
-                                    <a href="/dashboard#settings"><i class="fas fa-cog"></i> Settings</a>
+                                    <a href="${dashboardUrl}"><i class="fas fa-th-large"></i> Dashboard</a>
+                                    <a href="${settingsUrl}"><i class="fas fa-cog"></i> Settings</a>
                                     <a href="#" class="logout" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i> Logout</a>
                                 </div>
                             </div>
@@ -2933,11 +2942,11 @@
                 } else {
                     // Token invalid - clear and show login
                     localStorage.removeItem('scanup_token');
-                    authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                    authButtons.innerHTML = `<a href="${dashboardUrl}" class="nav-cta">Login / Sign Up</a>`;
                 }
             } catch (e) {
                 console.error('Auth check failed:', e);
-                authButtons.innerHTML = `<a href="/dashboard" class="nav-cta">Login / Sign Up</a>`;
+                authButtons.innerHTML = `<a href="${dashboardUrl}" class="nav-cta">Login / Sign Up</a>`;
             }
         }
         
