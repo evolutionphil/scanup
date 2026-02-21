@@ -6954,8 +6954,12 @@ async def serve_landing_page_with_lang_api(lang: str):
         try:
             with open(locale_path, 'r', encoding='utf-8') as f:
                 translations = json.loads(f.read())
-        except:
-            pass
+        except Exception as e:
+            import logging
+            logging.error(f"Error loading translations for {lang}: {e}")
+    else:
+        import logging
+        logging.warning(f"Locale file not found: {locale_path}")
     
     # Read HTML
     with open(index_path, 'r', encoding='utf-8') as f:
