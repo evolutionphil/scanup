@@ -1722,21 +1722,21 @@
                             <div class="stat-icon green"><i class="fas fa-file-pdf"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalPages">0</h3>
-                                <p>Pages</p>
+                                <p data-i18n="stats_pages">Pages</p>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon purple"><i class="fas fa-cloud"></i></div>
                             <div class="stat-info">
                                 <h3 id="storageUsed">0 MB</h3>
-                                <p>Storage</p>
+                                <p data-i18n="stats_storage">Storage</p>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon orange"><i class="fas fa-calendar"></i></div>
                             <div class="stat-info">
                                 <h3 id="thisMonth">0</h3>
-                                <p>This Month</p>
+                                <p data-i18n="stats_this_month">This Month</p>
                             </div>
                         </div>
                     </div>
@@ -1744,7 +1744,7 @@
                     <!-- Breadcrumb (shown when inside a folder) -->
                     <div class="breadcrumb" id="breadcrumb" style="display: none;">
                         <a href="#" onclick="goToAllDocuments(); return false;">
-                            <i class="fas fa-home"></i> All Documents
+                            <i class="fas fa-home"></i> <span data-i18n="docs_all_documents">All Documents</span>
                         </a>
                         <span>/</span>
                         <span class="current" id="currentFolderName">Folder</span>
@@ -1753,9 +1753,9 @@
                     <!-- Folders Section -->
                     <div class="section folders-section" id="foldersSection">
                         <div class="section-header">
-                            <h2><i class="fas fa-folder" style="color: var(--warning); margin-right: 0.5rem;"></i> Folders</h2>
+                            <h2><i class="fas fa-folder" style="color: var(--warning); margin-right: 0.5rem;"></i> <span data-i18n="docs_folders">Folders</span></h2>
                             <button class="btn-create-folder" onclick="openCreateFolderModal()">
-                                <i class="fas fa-plus"></i> New Folder
+                                <i class="fas fa-plus"></i> <span data-i18n="docs_new_folder">New Folder</span>
                             </button>
                         </div>
                         <div class="folders-grid" id="foldersContainer">
@@ -1765,16 +1765,16 @@
                     
                     <div class="section">
                         <div class="section-header">
-                            <h2 id="documentsSectionTitle">All Documents</h2>
+                            <h2 id="documentsSectionTitle" data-i18n="docs_all_documents">All Documents</h2>
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                <button class="reload-btn" onclick="reloadDocuments()" title="Refresh documents">
+                                <button class="reload-btn" onclick="reloadDocuments()" data-i18n-title="docs_refresh" title="Refresh documents">
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
                                 <select class="sort-select" id="sortSelect" onchange="sortDocuments()">
-                                    <option value="newest">Newest First</option>
-                                    <option value="oldest">Oldest First</option>
-                                    <option value="name">Name A-Z</option>
-                                    <option value="name-desc">Name Z-A</option>
+                                    <option value="newest" data-i18n="docs_sort_newest">Newest First</option>
+                                    <option value="oldest" data-i18n="docs_sort_oldest">Oldest First</option>
+                                    <option value="name" data-i18n="docs_sort_name_asc">Name A-Z</option>
+                                    <option value="name-desc" data-i18n="docs_sort_name_desc">Name Z-A</option>
                                 </select>
                                 <div class="view-toggle">
                                     <button class="active" onclick="setView('grid', this)"><i class="fas fa-th-large"></i></button>
@@ -1793,61 +1793,61 @@
                 <div id="profilePage" style="display: none;">
                     <div class="page-header">
                         <div>
-                            <h1>My Profile</h1>
-                            <p>Manage your account settings</p>
+                            <h1 data-i18n="profile_title">My Profile</h1>
+                            <p data-i18n="profile_subtitle">Manage your account settings</p>
                         </div>
                     </div>
                     
                     <div class="profile-section">
                         <div class="profile-card">
-                            <h3><i class="fas fa-user"></i> Account Information</h3>
+                            <h3><i class="fas fa-user"></i> <span data-i18n="profile_account_info">Account Information</span></h3>
                             <div class="profile-field">
-                                <label>Full Name</label>
+                                <label data-i18n="profile_full_name">Full Name</label>
                                 <p id="profileName">-</p>
                             </div>
                             <div class="profile-field">
-                                <label>Email Address</label>
+                                <label data-i18n="profile_email">Email Address</label>
                                 <p id="profileEmail">-</p>
                             </div>
                             <div class="profile-field">
-                                <label>Member Since</label>
+                                <label data-i18n="profile_member_since">Member Since</label>
                                 <p id="profileDate">-</p>
                             </div>
                         </div>
                         
                         <div class="profile-card upgrade-card" id="upgradeCard">
-                            <h3><i class="fas fa-crown"></i> Premium Plan</h3>
+                            <h3><i class="fas fa-crown"></i> <span data-i18n="premium_plan">Premium Plan</span></h3>
                             <div class="profile-field">
-                                <label>Current Plan</label>
-                                <p id="profilePlan">Free</p>
+                                <label data-i18n="profile_current_plan">Current Plan</label>
+                                <p id="profilePlan" data-i18n="free_plan">Free</p>
                             </div>
                             <div class="profile-field">
-                                <label>Features</label>
-                                <p>Unlimited scans, No watermarks, Cloud backup</p>
+                                <label data-i18n="profile_features">Features</label>
+                                <p data-i18n="premium_features_desc">Unlimited scans, No watermarks, Cloud backup</p>
                             </div>
                             <button class="btn" onclick="window.location.href='/#pricing'" id="upgradeBtn">
-                                <i class="fas fa-arrow-up"></i> Upgrade to Premium
+                                <i class="fas fa-arrow-up"></i> <span data-i18n="upgrade_to_premium">Upgrade to Premium</span>
                             </button>
                         </div>
                         
                         <div class="profile-card">
-                            <h3><i class="fas fa-chart-bar"></i> Usage Statistics</h3>
+                            <h3><i class="fas fa-chart-bar"></i> <span data-i18n="profile_usage_stats">Usage Statistics</span></h3>
                             <div class="profile-field">
-                                <label>Documents Created</label>
+                                <label data-i18n="profile_docs_created">Documents Created</label>
                                 <p id="profileDocs">0</p>
                             </div>
                             <div class="profile-field">
-                                <label>Total Pages Scanned</label>
+                                <label data-i18n="profile_pages_scanned">Total Pages Scanned</label>
                                 <p id="profilePages">0</p>
                             </div>
                             <div class="profile-field">
-                                <label>Storage Used</label>
+                                <label data-i18n="profile_storage_used">Storage Used</label>
                                 <p id="profileStorage">0 MB</p>
                             </div>
                         </div>
                         
                         <div class="profile-card">
-                            <h3><i class="fas fa-shield-alt"></i> Security</h3>
+                            <h3><i class="fas fa-shield-alt"></i> <span data-i18n="profile_security">Security</span></h3>
                             <div class="profile-field">
                                 <label>Login Method</label>
                                 <p id="profileLoginMethod">Email & Password</p>
