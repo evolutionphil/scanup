@@ -6,6 +6,7 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 - Web dashboard for cloud document access
 - Admin panel for management
 - Multi-language support (i18n)
+- International SEO optimization
 
 ## User Personas
 - **End Users**: People who need to scan and organize documents
@@ -17,54 +18,60 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 2. PDF/image export functionality
 3. Cloud sync for premium users
 4. Multi-language support for web pages
+5. International SEO (hreflang, canonical, schema.org)
 
 ---
 
 ## What's Been Implemented
 
-### Session: Feb 21, 2026 - SEO + Login i18n + Admin Fix
+### Session: Feb 21, 2026 - SEO + Privacy/Legal + Sitemap
 
-#### Language-Specific SEO (P0 - COMPLETED ✅)
-- **Dynamic Page Titles**: Each language gets translated page titles
-- **Meta Description**: Translated for 15 languages
-- **Canonical URLs**: Dynamically set per language (`/tr/`, `/de/`, etc.)
-- **Hreflang Tags**: 16 links (15 languages + x-default)
-- **Schema.org/JSON-LD**: Updated with translated content
+#### Complete International SEO (COMPLETED ✅)
+| Feature | Status | Details |
+|---------|--------|---------|
+| Page Titles | ✅ | 15 languages |
+| Meta Description | ✅ | 15 languages |
+| Canonical URLs | ✅ | Language-specific `/tr/`, `/de/`, etc. |
+| Hreflang Tags | ✅ | 16 links (15 langs + x-default) |
+| og:locale | ✅ | Correct locale codes (de_DE, tr_TR, etc.) |
+| Schema.org JSON-LD | ✅ | Translated app name/description |
+| HTML lang attribute | ✅ | Dynamic per page |
 
-#### Dashboard Login i18n (COMPLETED ✅)
-- Login/Register tabs translated
-- Form labels (Email, Password, Full Name) translated
-- Buttons translated ("Giriş Yap", "Kayıt Ol", etc.)
-- Placeholders translated
-- Social login buttons translated ("Apple ile Devam Et")
-- Sidebar menu items translated
+#### Sitemap.xml (COMPLETED ✅)
+- Multi-language URLs with `xhtml:link hreflang`
+- All 15 language versions for each page
+- Image sitemap support
+- Correct priority and changefreq
 
-#### Dashboard Page i18n (COMPLETED ✅)
-- All sidebar items translated
-- Stats section translated (Documents, Pages, Storage, This Month)
-- Profile section labels translated
-- Settings section translated
-- Folder/document management text translated
+#### Robots.txt (COMPLETED ✅)
+- `/api/` completely blocked (Disallow: /api/)
+- `/mumiixadmin/` blocked
+- All language paths allowed
+- GPTBot and CCBot blocked (AI crawling prevention)
+- Sitemap location specified
 
-#### Admin Panel Fix (PARTIAL ⚠️)
-- Created `/api/admin` endpoint for preview environment
-- Created `index-api.html` with correct asset paths
-- **Issue**: React SPA has base path `/mumiixadmin/` hardcoded in build
-- **Works in production**: `/mumiixadmin` path works correctly
-- **Preview limitation**: `/api/admin` shows blank page due to React router configuration
+#### Privacy Policy Translation (COMPLETED ✅)
+- Full Turkish translation of privacy content
+- English base content
+- Data-i18n tags for all sections:
+  - GDPR compliance badge
+  - Data controller info
+  - Information collection tables
+  - How we use your information
+  - Security and storage
 
-#### Universal data-i18n System
-- Implemented `applyDataI18nTranslations()` function
-- Supports `data-i18n` for text content
-- Supports `data-i18n-placeholder` for input placeholders
-- Supports `data-i18n-title` for title attributes
-- Supports `data-i18n-aria` for accessibility labels
+#### Login/Dashboard i18n (COMPLETED ✅)
+- Login/Register forms fully translated
+- Sidebar menu items
+- Stats section (Documents, Pages, Storage)
+- Profile and Settings sections
 
-### Previous Session: i18n System (COMPLETED)
-- 15 languages supported
-- 15 HTML pages with i18n
-- Browser language auto-detection
-- Language-specific URLs
+### Previous Sessions
+- ✅ 15 HTML pages with i18n support
+- ✅ Language auto-detection
+- ✅ Flag-based language selector
+- ⏳ iOS crash fix - PENDING USER VERIFICATION
+- ⏳ PDF export fix - PENDING USER VERIFICATION
 
 ---
 
@@ -75,8 +82,8 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 2. **PDF Export Fix** - User needs to build & test
 
 ### P1 - High Priority
-1. ~~Admin dashboard refresh 404 bug~~ - Partially addressed
-2. Complete translations for legal pages (privacy, terms full content)
+1. Terms of Service full translation (like Privacy)
+2. Admin panel preview environment fix
 
 ### P2 - Medium Priority
 1. Share popup performance optimization
@@ -87,26 +94,22 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 ## Technical Architecture
 
 ```
-/app
-├── backend/
-│   ├── server.py
-│   ├── landing-page/
-│   │   ├── *.html (15 pages with data-i18n)
-│   │   └── js/i18n.js (All translations + SEO)
-│   └── admin-static/
-│       ├── index.html (for /mumiixadmin)
-│       └── index-api.html (for /api/admin)
-├── frontend/ (Expo)
-└── admin-dashboard/ (React)
+/app/backend/landing-page/
+├── sitemap.xml              # Multi-language sitemap with hreflang
+├── robots.txt               # SEO rules, API blocked
+├── privacy.html             # Full i18n with data-i18n tags
+├── terms.html               # To be translated
+├── js/
+│   └── i18n.js              # All translations + SEO functions
+└── *.html                   # 15 static pages
 ```
 
-## Key Files
-- **i18n.js**: Contains all translations, SEO metadata, and functions:
-  - `applyDataI18nTranslations()`: Universal data-i18n attribute handler
-  - `updatePageTitle()`: Dynamic page title per language
-  - `updateSEOMetaTags()`: Updates meta description, og:*, twitter:*
-  - `updateCanonicalAndHreflang()`: Sets canonical URL and 16 hreflang links
-  - `updateSchemaOrgData()`: Updates JSON-LD schema.org data
+## Key SEO Functions in i18n.js
+- `updatePageTitle()` - Dynamic title per language
+- `updateSEOMetaTags()` - Meta description, og:*, twitter:*
+- `updateCanonicalAndHreflang()` - 16 hreflang links
+- `updateSchemaOrgData()` - JSON-LD schema translation
+- `applyDataI18nTranslations()` - Universal data-i18n handler
 
 ## Key API Endpoints
 - `/api/pages/` - Landing page
