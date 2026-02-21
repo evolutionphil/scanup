@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 
 # Configuration - Use the correct backend URL
-BACKEND_URL = "https://multilang-pages.preview.emergentagent.com"
+BACKEND_URL = "https://i18n-refactor-13.preview.emergentagent.com"
 API_URL = f"{BACKEND_URL}/api"
 
 class I18nTester:
