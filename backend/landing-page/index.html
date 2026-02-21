@@ -488,12 +488,13 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-shrink: 0;
         }
         
         .user-menu .dashboard-btn {
             background: var(--gradient);
             color: white;
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
@@ -501,6 +502,8 @@
             align-items: center;
             gap: 0.5rem;
             transition: transform 0.3s, box-shadow 0.3s;
+            white-space: nowrap;
+            font-size: 0.875rem;
         }
         
         .user-menu .dashboard-btn:hover {
