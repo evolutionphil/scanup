@@ -10,7 +10,42 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
-## What's Been Implemented - Feb 21, 2026 (Session 2 - Part 3)
+## What's Been Implemented - Feb 21, 2026 (Session 3) ✅
+
+### P0 CRITICAL FIXES COMPLETED
+
+**1. Dil Dropdown URL Güncellemesi Düzeltildi** ✅
+- Root page'den (`/` veya `/api/pages/`) dil değiştirildiğinde URL artık güncelleniyor
+- Örnek: `/api/pages/` -> `/api/pages/tr` (Türkçe seçildiğinde)
+- `switchLanguage()` fonksiyonu yeniden yazıldı (i18n-v2.js satır 638-720)
+- localStorage'a dil tercihi kaydediliyor
+
+**2. Header Menü Taşma Sorunu Düzeltildi** ✅
+- Almanca gibi uzun metin içeren dillerde header menü artık tek satırda
+- CSS'e `white-space: nowrap` eklendi
+- Nav gap azaltıldı (2rem -> 1.25rem)
+- Font-size küçültüldü (0.9rem)
+- Uzun nav metinleri kısaltıldı (örn: "Anmelden / Registrieren" -> "Anmelden")
+
+**3. Login/Signup Butonu Çevirisi Düzeltildi** ✅
+- `checkAuthState()` fonksiyonu artık i18n sistemini kullanıyor
+- `getTranslatedText()` helper fonksiyonu eklendi
+- Tüm dillerde buton metni doğru görünüyor
+
+**4. Favicon ve Manifest 404 Hataları Düzeltildi** ✅
+- Tüm HTML dosyalarında path'ler absolute URL'ye güncellendi
+- `href="/favicon.png"` -> `href="https://scanup.app/favicon.png"`
+- manifest.json içindeki icon path'leri de güncellendi
+- API route'ları `/api/favicon.png` ve `/api/manifest.json` çalışıyor
+
+**5. SEO hreflang Etiketleri Düzeltildi** ✅
+- Tüm 15 dil için ayrı hreflang eklendi
+- x-default tanımlandı
+- Her dil kendi URL'sine işaret ediyor
+
+**Test Sonuçları (iteration_3.json):** 100% Frontend Pass Rate
+
+---
 
 ### DASHBOARD LINK FIX ✅
 
