@@ -3065,14 +3065,31 @@
             const isApiRoute = window.location.pathname.startsWith('/api/');
             const basePath = isApiRoute ? '/api' : '';
             
-            // Fix dashboard links for preview environment
-            if (isApiRoute) {
+            // Fix all dashboard links for preview environment
+            function fixDashboardLinks() {
+                if (!isApiRoute) return; // Only fix in preview environment
+                
+                const dashboardUrl = '/api/pages/dashboard';
+                
+                // Fix all /dashboard links
                 document.querySelectorAll('a[href="/dashboard"]').forEach(link => {
-                    link.href = '/api/pages/dashboard';
+                    link.href = dashboardUrl;
                 });
                 document.querySelectorAll('a[href="/dashboard#settings"]').forEach(link => {
-                    link.href = '/api/pages/dashboard#settings';
+                    link.href = dashboardUrl + '#settings';
                 });
+            }
+            
+            // Run on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fixDashboardLinks);
+            } else {
+                fixDashboardLinks();
+            }
+            
+            // Also run periodically to catch dynamically created links
+            if (isApiRoute) {
+                setInterval(fixDashboardLinks, 1000);
             }
             
             const script = document.createElement('script');
