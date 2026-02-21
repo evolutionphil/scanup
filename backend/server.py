@@ -6920,6 +6920,22 @@ async def serve_status_page_api_direct():
         return FileResponse(page_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="Status page not found")
 
+@api_router.get("/sitemap.xml")
+async def serve_sitemap_api():
+    """Serve sitemap.xml via API route for preview environment"""
+    sitemap_path = os_module_pages.path.join(_landing_page_path, "sitemap.xml")
+    if os_module_pages.path.exists(sitemap_path):
+        return FileResponse(sitemap_path, media_type="application/xml")
+    raise HTTPException(status_code=404, detail="Sitemap not found")
+
+@api_router.get("/robots.txt")
+async def serve_robots_api():
+    """Serve robots.txt via API route for preview environment"""
+    robots_path = os_module_pages.path.join(_landing_page_path, "robots.txt")
+    if os_module_pages.path.exists(robots_path):
+        return FileResponse(robots_path, media_type="text/plain")
+    raise HTTPException(status_code=404, detail="Robots.txt not found")
+
 # LANGUAGE-PREFIXED ROUTE COMES AFTER SPECIFIC ROUTES
 @api_router.get("/pages/{lang}")
 async def serve_landing_page_with_lang_api(lang: str):
