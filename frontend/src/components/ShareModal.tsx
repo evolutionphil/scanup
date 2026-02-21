@@ -105,6 +105,7 @@ export default function ShareModal({
   const [passwordProtect, setPasswordProtect] = useState(false);
   const [password, setPassword] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<string>('');
   const [showPaywall, setShowPaywall] = useState(false);
 
   // Monetization store for export tracking
