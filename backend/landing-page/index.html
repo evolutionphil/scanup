@@ -2951,11 +2951,11 @@
             const isApiRoute = window.location.pathname.startsWith('/api/');
             const basePath = isApiRoute ? '/api' : '';
             const script = document.createElement('script');
-            script.src = basePath + '/js/i18n.js';
+            script.src = basePath + '/js/i18n-v2.js';
             script.onerror = function() {
                 // Fallback: try without /api prefix
                 const fallbackScript = document.createElement('script');
-                fallbackScript.src = '/js/i18n.js';
+                fallbackScript.src = '/js/i18n-v2.js';
                 document.head.appendChild(fallbackScript);
             };
             document.head.appendChild(script);
