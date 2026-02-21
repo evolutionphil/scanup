@@ -6939,6 +6939,79 @@ async def serve_dashboard_with_lang_api(lang: str):
             return FileResponse(dashboard_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="Dashboard not found")
 
+# Language-prefixed routes for all pages
+@api_router.get("/pages/{lang}/contact")
+async def serve_contact_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "contact.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/faq")
+async def serve_faq_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "faq.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/privacy")
+async def serve_privacy_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "privacy.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/terms")
+async def serve_terms_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "terms.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/support")
+async def serve_support_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "support.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/cookies")
+async def serve_cookies_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "cookies.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/download")
+async def serve_download_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "download.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/features")
+async def serve_features_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "features.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/gdpr")
+async def serve_gdpr_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "gdpr.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/pricing")
+async def serve_pricing_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "pricing.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/reviews")
+async def serve_reviews_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "reviews.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/pages/{lang}/status")
+async def serve_status_with_lang_api(lang: str):
+    if lang in _SUPPORTED_LANGS:
+        return FileResponse(os_module_pages.path.join(_landing_page_path, "status.html"), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
 # Serve static assets (JS, CSS, images) via API routes for preview environment
 @api_router.get("/js/{file_path:path}")
 async def serve_js_file(file_path: str):
