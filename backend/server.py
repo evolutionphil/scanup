@@ -6939,12 +6939,78 @@ async def serve_robots_api():
 # LANGUAGE-PREFIXED ROUTE COMES AFTER SPECIFIC ROUTES
 @api_router.get("/pages/{lang}")
 async def serve_landing_page_with_lang_api(lang: str):
-    """Serve language-specific landing page via API route"""
-    if lang in _SUPPORTED_LANGS:
-        index_path = os_module_pages.path.join(_landing_page_path, "index.html")
-        if os_module_pages.path.exists(index_path):
-            return FileResponse(index_path, media_type="text/html")
-    raise HTTPException(status_code=404, detail="Page not found")
+    """Serve language-specific landing page via API route with SSR meta tags"""
+    if lang not in _SUPPORTED_LANGS:
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    index_path = os_module_pages.path.join(_landing_page_path, "index.html")
+    if not os_module_pages.path.exists(index_path):
+        raise HTTPException(status_code=404, detail="Landing page not found")
+    
+    # Load translations for SEO
+    locale_path = os_module_pages.path.join(_landing_page_path, "locales", f"{lang}.json")
+    translations = {}
+    if os_module_pages.path.exists(locale_path):
+        try:
+            with open(locale_path, 'r', encoding='utf-8') as f:
+                translations = json.loads(f.read())
+        except:
+            pass
+    
+    # Read HTML
+    with open(index_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    
+    # Get SEO translations
+    index_trans = translations.get('index', {})
+    meta_trans = translations.get('meta', {})
+    
+    # Replace meta tags for SEO (server-side)
+    meta_desc = index_trans.get('meta_description', meta_trans.get('description', ''))
+    meta_title = index_trans.get('meta_title', f"ScanUp - {meta_trans.get('lang_name', 'Document Scanner')}")
+    og_title = index_trans.get('og_title', meta_title)
+    og_desc = index_trans.get('og_description', meta_desc)
+    
+    if meta_desc:
+        html = re.sub(
+            r'<meta name="description" content="[^"]*"',
+            f'<meta name="description" content="{meta_desc}"',
+            html
+        )
+    
+    if meta_title:
+        html = re.sub(
+            r'<title>[^<]*</title>',
+            f'<title>{meta_title}</title>',
+            html
+        )
+    
+    if og_title:
+        html = re.sub(
+            r'<meta property="og:title" content="[^"]*"',
+            f'<meta property="og:title" content="{og_title}"',
+            html
+        )
+    
+    if og_desc:
+        html = re.sub(
+            r'<meta property="og:description" content="[^"]*"',
+            f'<meta property="og:description" content="{og_desc}"',
+            html
+        )
+    
+    # Update html lang attribute
+    html = re.sub(r'<html lang="[^"]*"', f'<html lang="{lang}"', html)
+    
+    # Add canonical URL
+    base_url = "https://scanup.app"
+    canonical = f"{base_url}/{lang}" if lang != 'en' else base_url
+    if '<link rel="canonical"' not in html:
+        html = html.replace('</head>', f'    <link rel="canonical" href="{canonical}" />\n</head>')
+    else:
+        html = re.sub(r'<link rel="canonical" href="[^"]*"', f'<link rel="canonical" href="{canonical}"', html)
+    
+    return Response(content=html, media_type="text/html")
 
 @api_router.get("/pages/{lang}/dashboard")
 async def serve_dashboard_with_lang_api(lang: str):
