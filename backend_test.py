@@ -40,7 +40,7 @@ Testing the i18n (multi-language) functionality on the landing page:
 - Check "Funktionen" appears for nav_features in German
 - Check "Kostenlos herunterladen" appears for download_free in German
 
-Base URL: https://multi-lang-fix.preview.emergentagent.com
+Base URL: https://url-routing-fix-1.preview.emergentagent.com
 """
 
 import requests
@@ -55,7 +55,7 @@ import re
 
 # Configuration
 BACKEND_BASE_URL = "http://localhost:8001"  # Use localhost for backend static files
-BACKEND_URL = "https://multi-lang-fix.preview.emergentagent.com/api"  # Keep API URL as is
+BACKEND_URL = "https://url-routing-fix-1.preview.emergentagent.com/api"  # Keep API URL as is
 TEST_EMAIL = "testuser@scanup.com"
 TEST_PASSWORD = "testpass123"
 TEST_NAME = "Test User"
