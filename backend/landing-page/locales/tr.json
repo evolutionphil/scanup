@@ -5,6 +5,18 @@
     "lang_native": "Türkçe",
     "dir": "ltr"
   },
+  "schema": {
+    "app_name": "ScanUp - Belge Tarayıcı",
+    "app_alternate_name": "ScanUp PDF Tarayıcı",
+    "app_description": "ScanUp, en iyi ücretsiz belge tarayıcı uygulamasıdır. Belgeleri PDF'e tarayın, dijital imza ekleyin, OCR metin tanıma ve anında paylaşın. iOS ve Android'de filigransız ve sınırsız tarama.",
+    "feature_list": ["Belge Tarama", "PDF Dışa Aktarma", "Dijital İmza", "OCR Metin Tanıma", "Bulut Senkronizasyonu", "Çoklu Sayfa Belgeler", "Görüntü İyileştirme", "Otomatik Kenar Algılama", "E-posta ile Paylaş", "Filigran Yok"],
+    "faq_question_1": "ScanUp ücretsiz mi?",
+    "faq_answer_1": "Evet, ScanUp tamamen ücretsizdir. Filigran yok, reklam yok ve sınırsız tarama.",
+    "faq_question_2": "Belgelerimi PDF olarak dışa aktarabilir miyim?",
+    "faq_answer_2": "Evet, taranan belgeleri tek dokunuşla PDF formatında dışa aktarabilirsiniz.",
+    "faq_question_3": "ScanUp hangi platformlarda mevcut?",
+    "faq_answer_3": "ScanUp iOS ve Android için mevcuttur. App Store ve Google Play'den indirebilirsiniz."
+  },
   "common": {
     "back_to_home": "Ana Sayfaya Dön",
     "download_now": "Şimdi İndir",
