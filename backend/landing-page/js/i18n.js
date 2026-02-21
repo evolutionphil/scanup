@@ -1586,6 +1586,41 @@ const ScanUpI18n = {
             sidebar_my_documents: "Mis documentos",
             sidebar_logout: "Cerrar sesión",
             docs_title: "Mis documentos",
+            
+            // Privacy Page
+            privacy_title: "Política de Privacidad",
+            privacy_subtitle: "ScanUp - Escáner de documentos seguro",
+            privacy_intro: "En Vision Go GmbH ('Empresa', 'nosotros', 'nuestro'), estamos comprometidos a proteger su privacidad y datos personales.",
+            gdpr_compliant: "Cumple con RGPD",
+            last_updated: "Última actualización: 21 de enero de 2026",
+            privacy_matters_title: "Su privacidad importa:",
+            privacy_matters_text: "Creemos en la transparencia y le damos control sobre sus datos.",
+            data_controller: "Responsable del tratamiento",
+            privacy_section_1: "1. Información que recopilamos",
+            privacy_section_2: "2. Cómo usamos su información",
+            privacy_section_3: "3. Almacenamiento y seguridad de datos",
+            
+            // Terms Page
+            terms_title: "Términos de Uso",
+            terms_subtitle: "ScanUp - Escáner de documentos seguro",
+            terms_intro: "¡Bienvenido a ScanUp! Estos Términos de Uso rigen su acceso y uso de la aplicación móvil ScanUp.",
+            terms_important: "Importante:",
+            terms_important_text: "Al descargar, instalar o usar ScanUp, acepta estos Términos.",
+            service_provider: "Proveedor de servicios",
+            
+            // Cookies Page
+            cookies_title: "Política de Cookies",
+            cookies_what: "¿Qué son las cookies?",
+            cookies_what_text: "Las cookies son pequeños archivos de texto colocados en su dispositivo cuando visita nuestro sitio web.",
+            
+            // GDPR Page
+            gdpr_title: "Cumplimiento del RGPD",
+            gdpr_subtitle: "Sus derechos de protección de datos según el Reglamento General de Protección de Datos",
+            gdpr_rights: "Sus derechos según el RGPD",
+            right_access: "Derecho de acceso",
+            right_rectification: "Derecho de rectificación",
+            right_erasure: "Derecho de supresión",
+            right_portability: "Derecho a la portabilidad",
         },
         ru: {
             nav_features: "Функции",
@@ -1611,6 +1646,30 @@ const ScanUpI18n = {
             auth_tab_register: "Регистрация",
             sidebar_my_documents: "Мои документы",
             sidebar_logout: "Выход",
+            
+            // Privacy Page
+            privacy_title: "Политика конфиденциальности",
+            privacy_subtitle: "ScanUp - Безопасный сканер документов",
+            privacy_intro: "В Vision Go GmbH мы стремимся защитить вашу конфиденциальность и личные данные.",
+            gdpr_compliant: "Соответствует GDPR",
+            last_updated: "Последнее обновление: 21 января 2026",
+            data_controller: "Контролер данных",
+            privacy_section_1: "1. Информация, которую мы собираем",
+            privacy_section_2: "2. Как мы используем вашу информацию",
+            
+            // Terms Page
+            terms_title: "Условия использования",
+            terms_intro: "Добро пожаловать в ScanUp! Эти Условия использования регулируют ваш доступ к приложению.",
+            
+            // Cookies Page
+            cookies_title: "Политика cookies",
+            cookies_what: "Что такое cookies?",
+            
+            // GDPR Page
+            gdpr_title: "Соответствие GDPR",
+            gdpr_rights: "Ваши права по GDPR",
+            right_access: "Право на доступ",
+            right_erasure: "Право на удаление",
         },
         it: {
             nav_features: "Funzionalità",
