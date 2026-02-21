@@ -1699,13 +1699,13 @@
                 <div id="documentsPage">
                     <div class="page-header">
                         <div>
-                            <h1 data-i18n="docs_title">My Documents</h1>
-                            <p data-i18n="docs_subtitle">View and manage all your scanned documents</p>
+                            <h1 data-i18n="docs.title">My Documents</h1>
+                            <p data-i18n="docs.subtitle">View and manage all your scanned documents</p>
                         </div>
                         <div class="header-actions">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
-                                <input type="text" data-i18n-placeholder="docs_search_placeholder" placeholder="Search documents..." id="searchInput" oninput="filterDocuments()">
+                                <input type="text" data-i18n-placeholder="docs.search_placeholder" placeholder="Search documents..." id="searchInput" oninput="filterDocuments()">
                             </div>
                         </div>
                     </div>
@@ -1715,28 +1715,28 @@
                             <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalDocs">0</h3>
-                                <p data-i18n="docs_stat_documents">Documents</p>
+                                <p data-i18n="docs.stat_documents">Documents</p>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon green"><i class="fas fa-file-pdf"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalPages">0</h3>
-                                <p data-i18n="docs_stat_pages">Pages</p>
+                                <p data-i18n="docs.stat_pages">Pages</p>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon purple"><i class="fas fa-cloud"></i></div>
                             <div class="stat-info">
                                 <h3 id="storageUsed">0 MB</h3>
-                                <p data-i18n="docs_stat_storage">Storage</p>
+                                <p data-i18n="docs.stat_storage">Storage</p>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon orange"><i class="fas fa-calendar"></i></div>
                             <div class="stat-info">
                                 <h3 id="thisMonth">0</h3>
-                                <p data-i18n="docs_stat_this_month">This Month</p>
+                                <p data-i18n="docs.stat_this_month">This Month</p>
                             </div>
                         </div>
                     </div>
@@ -1744,7 +1744,7 @@
                     <!-- Breadcrumb (shown when inside a folder) -->
                     <div class="breadcrumb" id="breadcrumb" style="display: none;">
                         <a href="#" onclick="goToAllDocuments(); return false;">
-                            <i class="fas fa-home"></i> <span data-i18n="docs_all_documents">All Documents</span>
+                            <i class="fas fa-home"></i> <span data-i18n="docs.all_documents">All Documents</span>
                         </a>
                         <span>/</span>
                         <span class="current" id="currentFolderName">Folder</span>
@@ -1753,9 +1753,9 @@
                     <!-- Folders Section -->
                     <div class="section folders-section" id="foldersSection">
                         <div class="section-header">
-                            <h2><i class="fas fa-folder" style="color: var(--warning); margin-right: 0.5rem;"></i> <span data-i18n="docs_folders">Folders</span></h2>
+                            <h2><i class="fas fa-folder" style="color: var(--warning); margin-right: 0.5rem;"></i> <span data-i18n="docs.folders">Folders</span></h2>
                             <button class="btn-create-folder" onclick="openCreateFolderModal()">
-                                <i class="fas fa-plus"></i> <span data-i18n="docs_new_folder">New Folder</span>
+                                <i class="fas fa-plus"></i> <span data-i18n="docs.new_folder">New Folder</span>
                             </button>
                         </div>
                         <div class="folders-grid" id="foldersContainer">
@@ -1765,7 +1765,7 @@
                     
                     <div class="section">
                         <div class="section-header">
-                            <h2 id="documentsSectionTitle" data-i18n="docs_all_documents">All Documents</h2>
+                            <h2 id="documentsSectionTitle" data-i18n="docs.all_documents">All Documents</h2>
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
                                 <button class="reload-btn" onclick="reloadDocuments()" data-i18n-title="docs_refresh" title="Refresh documents">
                                     <i class="fas fa-sync-alt"></i>
