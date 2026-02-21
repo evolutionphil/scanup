@@ -3091,14 +3091,14 @@
     
     <!-- i18n - Multi-language support -->
     <script>
-        // Dynamically load i18n.js based on current URL structure
+        // Immediately fix dashboard links based on current language
         (function() {
             const isApiRoute = window.location.pathname.startsWith('/api/');
             const basePath = isApiRoute ? '/api' : '';
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             const supportedLangs = ['en', 'tr', 'de', 'fr', 'es', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi'];
             
-            // Detect current language
+            // Detect current language from URL
             let currentLang = 'en';
             if (isApiRoute && pathParts.length >= 3 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
                 const langCandidate = pathParts[2];
@@ -3112,42 +3112,60 @@
                 }
             }
             
-            // Fix all dashboard links based on current language
-            function fixDashboardLinks() {
-                let dashboardUrl, settingsUrl;
-                
+            // Build dashboard URL with language prefix
+            function getDashboardUrl(hash) {
+                let baseUrl;
                 if (isApiRoute) {
-                    dashboardUrl = currentLang === 'en' ? '/api/pages/dashboard' : `/api/pages/${currentLang}/dashboard`;
-                    settingsUrl = dashboardUrl + '#settings';
+                    baseUrl = currentLang === 'en' ? '/api/pages/dashboard' : '/api/pages/' + currentLang + '/dashboard';
                 } else {
-                    dashboardUrl = currentLang === 'en' ? '/dashboard' : `/${currentLang}/dashboard`;
-                    settingsUrl = dashboardUrl + '#settings';
+                    baseUrl = currentLang === 'en' ? '/dashboard' : '/' + currentLang + '/dashboard';
                 }
+                return hash ? baseUrl + hash : baseUrl;
+            }
+            
+            // Fix all dashboard links
+            function fixDashboardLinks() {
+                const dashboardUrl = getDashboardUrl('');
+                const settingsUrl = getDashboardUrl('#settings');
                 
-                // Fix all /dashboard links
-                document.querySelectorAll('a[href="/dashboard"], a[href="/api/pages/dashboard"]').forEach(link => {
+                // Fix links with data-dashboard-link attribute
+                document.querySelectorAll('[data-dashboard-link]').forEach(function(link) {
+                    var currentHref = link.getAttribute('href') || '';
+                    if (currentHref.indexOf('#settings') !== -1) {
+                        link.href = settingsUrl;
+                    } else {
+                        link.href = dashboardUrl;
+                    }
+                });
+                
+                // Also fix any /dashboard links that might be dynamically added
+                document.querySelectorAll('a[href="/dashboard"]').forEach(function(link) {
                     link.href = dashboardUrl;
                 });
-                document.querySelectorAll('a[href="/dashboard#settings"], a[href="/api/pages/dashboard#settings"]').forEach(link => {
+                document.querySelectorAll('a[href="/dashboard#settings"]').forEach(function(link) {
                     link.href = settingsUrl;
                 });
             }
             
+            // Run immediately
+            fixDashboardLinks();
+            
             // Run on DOM ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', fixDashboardLinks);
-            } else {
-                fixDashboardLinks();
             }
             
-            // Also run periodically to catch dynamically created links
-            setInterval(fixDashboardLinks, 1000);
+            // Run periodically for dynamically created links
+            setInterval(fixDashboardLinks, 500);
             
-            const script = document.createElement('script');
+            // Make getDashboardUrl available globally for auth script
+            window.getDashboardUrl = getDashboardUrl;
+            
+            // Load i18n script
+            var script = document.createElement('script');
             script.src = basePath + '/js/i18n-v2.js';
             script.onerror = function() {
-                // Fallback: try without /api prefix
-                const fallbackScript = document.createElement('script');
+                var fallbackScript = document.createElement('script');
                 fallbackScript.src = '/js/i18n-v2.js';
                 document.head.appendChild(fallbackScript);
             };
