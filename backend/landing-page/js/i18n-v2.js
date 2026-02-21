@@ -652,24 +652,31 @@
             // Preview environment: /api/pages/tr/features -> /api/pages/de/features
             const pathParts = currentPath.split('/').filter(Boolean);
             console.log('pathParts:', pathParts);
-            // pathParts = ['api', 'pages', 'tr', 'features'] or ['api', 'pages', 'tr']
             
-            if (pathParts.length >= 3 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
-                const currentLangOrPage = pathParts[2];
-                
-                // Check if current path has a language prefix
-                if (SUPPORTED_LANGUAGES.includes(currentLangOrPage)) {
-                    // Replace language: /api/pages/tr/features -> /api/pages/de/features
-                    if (lang === 'en') {
-                        // Remove language prefix for English
-                        pathParts.splice(2, 1);
-                    } else {
-                        pathParts[2] = lang;
+            // Handle /api/pages/ or /api/pages
+            if (pathParts.length >= 2 && pathParts[0] === 'api' && pathParts[1] === 'pages') {
+                if (pathParts.length === 2) {
+                    // /api/pages/ - add language prefix
+                    if (lang !== 'en') {
+                        pathParts.push(lang);
                     }
                 } else {
-                    // No language prefix, add one: /api/pages/features -> /api/pages/de/features
-                    if (lang !== 'en') {
-                        pathParts.splice(2, 0, lang);
+                    const currentLangOrPage = pathParts[2];
+                    
+                    // Check if current path has a language prefix
+                    if (SUPPORTED_LANGUAGES.includes(currentLangOrPage)) {
+                        // Replace language: /api/pages/tr/features -> /api/pages/de/features
+                        if (lang === 'en') {
+                            // Remove language prefix for English
+                            pathParts.splice(2, 1);
+                        } else {
+                            pathParts[2] = lang;
+                        }
+                    } else {
+                        // No language prefix, add one: /api/pages/features -> /api/pages/de/features
+                        if (lang !== 'en') {
+                            pathParts.splice(2, 0, lang);
+                        }
                     }
                 }
                 newUrl = '/' + pathParts.join('/');
@@ -680,20 +687,28 @@
             // Production environment: /tr/features -> /de/features
             const pathParts = currentPath.split('/').filter(Boolean);
             
-            if (pathParts.length >= 1 && SUPPORTED_LANGUAGES.includes(pathParts[0])) {
+            if (pathParts.length === 0) {
+                // Root path /
+                if (lang !== 'en') {
+                    newUrl = '/' + lang;
+                } else {
+                    newUrl = '/';
+                }
+            } else if (SUPPORTED_LANGUAGES.includes(pathParts[0])) {
                 // Replace language: /tr/features -> /de/features
                 if (lang === 'en') {
                     pathParts.shift(); // Remove language prefix for English
                 } else {
                     pathParts[0] = lang;
                 }
+                newUrl = '/' + pathParts.join('/') || '/';
             } else {
                 // No language prefix, add one: /features -> /de/features
                 if (lang !== 'en') {
                     pathParts.unshift(lang);
                 }
+                newUrl = '/' + pathParts.join('/');
             }
-            newUrl = '/' + pathParts.join('/') || '/';
         }
         
         console.log('newUrl:', newUrl);
