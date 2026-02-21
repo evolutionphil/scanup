@@ -522,12 +522,26 @@
     }
 
     /**
-     * Create language selector
+     * Create language selector (both desktop and mobile)
      */
     function createLanguageSelector() {
-        const selector = document.querySelector('[data-i18n-selector]');
-        if (!selector) return;
-
+        // Desktop selector
+        const desktopSelector = document.querySelector('[data-i18n-selector]');
+        if (desktopSelector) {
+            renderLanguageSelector(desktopSelector, false);
+        }
+        
+        // Mobile selector
+        const mobileSelector = document.querySelector('[data-i18n-selector-mobile]');
+        if (mobileSelector) {
+            renderLanguageSelector(mobileSelector, true);
+        }
+    }
+    
+    /**
+     * Render language selector into container
+     */
+    function renderLanguageSelector(selector, isMobile) {
         selector.innerHTML = '';
         
         const currentMeta = LANGUAGE_META[currentLanguage];
@@ -538,7 +552,7 @@
         button.innerHTML = `
             <span class="lang-flag">${getLanguageFlag(currentLanguage)}</span>
             <span class="lang-name">${currentMeta.native}</span>
-            <i class="fas fa-chevron-down"></i>
+            <i class="fas fa-chevron-${isMobile ? 'up' : 'down'}"></i>
         `;
 
         // Create dropdown menu
@@ -558,11 +572,17 @@
             item.onclick = (e) => {
                 e.preventDefault();
                 switchLanguage(lang);
+                // Close mobile menu after language change
+                if (isMobile) {
+                    const mobileMenu = document.getElementById('mobileMenu');
+                    if (mobileMenu) mobileMenu.classList.remove('active');
+                }
             };
             dropdown.appendChild(item);
         });
 
-        button.onclick = () => {
+        button.onclick = (e) => {
+            e.stopPropagation();
             dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
         };
 
