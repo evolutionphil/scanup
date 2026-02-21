@@ -10,7 +10,23 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ---
 
-## What's Been Implemented - Feb 21, 2026
+## What's Been Implemented - Feb 21, 2026 (Session 2)
+
+### ALL i18n ISSUES FIXED ✅
+
+**Bug Fixes Completed:**
+1. ✅ `index.html` (ana sayfa) tüm 15 dile çevrildi
+2. ✅ `manifest.json` ve `favicon.png` için 404 hataları düzeltildi
+3. ✅ Dil seçici (language selector) bayrakları artık görünüyor ve çalışıyor
+4. ✅ Header menü hizalaması düzeltildi
+
+**Test Sonuçları (iteration_2.json):**
+- Frontend Success Rate: **100%**
+- Tüm 7 test senaryosu başarılı
+
+---
+
+## What's Been Implemented - Feb 21, 2026 (Session 1)
 
 ### i18n REFACTOR COMPLETED ✅
 **Switched from monolithic i18n.js to JSON-based i18n-v2.js system**
