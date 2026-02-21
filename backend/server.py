@@ -6971,10 +6971,14 @@ async def serve_landing_page_with_lang_api(lang: str):
     og_title = index_trans.get('og_title', meta_title)
     og_desc = index_trans.get('og_description', meta_desc)
     
+    # Debug log
+    import logging
+    logging.info(f"SSR SEO for {lang}: title={meta_title[:30] if meta_title else 'None'}..., desc={meta_desc[:30] if meta_desc else 'None'}...")
+    
     if meta_desc:
         html = re.sub(
-            r'<meta name="description" content="[^"]*"',
-            f'<meta name="description" content="{meta_desc}"',
+            r'<meta name="description" content="[^"]*">',
+            f'<meta name="description" content="{meta_desc}">',
             html
         )
     
