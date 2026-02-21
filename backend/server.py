@@ -7089,7 +7089,7 @@ async def serve_landing_page_with_lang_api(lang: str):
             html = re.sub(r'"name": "Can I scan multiple pages into one document\?"', f'"name": "{faq_q3}"', html)
         if faq_a3:
             faq_a3_escaped = faq_a3.replace('"', '\\"')
-            html = re.sub(r'"text": "Yes! ScanUp allows you to scan[^"]*"', f'"text": "{faq_a3_escaped}"', html)
+            html = re.sub(r'"text": "Absolutely! ScanUp allows you to scan[^"]*"', f'"text": "{faq_a3_escaped}"', html)
     
     return Response(content=html, media_type="text/html")
 
