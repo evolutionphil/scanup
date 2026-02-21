@@ -638,7 +638,10 @@ export default function ShareModal({
             disabled={isExporting}
           >
             {isExporting ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+                <Text style={styles.progressText}>{exportProgress || t('preparing', 'Preparing...')}</Text>
+              </View>
             ) : (
               <>
                 <Ionicons name="arrow-up-circle-outline" size={22} color="#FFFFFF" />
