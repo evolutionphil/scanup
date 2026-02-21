@@ -6916,6 +6916,69 @@ async def serve_404_page_api():
         return FileResponse(page_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="404 page not found")
 
+@api_router.get("/pages/cookies")
+@api_router.get("/pages/{lang}/cookies")
+async def serve_cookies_page_api(lang: str = "en"):
+    """Serve cookies page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "cookies.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Cookies page not found")
+
+@api_router.get("/pages/download")
+@api_router.get("/pages/{lang}/download")
+async def serve_download_page_api(lang: str = "en"):
+    """Serve download page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "download.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Download page not found")
+
+@api_router.get("/pages/features")
+@api_router.get("/pages/{lang}/features")
+async def serve_features_page_api(lang: str = "en"):
+    """Serve features page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "features.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Features page not found")
+
+@api_router.get("/pages/gdpr")
+@api_router.get("/pages/{lang}/gdpr")
+async def serve_gdpr_page_api(lang: str = "en"):
+    """Serve GDPR page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "gdpr.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="GDPR page not found")
+
+@api_router.get("/pages/pricing")
+@api_router.get("/pages/{lang}/pricing")
+async def serve_pricing_page_api(lang: str = "en"):
+    """Serve pricing page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "pricing.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Pricing page not found")
+
+@api_router.get("/pages/reviews")
+@api_router.get("/pages/{lang}/reviews")
+async def serve_reviews_page_api(lang: str = "en"):
+    """Serve reviews page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "reviews.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Reviews page not found")
+
+@api_router.get("/pages/status")
+@api_router.get("/pages/{lang}/status")
+async def serve_status_page_api(lang: str = "en"):
+    """Serve status page via API route"""
+    page_path = os_module_pages.path.join(_landing_page_path, "status.html")
+    if os_module_pages.path.exists(page_path):
+        return FileResponse(page_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Status page not found")
+
 
 # ==================== ADMIN DASHBOARD API ====================
 
