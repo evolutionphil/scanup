@@ -8808,7 +8808,7 @@ if os_module.path.exists(admin_static_path):
     @app.get("/api/admin-ui/{full_path:path}")
     async def serve_admin_ui(full_path: str = ""):
         """Serve admin dashboard SPA for all UI routes"""
-        index_path = os_module.path.join(admin_static_path, "index-api.html")
+        index_path = os_module.path.join(admin_static_path, "index-api-ui.html")
         if os_module.path.exists(index_path):
             return FileResponse(index_path, media_type="text/html")
         raise HTTPException(status_code=404, detail="Admin dashboard not found")
