@@ -7021,6 +7021,67 @@ async def serve_landing_page_with_lang_api(lang: str):
     else:
         html = re.sub(r'<link rel="canonical" href="[^"]*"', f'<link rel="canonical" href="{canonical}"', html)
     
+    # Replace Schema.org JSON-LD with translated content
+    schema_trans = translations.get('schema', {})
+    if schema_trans:
+        # MobileApplication schema
+        app_name = schema_trans.get('app_name', 'ScanUp - Document Scanner')
+        app_alt_name = schema_trans.get('app_alternate_name', 'ScanUp PDF Scanner')
+        app_desc = schema_trans.get('app_description', '')
+        feature_list = schema_trans.get('feature_list', [])
+        
+        if app_name:
+            html = re.sub(
+                r'"name": "ScanUp - Document Scanner"',
+                f'"name": "{app_name}"',
+                html
+            )
+        if app_alt_name:
+            html = re.sub(
+                r'"alternateName": "ScanUp PDF Scanner"',
+                f'"alternateName": "{app_alt_name}"',
+                html
+            )
+        if app_desc:
+            # Escape quotes for JSON
+            app_desc_escaped = app_desc.replace('"', '\\"')
+            html = re.sub(
+                r'"description": "ScanUp is the ultimate free document scanner app\.[^"]*"',
+                f'"description": "{app_desc_escaped}"',
+                html
+            )
+        
+        # Replace feature list
+        if feature_list and isinstance(feature_list, list):
+            import json as json_module
+            old_features = '["Document Scanning", "PDF Export", "Digital Signatures", "OCR Text Recognition", "Cloud Sync", "Multiple Page Documents", "Image Enhancement", "Auto Edge Detection", "Share via Email", "No Watermarks"]'
+            new_features = json_module.dumps(feature_list, ensure_ascii=False)
+            html = html.replace(old_features, new_features)
+        
+        # FAQ Schema translations
+        faq_q1 = schema_trans.get('faq_question_1', '')
+        faq_a1 = schema_trans.get('faq_answer_1', '')
+        faq_q2 = schema_trans.get('faq_question_2', '')
+        faq_a2 = schema_trans.get('faq_answer_2', '')
+        faq_q3 = schema_trans.get('faq_question_3', '')
+        faq_a3 = schema_trans.get('faq_answer_3', '')
+        
+        if faq_q1:
+            html = re.sub(r'"name": "Is ScanUp free\?"', f'"name": "{faq_q1}"', html)
+        if faq_a1:
+            faq_a1_escaped = faq_a1.replace('"', '\\"')
+            html = re.sub(r'"text": "Yes, ScanUp is completely free\.[^"]*"', f'"text": "{faq_a1_escaped}"', html)
+        if faq_q2:
+            html = re.sub(r'"name": "Can I export my documents as PDF\?"', f'"name": "{faq_q2}"', html)
+        if faq_a2:
+            faq_a2_escaped = faq_a2.replace('"', '\\"')
+            html = re.sub(r'"text": "Yes, you can export scanned documents[^"]*"', f'"text": "{faq_a2_escaped}"', html)
+        if faq_q3:
+            html = re.sub(r'"name": "What platforms is ScanUp available on\?"', f'"name": "{faq_q3}"', html)
+        if faq_a3:
+            faq_a3_escaped = faq_a3.replace('"', '\\"')
+            html = re.sub(r'"text": "ScanUp is available for iOS and Android\.[^"]*"', f'"text": "{faq_a3_escaped}"', html)
+    
     return Response(content=html, media_type="text/html")
 
 @api_router.get("/pages/{lang}/dashboard")
