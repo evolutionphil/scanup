@@ -2909,6 +2909,14 @@
         // Auth state management
         let currentUser = null;
         
+        // Get translation text from i18n system
+        function getTranslatedText(key, fallback) {
+            if (window.ScanUpI18n && typeof window.ScanUpI18n.t === 'function') {
+                return window.ScanUpI18n.t(key, fallback);
+            }
+            return fallback;
+        }
+        
         async function checkAuthState() {
             const token = localStorage.getItem('scanup_token');
             const authButtons = document.getElementById('authButtons');
@@ -2917,9 +2925,16 @@
             const dashboardUrl = window.getDashboardUrl ? window.getDashboardUrl('') : '/dashboard';
             const settingsUrl = window.getDashboardUrl ? window.getDashboardUrl('#settings') : '/dashboard#settings';
             
+            // Get translated texts
+            const loginSignupText = getTranslatedText('nav.login_signup', 'Login');
+            const myDocsText = getTranslatedText('dashboard.my_documents', 'My Documents');
+            const dashboardText = getTranslatedText('nav.dashboard', 'Dashboard');
+            const settingsText = getTranslatedText('dashboard.settings', 'Settings');
+            const logoutText = getTranslatedText('nav.logout', 'Logout');
+            
             if (!token) {
                 // Not logged in - show login button
-                authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link>Login / Sign Up</a>';
+                authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link data-i18n="nav.login_signup">' + loginSignupText + '</a>';
                 return;
             }
             
@@ -2937,7 +2952,7 @@
                     authButtons.innerHTML = 
                         '<div class="user-menu">' +
                             '<a href="' + dashboardUrl + '" class="dashboard-btn" data-dashboard-link>' +
-                                '<i class="fas fa-folder-open"></i> My Documents' +
+                                '<i class="fas fa-folder-open"></i> ' + myDocsText +
                             '</a>' +
                             '<div class="user-avatar" onclick="toggleUserDropdown(event)">' +
                                 initials +
@@ -2946,20 +2961,20 @@
                                         '<h4>' + name + '</h4>' +
                                         '<p>' + (currentUser.email || '') + '</p>' +
                                     '</div>' +
-                                    '<a href="' + dashboardUrl + '" data-dashboard-link><i class="fas fa-th-large"></i> Dashboard</a>' +
-                                    '<a href="' + settingsUrl + '" data-dashboard-link><i class="fas fa-cog"></i> Settings</a>' +
-                                    '<a href="#" class="logout" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i> Logout</a>' +
+                                    '<a href="' + dashboardUrl + '" data-dashboard-link><i class="fas fa-th-large"></i> ' + dashboardText + '</a>' +
+                                    '<a href="' + settingsUrl + '" data-dashboard-link><i class="fas fa-cog"></i> ' + settingsText + '</a>' +
+                                    '<a href="#" class="logout" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i> ' + logoutText + '</a>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
                 } else {
                     // Token invalid - clear and show login
                     localStorage.removeItem('scanup_token');
-                    authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link>Login / Sign Up</a>';
+                    authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link data-i18n="nav.login_signup">' + loginSignupText + '</a>';
                 }
             } catch (e) {
                 console.error('Auth check failed:', e);
-                authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link>Login / Sign Up</a>';
+                authButtons.innerHTML = '<a href="' + dashboardUrl + '" class="nav-cta" data-dashboard-link data-i18n="nav.login_signup">' + loginSignupText + '</a>';
             }
         }
         
