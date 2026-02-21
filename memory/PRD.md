@@ -22,51 +22,49 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ## What's Been Implemented
 
-### Session: Feb 21, 2026 - SEO Implementation (COMPLETED)
+### Session: Feb 21, 2026 - SEO + Login i18n + Admin Fix
 
 #### Language-Specific SEO (P0 - COMPLETED ✅)
 - **Dynamic Page Titles**: Each language gets translated page titles
-  - EN: `ScanUp - Best Free Document Scanner App for iPhone & Android | PDF Scanner`
-  - TR: `ScanUp - iPhone ve Android için En İyi Ücretsiz Belge Tarayıcı | PDF Tarayıcı`
-  - DE: `ScanUp - Beste kostenlose Dokumentenscanner-App für iPhone & Android | PDF Scanner`
 - **Meta Description**: Translated for 15 languages
 - **Canonical URLs**: Dynamically set per language (`/tr/`, `/de/`, etc.)
 - **Hreflang Tags**: 16 links (15 languages + x-default)
 - **Schema.org/JSON-LD**: Updated with translated content
-  - Organization description
-  - MobileApplication name/description
-  - FAQPage questions/answers
 
-#### SEO Implementation Details:
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Page Title | ✅ | Translated for all 15 languages |
-| Meta Description | ✅ | Translated for all 15 languages |
-| Canonical URL | ✅ | Language-specific URLs |
-| Hreflang Tags | ✅ | 15 languages + x-default |
-| og:title | ✅ | Translated |
-| og:description | ✅ | Translated |
-| og:locale | ✅ | Correct locale codes |
-| og:url | ✅ | Language-specific |
-| Twitter Cards | ✅ | Translated |
-| Schema.org | ✅ | Dynamic JSON-LD update |
+#### Dashboard Login i18n (COMPLETED ✅)
+- Login/Register tabs translated
+- Form labels (Email, Password, Full Name) translated
+- Buttons translated ("Giriş Yap", "Kayıt Ol", etc.)
+- Placeholders translated
+- Social login buttons translated ("Apple ile Devam Et")
+- Sidebar menu items translated
+
+#### Dashboard Page i18n (COMPLETED ✅)
+- All sidebar items translated
+- Stats section translated (Documents, Pages, Storage, This Month)
+- Profile section labels translated
+- Settings section translated
+- Folder/document management text translated
+
+#### Admin Panel Fix (PARTIAL ⚠️)
+- Created `/api/admin` endpoint for preview environment
+- Created `index-api.html` with correct asset paths
+- **Issue**: React SPA has base path `/mumiixadmin/` hardcoded in build
+- **Works in production**: `/mumiixadmin` path works correctly
+- **Preview limitation**: `/api/admin` shows blank page due to React router configuration
+
+#### Universal data-i18n System
+- Implemented `applyDataI18nTranslations()` function
+- Supports `data-i18n` for text content
+- Supports `data-i18n-placeholder` for input placeholders
+- Supports `data-i18n-title` for title attributes
+- Supports `data-i18n-aria` for accessibility labels
 
 ### Previous Session: i18n System (COMPLETED)
-- **15 languages supported**: EN, DE, FR, ES, TR, RU, IT, PT, AR, ZH, JA, KO, NL, PL, HI
-- **15 HTML pages with i18n**: All static pages now support multi-language
-- **Features implemented**:
-  - Browser language auto-detection
-  - Language-specific URLs (`/tr`, `/de`, etc.)
-  - Flag-based language dropdown selector
-  - LocalStorage persistence for language preference
-  - RTL support for Arabic
-
-### Previous Sessions:
-- ✅ Backend CORS configuration fixed
-- ✅ Admin login working with rate limiting
-- ✅ Security headers added (slowapi, secure)
-- ⏳ iOS crash fix - PENDING USER VERIFICATION
-- ⏳ PDF export fix - PENDING USER VERIFICATION
+- 15 languages supported
+- 15 HTML pages with i18n
+- Browser language auto-detection
+- Language-specific URLs
 
 ---
 
@@ -77,7 +75,7 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 2. **PDF Export Fix** - User needs to build & test
 
 ### P1 - High Priority
-1. Admin dashboard refresh 404 bug
+1. ~~Admin dashboard refresh 404 bug~~ - Partially addressed
 2. Complete translations for legal pages (privacy, terms full content)
 
 ### P2 - Medium Priority
@@ -91,17 +89,20 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 ```
 /app
 ├── backend/
-│   ├── server.py                    # FastAPI main app
+│   ├── server.py
 │   ├── landing-page/
-│   │   ├── *.html                   # 15 static HTML pages
-│   │   └── js/
-│   │       └── i18n.js              # Centralized i18n + SEO system
-├── frontend/                        # Expo mobile app
-└── admin-dashboard/                 # React admin panel
+│   │   ├── *.html (15 pages with data-i18n)
+│   │   └── js/i18n.js (All translations + SEO)
+│   └── admin-static/
+│       ├── index.html (for /mumiixadmin)
+│       └── index-api.html (for /api/admin)
+├── frontend/ (Expo)
+└── admin-dashboard/ (React)
 ```
 
 ## Key Files
-- **i18n.js**: Contains all translations, SEO metadata (seoData object), and functions:
+- **i18n.js**: Contains all translations, SEO metadata, and functions:
+  - `applyDataI18nTranslations()`: Universal data-i18n attribute handler
   - `updatePageTitle()`: Dynamic page title per language
   - `updateSEOMetaTags()`: Updates meta description, og:*, twitter:*
   - `updateCanonicalAndHreflang()`: Sets canonical URL and 16 hreflang links
