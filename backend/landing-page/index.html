@@ -3055,6 +3055,17 @@
         (function() {
             const isApiRoute = window.location.pathname.startsWith('/api/');
             const basePath = isApiRoute ? '/api' : '';
+            
+            // Fix dashboard links for preview environment
+            if (isApiRoute) {
+                document.querySelectorAll('a[href="/dashboard"]').forEach(link => {
+                    link.href = '/api/pages/dashboard';
+                });
+                document.querySelectorAll('a[href="/dashboard#settings"]').forEach(link => {
+                    link.href = '/api/pages/dashboard#settings';
+                });
+            }
+            
             const script = document.createElement('script');
             script.src = basePath + '/js/i18n-v2.js';
             script.onerror = function() {
