@@ -12,6 +12,9 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 
 ## What's Been Implemented - Feb 21, 2026
 
+### i18n REFACTOR COMPLETED ✅
+**Switched from monolithic i18n.js to JSON-based i18n-v2.js system**
+
 ### Complete i18n System (15 Languages)
 | Page | UI Translation | Content Translation | SEO |
 |------|----------------|---------------------|-----|
@@ -23,23 +26,28 @@ Full-stack document scanner application (Expo/FastAPI/MongoDB) with:
 | Cookies | ✅ All 15 | ✅ All 15 | ✅ All 15 |
 | GDPR | ✅ All 15 | ✅ All 15 | ✅ All 15 |
 | FAQ | ✅ All 15 | ✅ All 15 | ✅ All 15 |
-| Features | ✅ Headers | 🔄 Partial | ✅ All 15 |
-| Pricing | ✅ Headers | 🔄 Partial | ✅ All 15 |
-| Reviews | ✅ Headers | 🔄 Partial | ✅ All 15 |
-| Download | ✅ Headers | 🔄 Partial | ✅ All 15 |
-| Support | ✅ Headers | 🔄 Partial | ✅ All 15 |
+| Features | ✅ All 15 | ✅ All 15 | ✅ All 15 |
+| Pricing | ✅ All 15 | ✅ All 15 | ✅ All 15 |
+| Reviews | ✅ All 15 | ✅ All 15 | ✅ All 15 |
+| Download | ✅ All 15 | ✅ All 15 | ✅ All 15 |
+| Support | ✅ All 15 | ✅ All 15 | ✅ All 15 |
 | Status | ✅ All 15 | ✅ All 15 | ✅ All 15 |
 | 404 | ✅ All 15 | ✅ All 15 | ✅ All 15 |
 
 ### Supported Languages (15)
 EN, TR, DE, FR, ES, RU, IT, PT, AR, ZH, JA, KO, NL, PL, HI
 
-### NEW: JSON-based i18n System
-Created `/app/backend/landing-page/locales/` directory with:
-- Individual JSON files for each language (en.json, tr.json, de.json, etc.)
-- Lazy loading capability via i18n-v2.js
-- Modular structure for easier maintenance
-- All 15 language JSON files created and mounted
+### ACTIVE: JSON-based i18n System (i18n-v2.js)
+**All HTML pages now use i18n-v2.js instead of i18n.js**
+
+Features of new system:
+- Individual JSON files for each language in `/locales/` directory
+- Lazy loading - only loads needed language file
+- Key mapping for legacy underscore-format keys
+- RTL support for Arabic (dir="rtl")
+- SEO: Dynamic title, meta description, hreflang, schema.org
+- Fallback to English when translation missing
+- Language detection: URL path > URL param > localStorage > browser lang
 
 ### SEO Implementation
 | Feature | Status |
@@ -68,10 +76,9 @@ Created `/app/backend/landing-page/locales/` directory with:
 1. **iOS App Crash Fix** - User must test
 2. **PDF Export Fix** - User must test
 
-### P1 - In Progress
-1. **Complete Features, Pricing, Reviews, Download, Support content translation**
-   - Headers are translated
-   - Feature card content needs data-i18n attributes
+### P1 - COMPLETED ✅
+1. **i18n Refactor DONE** - All pages now use i18n-v2.js with JSON files
+2. **Features, Pricing, Reviews, Download pages** - Fully translated with data-i18n
 
 ### P2 - Medium Priority
 1. Share popup performance
@@ -102,8 +109,8 @@ Created `/app/backend/landing-page/locales/` directory with:
 │   ├── pl.json           # Polish
 │   └── hi.json           # Hindi
 ├── js/
-│   ├── i18n.js           # Legacy monolithic system (working)
-│   └── i18n-v2.js        # NEW: JSON-based lazy loader
+│   ├── i18n.js           # DEPRECATED - No longer used
+│   └── i18n-v2.js        # ACTIVE - JSON-based lazy loader with key mapping
 ├── sitemap.xml
 ├── robots.txt
 └── *.html                # 15 HTML pages
@@ -132,13 +139,16 @@ Created `/app/backend/landing-page/locales/` directory with:
 ---
 
 ## Completed This Session (Feb 21, 2026)
-1. ✅ Created JSON-based i18n system with lazy loading
-2. ✅ Created 15 language JSON files in `/locales/` directory
-3. ✅ Mounted locales directory in server.py
-4. ✅ Full translations for TR, DE, FR, ES, RU, AR, ZH, JA
-5. ✅ Verified Dashboard page translation working (Turkish)
-6. ✅ Verified Features page headers translation (German)
-7. ✅ Legal pages (Privacy, Terms, Cookies, GDPR) - All 15 languages
+1. ✅ **i18n REFACTOR COMPLETE** - Switched all HTML pages from i18n.js to i18n-v2.js
+2. ✅ Key mapping system for legacy underscore keys to nested JSON paths
+3. ✅ Features page - Full translation with data-i18n attributes
+4. ✅ Pricing page - Full translation with localized currency (₺ for Turkish)
+5. ✅ Reviews page - Localized reviewer names and content
+6. ✅ Download page - Full translation
+7. ✅ Dashboard page - Login form fully translated
+8. ✅ RTL support verified for Arabic
+9. ✅ Testing agent verification - 100% frontend pass rate
+10. ✅ All 15 HTML pages now using new i18n-v2.js system
 
 ## 3rd Party Integrations
 - Apple App Store (IAP)
