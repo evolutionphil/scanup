@@ -190,7 +190,45 @@
         'footer_terms': 'footer.terms',
         'footer_privacy': 'footer.privacy',
         'footer_cookies': 'footer.cookies',
-        'footer_gdpr': 'footer.gdpr'
+        'footer_gdpr': 'footer.gdpr',
+        // Dashboard / Auth
+        'auth_access_docs': 'dashboard.login_subtitle',
+        'auth_tab_login': 'dashboard.login_button',
+        'auth_tab_register': 'dashboard.register_button',
+        'auth_email': 'dashboard.email_placeholder',
+        'auth_password': 'dashboard.password_placeholder',
+        'auth_login_btn': 'dashboard.login_button',
+        'auth_full_name': 'dashboard.register_subtitle',
+        'auth_register_btn': 'dashboard.register_button',
+        'auth_or_continue': 'dashboard.or_continue_with',
+        'auth_continue_google': 'dashboard.google_signin',
+        'auth_continue_apple': 'dashboard.google_signin',
+        'auth_email_placeholder': 'dashboard.email_placeholder',
+        'auth_password_placeholder': 'dashboard.password_placeholder',
+        'auth_name_placeholder': 'dashboard.register_subtitle',
+        'auth_password_min': 'dashboard.password_placeholder',
+        // Dashboard sidebar
+        'sidebar_documents': 'dashboard.my_documents',
+        'sidebar_profile': 'dashboard.my_documents',
+        'sidebar_settings': 'dashboard.my_documents',
+        'sidebar_get_app': 'common.download_now',
+        'sidebar_help': 'common.contact_support',
+        // Dashboard documents
+        'docs_search_placeholder': 'common.search',
+        'docs_all': 'dashboard.all_documents',
+        'docs_recent': 'dashboard.recent',
+        'docs_folders': 'dashboard.folders',
+        'docs_create_folder': 'dashboard.create_folder',
+        'docs_upload': 'dashboard.upload',
+        'docs_download_pdf': 'dashboard.download_pdf',
+        'docs_delete': 'dashboard.delete',
+        'docs_rename': 'dashboard.rename',
+        'docs_move_to_folder': 'dashboard.move_to_folder',
+        'docs_empty_title': 'dashboard.no_documents',
+        'docs_empty_desc': 'dashboard.no_documents_desc',
+        'stats_documents': 'dashboard.stats_documents',
+        'stats_folders': 'dashboard.stats_folders',
+        'stats_storage': 'dashboard.stats_storage'
     };
 
     /**
