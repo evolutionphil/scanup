@@ -131,17 +131,115 @@
     }
 
     /**
-     * Translate a key
+     * Key mapping for legacy underscore-format keys to nested JSON paths
+     * Maps old flat keys (e.g., "features_hero_title") to nested keys (e.g., "features.hero_title")
+     */
+    const KEY_MAPPINGS = {
+        // Features page
+        'features_hero_title': 'features.hero_title',
+        'features_hero_subtitle': 'features.hero_subtitle',
+        'feature_ai_title': 'features.ai_detection_title',
+        'feature_ai_desc': 'features.ai_detection_desc',
+        'feature_ai_1': 'features.ai_detection_1',
+        'feature_ai_2': 'features.ai_detection_2',
+        'feature_ai_3': 'features.ai_detection_3',
+        'feature_filters_title': 'features.filters_title',
+        'feature_filters_desc': 'features.filters_desc',
+        'feature_filters_1': 'features.filters_1',
+        'feature_filters_2': 'features.filters_2',
+        'feature_filters_3': 'features.filters_3',
+        'feature_signatures_title': 'features.signatures_title',
+        'feature_signatures_desc': 'features.signatures_desc',
+        'feature_signatures_1': 'features.signatures_1',
+        'feature_signatures_2': 'features.signatures_2',
+        'feature_signatures_3': 'features.signatures_3',
+        'feature_cloud_title': 'features.cloud_title',
+        'feature_cloud_desc': 'features.cloud_desc',
+        'feature_cloud_1': 'features.cloud_1',
+        'feature_cloud_2': 'features.cloud_2',
+        'feature_cloud_3': 'features.cloud_3',
+        'feature_web_title': 'features.web_title',
+        'feature_web_desc': 'features.web_desc',
+        'feature_web_1': 'features.web_1',
+        'feature_web_2': 'features.web_2',
+        'feature_web_3': 'features.web_3',
+        'feature_security_title': 'features.security_title',
+        'feature_security_desc': 'features.security_desc',
+        'feature_security_1': 'features.security_1',
+        'feature_security_2': 'features.security_2',
+        'feature_security_3': 'features.security_3',
+        'features_cta_title': 'features.cta_title',
+        'features_cta_subtitle': 'features.cta_subtitle',
+        // Common
+        'back_to_home': 'common.back_to_home',
+        'download_now': 'common.download_now',
+        'download_free': 'common.download_free',
+        'get_started': 'common.get_started',
+        'learn_more': 'common.learn_more',
+        'contact_support': 'common.contact_support',
+        'contact_us': 'common.contact_us',
+        'last_updated': 'common.last_updated',
+        // Nav
+        'nav_features': 'nav.features',
+        'nav_pricing': 'nav.pricing',
+        'nav_faq': 'nav.faq',
+        'nav_reviews': 'nav.reviews',
+        'nav_support': 'nav.support',
+        // Footer
+        'footer_copyright': 'footer.copyright',
+        'footer_terms': 'footer.terms',
+        'footer_privacy': 'footer.privacy',
+        'footer_cookies': 'footer.cookies',
+        'footer_gdpr': 'footer.gdpr'
+    };
+
+    /**
+     * Translate a key - supports both nested paths and legacy underscore format
      */
     function t(key, fallback = null) {
         const translations = translationCache[currentLanguage];
+        if (!translations) return fallback || key;
+
+        // First try direct mapping from legacy keys
+        const mappedKey = KEY_MAPPINGS[key];
+        if (mappedKey) {
+            const value = getNestedValue(translations, mappedKey);
+            if (value !== undefined) return value;
+        }
+
+        // Try direct nested path (e.g., "features.hero_title")
         let value = getNestedValue(translations, key);
-        
-        if (value === undefined && fallbackTranslations) {
+        if (value !== undefined) return value;
+
+        // Try auto-converting underscore to dot notation for first segment
+        // e.g., "privacy_title" -> try "privacy.title"
+        const underscoreIndex = key.indexOf('_');
+        if (underscoreIndex > 0) {
+            const section = key.substring(0, underscoreIndex);
+            const rest = key.substring(underscoreIndex + 1);
+            value = getNestedValue(translations, `${section}.${rest}`);
+            if (value !== undefined) return value;
+        }
+
+        // Try fallback language
+        if (fallbackTranslations) {
+            if (mappedKey) {
+                const fbValue = getNestedValue(fallbackTranslations, mappedKey);
+                if (fbValue !== undefined) return fbValue;
+            }
+            
             value = getNestedValue(fallbackTranslations, key);
+            if (value !== undefined) return value;
+
+            if (underscoreIndex > 0) {
+                const section = key.substring(0, underscoreIndex);
+                const rest = key.substring(underscoreIndex + 1);
+                value = getNestedValue(fallbackTranslations, `${section}.${rest}`);
+                if (value !== undefined) return value;
+            }
         }
         
-        return value || fallback || key;
+        return fallback || key;
     }
 
     /**
