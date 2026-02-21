@@ -1,0 +1,124 @@
+{
+  "summary": "Completed testing of Schema.org JSON-LD translations and dashboard routing. Key features tested: MobileApplication name/description translations (working), featureList translations (NOT working), FAQ schema translations (NOT working - regex mismatch), login button routing (working), dashboard route 404 fix (working).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/pages/{lang}",
+        "issue": "Schema.org featureList NOT translated - html.replace() exact string match fails due to whitespace/formatting differences in HTML vs code",
+        "file": "/app/backend/server.py",
+        "line": "7054-7059",
+        "root_cause": "The old_features string is a single-line JSON array but HTML has multi-line formatted JSON with indentation"
+      },
+      {
+        "endpoint": "/api/pages/{lang}",
+        "issue": "Schema.org FAQ questions NOT translated - regex patterns in server.py don't match actual HTML content",
+        "file": "/app/backend/server.py",
+        "line": "7069-7083",
+        "root_cause": "Regex looks for 'Is ScanUp free?' but HTML has 'Is ScanUp free to use?'. Similar mismatches for Q2 and Q3"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_schema_translations.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix featureList replacement in server.py (line 7054-7059) - need to use regex to match multi-line JSON or normalize whitespace",
+    "Fix FAQ schema regex patterns in server.py (line 7069-7083) to match actual HTML questions: 'Is ScanUp free to use?', 'What file formats does ScanUp support?', 'What devices is ScanUp available on?'"
+  ],
+  "critical_code_review_comments": [
+    "MobileApplication name translation WORKING: DE='ScanUp - Dokumentenscanner', TR='ScanUp - Belge Tarayıcı'",
+    "MobileApplication description translation WORKING: Contains German/Turkish text",
+    "featureList translation NOT WORKING: html.replace() uses exact string match but HTML has different formatting (multi-line with indentation)",
+    "FAQ schema translation NOT WORKING: regex patterns look for wrong question text (e.g., 'Is ScanUp free?' vs actual 'Is ScanUp free to use?')",
+    "Login button routing WORKING: /de page correctly links to /api/pages/de/dashboard",
+    "Dashboard route NOT returning 404: /api/pages/de/dashboard and /api/pages/tr/dashboard both return 200"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "75% (12 passed, 2 failed, 2 skipped)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "None required",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Schema.org translation issues identified: 1) featureList uses exact string match that fails due to HTML formatting, 2) FAQ regex patterns don't match actual HTML. Login button routing and dashboard 404 fix verified working.",
+  "test_results": {
+    "schema_mobile_application_name_de": {
+      "status": "PASS",
+      "expected": "ScanUp - Dokumentenscanner",
+      "actual": "ScanUp - Dokumentenscanner"
+    },
+    "schema_mobile_application_name_tr": {
+      "status": "PASS",
+      "expected": "ScanUp - Belge Tarayıcı",
+      "actual": "ScanUp - Belge Tarayıcı"
+    },
+    "schema_mobile_application_description_de": {
+      "status": "PASS",
+      "verified_keywords": ["ultimative kostenlose Dokumentenscanner", "Dokumente zu PDF"]
+    },
+    "schema_mobile_application_description_tr": {
+      "status": "PASS",
+      "verified_keywords": ["belge tarayıcı uygulamasıdır", "Belgeleri PDF"]
+    },
+    "schema_featurelist_de": {
+      "status": "FAIL",
+      "expected": "Dokumentenscannen",
+      "actual": "Document Scanning (English, not translated)",
+      "root_cause": "html.replace() exact match fails - HTML has multi-line formatted JSON"
+    },
+    "schema_featurelist_tr": {
+      "status": "FAIL",
+      "expected": "Belge Tarama",
+      "actual": "Document Scanning (English, not translated)",
+      "root_cause": "html.replace() exact match fails - HTML has multi-line formatted JSON"
+    },
+    "schema_faq_questions_de": {
+      "status": "SKIP",
+      "reason": "Regex patterns don't match HTML - 'Is ScanUp free?' vs 'Is ScanUp free to use?'"
+    },
+    "schema_faq_questions_tr": {
+      "status": "SKIP",
+      "reason": "Regex patterns don't match HTML - same issue as DE"
+    },
+    "dashboard_route_de": {
+      "status": "PASS",
+      "url": "/api/pages/de/dashboard",
+      "status_code": 200
+    },
+    "dashboard_route_tr": {
+      "status": "PASS",
+      "url": "/api/pages/tr/dashboard",
+      "status_code": 200
+    },
+    "login_button_routing_de": {
+      "status": "PASS",
+      "href": "/api/pages/de/dashboard",
+      "navigation": "successful"
+    },
+    "login_button_routing_tr": {
+      "status": "PASS",
+      "href": "/api/pages/tr/dashboard",
+      "navigation": "successful"
+    }
+  },
+  "rca_of_the_issue": {
+    "featurelist_not_translated": {
+      "issue": "featureList in Schema.org JSON-LD not being translated to German/Turkish",
+      "root_cause": "In server.py line 7057, the code uses html.replace(old_features, new_features) where old_features is a single-line JSON array. However, the actual HTML file has the featureList formatted with newlines and indentation across multiple lines. The exact string match fails because of whitespace differences.",
+      "fix": "Use regex to match the featureList pattern regardless of whitespace, e.g.: re.sub(r'\"featureList\":\\s*\\[[^\\]]+\\]', f'\"featureList\": {new_features}', html, flags=re.DOTALL)"
+    },
+    "faq_not_translated": {
+      "issue": "FAQ questions in Schema.org not being translated",
+      "root_cause": "The regex patterns in server.py lines 7069-7083 look for different text than what exists in the HTML. For example, regex looks for 'Is ScanUp free?' but HTML actually has 'Is ScanUp free to use?'. Similar mismatches for all 3 FAQ questions.",
+      "fix": "Update regex patterns to match actual HTML content: 'Is ScanUp free to use?', 'What file formats does ScanUp support?', 'What devices is ScanUp available on?'"
+    }
+  }
+}
