@@ -32,9 +32,9 @@
     "signup": "Registrieren",
     "dashboard": "Dashboard",
     "logout": "Abmelden",
-    "web_dashboard": "Web-Dashboard",
-    "how_it_works": "So funktioniert's",
-    "login_signup": "Anmelden / Registrieren"
+    "web_dashboard": "Web",
+    "how_it_works": "Anleitung",
+    "login_signup": "Anmelden"
   },
   "footer": {
     "copyright": "2025 ScanUp Inc. Alle Rechte vorbehalten.",
