@@ -40,71 +40,91 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo"><div class="logo-icon"><i class="fas fa-file-alt"></i></div>ScanUp</a>
-            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            <a href="/" class="back-link" data-i18n="back_to_home"><i class="fas fa-arrow-left"></i> Ana Sayfaya Dön</a>
         </div>
     </nav>
 
     <section class="hero">
-        <h1>Cookie Policy</h1>
+        <h1 data-i18n="cookies_title">Çerez Politikası</h1>
     </section>
 
     <div class="content">
-        <div class="last-updated"><i class="fas fa-calendar-alt"></i> Last updated: January 2025</div>
+        <div class="last-updated" data-i18n="last_updated"><i class="fas fa-calendar-alt"></i> Son Güncelleme: Ocak 2025</div>
 
-        <h2>What Are Cookies?</h2>
-        <p>Cookies are small text files placed on your device when you visit our website. They help us provide you with a better experience by remembering your preferences and understanding how you use our services.</p>
+        <h2 data-i18n="cookies_what">Çerezler Nedir?</h2>
+        <p data-i18n="cookies_what_text">Çerezler, web sitemizi ziyaret ettiğinizde cihazınıza yerleştirilen küçük metin dosyalarıdır. Tercihlerinizi hatırlayarak ve hizmetlerimizi nasıl kullandığınızı anlayarak size daha iyi bir deneyim sunmamıza yardımcı olurlar.</p>
 
-        <h2>Types of Cookies We Use</h2>
+        <h2 data-i18n="cookies_types">Kullandığımız Çerez Türleri</h2>
         <table class="cookie-table">
-            <tr><th>Type</th><th>Purpose</th><th>Duration</th></tr>
-            <tr><td><strong>Essential</strong></td><td>Required for basic website functionality, login sessions</td><td>Session</td></tr>
-            <tr><td><strong>Authentication</strong></td><td>Keep you logged in securely</td><td>7 days</td></tr>
-            <tr><td><strong>Preferences</strong></td><td>Remember your settings (theme, language)</td><td>1 year</td></tr>
-            <tr><td><strong>Analytics</strong></td><td>Understand how visitors use our website</td><td>2 years</td></tr>
+            <tr>
+                <th data-i18n="cookie_type">Tür</th>
+                <th data-i18n="cookie_purpose">Amaç</th>
+                <th data-i18n="cookie_duration">Süre</th>
+            </tr>
+            <tr>
+                <td><strong data-i18n="cookie_essential">Zorunlu</strong></td>
+                <td data-i18n="cookie_essential_desc">Temel web sitesi işlevselliği, oturum açma</td>
+                <td data-i18n="cookie_session">Oturum</td>
+            </tr>
+            <tr>
+                <td><strong data-i18n="cookie_auth">Kimlik Doğrulama</strong></td>
+                <td data-i18n="cookie_auth_desc">Güvenli şekilde oturumunuzu açık tutma</td>
+                <td data-i18n="cookie_7days">7 gün</td>
+            </tr>
+            <tr>
+                <td><strong data-i18n="cookie_prefs">Tercihler</strong></td>
+                <td data-i18n="cookie_prefs_desc">Ayarlarınızı hatırlama (tema, dil)</td>
+                <td data-i18n="cookie_1year">1 yıl</td>
+            </tr>
+            <tr>
+                <td><strong data-i18n="cookie_analytics">Analitik</strong></td>
+                <td data-i18n="cookie_analytics_desc">Ziyaretçilerin web sitemizi nasıl kullandığını anlama</td>
+                <td data-i18n="cookie_2years">2 yıl</td>
+            </tr>
         </table>
 
-        <h2>Essential Cookies</h2>
-        <p>These cookies are necessary for the website to function. They include:</p>
+        <h2 data-i18n="cookies_essential_title">Zorunlu Çerezler</h2>
+        <p data-i18n="cookies_essential_text">Bu çerezler web sitesinin çalışması için gereklidir. Bunlar:</p>
         <ul>
-            <li><strong>scanup_token:</strong> Authentication token for logged-in users</li>
-            <li><strong>session_id:</strong> Maintains your session state</li>
+            <li><strong>scanup_token:</strong> <span data-i18n="cookie_token_desc">Oturum açmış kullanıcılar için kimlik doğrulama tokeni</span></li>
+            <li><strong>session_id:</strong> <span data-i18n="cookie_session_desc">Oturum durumunuzu korur</span></li>
         </ul>
 
-        <h2>Analytics Cookies</h2>
-        <p>We use analytics to improve our services. These cookies help us understand:</p>
+        <h2 data-i18n="cookies_analytics_title">Analitik Çerezler</h2>
+        <p data-i18n="cookies_analytics_text">Hizmetlerimizi iyileştirmek için analitik kullanıyoruz. Bu çerezler şunları anlamamıza yardımcı olur:</p>
         <ul>
-            <li>Which pages are most popular</li>
-            <li>How users navigate through our site</li>
-            <li>Technical issues users may encounter</li>
+            <li data-i18n="analytics_popular">Hangi sayfaların en popüler olduğu</li>
+            <li data-i18n="analytics_navigate">Kullanıcıların sitemizde nasıl gezindiği</li>
+            <li data-i18n="analytics_issues">Kullanıcıların karşılaşabileceği teknik sorunlar</li>
         </ul>
-        <p>We do NOT use analytics to track individual users or collect personal information.</p>
+        <p data-i18n="analytics_no_track">Bireysel kullanıcıları takip etmek veya kişisel bilgi toplamak için analitik KULLANMIYORUZ.</p>
 
-        <h2>Managing Cookies</h2>
-        <p>You can control cookies through your browser settings:</p>
+        <h2 data-i18n="cookies_manage">Çerezleri Yönetme</h2>
+        <p data-i18n="cookies_manage_text">Çerezleri tarayıcı ayarlarınızdan kontrol edebilirsiniz:</p>
         <ul>
-            <li><strong>Chrome:</strong> Settings > Privacy and Security > Cookies</li>
-            <li><strong>Firefox:</strong> Options > Privacy & Security > Cookies</li>
-            <li><strong>Safari:</strong> Preferences > Privacy > Cookies</li>
-            <li><strong>Edge:</strong> Settings > Cookies and site permissions</li>
+            <li><strong>Chrome:</strong> <span data-i18n="browser_chrome">Ayarlar > Gizlilik ve Güvenlik > Çerezler</span></li>
+            <li><strong>Firefox:</strong> <span data-i18n="browser_firefox">Seçenekler > Gizlilik ve Güvenlik > Çerezler</span></li>
+            <li><strong>Safari:</strong> <span data-i18n="browser_safari">Tercihler > Gizlilik > Çerezler</span></li>
+            <li><strong>Edge:</strong> <span data-i18n="browser_edge">Ayarlar > Çerezler ve site izinleri</span></li>
         </ul>
-        <p>Note: Disabling essential cookies may affect website functionality.</p>
+        <p data-i18n="cookies_disable_warning">Not: Zorunlu çerezleri devre dışı bırakmak web sitesi işlevselliğini etkileyebilir.</p>
 
-        <h2>Third-Party Cookies</h2>
-        <p>We may use third-party services that set their own cookies:</p>
+        <h2 data-i18n="cookies_third_party">Üçüncü Taraf Çerezleri</h2>
+        <p data-i18n="cookies_third_party_text">Kendi çerezlerini ayarlayan üçüncü taraf hizmetleri kullanabiliriz:</p>
         <ul>
-            <li><strong>Google Sign-In:</strong> For authentication</li>
-            <li><strong>Stripe:</strong> For payment processing (if applicable)</li>
+            <li><strong>Google Sign-In:</strong> <span data-i18n="third_party_google">Kimlik doğrulama için</span></li>
+            <li><strong>Stripe:</strong> <span data-i18n="third_party_stripe">Ödeme işleme için (varsa)</span></li>
         </ul>
 
-        <h2>Updates to This Policy</h2>
-        <p>We may update this Cookie Policy from time to time. Changes will be posted on this page with an updated revision date.</p>
+        <h2 data-i18n="cookies_updates">Bu Politikadaki Güncellemeler</h2>
+        <p data-i18n="cookies_updates_text">Bu Çerez Politikasını zaman zaman güncelleyebiliriz. Değişiklikler güncellenmiş revizyon tarihi ile bu sayfada yayınlanacaktır.</p>
 
-        <h2>Contact Us</h2>
-        <p>Questions about cookies? Contact us at <a href="mailto:support@scanup.app">support@scanup.app</a></p>
+        <h2 data-i18n="contact_us">Bize Ulaşın</h2>
+        <p data-i18n="cookies_contact_text">Çerezler hakkında sorularınız mı var? Bize şu adresten ulaşın: <a href="mailto:support@scanup.app">support@scanup.app</a></p>
     </div>
 
     <footer class="footer">
-        <p>&copy; 2025 ScanUp Inc. | <a href="/terms">Terms</a> | <a href="/privacy">Privacy</a></p>
+        <p>&copy; 2025 ScanUp Inc. | <a href="/terms" data-i18n="footer_terms">Koşullar</a> | <a href="/privacy" data-i18n="footer_privacy">Gizlilik</a></p>
     </footer>
     <!-- i18n - Multi-language support -->
     <script>
