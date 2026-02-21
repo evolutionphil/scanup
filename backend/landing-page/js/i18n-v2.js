@@ -1,0 +1,535 @@
+/**
+ * ScanUp i18n System v2.0
+ * JSON-based, lazy-loading internationalization
+ * Supports 15 languages with on-demand loading
+ */
+
+(function() {
+    'use strict';
+
+    const SUPPORTED_LANGUAGES = ['en', 'tr', 'de', 'fr', 'es', 'ru', 'it', 'pt', 'ar', 'zh', 'ja', 'ko', 'nl', 'pl', 'hi'];
+    const DEFAULT_LANGUAGE = 'en';
+    const CACHE_KEY = 'scanup_i18n_cache';
+    const CACHE_VERSION = '2.0';
+
+    // Language metadata for SEO
+    const LANGUAGE_META = {
+        en: { name: 'English', native: 'English', dir: 'ltr', hreflang: 'en' },
+        tr: { name: 'Turkish', native: 'Türkçe', dir: 'ltr', hreflang: 'tr' },
+        de: { name: 'German', native: 'Deutsch', dir: 'ltr', hreflang: 'de' },
+        fr: { name: 'French', native: 'Français', dir: 'ltr', hreflang: 'fr' },
+        es: { name: 'Spanish', native: 'Español', dir: 'ltr', hreflang: 'es' },
+        ru: { name: 'Russian', native: 'Русский', dir: 'ltr', hreflang: 'ru' },
+        it: { name: 'Italian', native: 'Italiano', dir: 'ltr', hreflang: 'it' },
+        pt: { name: 'Portuguese', native: 'Português', dir: 'ltr', hreflang: 'pt' },
+        ar: { name: 'Arabic', native: 'العربية', dir: 'rtl', hreflang: 'ar' },
+        zh: { name: 'Chinese', native: '中文', dir: 'ltr', hreflang: 'zh' },
+        ja: { name: 'Japanese', native: '日本語', dir: 'ltr', hreflang: 'ja' },
+        ko: { name: 'Korean', native: '한국어', dir: 'ltr', hreflang: 'ko' },
+        nl: { name: 'Dutch', native: 'Nederlands', dir: 'ltr', hreflang: 'nl' },
+        pl: { name: 'Polish', native: 'Polski', dir: 'ltr', hreflang: 'pl' },
+        hi: { name: 'Hindi', native: 'हिन्दी', dir: 'ltr', hreflang: 'hi' }
+    };
+
+    // Translation cache
+    let translationCache = {};
+    let currentLanguage = DEFAULT_LANGUAGE;
+    let fallbackTranslations = null;
+
+    /**
+     * Detect user's preferred language
+     */
+    function detectLanguage() {
+        // 1. Check URL path (e.g., /tr/privacy or /api/pages/tr/privacy)
+        const pathMatch = window.location.pathname.match(/\/(?:api\/pages\/)?([a-z]{2})(?:\/|$)/);
+        if (pathMatch && SUPPORTED_LANGUAGES.includes(pathMatch[1])) {
+            return pathMatch[1];
+        }
+
+        // 2. Check URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get('lang');
+        if (langParam && SUPPORTED_LANGUAGES.includes(langParam)) {
+            return langParam;
+        }
+
+        // 3. Check localStorage
+        const storedLang = localStorage.getItem('scanup_language');
+        if (storedLang && SUPPORTED_LANGUAGES.includes(storedLang)) {
+            return storedLang;
+        }
+
+        // 4. Check browser language
+        const browserLang = navigator.language?.split('-')[0];
+        if (browserLang && SUPPORTED_LANGUAGES.includes(browserLang)) {
+            return browserLang;
+        }
+
+        return DEFAULT_LANGUAGE;
+    }
+
+    /**
+     * Get base path for assets
+     */
+    function getBasePath() {
+        return window.location.pathname.startsWith('/api/') ? '/api' : '';
+    }
+
+    /**
+     * Load translations from JSON file
+     */
+    async function loadTranslations(lang) {
+        // Return cached if available
+        if (translationCache[lang]) {
+            return translationCache[lang];
+        }
+
+        const basePath = getBasePath();
+        const url = `${basePath}/locales/${lang}.json`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load ${lang} translations`);
+            }
+            const data = await response.json();
+            translationCache[lang] = data;
+            
+            // Cache in localStorage
+            try {
+                const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+                cache[lang] = { version: CACHE_VERSION, data: data, timestamp: Date.now() };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            } catch (e) {
+                // Ignore localStorage errors
+            }
+            
+            return data;
+        } catch (error) {
+            console.warn(`Failed to load translations for ${lang}:`, error);
+            
+            // Try loading from cache
+            try {
+                const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+                if (cache[lang] && cache[lang].version === CACHE_VERSION) {
+                    translationCache[lang] = cache[lang].data;
+                    return cache[lang].data;
+                }
+            } catch (e) {
+                // Ignore
+            }
+            
+            return null;
+        }
+    }
+
+    /**
+     * Get nested translation value
+     */
+    function getNestedValue(obj, path) {
+        return path.split('.').reduce((current, key) => current?.[key], obj);
+    }
+
+    /**
+     * Translate a key
+     */
+    function t(key, fallback = null) {
+        const translations = translationCache[currentLanguage];
+        let value = getNestedValue(translations, key);
+        
+        if (value === undefined && fallbackTranslations) {
+            value = getNestedValue(fallbackTranslations, key);
+        }
+        
+        return value || fallback || key;
+    }
+
+    /**
+     * Apply translations to DOM
+     */
+    function applyTranslations() {
+        // Translate elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            const translation = t(key);
+            
+            if (translation && translation !== key) {
+                if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                    element.placeholder = translation;
+                } else {
+                    element.innerHTML = translation;
+                }
+            }
+        });
+
+        // Translate attributes with data-i18n-* pattern
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            const translation = t(key);
+            if (translation) element.placeholder = translation;
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach(element => {
+            const key = element.getAttribute('data-i18n-title');
+            const translation = t(key);
+            if (translation) element.title = translation;
+        });
+
+        document.querySelectorAll('[data-i18n-aria]').forEach(element => {
+            const key = element.getAttribute('data-i18n-aria');
+            const translation = t(key);
+            if (translation) element.setAttribute('aria-label', translation);
+        });
+
+        // Apply RTL if needed
+        const langMeta = LANGUAGE_META[currentLanguage];
+        if (langMeta?.dir === 'rtl') {
+            document.documentElement.setAttribute('dir', 'rtl');
+            document.body.classList.add('rtl');
+        } else {
+            document.documentElement.setAttribute('dir', 'ltr');
+            document.body.classList.remove('rtl');
+        }
+
+        // Update lang attribute
+        document.documentElement.setAttribute('lang', currentLanguage);
+    }
+
+    /**
+     * Update SEO meta tags
+     */
+    function updateSEO() {
+        const translations = translationCache[currentLanguage];
+        if (!translations) return;
+
+        const page = detectCurrentPage();
+        const pageKey = page || 'index';
+        const pageTrans = translations[pageKey] || translations.index;
+
+        // Update title
+        if (pageTrans?.meta_title) {
+            document.title = pageTrans.meta_title;
+        }
+
+        // Update meta description
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc && pageTrans?.meta_description) {
+            metaDesc.setAttribute('content', pageTrans.meta_description);
+        }
+
+        // Update canonical URL
+        const canonical = document.querySelector('link[rel="canonical"]');
+        const baseUrl = 'https://scanup.app';
+        const pagePath = page ? `/${page}` : '';
+        const langPath = currentLanguage === 'en' ? '' : `/${currentLanguage}`;
+        
+        if (canonical) {
+            canonical.setAttribute('href', `${baseUrl}${langPath}${pagePath}`);
+        }
+
+        // Update/create hreflang tags
+        updateHreflangTags(baseUrl, pagePath);
+
+        // Update Open Graph tags
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        const ogUrl = document.querySelector('meta[property="og:url"]');
+
+        if (ogTitle && pageTrans?.meta_title) {
+            ogTitle.setAttribute('content', pageTrans.meta_title);
+        }
+        if (ogDesc && pageTrans?.meta_description) {
+            ogDesc.setAttribute('content', pageTrans.meta_description);
+        }
+        if (ogUrl) {
+            ogUrl.setAttribute('content', `${baseUrl}${langPath}${pagePath}`);
+        }
+
+        // Update Schema.org JSON-LD
+        updateSchemaOrg(translations, pageTrans, pageKey);
+    }
+
+    /**
+     * Detect current page from URL
+     */
+    function detectCurrentPage() {
+        const path = window.location.pathname;
+        const pages = ['dashboard', 'features', 'pricing', 'faq', 'reviews', 'contact', 'support', 'download', 'status', 'privacy', 'terms', 'cookies', 'gdpr', '404'];
+        
+        for (const page of pages) {
+            if (path.includes(page)) {
+                return page;
+            }
+        }
+        
+        // Check if it's the index page
+        if (path === '/' || path.endsWith('/index') || path.endsWith('/index.html') || path.match(/\/[a-z]{2}\/?$/)) {
+            return 'index';
+        }
+        
+        return null;
+    }
+
+    /**
+     * Update hreflang tags for SEO
+     */
+    function updateHreflangTags(baseUrl, pagePath) {
+        // Remove existing hreflang tags
+        document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(el => el.remove());
+
+        const head = document.head;
+
+        // Add hreflang for each language
+        SUPPORTED_LANGUAGES.forEach(lang => {
+            const link = document.createElement('link');
+            link.rel = 'alternate';
+            link.hreflang = LANGUAGE_META[lang].hreflang;
+            link.href = lang === 'en' ? `${baseUrl}${pagePath}` : `${baseUrl}/${lang}${pagePath}`;
+            head.appendChild(link);
+        });
+
+        // Add x-default
+        const xDefault = document.createElement('link');
+        xDefault.rel = 'alternate';
+        xDefault.hreflang = 'x-default';
+        xDefault.href = `${baseUrl}${pagePath}`;
+        head.appendChild(xDefault);
+    }
+
+    /**
+     * Update Schema.org JSON-LD
+     */
+    function updateSchemaOrg(translations, pageTrans, pageKey) {
+        // Remove existing schema
+        document.querySelectorAll('script[type="application/ld+json"][data-i18n-schema]').forEach(el => el.remove());
+
+        const langMeta = LANGUAGE_META[currentLanguage];
+        const baseUrl = 'https://scanup.app';
+        const pagePath = pageKey === 'index' ? '' : `/${pageKey}`;
+        const langPath = currentLanguage === 'en' ? '' : `/${currentLanguage}`;
+
+        let schema;
+
+        if (pageKey === 'faq') {
+            // FAQ Page Schema
+            schema = {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "inLanguage": currentLanguage,
+                "mainEntity": []
+            };
+
+            // Add FAQ items dynamically based on translations
+            const faqKeys = ['gs_q1', 'gs_q2', 'gs_q3', 'feat_q1', 'feat_q2', 'feat_q3', 'wd_q1', 'wd_q2', 'wd_q3', 'wd_q4', 'sub_q1', 'sub_q2', 'sub_q3', 'sub_q4', 'sec_q1', 'sec_q2', 'sec_q3'];
+            faqKeys.forEach(key => {
+                const q = translations.faq?.[key];
+                const a = translations.faq?.[key.replace('_q', '_a')];
+                if (q && a) {
+                    schema.mainEntity.push({
+                        "@type": "Question",
+                        "name": q,
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": a
+                        }
+                    });
+                }
+            });
+        } else {
+            // Generic WebPage Schema
+            schema = {
+                "@context": "https://schema.org",
+                "@type": "WebPage",
+                "name": pageTrans?.meta_title || translations.index?.meta_title,
+                "description": pageTrans?.meta_description || translations.index?.meta_description,
+                "url": `${baseUrl}${langPath}${pagePath}`,
+                "inLanguage": currentLanguage,
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "ScanUp",
+                    "url": baseUrl,
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": `${baseUrl}/icon-512x512.png`
+                    }
+                }
+            };
+
+            // Add SoftwareApplication schema for index page
+            if (pageKey === 'index') {
+                schema = {
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "ScanUp",
+                    "description": pageTrans?.meta_description,
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": "iOS, Android",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "0",
+                        "priceCurrency": "USD"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "ratingCount": "15000"
+                    }
+                };
+            }
+        }
+
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.setAttribute('data-i18n-schema', 'true');
+        script.textContent = JSON.stringify(schema);
+        document.head.appendChild(script);
+    }
+
+    /**
+     * Create language selector
+     */
+    function createLanguageSelector() {
+        const selector = document.querySelector('[data-i18n-selector]');
+        if (!selector) return;
+
+        selector.innerHTML = '';
+        
+        const currentMeta = LANGUAGE_META[currentLanguage];
+        
+        // Create dropdown button
+        const button = document.createElement('button');
+        button.className = 'lang-selector-btn';
+        button.innerHTML = `
+            <span class="lang-flag">${getLanguageFlag(currentLanguage)}</span>
+            <span class="lang-name">${currentMeta.native}</span>
+            <i class="fas fa-chevron-down"></i>
+        `;
+
+        // Create dropdown menu
+        const dropdown = document.createElement('div');
+        dropdown.className = 'lang-dropdown';
+        dropdown.style.display = 'none';
+
+        SUPPORTED_LANGUAGES.forEach(lang => {
+            const meta = LANGUAGE_META[lang];
+            const item = document.createElement('a');
+            item.className = 'lang-option' + (lang === currentLanguage ? ' active' : '');
+            item.href = getLanguageUrl(lang);
+            item.innerHTML = `
+                <span class="lang-flag">${getLanguageFlag(lang)}</span>
+                <span class="lang-name">${meta.native}</span>
+            `;
+            item.onclick = (e) => {
+                e.preventDefault();
+                switchLanguage(lang);
+            };
+            dropdown.appendChild(item);
+        });
+
+        button.onclick = () => {
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!selector.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        selector.appendChild(button);
+        selector.appendChild(dropdown);
+    }
+
+    /**
+     * Get language flag emoji
+     */
+    function getLanguageFlag(lang) {
+        const flags = {
+            en: '🇺🇸', tr: '🇹🇷', de: '🇩🇪', fr: '🇫🇷', es: '🇪🇸',
+            ru: '🇷🇺', it: '🇮🇹', pt: '🇧🇷', ar: '🇸🇦', zh: '🇨🇳',
+            ja: '🇯🇵', ko: '🇰🇷', nl: '🇳🇱', pl: '🇵🇱', hi: '🇮🇳'
+        };
+        return flags[lang] || '🌐';
+    }
+
+    /**
+     * Get URL for a language
+     */
+    function getLanguageUrl(lang) {
+        const currentPath = window.location.pathname;
+        const page = detectCurrentPage();
+        const isApiRoute = currentPath.startsWith('/api/');
+        
+        if (isApiRoute) {
+            // Preview environment
+            if (lang === 'en') {
+                return page === 'index' ? '/api/pages/' : `/api/pages/${page}`;
+            }
+            return page === 'index' ? `/api/pages/${lang}` : `/api/pages/${lang}/${page}`;
+        } else {
+            // Production environment
+            if (lang === 'en') {
+                return page === 'index' ? '/' : `/${page}`;
+            }
+            return page === 'index' ? `/${lang}` : `/${lang}/${page}`;
+        }
+    }
+
+    /**
+     * Switch to a different language
+     */
+    async function switchLanguage(lang) {
+        if (!SUPPORTED_LANGUAGES.includes(lang)) {
+            lang = DEFAULT_LANGUAGE;
+        }
+
+        currentLanguage = lang;
+        localStorage.setItem('scanup_language', lang);
+
+        await loadTranslations(lang);
+        applyTranslations();
+        updateSEO();
+        createLanguageSelector();
+
+        // Dispatch event for custom handlers
+        window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
+    }
+
+    /**
+     * Initialize i18n system
+     */
+    async function init() {
+        currentLanguage = detectLanguage();
+        
+        // Load English as fallback
+        fallbackTranslations = await loadTranslations('en');
+        
+        // Load current language
+        if (currentLanguage !== 'en') {
+            await loadTranslations(currentLanguage);
+        }
+
+        applyTranslations();
+        updateSEO();
+        createLanguageSelector();
+
+        // Expose global API
+        window.ScanUpI18n = {
+            t: t,
+            switchLanguage: switchLanguage,
+            getCurrentLanguage: () => currentLanguage,
+            getSupportedLanguages: () => [...SUPPORTED_LANGUAGES],
+            getLanguageMeta: (lang) => LANGUAGE_META[lang]
+        };
+
+        console.log(`🌍 ScanUp i18n v2.0 initialized - Language: ${currentLanguage}`);
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
