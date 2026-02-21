@@ -158,13 +158,20 @@ export default function ShareModal({
 
   const generatePdf = async (): Promise<string> => {
     console.log('[ShareModal] generatePdf - pageCount:', pages.length);
+    setExportProgress(t('loading_images', 'Loading images...'));
     
-    // Load images from any source
-    const imagesBase64 = await Promise.all(pages.map(page => loadPageImageBase64(page)));
+    // Load images from any source - with progress tracking
+    const imagesBase64: string[] = [];
+    for (let i = 0; i < pages.length; i++) {
+      setExportProgress(t('loading_page', 'Loading page {{current}}/{{total}}').replace('{{current}}', String(i + 1)).replace('{{total}}', String(pages.length)));
+      const img = await loadPageImageBase64(pages[i]);
+      if (img && img.length > 100) {
+        imagesBase64.push(img);
+      }
+    }
     
-    // Filter out any empty images
-    const validImages = imagesBase64.filter(img => img && img.length > 100);
-    console.log('[ShareModal] Valid images count:', validImages.length);
+    console.log('[ShareModal] Valid images count:', imagesBase64.length);
+    setExportProgress(t('generating_pdf', 'Generating PDF...'));
 
     // Build HTML for each page
     // CRITICAL: Use page-break-after for all pages except the last one
